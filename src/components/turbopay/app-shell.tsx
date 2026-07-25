@@ -98,6 +98,7 @@ const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any
       { key: "scheduled-payments", label: "Scheduled", icon: CalendarClock },
       { key: "history", label: "Transactions", icon: History },
       { key: "analytics", label: "Analytics", icon: BarChart3 },
+      { key: "wallet-insights", label: "Insights", icon: TrendingUp },
     ],
   },
   {
@@ -166,6 +167,7 @@ const Views: Record<ViewKey, React.LazyExoticComponent<React.ComponentType>> = {
   achievements: React.lazy(() => import("./views/achievements")),
   marketplace: React.lazy(() => import("./views/marketplace")),
   subscriptions: React.lazy(() => import("./views/subscriptions")),
+  "wallet-insights": React.lazy(() => import("./views/wallet-insights")),
 };
 
 const VIEW_TITLES: Record<ViewKey, string> = {
@@ -198,6 +200,7 @@ const VIEW_TITLES: Record<ViewKey, string> = {
   achievements: "Achievements",
   marketplace: "Marketplace",
   subscriptions: "Subscriptions",
+  "wallet-insights": "Wallet Insights",
 };
 
 // Set of valid view keys — used to resolve notification actionUrl → setView.
@@ -206,7 +209,7 @@ const VALID_VIEW_KEYS = new Set<string>([
   "savings", "investments", "kyc", "beneficiaries", "qr", "settings", "security",
   "rewards", "support", "admin", "multi-currency", "intl-transfers", "mobile-money",
   "payment-links", "scheduled-payments", "analytics", "disputes", "vouchers", "help-center",
-  "achievements", "marketplace", "subscriptions",
+  "achievements", "marketplace", "subscriptions", "wallet-insights",
 ]);
 
 type NotifFilter = "all" | "unread" | "important";
@@ -490,7 +493,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
         {/* Desktop sidebar — collapses to icon-only (w-16) when `collapsed` is true */}
         <aside
           className={cn(
-            "sticky top-0 hidden h-screen shrink-0 border-r bg-sidebar transition-all duration-300 lg:block",
+            "tp-sidebar-glow sticky top-0 hidden h-screen shrink-0 border-r bg-sidebar transition-all duration-300 lg:block",
             collapsed ? "w-16" : "w-64",
           )}
         >
@@ -510,7 +513,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
         {/* Main */}
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Header */}
-          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/80 px-4 tp-glass">
+          <header className="tp-header-glass sticky top-0 z-30 flex h-16 items-center gap-3 px-4">
             <button
               onClick={() => setSidebarOpen(true)}
               className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-muted lg:hidden"
@@ -620,7 +623,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
           {/* Main content */}
           <main className="flex-1 px-4 py-6 pb-24 lg:pb-6">
             <ViewTransition viewKey={view}>
-              <div className="mx-auto max-w-6xl">
+              <div key={view} className="mx-auto max-w-6xl tp-view-enter">
                 <React.Suspense
                   fallback={
                     <div className="flex h-64 items-center justify-center">
@@ -637,7 +640,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
           {/* Bottom nav (mobile) */}
           <nav
             aria-label="Primary navigation"
-            className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t bg-background/95 tp-glass lg:hidden"
+            className="tp-header-glass fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t bg-background/95 lg:hidden"
           >
             {BOTTOM_NAV.map((item) => {
               const active = view === item.key;

@@ -308,6 +308,29 @@ export default function WalletView() {
 
         {/* Right column */}
         <div className="space-y-4">
+          {/* View insights CTA */}
+          <button
+            onClick={() => setView("wallet-insights")}
+            className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-amber-500 p-5 text-left text-white shadow-lg transition-transform hover:-translate-y-0.5"
+          >
+            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 blur-xl" />
+            <div className="absolute -bottom-8 -left-4 h-20 w-20 rounded-full bg-amber-300/20 blur-xl" />
+            <div className="relative flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold">Wallet Insights</p>
+                <p className="mt-0.5 text-xs text-white/80">
+                  Cash flow forecast, burn rate & recurring expenses — see where your money is going.
+                </p>
+                <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium underline-offset-2 group-hover:underline">
+                  View insights <ChevronRight className="h-3.5 w-3.5" />
+                </span>
+              </div>
+            </div>
+          </button>
+
           {/* KYC nudge */}
           {kycUnverified && (
             <Card className="border-amber-500/30 bg-amber-500/10 p-5">

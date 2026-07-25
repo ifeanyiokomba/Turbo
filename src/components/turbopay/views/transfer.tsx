@@ -44,6 +44,9 @@ import {
   UserPlus,
   ChevronRight,
   ShieldCheck,
+  Bookmark,
+  Save,
+  BookmarkPlus,
 } from "lucide-react";
 import { UNIQUE_BANKS } from "@/lib/banks";
 import { naira, nairaPlain, parseKobo } from "@/lib/money";
@@ -86,6 +89,21 @@ interface TransferResult {
   recipientName: string;
 }
 
+interface TransferTemplate {
+  id: string;
+  name: string;
+  type: string;
+  recipientName: string;
+  accountNumber: string;
+  bankCode: string | null;
+  bankName: string | null;
+  amountKobo: number | null;
+  note: string | null;
+  isFavorite: boolean;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
 const BANK_FEE_KOBO = 5250;
 
 export default function TransferView() {
@@ -109,15 +127,35 @@ export default function TransferView() {
   const [amountInput, setAmountInput] = React.useState("");
   const [note, setNote] = React.useState("");
   const [saveBeneficiary, setSaveBeneficiary] = React.useState(true);
+  const [saveTemplate, setSaveTemplate] = React.useState(false);
 
   // Beneficiaries list
   const [beneficiaries, setBeneficiaries] = React.useState<Beneficiary[]>([]);
   const [benLoading, setBenLoading] = React.useState(true);
 
+  // Templates list
+  const [templates, setTemplates] = React.useState<TransferTemplate[]>([]);
+  const [tplLoading, setTplLoading] = React.useState(true);
+
   // Confirm + success
   const [confirmOpen, setConfirmOpen] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [result, setResult] = React.useState<TransferResult | null>(null);
+
+  // Save-template dialog (opened either after success via checkbox or via success card button)
+  const [tplDialogOpen, setTplDialogOpen] = React.useState(false);
+  const [tplName, setTplName] = React.useState("");
+  const [tplSaving, setTplSaving] = React.useState(false);
+  // Snapshot of the transfer details at the moment of success — used to seed the template payload
+  const [lastTransfer, setLastTransfer] = React.useState<{
+    type: TransferType;
+    recipientName: string;
+    accountNumber: string;
+    bankCode: string | null;
+    bankName: string | null;
+    amountKobo: number;
+    note: string;
+  } | null>(null);
 
   const amountKobo = parseKobo(amountInput);
   const feeKobo = type === "BANK" ? BANK_FEE_KOBO : 0;
@@ -139,9 +177,23 @@ export default function TransferView() {
     }
   }, []);
 
+  const loadTemplates = React.useCallback(async () => {
+    setTplLoading(true);
+    try {
+      const res = await fetch("/api/transfer-templates", { cache: "no-store" });
+      if (res.ok) {
+        const json = await res.json();
+        setTemplates(json.templates ?? []);
+      }
+    } finally {
+      setTplLoading(false);
+    }
+  }, []);
+
   React.useEffect(() => {
     loadBeneficiaries();
-  }, [loadBeneficiaries]);
+    loadTemplates();
+  }, [loadBeneficiaries, loadTemplates]);
 
   // Prefill from beneficiaries view "Send" action
   React.useEffect(() => {
@@ -199,6 +251,7 @@ export default function TransferView() {
     setAmountInput("");
     setNote("");
     setSaveBeneficiary(true);
+    setSaveTemplate(false);
   }
 
   async function resolveTurbopay() {
@@ -296,10 +349,35 @@ export default function TransferView() {
         toast.error(json?.error ?? "Transfer failed");
         return;
       }
+      // Snapshot for potential template save
+      const snapshot = {
+        type,
+        recipientName: json.recipientName ?? resolved?.name ?? recipientLabel,
+        accountNumber:
+          type === "TURBOPAY"
+            ? tpRecipient.trim() || (tpResolved?.accountNumber ?? "")
+            : bankAccount.trim(),
+        bankCode: type === "BANK" ? bankCode : null,
+        bankName:
+          type === "BANK"
+            ? bankResolved?.bankName ?? UNIQUE_BANKS.find((b) => b.code === bankCode)?.name ?? null
+            : null,
+        amountKobo,
+        note,
+      };
+      setLastTransfer(snapshot);
       setResult(json);
+      const wantsTemplate = saveTemplate;
       resetForm();
       loadBeneficiaries();
       toast.success("Transfer successful");
+      if (wantsTemplate) {
+        // Pre-seed the name field and open the save-template dialog
+        setTplName(
+          `${snapshot.recipientName} — ${nairaPlain(snapshot.amountKobo)}`.slice(0, 60),
+        );
+        setTplDialogOpen(true);
+      }
     } catch {
       toast.error("Network error. Try again.");
     } finally {
@@ -366,6 +444,116 @@ export default function TransferView() {
     toast.success(`Prefilled ${b.name}`);
   }
 
+  function prefillTemplate(t: TransferTemplate) {
+    if (t.type === "TURBOPAY") {
+      setType("TURBOPAY");
+      setTpRecipient(t.accountNumber);
+      setTpResolved({
+        name: t.recipientName,
+        type: "TURBOPAY",
+        accountNumber: t.accountNumber,
+        username: t.accountNumber,
+      });
+    } else {
+      setType("BANK");
+      setBankCode(t.bankCode ?? "");
+      setBankAccount(t.accountNumber);
+      setBankResolved({
+        name: t.recipientName,
+        type: "BANK",
+        accountNumber: t.accountNumber,
+        bankName: t.bankName ?? "",
+      });
+    }
+    setAmountInput(t.amountKobo ? String(t.amountKobo / 100) : "");
+    setNote(t.note ?? "");
+    setSaveBeneficiary(false);
+    setSaveTemplate(false);
+    // Bump lastUsedAt optimistically + persist via PATCH (touch)
+    setTemplates((arr) =>
+      arr.map((x) => (x.id === t.id ? { ...x, lastUsedAt: new Date().toISOString() } : x)),
+    );
+    fetch(`/api/transfer-templates/${t.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ touch: true }),
+    }).catch(() => {
+      /* non-fatal */
+    });
+    toast.success(`Template applied: ${t.name}`);
+  }
+
+  async function toggleFavoriteTemplate(t: TransferTemplate) {
+    const next = !t.isFavorite;
+    setTemplates((arr) =>
+      arr.map((x) => (x.id === t.id ? { ...x, isFavorite: next } : x)),
+    );
+    try {
+      await fetch(`/api/transfer-templates/${t.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isFavorite: next }),
+      });
+    } catch {
+      setTemplates((arr) =>
+        arr.map((x) => (x.id === t.id ? { ...x, isFavorite: !next } : x)),
+      );
+    }
+  }
+
+  async function deleteTemplate(t: TransferTemplate) {
+    const prev = templates;
+    setTemplates((arr) => arr.filter((x) => x.id !== t.id));
+    try {
+      const res = await fetch(`/api/transfer-templates/${t.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast.success("Template removed");
+    } catch {
+      setTemplates(prev);
+      toast.error("Could not delete template");
+    }
+  }
+
+  async function saveTemplateFromSnapshot() {
+    if (!lastTransfer) return;
+    const name = tplName.trim();
+    if (!name) {
+      toast.error("Give your template a name");
+      return;
+    }
+    setTplSaving(true);
+    try {
+      const res = await fetch("/api/transfer-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          type: lastTransfer.type,
+          recipientName: lastTransfer.recipientName,
+          accountNumber: lastTransfer.accountNumber,
+          bankCode: lastTransfer.bankCode,
+          bankName: lastTransfer.bankName,
+          amountKobo: lastTransfer.amountKobo,
+          note: lastTransfer.note || null,
+          isFavorite: false,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json?.error ?? "Could not save template");
+        return;
+      }
+      toast.success("Template saved");
+      setTplDialogOpen(false);
+      setTplName("");
+      loadTemplates();
+    } catch {
+      toast.error("Network error. Try again.");
+    } finally {
+      setTplSaving(false);
+    }
+  }
+
   return (
     <div className="space-y-6 tp-fade-rise">
       <PageHeader
@@ -374,7 +562,21 @@ export default function TransferView() {
       />
 
       {result ? (
-        <SuccessCard result={result} onNew={() => setResult(null)} onViewHistory={() => setView("history")} />
+        <SuccessCard
+          result={result}
+          onNew={() => {
+            setResult(null);
+            setLastTransfer(null);
+          }}
+          onViewHistory={() => setView("history")}
+          onSaveTemplate={() => {
+            // Seed the name from the transfer result and open the dialog
+            const r = result;
+            const seed = `${r.recipientName ?? r.transaction.counterpartyName ?? "Transfer"} — ${nairaPlain(r.transaction.amountKobo)}`.slice(0, 60);
+            setTplName(seed);
+            setTplDialogOpen(true);
+          }}
+        />
       ) : (
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Left column - form */}
@@ -549,6 +751,20 @@ export default function TransferView() {
                   Save as beneficiary
                 </label>
 
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={saveTemplate}
+                    onCheckedChange={(v) => setSaveTemplate(v === true)}
+                  />
+                  <span className="flex items-center gap-1">
+                    <Bookmark className="h-3.5 w-3.5 text-muted-foreground" />
+                    Save as template
+                    <span className="text-xs text-muted-foreground">
+                      (prompt for name after transfer)
+                    </span>
+                  </span>
+                </label>
+
                 <Button
                   className="w-full gap-1.5"
                   size="lg"
@@ -657,9 +873,156 @@ export default function TransferView() {
                 </div>
               </div>
             </Card>
+
+            {/* Saved templates */}
+            <Card className="p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="flex items-center gap-1.5 text-sm font-semibold">
+                  <Bookmark className="h-4 w-4 text-primary" /> Templates
+                </p>
+                <span className="text-xs text-muted-foreground">
+                  {templates.length} saved
+                </span>
+              </div>
+              {tplLoading ? (
+                <div className="space-y-2">
+                  {[0, 1].map((i) => (
+                    <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : templates.length === 0 ? (
+                <EmptyState
+                  icon={BookmarkPlus}
+                  title="No templates yet"
+                  description="Save your recurring transfers for quick access."
+                />
+              ) : (
+                <div className="max-h-80 space-y-2 overflow-y-auto scrollbar-thin pr-1">
+                  {templates.map((t) => (
+                    <div
+                      key={t.id}
+                      className="group rounded-xl border border-transparent p-2.5 transition-colors hover:border-border hover:bg-muted/40"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                          {t.type === "TURBOPAY" ? (
+                            <ArrowLeftRight className="h-4 w-4" />
+                          ) : (
+                            <Landmark className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{t.name}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {t.recipientName} · {t.accountNumber}
+                            {t.bankName ? ` · ${t.bankName}` : ""}
+                          </p>
+                          {t.amountKobo ? (
+                            <p className="mt-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+                              {naira(t.amountKobo)}
+                              {t.note ? ` · ${t.note}` : ""}
+                            </p>
+                          ) : null}
+                        </div>
+                        <button
+                          onClick={() => toggleFavoriteTemplate(t)}
+                          className="shrink-0 p-1.5"
+                          title={t.isFavorite ? "Unfavorite" : "Favorite"}
+                        >
+                          <Star
+                            className={`h-4 w-4 ${
+                              t.isFavorite
+                                ? "fill-amber-400 text-amber-400"
+                                : "text-muted-foreground"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-7 flex-1 gap-1.5"
+                          onClick={() => prefillTemplate(t)}
+                        >
+                          <ArrowRight className="h-3.5 w-3.5" /> Use
+                        </Button>
+                        <button
+                          onClick={() => deleteTemplate(t)}
+                          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          title="Delete template"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
           </div>
         </div>
       )}
+
+      {/* Save-template dialog */}
+      <Dialog open={tplDialogOpen} onOpenChange={setTplDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Save transfer template</DialogTitle>
+            <DialogDescription>
+              Give this transfer a name so you can quickly reuse it next time.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="space-y-2">
+              <Label htmlFor="tpl-name">Template name</Label>
+              <Input
+                id="tpl-name"
+                placeholder="e.g. Monthly rent to John"
+                value={tplName}
+                onChange={(e) => setTplName(e.target.value)}
+                maxLength={60}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !tplSaving) saveTemplateFromSnapshot();
+                }}
+              />
+            </div>
+            {lastTransfer && (
+              <div className="rounded-xl border bg-muted/40 p-3 text-xs">
+                <Row label="Recipient" value={lastTransfer.recipientName} />
+                <Row
+                  label="Account"
+                  value={
+                    lastTransfer.type === "BANK"
+                      ? `${lastTransfer.accountNumber}${lastTransfer.bankName ? ` · ${lastTransfer.bankName}` : ""}`
+                      : lastTransfer.accountNumber
+                  }
+                />
+                <Row label="Amount" value={naira(lastTransfer.amountKobo)} />
+                {lastTransfer.note && <Row label="Note" value={lastTransfer.note} />}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button variant="outline" className="flex-1" onClick={() => setTplDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 gap-1.5"
+              disabled={tplSaving || !tplName.trim()}
+              onClick={saveTemplateFromSnapshot}
+            >
+              {tplSaving ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Save template
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirm dialog */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
@@ -724,10 +1087,12 @@ function SuccessCard({
   result,
   onNew,
   onViewHistory,
+  onSaveTemplate,
 }: {
   result: TransferResult;
   onNew: () => void;
   onViewHistory: () => void;
+  onSaveTemplate: () => void;
 }) {
   const tx = result.transaction;
   return (
@@ -760,6 +1125,13 @@ function SuccessCard({
           })}
         />
       </div>
+
+      <button
+        onClick={onSaveTemplate}
+        className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+      >
+        <BookmarkPlus className="h-4 w-4" /> Save as template
+      </button>
 
       <div className="mt-5 flex gap-2">
         <Button variant="outline" className="flex-1 gap-1.5" onClick={onNew}>

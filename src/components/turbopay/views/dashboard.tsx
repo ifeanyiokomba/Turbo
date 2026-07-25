@@ -241,15 +241,21 @@ export default function DashboardView() {
         <div className="space-y-6 lg:col-span-2">
           {/* Balance card */}
           {data?.wallet && (
-            <BalanceCard
-              balanceKobo={data.wallet.balanceKobo}
-              accountNumber={data.virtualAccount?.accountNumber}
-              accountName={data.virtualAccount?.accountName}
-              onFund={() => setView("wallet")}
-              onTransfer={() => setView("transfer")}
-              hideBalance={hideBalance}
-              onToggleHide={() => setHideBalance((v) => !v)}
-            />
+            <div
+              className={`rounded-3xl ${
+                data.wallet.balanceKobo > 0 ? "tp-glow-emerald tp-noise" : ""
+              }`}
+            >
+              <BalanceCard
+                balanceKobo={data.wallet.balanceKobo}
+                accountNumber={data.virtualAccount?.accountNumber}
+                accountName={data.virtualAccount?.accountName}
+                onFund={() => setView("wallet")}
+                onTransfer={() => setView("transfer")}
+                hideBalance={hideBalance}
+                onToggleHide={() => setHideBalance((v) => !v)}
+              />
+            </div>
           )}
 
           {/* Quick actions */}

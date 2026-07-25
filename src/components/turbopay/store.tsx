@@ -32,7 +32,8 @@ export type ViewKey =
   | "help-center"
   | "achievements"
   | "marketplace"
-  | "subscriptions";
+  | "subscriptions"
+  | "wallet-insights";
 
 export interface AppUser {
   id: string;

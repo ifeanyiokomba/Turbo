@@ -40,9 +40,15 @@ import {
   Plane,
   Sparkles,
   ChevronRight,
+  ThumbsUp,
+  ThumbsDown,
+  MessageSquarePlus,
+  Send,
 } from "lucide-react";
-import { naira } from "@/lib/money";
+import { naira, formatDate, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -69,6 +75,21 @@ interface CategoryInfo {
   key: string;
   label: string;
   count: number;
+}
+
+interface Review {
+  id: string;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  userFullName: string;
+}
+
+interface ReviewsPayload {
+  reviews: Review[];
+  avgRating: number;
+  totalReviews: number;
+  ratingDistribution: Record<string, number>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -169,6 +190,15 @@ export default function MarketplaceView() {
   const [detailSimilar, setDetailSimilar] = React.useState<Merchant[]>([]);
   const [detailLoading, setDetailLoading] = React.useState(false);
 
+  // Reviews state for the detail dialog
+  const [reviews, setReviews] = React.useState<ReviewsPayload | null>(null);
+  const [reviewsLoading, setReviewsLoading] = React.useState(false);
+  const [reviewDialogOpen, setReviewDialogOpen] = React.useState(false);
+  const [reviewRating, setReviewRating] = React.useState(0);
+  const [reviewHover, setReviewHover] = React.useState(0);
+  const [reviewComment, setReviewComment] = React.useState("");
+  const [reviewSubmitting, setReviewSubmitting] = React.useState(false);
+
   const [payTarget, setPayTarget] = React.useState<Merchant | null>(null);
   const [payAmount, setPayAmount] = React.useState("");
   const [payNote, setPayNote] = React.useState("");
@@ -207,7 +237,9 @@ export default function MarketplaceView() {
   async function openDetail(m: Merchant) {
     setDetail(m);
     setDetailSimilar([]);
+    setReviews(null);
     setDetailLoading(true);
+    setReviewsLoading(true);
     try {
       const res = await fetch(`/api/marketplace/${m.id}`, { cache: "no-store" });
       if (res.ok) {
@@ -217,6 +249,74 @@ export default function MarketplaceView() {
       }
     } finally {
       setDetailLoading(false);
+    }
+    // Load reviews in parallel — non-blocking.
+    loadReviews(m.id);
+  }
+
+  async function loadReviews(merchantId: string) {
+    setReviewsLoading(true);
+    try {
+      const res = await fetch(`/api/marketplace/${merchantId}/reviews`, {
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const data = (await res.json()) as ReviewsPayload;
+        setReviews(data);
+      }
+    } catch {
+      /* non-fatal */
+    } finally {
+      setReviewsLoading(false);
+    }
+  }
+
+  function openWriteReview() {
+    setReviewRating(0);
+    setReviewHover(0);
+    setReviewComment("");
+    setReviewDialogOpen(true);
+  }
+
+  async function submitReview() {
+    if (!detail) return;
+    if (reviewRating < 1 || reviewRating > 5) {
+      toast.error("Please select a rating from 1 to 5 stars");
+      return;
+    }
+    setReviewSubmitting(true);
+    try {
+      const res = await fetch(`/api/marketplace/${detail.id}/reviews`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: reviewRating,
+          comment: reviewComment.trim() || undefined,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json?.error ?? "Could not submit review");
+        return;
+      }
+      toast.success("Thanks for your review!", {
+        description: `${reviewRating}★ rating submitted`,
+      });
+      setReviewDialogOpen(false);
+      // Refresh reviews + merchant aggregate.
+      await loadReviews(detail.id);
+      // Optimistically update the merchant card rating display.
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              rating: json.avgRating ?? prev.rating,
+              reviewCount: json.totalReviews ?? prev.reviewCount,
+            }
+          : prev,
+      );
+    } finally {
+      setReviewSubmitting(false);
     }
   }
 
@@ -554,6 +654,13 @@ export default function MarketplaceView() {
                     </div>
                   </div>
                 ) : null}
+
+                {/* ===== Reviews & Ratings ===== */}
+                <ReviewsSection
+                  reviews={reviews}
+                  loading={reviewsLoading}
+                  onWriteReview={openWriteReview}
+                />
               </div>
 
               <DialogFooter>
@@ -570,6 +677,87 @@ export default function MarketplaceView() {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Write a review dialog */}
+      <Dialog open={reviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquarePlus className="h-5 w-5 text-emerald-500" />
+              Write a review
+            </DialogTitle>
+            <DialogDescription>
+              Share your experience with {detail?.name}. Your honest feedback helps others.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Your rating</Label>
+              <div className="flex items-center gap-1.5">
+                {Array.from({ length: 5 }).map((_, i) => {
+                  const value = i + 1;
+                  const active = (reviewHover || reviewRating) >= value;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setReviewRating(value)}
+                      onMouseEnter={() => setReviewHover(value)}
+                      onMouseLeave={() => setReviewHover(0)}
+                      aria-label={`${value} star${value > 1 ? "s" : ""}`}
+                      className="rounded-md p-1 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                    >
+                      <Star
+                        className={`h-7 w-7 transition-colors ${
+                          active
+                            ? "fill-amber-400 text-amber-400"
+                            : "fill-muted text-muted-foreground/40"
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+                <span className="ml-2 text-sm font-medium text-muted-foreground">
+                  {reviewRating > 0
+                    ? `${reviewRating} / 5`
+                    : "Tap a star to rate"}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="review-comment">Your review (optional)</Label>
+              <Textarea
+                id="review-comment"
+                rows={4}
+                placeholder="Tell others about your experience..."
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+                maxLength={1000}
+              />
+              <p className="text-right text-[10px] text-muted-foreground">
+                {reviewComment.length} / 1000
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReviewDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={submitReview}
+              disabled={reviewSubmitting || reviewRating === 0}
+              className="gap-1.5"
+            >
+              {reviewSubmitting ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+              Submit review
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -752,6 +940,170 @@ function InfoRow({
         <p className="truncate text-xs font-medium">{value}</p>
       </div>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Reviews & Ratings section                                            */
+/* ------------------------------------------------------------------ */
+
+function ReviewsSection({
+  reviews,
+  loading,
+  onWriteReview,
+}: {
+  reviews: ReviewsPayload | null;
+  loading: boolean;
+  onWriteReview: () => void;
+}) {
+  return (
+    <section className="rounded-2xl border bg-card/50 p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <h4 className="flex items-center gap-2 text-sm font-semibold">
+          <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+          Reviews &amp; Ratings
+        </h4>
+        <Button size="sm" variant="outline" onClick={onWriteReview} className="gap-1.5">
+          <MessageSquarePlus className="h-3.5 w-3.5" /> Write a review
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-20 w-full rounded-xl" />
+          <Skeleton className="h-16 w-full rounded-xl" />
+        </div>
+      ) : !reviews ? (
+        <p className="py-4 text-center text-xs text-muted-foreground">
+          Could not load reviews.
+        </p>
+      ) : (
+        <>
+          {/* Summary block */}
+          <div className="flex flex-col gap-4 rounded-xl bg-muted/40 p-4 sm:flex-row sm:items-center">
+            <div className="flex shrink-0 flex-col items-center justify-center sm:w-28">
+              <p className="text-4xl font-bold tabular-nums text-foreground">
+                {reviews.avgRating.toFixed(1)}
+              </p>
+              <Stars value={reviews.avgRating} />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {reviews.totalReviews.toLocaleString()} review
+                {reviews.totalReviews === 1 ? "" : "s"}
+              </p>
+            </div>
+
+            {/* Rating distribution bars */}
+            <div className="flex-1 space-y-1.5">
+              {[5, 4, 3, 2, 1].map((star) => {
+                const count = reviews.ratingDistribution[String(star)] ?? 0;
+                const realTotal = Object.values(
+                  reviews.ratingDistribution,
+                ).reduce((a, b) => a + b, 0);
+                const pct = realTotal > 0 ? (count / realTotal) * 100 : 0;
+                return (
+                  <div key={star} className="flex items-center gap-2 text-[11px]">
+                    <span className="flex w-6 items-center gap-0.5 text-muted-foreground">
+                      {star}
+                      <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+                    </span>
+                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="w-6 text-right tabular-nums text-muted-foreground">
+                      {count}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Reviews list */}
+          {reviews.reviews.length === 0 ? (
+            <div className="mt-4 rounded-xl border border-dashed py-6 text-center">
+              <Star className="mx-auto h-6 w-6 text-muted-foreground/40" />
+              <p className="mt-2 text-sm font-medium">No written reviews yet</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Be the first to share your experience.
+              </p>
+            </div>
+          ) : (
+            <ScrollArea className="mt-4 max-h-80">
+              <div className="tp-stagger space-y-3 pr-2">
+                {reviews.reviews.map((r) => (
+                  <ReviewItem key={r.id} review={r} />
+                ))}
+              </div>
+            </ScrollArea>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+function ReviewItem({ review }: { review: Review }) {
+  const [helpful, setHelpful] = React.useState<"up" | "down" | null>(null);
+
+  return (
+    <article className="rounded-xl border bg-card p-3">
+      <div className="flex items-start gap-3">
+        <Avatar className="h-9 w-9 border bg-emerald-500/10">
+          <AvatarFallback className="bg-transparent text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+            {initials(review.userFullName)}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
+            <p className="truncate text-sm font-semibold">{review.userFullName}</p>
+            <span className="text-[10px] text-muted-foreground" title={formatDate(review.createdAt, true)}>
+              {timeAgo(review.createdAt)}
+            </span>
+          </div>
+          <div className="mt-0.5 flex items-center gap-2">
+            <Stars value={review.rating} />
+            <span className="text-[10px] font-medium text-muted-foreground">
+              {review.rating}.0
+            </span>
+          </div>
+          {review.comment && (
+            <p className="mt-2 text-xs leading-relaxed text-foreground/90">
+              {review.comment}
+            </p>
+          )}
+          <div className="mt-2 flex items-center gap-1">
+            <span className="mr-1 text-[10px] text-muted-foreground">Helpful?</span>
+            <button
+              type="button"
+              onClick={() => setHelpful((h) => (h === "up" ? null : "up"))}
+              aria-pressed={helpful === "up"}
+              className={`inline-flex h-6 items-center gap-1 rounded-full border px-2 text-[10px] transition-colors ${
+                helpful === "up"
+                  ? "border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "border-border text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <ThumbsUp className="h-3 w-3" /> Yes
+            </button>
+            <button
+              type="button"
+              onClick={() => setHelpful((h) => (h === "down" ? null : "down"))}
+              aria-pressed={helpful === "down"}
+              className={`inline-flex h-6 items-center gap-1 rounded-full border px-2 text-[10px] transition-colors ${
+                helpful === "down"
+                  ? "border-red-500 bg-red-500/10 text-red-600 dark:text-red-400"
+                  : "border-border text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <ThumbsDown className="h-3 w-3" /> No
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }
 

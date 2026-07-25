@@ -1006,6 +1006,24 @@ model UserBadge {
   @@index([userId])
 }
 
+model TransferTemplate {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  type          String   @default("BANK") // BANK | TURBOPAY
+  recipientName String
+  accountNumber String
+  bankCode      String?
+  bankName      String?
+  amountKobo    Int?
+  note          String?
+  isFavorite    Boolean  @default(false)
+  lastUsedAt    DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+}
+
 model MarketplaceMerchant {
   id            String   @id @default(cuid())
   name          String
@@ -1024,4 +1042,16 @@ model MarketplaceMerchant {
   createdAt     DateTime @default(now())
   @@index([category, status])
   @@index([featured])
+}
+
+model MerchantReview {
+  id            String   @id @default(cuid())
+  merchantId    String
+  userId        String
+  rating        Int      // 1-5
+  comment       String?
+  status        String   @default("PUBLISHED") // PUBLISHED | HIDDEN
+  createdAt     DateTime @default(now())
+  @@unique([merchantId, userId])
+  @@index([merchantId, status])
 }

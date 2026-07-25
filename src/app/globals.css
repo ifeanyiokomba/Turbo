@@ -88,11 +88,11 @@
 }
 
 .dark {
-  --background: oklch(0.16 0.015 162);
+  --background: oklch(0.14 0.015 162);
   --foreground: oklch(0.97 0.01 162);
-  --card: oklch(0.21 0.02 162);
+  --card: oklch(0.19 0.02 162);
   --card-foreground: oklch(0.97 0.01 162);
-  --popover: oklch(0.21 0.02 162);
+  --popover: oklch(0.19 0.02 162);
   --popover-foreground: oklch(0.97 0.01 162);
   --primary: oklch(0.72 0.14 162);
   --primary-foreground: oklch(0.16 0.02 162);
@@ -107,7 +107,7 @@
   --success-foreground: oklch(0.16 0.02 162);
   --warning: oklch(0.80 0.13 75);
   --warning-foreground: oklch(0.20 0.05 70);
-  --border: oklch(1 0 0 / 10%);
+  --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 12%);
   --ring: oklch(0.72 0.14 162);
   --chart-1: oklch(0.72 0.14 162);
@@ -121,7 +121,7 @@
   --sidebar-primary-foreground: oklch(0.13 0.02 162);
   --sidebar-accent: oklch(0.22 0.02 162);
   --sidebar-accent-foreground: oklch(0.95 0.01 162);
-  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.72 0.14 162);
 }
 
@@ -758,4 +758,111 @@ html { scroll-behavior: smooth; }
 }
 .tp-nav-item svg {
   transition: transform 0.18s ease;
+}
+
+/* ===== Task R8-B: Dark mode refinements + glassmorphism + glows ===== */
+
+/* Sticky header glassmorphism — stronger blur + saturation than .tp-glass */
+.tp-header-glass {
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: color-mix(in oklch, var(--background) 70%, transparent);
+  border-bottom: 1px solid color-mix(in oklch, var(--border) 50%, transparent);
+}
+
+/* Sidebar top glow — subtle emerald halo at the top edge of the sidebar.
+   Pair with `position: relative` on the sidebar container. */
+.tp-sidebar-glow {
+  position: relative;
+}
+.tp-sidebar-glow::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: radial-gradient(ellipse at top, oklch(0.62 0.14 162 / 0.08), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.tp-sidebar-glow > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Emerald glow for active / highlighted cards (e.g. balance card) */
+.tp-glow-emerald {
+  box-shadow:
+    0 0 20px -5px oklch(0.62 0.14 162 / 0.3),
+    0 12px 28px -16px oklch(0.30 0.12 162 / 0.45);
+}
+
+/* Amber glow variant — for rewards / featured cards */
+.tp-glow-amber {
+  box-shadow:
+    0 0 20px -5px oklch(0.80 0.13 75 / 0.3),
+    0 12px 28px -16px oklch(0.55 0.13 75 / 0.35);
+}
+
+/* Deeper, more vivid balance card in dark mode — richer gradient + stronger glow */
+.dark .tp-wallet-card {
+  background:
+    radial-gradient(120% 120% at 0% 0%, oklch(0.55 0.15 162) 0%, oklch(0.36 0.11 162) 55%, oklch(0.20 0.05 162) 100%);
+  box-shadow:
+    0 22px 48px -18px oklch(0.30 0.12 162 / 0.65),
+    0 0 24px -6px oklch(0.62 0.14 162 / 0.25);
+}
+
+/* Subtle SVG noise texture overlay for depth — apply to a relatively-positioned parent */
+.tp-noise {
+  position: relative;
+}
+.tp-noise::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Ccircle cx='1' cy='1' r='0.5' fill='%23ffffff' opacity='0.03'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  pointer-events: none;
+  border-radius: inherit;
+  z-index: 0;
+}
+.tp-noise > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== Loading transitions polish ===== */
+
+/* Smooth view entrance — opacity + slight Y + scale */
+@keyframes tp-view-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.tp-view-enter {
+  animation: tp-view-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Staggered children entrance — fade + slide up, sequential delays */
+@keyframes tp-stagger-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.tp-stagger > * {
+  animation: tp-stagger-in 0.4s ease-out both;
+}
+.tp-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.tp-stagger > *:nth-child(2) { animation-delay: 0.10s; }
+.tp-stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.tp-stagger > *:nth-child(4) { animation-delay: 0.20s; }
+.tp-stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.tp-stagger > *:nth-child(6) { animation-delay: 0.30s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tp-view-enter { animation: none !important; }
+  .tp-stagger > * { animation: none !important; }
+  .tp-glow-emerald,
+  .tp-glow-amber { box-shadow: none !important; }
+  .tp-sidebar-glow::before { display: none !important; }
 }
