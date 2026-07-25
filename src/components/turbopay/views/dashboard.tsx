@@ -21,8 +21,12 @@ import {
   BarChart3,
   TrendingUp, TrendingDown, CalendarDays, Lightbulb,
   Crown, Sparkles,
+  CheckCircle2, Circle, KeyRound, Mail, Phone, BadgeCheck, PartyPopper,
+  Award, Lock as LockIcon, Send, Coins, ShoppingBag, Bird, Gift, ShieldCheck,
+  type LucideIcon,
 } from "lucide-react";
-import { naira, nairaCompact } from "@/lib/money";
+import { naira, nairaCompact, formatDate } from "@/lib/money";
+import { BADGE_COLOR_CLASSES, type BadgeKey } from "@/lib/badges";
 import { toast } from "sonner";
 
 interface DashData {
@@ -66,6 +70,21 @@ interface InsightsData {
   transactions: TxItem[];
 }
 
+interface BadgePayload {
+  key: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: "emerald" | "amber" | "violet" | "sky" | "rose";
+  earned: boolean;
+  earnedAt: string | null;
+}
+
+interface BadgesData {
+  badges: BadgePayload[];
+  stats: { earned: number; total: number; completionPct: number };
+}
+
 const SPEND_COLORS = ["oklch(0.62 0.14 162)", "oklch(0.80 0.13 75)", "oklch(0.65 0.18 250)", "oklch(0.70 0.20 18)", "oklch(0.60 0.14 155)", "oklch(0.65 0.18 303)"];
 
 const TYPE_LABELS: Record<string, string> = {
@@ -80,6 +99,7 @@ export default function DashboardView() {
   const [loading, setLoading] = React.useState(true);
   const [hideBalance, setHideBalance] = React.useState(false);
   const [insights, setInsights] = React.useState<InsightsData | null>(null);
+  const [badges, setBadges] = React.useState<BadgesData | null>(null);
 
   const load = React.useCallback(async () => {
     try {
@@ -91,19 +111,23 @@ export default function DashboardView() {
   }, []);
   React.useEffect(() => { load(); }, [load]);
 
-  // Load insights (analytics + recent transactions for day-of-week counts)
+  // Load insights (analytics + recent transactions for day-of-week counts) and
+  // badges in parallel — both decorative, non-fatal.
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const [aRes, tRes] = await Promise.all([
+        const [aRes, tRes, bRes] = await Promise.all([
           fetch("/api/analytics", { cache: "no-store" }),
           fetch("/api/transactions?limit=100", { cache: "no-store" }),
+          fetch("/api/badges", { cache: "no-store" }),
         ]);
         const a = aRes.ok ? await aRes.json() : null;
         const t = tRes.ok ? await tRes.json() : null;
+        const b = bRes.ok ? await bRes.json() : null;
         if (cancelled) return;
         if (a || t) setInsights({ analytics: a, transactions: t?.transactions ?? [] });
+        if (b) setBadges(b);
       } catch {
         /* non-fatal — insights are decorative */
       }
@@ -331,6 +355,9 @@ export default function DashboardView() {
             </div>
           </Card>
 
+          {/* Recent badges */}
+          <RecentBadgesCard badges={badges} setView={setView} />
+
           {/* Monthly spending ring */}
           {data?.stats && data.stats.moneyOut > 0 && (
             <Card className="p-5">
@@ -385,9 +412,144 @@ export default function DashboardView() {
               <p className="py-8 text-center text-sm text-muted-foreground">No spending yet</p>
             )}
           </Card>
+
+          {/* Profile completion progress */}
+          <ProfileCompletionCard setView={setView} />
         </div>
       </div>
     </div>
+  );
+}
+
+/* ================================================================= */
+/* Recent badges — small card in the dashboard right column            */
+/* ================================================================= */
+
+const DASHBOARD_BADGE_ICONS: Record<string, LucideIcon> = {
+  Wallet: WalletIcon, Send, Smartphone, Receipt, CreditCard, PiggyBank, TrendingUp,
+  BadgeCheck, LockIcon, Coins, ShoppingBag, Bird, Gift, ShieldCheck,
+};
+
+function resolveBadgeIcon(name: string): LucideIcon {
+  return DASHBOARD_BADGE_ICONS[name] ?? Award;
+}
+
+function RecentBadgesCard({
+  badges,
+  setView,
+}: {
+  badges: BadgesData | null;
+  setView: (v: "achievements") => void;
+}) {
+  // Loading skeleton
+  if (!badges) {
+    return (
+      <Card className="p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="tp-skeleton-shimmer h-4 w-28 rounded-full" />
+          <div className="tp-skeleton-shimmer h-3 w-12 rounded-full" />
+        </div>
+        <div className="space-y-2">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="tp-skeleton-shimmer h-10 w-full rounded-xl" />
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  const earned = badges.badges
+    .filter((b) => b.earned)
+    .sort((a, b) => (b.earnedAt ?? "").localeCompare(a.earnedAt ?? ""))
+    .slice(0, 3);
+  const stats = badges.stats;
+
+  return (
+    <Card className="relative overflow-hidden p-5">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-amber-500/5"
+      />
+      <div className="relative">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              <Award className="h-3.5 w-3.5" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold leading-tight">Your badges</p>
+              <p className="text-[10px] text-muted-foreground">
+                {stats.earned} of {stats.total} unlocked
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setView("achievements")}
+            className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            View all <ChevronRight className="h-3 w-3" />
+          </button>
+        </div>
+
+        {earned.length > 0 ? (
+          <div className="space-y-2">
+            {earned.map((b) => {
+              const Icon = resolveBadgeIcon(b.icon);
+              const colors = BADGE_COLOR_CLASSES[b.color as BadgeKey] ?? BADGE_COLOR_CLASSES.emerald;
+              return (
+                <div
+                  key={b.key}
+                  className={`flex items-center gap-3 rounded-xl bg-gradient-to-br ${colors.grad} p-2.5 ring-1 ${colors.ring}`}
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/70 dark:bg-white/10">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-semibold">{b.name}</p>
+                    {b.earnedAt && (
+                      <p className="text-[10px] text-muted-foreground">
+                        {formatDate(b.earnedAt)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {/* Completion mini-bar */}
+            <div className="pt-1">
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>Completion</span>
+                <span className="font-medium tabular-nums">{stats.completionPct}%</span>
+              </div>
+              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all"
+                  style={{ width: `${stats.completionPct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-4 text-center">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+              <LockIcon className="h-4 w-4" />
+            </div>
+            <p className="mt-2 text-xs font-medium">No badges yet</p>
+            <p className="mt-0.5 text-[10px] text-muted-foreground">
+              Fund your wallet to earn your first badge.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2 h-7 gap-1 px-2 text-[11px]"
+              onClick={() => setView("achievements")}
+            >
+              See all badges <ChevronRight className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -740,5 +902,202 @@ function InsightsSection({
         </Card>
       </div>
     </div>
+  );
+}
+
+/* ================================================================= */
+/* Profile completion — progress card in the dashboard right column   */
+/* ================================================================= */
+
+interface CompletionStep {
+  key: string;
+  label: string;
+  done: boolean;
+}
+
+interface CompletionData {
+  steps: CompletionStep[];
+  completed: number;
+  total: number;
+  percent: number;
+  hasPin: boolean;
+  emailVerified: boolean;
+  phoneVerified: boolean;
+  kycVerified: boolean;
+}
+
+const STEP_META: Record<
+  string,
+  { icon: React.ComponentType<{ className?: string }>; ctaView: "settings" | "kyc"; ctaLabel: string }
+> = {
+  pin: { icon: KeyRound, ctaView: "settings", ctaLabel: "Set PIN" },
+  email: { icon: Mail, ctaView: "settings", ctaLabel: "Verify email" },
+  phone: { icon: Phone, ctaView: "settings", ctaLabel: "Verify phone" },
+  kyc: { icon: BadgeCheck, ctaView: "kyc", ctaLabel: "Complete KYC" },
+};
+
+function ProfileCompletionCard({
+  setView,
+}: {
+  setView: (v: "settings" | "kyc") => void;
+}) {
+  const [data, setData] = React.useState<CompletionData | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/profile/completion", { cache: "no-store" });
+        if (res.ok) {
+          const json = await res.json();
+          if (!cancelled) setData(json);
+        }
+      } catch {
+        /* non-fatal — card is decorative */
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) {
+    return (
+      <Card className="p-5">
+        <div className="tp-skeleton-shimmer mb-3 h-4 w-40 rounded-full" />
+        <div className="tp-skeleton-shimmer mb-4 h-2.5 w-full rounded-full" />
+        <div className="space-y-2.5">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-2.5">
+              <div className="tp-skeleton-shimmer h-5 w-5 rounded-full" />
+              <div className="tp-skeleton-shimmer h-3 flex-1 rounded-full" />
+            </div>
+          ))}
+        </div>
+      </Card>
+    );
+  }
+
+  if (!data) return null;
+
+  const complete = data.percent >= 100;
+  const incomplete = data.steps.filter((s) => !s.done);
+
+  return (
+    <Card className={`relative overflow-hidden p-5 ${complete ? "tp-card-gradient" : ""}`}>
+      {/* Header */}
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div
+            className={`flex h-9 w-9 items-center justify-center rounded-lg ${
+              complete
+                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+            }`}
+          >
+            {complete ? <PartyPopper className="h-4.5 w-4.5" /> : <ShieldAlert className="h-4.5 w-4.5" />}
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Profile completion</p>
+            <p className="text-[11px] text-muted-foreground">
+              {complete ? "All set — you're fully verified" : "Secure & unlock higher limits"}
+            </p>
+          </div>
+        </div>
+        <span
+          className={`text-lg font-bold tabular-nums ${
+            complete
+              ? "text-emerald-600 dark:text-emerald-400"
+              : "text-amber-600 dark:text-amber-400"
+          }`}
+        >
+          {data.percent}%
+        </span>
+      </div>
+
+      {/* Gradient progress bar */}
+      <div className="relative mb-4 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+        <div
+          className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out ${
+            complete
+              ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
+              : "bg-gradient-to-r from-amber-500 via-amber-400 to-emerald-500"
+          }`}
+          style={{ width: `${data.percent}%` }}
+        />
+        {complete && (
+          <div
+            aria-hidden
+            className="absolute inset-y-0 left-0 animate-pulse rounded-full bg-white/30"
+            style={{ width: `${data.percent}%`, animationDuration: "2.5s" }}
+          />
+        )}
+      </div>
+
+      {/* Celebration state */}
+      {complete ? (
+        <div className="flex items-center gap-3 rounded-xl bg-emerald-500/10 p-3 text-emerald-700 dark:text-emerald-400">
+          <CheckCircle2 className="h-5 w-5 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold">Profile complete!</p>
+            <p className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80">
+              You've unlocked all security & limit tiers.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {data.steps.map((s) => {
+            const meta = STEP_META[s.key] ?? STEP_META[s.key === "kyc" ? "kyc" : "pin"];
+            const Icon = meta.icon;
+            return (
+              <div
+                key={s.key}
+                className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors ${
+                  s.done ? "" : "hover:bg-muted/50"
+                }`}
+              >
+                {s.done ? (
+                  <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" />
+                ) : (
+                  <Circle className="h-5 w-5 shrink-0 text-amber-500" />
+                )}
+                <div className="flex min-w-0 flex-1 items-center gap-2">
+                  <Icon
+                    className={`h-3.5 w-3.5 shrink-0 ${
+                      s.done ? "text-emerald-500" : "text-muted-foreground"
+                    }`}
+                  />
+                  <span
+                    className={`truncate text-xs font-medium ${
+                      s.done ? "text-muted-foreground line-through decoration-emerald-500/40" : "text-foreground"
+                    }`}
+                  >
+                    {s.label}
+                  </span>
+                </div>
+                {!s.done && (
+                  <button
+                    onClick={() => setView(meta.ctaView)}
+                    className="inline-flex shrink-0 items-center gap-0.5 rounded-md bg-amber-500/15 px-2 py-1 text-[10px] font-semibold text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-400"
+                  >
+                    {meta.ctaLabel}
+                    <ChevronRight className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Footer nudge */}
+          {incomplete.length > 0 && (
+            <p className="pt-1 text-[10px] text-muted-foreground">
+              {incomplete.length} step{incomplete.length === 1 ? "" : "s"} remaining · each adds 25% to your profile strength
+            </p>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }

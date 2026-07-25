@@ -29,7 +29,8 @@ export type ViewKey =
   | "analytics"
   | "disputes"
   | "vouchers"
-  | "help-center";
+  | "help-center"
+  | "achievements";
 
 export interface AppUser {
   id: string;

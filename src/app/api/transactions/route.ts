@@ -53,6 +53,8 @@ export async function GET(req: Request) {
     const maxKobo = parseKoboFromNaira(url.searchParams.get("maxAmount"));
     const dateFrom = parseDateStart(url.searchParams.get("dateFrom") ?? "");
     const dateTo = parseDateEnd(url.searchParams.get("dateTo") ?? "");
+    const hasNoteParam = url.searchParams.get("hasNote");
+    const hasNote = hasNoteParam === "1" || hasNoteParam === "true";
     const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") || 1);
     const limit = Math.min(
       MAX_PAGE_SIZE,
@@ -67,6 +69,7 @@ export async function GET(req: Request) {
       direction?: string;
       amountKobo?: { gte?: number; lte?: number };
       createdAt?: { gte?: Date; lte?: Date };
+      note?: { not: null } | null;
       OR?: Array<Record<string, { contains: string }>>;
     } = { userId: user.id };
 
@@ -110,6 +113,11 @@ export async function GET(req: Request) {
         { description: { contains: search } },
         { reference: { contains: search } },
       ];
+    }
+
+    // "Has note" filter — only transactions the user has tagged
+    if (hasNote) {
+      where.note = { not: null };
     }
 
     const [transactions, total, summaryRows] = await Promise.all([

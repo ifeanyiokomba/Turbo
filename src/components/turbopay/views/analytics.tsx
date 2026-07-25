@@ -277,6 +277,9 @@ export default function AnalyticsView() {
         </div>
       </Card>
 
+      {/* 365-day spending activity heatmap */}
+      <SpendingHeatmap />
+
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Top counterparties */}
         <Card className="p-5">
@@ -842,4 +845,251 @@ function BudgetsSection() {
       </Dialog>
     </Card>
   );
+}
+
+/* ================================================================== */
+/* Spending activity heatmap — GitHub-style 365-day contribution grid  */
+/* ================================================================== */
+
+interface HeatmapDay {
+  date: string; // YYYY-MM-DD
+  totalKobo: number;
+}
+
+interface HeatmapResponse {
+  days: HeatmapDay[];
+  totalKobo: number;
+  maxDayKobo: number;
+  activeDays: number;
+}
+
+const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+// 5-step emerald intensity scale (index 0 = no spend, 4 = heaviest).
+const HEAT_LEVELS = [
+  "var(--muted)",                              // 0 — no spending
+  "oklch(0.92 0.04 162)",                      // 1 — light
+  "oklch(0.78 0.10 162)",                      // 2 — medium-light
+  "oklch(0.62 0.14 162)",                      // 3 — medium-dark
+  "oklch(0.45 0.11 162)",                      // 4 — darkest
+];
+
+function levelFor(totalKobo: number, thresholds: number[]): number {
+  if (totalKobo <= 0) return 0;
+  for (let i = 0; i < thresholds.length; i++) {
+    if (totalKobo <= thresholds[i]) return i + 1;
+  }
+  return 4;
+}
+
+function SpendingHeatmap() {
+  const [data, setData] = React.useState<HeatmapResponse | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/analytics/heatmap", { cache: "no-store" });
+        if (res.ok) {
+          const json: HeatmapResponse = await res.json();
+          if (!cancelled) setData(json);
+        }
+      } catch {
+        /* non-fatal */
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) {
+    return (
+      <Card className="p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-primary" />
+          <p className="text-sm font-semibold">Spending activity</p>
+        </div>
+        <div className="h-32 w-full animate-pulse rounded-xl bg-muted/60" />
+      </Card>
+    );
+  }
+
+  // Build the date→total lookup
+  const lookup = new Map<string, number>();
+  for (const d of data?.days ?? []) lookup.set(d.date, d.totalKobo);
+
+  // Determine non-zero thresholds (quartiles) so the colors adapt to the
+  // user's actual spending range. If there's no spending at all we just
+  // render an empty grid.
+  const nonzeroTotals = (data?.days ?? [])
+    .map((d) => d.totalKobo)
+    .filter((v) => v > 0)
+    .sort((a, b) => a - b);
+  let thresholds: number[] = [];
+  if (nonzeroTotals.length > 0) {
+    const q = (p: number) => {
+      const idx = Math.min(nonzeroTotals.length - 1, Math.floor((p / 100) * nonzeroTotals.length));
+      return nonzeroTotals[idx];
+    };
+    thresholds = [q(25), q(50), q(75)];
+  }
+
+  // Build the calendar grid: 53 columns of 7 days (Sun→Sat).
+  // We anchor to "today" and walk back 364 days, then pad to align the
+  // first column to a Sunday so weeks line up cleanly.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const firstDataDate = new Date(today);
+  firstDataDate.setDate(firstDataDate.getDate() - 364);
+
+  // Pad start backward to nearest Sunday
+  const gridStart = new Date(firstDataDate);
+  gridStart.setDate(gridStart.getDate() - gridStart.getDay());
+
+  // Pad end forward to nearest Saturday
+  const gridEnd = new Date(today);
+  gridEnd.setDate(gridEnd.getDate() + (6 - gridEnd.getDay()));
+
+  // Build week columns
+  const weeks: { date: string; totalKobo: number; inRange: boolean; monthLabel: string | null }[][] = [];
+  let lastMonth = -1;
+  for (let d = new Date(gridStart); d <= gridEnd; d.setDate(d.getDate() + 1)) {
+    const dow = d.getDay();
+    if (dow === 0) weeks.push([]);
+    const week = weeks[weeks.length - 1];
+    const dateStr = d.toISOString().slice(0, 10);
+    const inRange = d >= firstDataDate && d <= today;
+    const monthIdx = d.getMonth();
+    // Show the month label on the first week where the month starts (or changes)
+    const monthLabel = dow === 0 && monthIdx !== lastMonth ? MONTH_LABELS[monthIdx] : null;
+    if (dow === 0) lastMonth = monthIdx;
+    week.push({
+      date: dateStr,
+      totalKobo: lookup.get(dateStr) ?? 0,
+      inRange,
+      monthLabel,
+    });
+  }
+
+  const totalKobo = data?.totalKobo ?? 0;
+  const activeDays = data?.activeDays ?? 0;
+  const maxDayKobo = data?.maxDayKobo ?? 0;
+
+  return (
+    <Card className="p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-primary" />
+          <div>
+            <p className="text-sm font-semibold">Spending activity</p>
+            <p className="text-xs text-muted-foreground">Last 365 days · {activeDays} active days</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <span>Total: <span className="font-semibold text-foreground tabular-nums">{nairaCompact(totalKobo)}</span></span>
+          {maxDayKobo > 0 && (
+            <span>Busiest day: <span className="font-semibold text-foreground tabular-nums">{nairaCompact(maxDayKobo)}</span></span>
+          )}
+        </div>
+      </div>
+
+      {nonzeroTotals.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-10 text-center">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Calendar className="h-5 w-5" />
+          </div>
+          <p className="mt-3 text-sm font-medium">No spending in the last year</p>
+          <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+            Once you start spending, this calendar will light up to show your daily activity.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Heatmap grid — horizontally scrollable on small screens */}
+          <div className="overflow-x-auto scrollbar-thin pb-1">
+            <div className="inline-flex flex-col gap-1 min-w-max">
+              {/* Month labels row */}
+              <div className="flex gap-[3px] pl-8 text-[10px] text-muted-foreground">
+                {weeks.map((week, i) => (
+                  <div key={i} className="w-[13px] relative h-3">
+                    {week[0]?.monthLabel && (
+                      <span className="absolute left-0 top-0 whitespace-nowrap">{week[0].monthLabel}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Day-of-week labels + grid */}
+              <div className="flex gap-1">
+                {/* Weekday labels column */}
+                <div className="flex flex-col gap-[3px] pr-1 text-[10px] text-muted-foreground">
+                  {WEEKDAY_LABELS.map((d, i) => (
+                    <div key={d} className="h-[13px] leading-[13px]">
+                      {i % 2 === 1 ? d : ""}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Week columns */}
+                {weeks.map((week, wi) => (
+                  <div key={wi} className="flex flex-col gap-[3px]">
+                    {Array.from({ length: 7 }).map((_, di) => {
+                      const cell = week[di];
+                      if (!cell) {
+                        return <div key={di} className="h-[13px] w-[13px]" />;
+                      }
+                      const level = cell.inRange ? levelFor(cell.totalKobo, thresholds) : 0;
+                      const isFuture = !cell.inRange;
+                      return (
+                        <div
+                          key={di}
+                          className="group relative h-[13px] w-[13px] cursor-default rounded-[2px] transition-all hover:ring-1 hover:ring-foreground/40"
+                          style={{
+                            background: isFuture ? "transparent" : HEAT_LEVELS[level],
+                            opacity: isFuture ? 0 : 1,
+                          }}
+                        >
+                          {/* Hover tooltip */}
+                          <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-md bg-popover px-2 py-1 text-[10px] shadow-md ring-1 ring-border group-hover:block">
+                            <p className="font-medium">{formatHeatDate(cell.date)}</p>
+                            <p className="text-muted-foreground">
+                              {cell.totalKobo > 0 ? naira(cell.totalKobo) : "No spending"}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Legend */}
+          <div className="mt-3 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground">
+            <span>Less</span>
+            {HEAT_LEVELS.map((bg, i) => (
+              <span
+                key={i}
+                className="h-[11px] w-[11px] rounded-[2px]"
+                style={{ background: bg }}
+              />
+            ))}
+            <span>More</span>
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
+function formatHeatDate(dateStr: string): string {
+  // dateStr is YYYY-MM-DD; render as e.g. "12 Mar 2025"
+  const d = new Date(dateStr + "T00:00:00");
+  if (isNaN(d.getTime())) return dateStr;
+  return d.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
 }

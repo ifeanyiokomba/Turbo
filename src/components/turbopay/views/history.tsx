@@ -45,6 +45,8 @@ import {
   RotateCcw,
   Check,
   Scale,
+  StickyNote,
+  Save,
 } from "lucide-react";
 import { naira, formatDate } from "@/lib/money";
 import { toast } from "sonner";
@@ -66,6 +68,7 @@ interface Tx {
   provider?: string | null;
   providerRef?: string | null;
   metadata?: string | null;
+  note?: string | null;
   createdAt: string;
 }
 
@@ -166,6 +169,7 @@ export default function HistoryView() {
   const [draftMax, setDraftMax] = React.useState("");
   const [draftDateFrom, setDraftDateFrom] = React.useState("");
   const [draftDateTo, setDraftDateTo] = React.useState("");
+  const [draftHasNote, setDraftHasNote] = React.useState(false);
 
   // Applied advanced filters (used in fetch)
   const [appliedTypes, setAppliedTypes] = React.useState<string[]>([]);
@@ -175,6 +179,7 @@ export default function HistoryView() {
   const [appliedMax, setAppliedMax] = React.useState("");
   const [appliedDateFrom, setAppliedDateFrom] = React.useState("");
   const [appliedDateTo, setAppliedDateTo] = React.useState("");
+  const [appliedHasNote, setAppliedHasNote] = React.useState(false);
 
   // Statement dialog state
   const [stmtOpen, setStmtOpen] = React.useState(false);
@@ -197,7 +202,8 @@ export default function HistoryView() {
     appliedMin !== "" ||
     appliedMax !== "" ||
     appliedDateFrom !== "" ||
-    appliedDateTo !== "";
+    appliedDateTo !== "" ||
+    appliedHasNote;
 
   const hasAnyFilter = hasAdvancedFilters || filter !== "" || debouncedSearch !== "";
 
@@ -215,6 +221,7 @@ export default function HistoryView() {
     appliedMax,
     appliedDateFrom,
     appliedDateTo,
+    appliedHasNote,
   ]);
 
   const loadPage = React.useCallback(
@@ -233,6 +240,7 @@ export default function HistoryView() {
         if (appliedMax) params.set("maxAmount", appliedMax);
         if (appliedDateFrom) params.set("dateFrom", appliedDateFrom);
         if (appliedDateTo) params.set("dateTo", appliedDateTo);
+        if (appliedHasNote) params.set("hasNote", "1");
 
         const res = await fetch(`/api/transactions?${params.toString()}`, {
           cache: "no-store",
@@ -262,6 +270,7 @@ export default function HistoryView() {
       appliedMax,
       appliedDateFrom,
       appliedDateTo,
+      appliedHasNote,
     ],
   );
 
@@ -284,6 +293,7 @@ export default function HistoryView() {
     setAppliedMax(draftMax);
     setAppliedDateFrom(draftDateFrom);
     setAppliedDateTo(draftDateTo);
+    setAppliedHasNote(draftHasNote);
     // Clear chip filter if user picked types via advanced panel
     if (draftTypes.length > 0 && filter) setFilter("");
     toast.success("Filters applied");
@@ -297,6 +307,7 @@ export default function HistoryView() {
     setDraftMax("");
     setDraftDateFrom("");
     setDraftDateTo("");
+    setDraftHasNote(false);
     setAppliedTypes([]);
     setAppliedStatus("ALL");
     setAppliedDirection("ALL");
@@ -304,6 +315,7 @@ export default function HistoryView() {
     setAppliedMax("");
     setAppliedDateFrom("");
     setAppliedDateTo("");
+    setAppliedHasNote(false);
     toast.info("Filters reset");
   }
 
@@ -324,6 +336,7 @@ export default function HistoryView() {
     setDraftMax(appliedMax);
     setDraftDateFrom(appliedDateFrom);
     setDraftDateTo(appliedDateTo);
+    setDraftHasNote(appliedHasNote);
     setAdvancedOpen((v) => !v);
   }
 
@@ -412,6 +425,7 @@ export default function HistoryView() {
       if (appliedMax) params.set("maxAmount", appliedMax);
       if (appliedDateFrom) params.set("dateFrom", appliedDateFrom);
       if (appliedDateTo) params.set("dateTo", appliedDateTo);
+      if (appliedHasNote) params.set("hasNote", "1");
       const res = await fetch(`/api/transactions?${params.toString()}`, { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch transactions");
       const data: TxResponse = await res.json();
@@ -507,7 +521,8 @@ export default function HistoryView() {
                     (appliedStatus !== "ALL" ? 1 : 0) +
                     (appliedDirection !== "ALL" ? 1 : 0) +
                     (appliedMin || appliedMax ? 1 : 0) +
-                    (appliedDateFrom || appliedDateTo ? 1 : 0)}
+                    (appliedDateFrom || appliedDateTo ? 1 : 0) +
+                    (appliedHasNote ? 1 : 0)}
                 </Badge>
               )}
             </Button>
@@ -698,6 +713,24 @@ export default function HistoryView() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Has note toggle */}
+              <div className="flex items-end lg:col-span-2">
+                <label
+                  className={`flex w-full cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+                    draftHasNote
+                      ? "border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                      : "border-border text-muted-foreground hover:bg-muted/50"
+                  }`}
+                >
+                  <Checkbox
+                    checked={draftHasNote}
+                    onCheckedChange={(v) => setDraftHasNote(v === true)}
+                  />
+                  <StickyNote className="h-4 w-4" />
+                  <span className="font-medium">Only show transactions with a note</span>
+                </label>
+              </div>
             </div>
 
             <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
@@ -795,7 +828,16 @@ export default function HistoryView() {
       )}
 
       {/* Detail dialog */}
-      <TxDetailDialog tx={active} onClose={() => setActive(null)} />
+      <TxDetailDialog
+        tx={active}
+        onClose={() => setActive(null)}
+        onNoteSaved={(id, note) => {
+          setActive((prev) => (prev && prev.id === id ? { ...prev, note } : prev));
+          setTransactions((prev) =>
+            prev.map((t) => (t.id === id ? { ...t, note } : t)),
+          );
+        }}
+      />
 
       {/* Statement generation dialog */}
       <Dialog open={stmtOpen} onOpenChange={(o) => !generating && setStmtOpen(o)}>
@@ -913,7 +955,15 @@ export default function HistoryView() {
 
 // ============== DETAIL DIALOG ==============
 
-function TxDetailDialog({ tx, onClose }: { tx: Tx | null; onClose: () => void }) {
+function TxDetailDialog({
+  tx,
+  onClose,
+  onNoteSaved,
+}: {
+  tx: Tx | null;
+  onClose: () => void;
+  onNoteSaved: (id: string, note: string | null) => void;
+}) {
   const open = !!tx;
   if (!tx) return <Dialog open={open} onOpenChange={onClose} />;
 
@@ -969,6 +1019,9 @@ function TxDetailDialog({ tx, onClose }: { tx: Tx | null; onClose: () => void })
           )}
         </div>
 
+        {/* Note editor — add / edit / clear a personal note for this transaction */}
+        <NoteEditor tx={tx} onNoteSaved={onNoteSaved} />
+
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1 gap-1.5" onClick={onClose}>
             Close
@@ -1004,6 +1057,127 @@ function TxDetailDialog({ tx, onClose }: { tx: Tx | null; onClose: () => void })
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ============== NOTE EDITOR ==============
+
+function NoteEditor({
+  tx,
+  onNoteSaved,
+}: {
+  tx: Tx;
+  onNoteSaved: (id: string, note: string | null) => void;
+}) {
+  const [value, setValue] = React.useState<string>(tx.note ?? "");
+  const [saving, setSaving] = React.useState(false);
+  const [dirty, setDirty] = React.useState(false);
+
+  // Re-sync when a different transaction is opened
+  React.useEffect(() => {
+    setValue(tx.note ?? "");
+    setDirty(false);
+  }, [tx.id, tx.note]);
+
+  const persistedValue = tx.note ?? "";
+
+  async function persist(nextValue: string) {
+    const trimmed = nextValue.trim();
+    const next = trimmed.length === 0 ? null : trimmed.slice(0, 280);
+    // No-op if unchanged
+    if ((next ?? "") === (persistedValue || "")) {
+      setDirty(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/transactions/${tx.id}/note`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ note: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data?.error ?? "Couldn't save note");
+        return;
+      }
+      onNoteSaved(tx.id, data.transaction?.note ?? next);
+      setDirty(false);
+      toast.success(next ? "Note saved" : "Note cleared");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't save note");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleBlur() {
+    if (dirty) persist(value);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      (e.target as HTMLInputElement).blur();
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <Label htmlFor="tx-note" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <StickyNote className="h-3.5 w-3.5 text-amber-500" />
+          Note / tag
+        </Label>
+        {saving && (
+          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+            <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+          </span>
+        )}
+        {!saving && dirty && (
+          <span className="text-[10px] text-amber-600 dark:text-amber-400">Unsaved</span>
+        )}
+        {!saving && !dirty && !!value.trim() && (
+          <button
+            onClick={() => {
+              setValue("");
+              persist("");
+            }}
+            className="text-[10px] text-muted-foreground transition-colors hover:text-red-500"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+      <div className="relative">
+        <Input
+          id="tx-note"
+          placeholder="Add a note — e.g. 'Rent for March', 'Refund from Tunde'"
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setDirty(e.target.value.trim() !== persistedValue.trim());
+          }}
+          onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
+          disabled={saving}
+          maxLength={280}
+          className="pr-9"
+        />
+        {dirty && !saving && (
+          <button
+            onClick={() => persist(value)}
+            aria-label="Save note"
+            className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md bg-emerald-500 text-white transition-transform hover:scale-105 active:scale-95"
+          >
+            <Save className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      <p className="text-[10px] text-muted-foreground">
+        Only you can see this note. It saves automatically on blur or Enter.
+      </p>
+    </div>
   );
 }
 

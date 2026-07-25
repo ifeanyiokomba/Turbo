@@ -64,6 +64,7 @@ import {
   Info,
   CheckCheck,
   Inbox,
+  Award,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
@@ -97,6 +98,7 @@ const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any
       { key: "kyc", label: "KYC & Limits", icon: ShieldCheck },
       { key: "beneficiaries", label: "Beneficiaries", icon: Users },
       { key: "rewards", label: "Rewards", icon: Gift },
+      { key: "achievements", label: "Achievements", icon: Award },
       { key: "vouchers", label: "Vouchers", icon: Ticket },
       { key: "disputes", label: "Disputes", icon: Scale },
       { key: "help-center", label: "Help Center", icon: HelpCircle },
@@ -153,6 +155,7 @@ const Views: Record<ViewKey, React.LazyExoticComponent<React.ComponentType>> = {
   disputes: React.lazy(() => import("./views/disputes")),
   vouchers: React.lazy(() => import("./views/vouchers")),
   "help-center": React.lazy(() => import("./views/help-center")),
+  achievements: React.lazy(() => import("./views/achievements")),
 };
 
 const VIEW_TITLES: Record<ViewKey, string> = {
@@ -182,6 +185,7 @@ const VIEW_TITLES: Record<ViewKey, string> = {
   disputes: "Disputes",
   vouchers: "Vouchers",
   "help-center": "Help Center",
+  achievements: "Achievements",
 };
 
 // Set of valid view keys — used to resolve notification actionUrl → setView.
@@ -190,6 +194,7 @@ const VALID_VIEW_KEYS = new Set<string>([
   "savings", "investments", "kyc", "beneficiaries", "qr", "settings", "security",
   "rewards", "support", "admin", "multi-currency", "intl-transfers", "mobile-money",
   "payment-links", "scheduled-payments", "analytics", "disputes", "vouchers", "help-center",
+  "achievements",
 ]);
 
 type NotifFilter = "all" | "unread" | "important";
@@ -574,6 +579,9 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
       </div>
       <AiSupport />
 
+      {/* Mobile floating action button (speed dial) */}
+      <FabSpeedDial onPick={(v) => setView(v)} />
+
       {/* Session timeout warning dialog */}
       <SessionTimeoutDialog
         open={session.warning}
@@ -897,6 +905,103 @@ function NotificationEmpty({ filter }: { filter: NotifFilter }) {
           New activity will appear here.
         </p>
       </div>
+    </div>
+  );
+}
+
+// ============== Mobile FAB Speed Dial ==============
+
+const FAB_ACTIONS: { key: ViewKey; label: string; icon: any; tone: string }[] = [
+  { key: "transfer", label: "Send", icon: ArrowLeftRight, tone: "bg-emerald-500" },
+  { key: "airtime", label: "Airtime", icon: Smartphone, tone: "bg-amber-500" },
+  { key: "bills", label: "Bills", icon: Receipt, tone: "bg-violet-500" },
+  { key: "qr", label: "QR Pay", icon: QrCode, tone: "bg-sky-500" },
+];
+
+function FabSpeedDial({ onPick }: { onPick: (v: ViewKey) => void }) {
+  const [open, setOpen] = React.useState(false);
+
+  // Close on Escape
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  function pick(v: ViewKey) {
+    onPick(v);
+    setOpen(false);
+  }
+
+  return (
+    <div className="lg:hidden" aria-label="Quick actions">
+      {/* Backdrop overlay — click to close */}
+      {open && (
+        <button
+          aria-hidden
+          tabIndex={-1}
+          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] animate-in fade-in-0 duration-150"
+        />
+      )}
+
+      {/* Speed-dial stack (sits above the FAB; items stack upward) */}
+      <div className="pointer-events-none fixed bottom-20 right-4 z-50 flex flex-col items-end gap-2.5">
+        {FAB_ACTIONS.map((a, i) => {
+          // Stagger from bottom to top: the last action (topmost) appears last.
+          const delay = (FAB_ACTIONS.length - 1 - i) * 45;
+          return (
+            <div
+              key={a.key}
+              className={`flex items-center gap-2 transition-all duration-200 ${
+                open
+                  ? "pointer-events-auto translate-y-0 opacity-100"
+                  : "pointer-events-none translate-y-3 opacity-0"
+              }`}
+              style={{ transitionDelay: open ? `${delay}ms` : "0ms" }}
+            >
+              {/* Label pill */}
+              <span
+                className={`rounded-lg bg-popover/95 px-2.5 py-1 text-xs font-semibold shadow-md ring-1 ring-border transition-colors ${
+                  open ? "scale-100" : "scale-90"
+                }`}
+              >
+                {a.label}
+              </span>
+              {/* Round mini-button */}
+              <button
+                onClick={() => pick(a.key)}
+                aria-label={a.label}
+                className={`flex h-11 w-11 items-center justify-center rounded-full ${a.tone} text-white shadow-lg ring-2 ring-white/40 transition-transform active:scale-90`}
+              >
+                <a.icon className="h-5 w-5" />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Main FAB */}
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label={open ? "Close quick actions" : "Open quick actions"}
+        aria-expanded={open}
+        className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30 ring-2 ring-white/50 transition-transform duration-300 active:scale-90 lg:hidden"
+        style={{ transform: open ? "rotate(45deg)" : "rotate(0deg)" }}
+      >
+        <Plus className="h-6 w-6" />
+        {/* Pulsing ring when closed */}
+        {!open && (
+          <span
+            aria-hidden
+            className="absolute inset-0 animate-ping rounded-full bg-emerald-500/30"
+            style={{ animationDuration: "2.5s" }}
+          />
+        )}
+      </button>
     </div>
   );
 }

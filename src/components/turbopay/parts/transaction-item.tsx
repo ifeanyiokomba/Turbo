@@ -12,6 +12,7 @@ import {
   Zap,
   Gift,
   Plus,
+  StickyNote,
 } from "lucide-react";
 import { naira, timeAgo } from "@/lib/money";
 import { Badge } from "@/components/ui/badge";
@@ -43,11 +44,13 @@ export function TransactionItem({
     counterpartyName?: string | null;
     status: string;
     createdAt: string | Date;
+    note?: string | null;
   };
   onClick?: () => void;
 }) {
   const Icon = TYPE_ICON[tx.type] ?? Plus;
   const isCredit = tx.direction === "CREDIT";
+  const hasNote = !!tx.note && tx.note.trim().length > 0;
   return (
     <button
       onClick={onClick}
@@ -61,9 +64,20 @@ export function TransactionItem({
         <Icon className="h-4.5 w-4.5" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium">
-          {tx.counterpartyName || tx.description || tx.type}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="truncate text-sm font-medium">
+            {tx.counterpartyName || tx.description || tx.type}
+          </p>
+          {hasNote && (
+            <span
+              title={tx.note!.length > 60 ? tx.note!.slice(0, 60) + "…" : tx.note!}
+              className="inline-flex shrink-0 items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-semibold text-amber-600 dark:text-amber-400"
+            >
+              <StickyNote className="h-2.5 w-2.5" />
+              Note
+            </span>
+          )}
+        </div>
         <p className="truncate text-xs text-muted-foreground">
           {tx.description ? (tx.counterpartyName ? tx.description : timeAgo(tx.createdAt)) : timeAgo(tx.createdAt)}
         </p>

@@ -127,6 +127,7 @@ model Transaction {
   providerRef     String?
   reversalOfId    String?
   metadata        String? // JSON string
+  note            String? // user-added note/tag
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -992,5 +993,15 @@ model SpendingBudget {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   @@unique([userId, category])
+  @@index([userId])
+}
+
+model UserBadge {
+  id            String   @id @default(cuid())
+  userId        String
+  badgeKey      String   @unique // FIRST_TRANSFER | FIRST_FUNDING | FIRST_AIRTIME | FIRST_BILL | FIRST_CARD | FIRST_SAVINGS | FIRST_INVESTMENT | KYC_VERIFIED | PIN_SET | SAVVY_SAVER | BIG_SPENDER | EARLY_BIRD | REFERRAL_PRO | SECURE_USER
+  earnedAt      DateTime @default(now())
+
+  @@unique([userId, badgeKey])
   @@index([userId])
 }
