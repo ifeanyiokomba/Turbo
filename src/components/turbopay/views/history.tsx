@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { PageHeader, EmptyState } from "../parts/layout";
 import { TransactionItem } from "../parts/transaction-item";
 import { downloadReceipt } from "../parts/receipt-pdf";
@@ -33,6 +39,11 @@ import {
   FileDown,
   FileText,
   Calendar,
+  SlidersHorizontal,
+  ArrowDownLeft,
+  ArrowUpRight,
+  RotateCcw,
+  Check,
 } from "lucide-react";
 import { naira, formatDate } from "@/lib/money";
 import { toast } from "sonner";
@@ -62,6 +73,11 @@ interface TxResponse {
   page: number;
   limit: number;
   hasMore: boolean;
+  summary?: {
+    totalIn: number;
+    totalOut: number;
+    count: number;
+  };
 }
 
 const FILTER_CHIPS = [
@@ -73,6 +89,31 @@ const FILTER_CHIPS = [
   { id: "bills", label: "Bills" },
   { id: "cards", label: "Cards" },
   { id: "savings", label: "Savings" },
+] as const;
+
+const TYPE_OPTIONS = [
+  { id: "FUNDING", label: "Funding" },
+  { id: "TRANSFER", label: "Transfer" },
+  { id: "AIRTIME", label: "Airtime" },
+  { id: "DATA", label: "Data" },
+  { id: "BILL", label: "Bills" },
+  { id: "CARD_FUND,CARD_WITHDRAW", label: "Cards" },
+  { id: "SAVINGS_DEPOSIT,SAVINGS_WITHDRAW", label: "Savings" },
+  { id: "INVESTMENT", label: "Investments" },
+] as const;
+
+const STATUS_OPTIONS = [
+  { value: "ALL", label: "All statuses" },
+  { value: "SUCCESS", label: "Success" },
+  { value: "PENDING", label: "Pending" },
+  { value: "FAILED", label: "Failed" },
+  { value: "REVERSED", label: "Reversed" },
+] as const;
+
+const DIRECTION_OPTIONS = [
+  { value: "ALL", label: "All directions" },
+  { value: "IN", label: "Money in" },
+  { value: "OUT", label: "Money out" },
 ] as const;
 
 const TYPE_LABELS: Record<string, string> = {
@@ -102,12 +143,36 @@ export default function HistoryView() {
   const [search, setSearch] = React.useState("");
   const [debouncedSearch, setDebouncedSearch] = React.useState("");
   const [transactions, setTransactions] = React.useState<Tx[]>([]);
+  const [summary, setSummary] = React.useState<{
+    totalIn: number;
+    totalOut: number;
+    count: number;
+  } | null>(null);
   const [hasMore, setHasMore] = React.useState(false);
   const [page, setPage] = React.useState(1);
   const [loading, setLoading] = React.useState(true);
   const [loadingMore, setLoadingMore] = React.useState(false);
   const [active, setActive] = React.useState<Tx | null>(null);
   const [exporting, setExporting] = React.useState(false);
+
+  // Advanced filter UI state (draft, applied on "Apply")
+  const [advancedOpen, setAdvancedOpen] = React.useState(false);
+  const [draftTypes, setDraftTypes] = React.useState<string[]>([]);
+  const [draftStatus, setDraftStatus] = React.useState<string>("ALL");
+  const [draftDirection, setDraftDirection] = React.useState<string>("ALL");
+  const [draftMin, setDraftMin] = React.useState("");
+  const [draftMax, setDraftMax] = React.useState("");
+  const [draftDateFrom, setDraftDateFrom] = React.useState("");
+  const [draftDateTo, setDraftDateTo] = React.useState("");
+
+  // Applied advanced filters (used in fetch)
+  const [appliedTypes, setAppliedTypes] = React.useState<string[]>([]);
+  const [appliedStatus, setAppliedStatus] = React.useState<string>("ALL");
+  const [appliedDirection, setAppliedDirection] = React.useState<string>("ALL");
+  const [appliedMin, setAppliedMin] = React.useState("");
+  const [appliedMax, setAppliedMax] = React.useState("");
+  const [appliedDateFrom, setAppliedDateFrom] = React.useState("");
+  const [appliedDateTo, setAppliedDateTo] = React.useState("");
 
   // Statement dialog state
   const [stmtOpen, setStmtOpen] = React.useState(false);
@@ -123,11 +188,32 @@ export default function HistoryView() {
     return () => clearTimeout(t);
   }, [search]);
 
-  // Reset when filter/search changes
+  const hasAdvancedFilters =
+    appliedTypes.length > 0 ||
+    appliedStatus !== "ALL" ||
+    appliedDirection !== "ALL" ||
+    appliedMin !== "" ||
+    appliedMax !== "" ||
+    appliedDateFrom !== "" ||
+    appliedDateTo !== "";
+
+  const hasAnyFilter = hasAdvancedFilters || filter !== "" || debouncedSearch !== "";
+
+  // Reset when filter/search/advanced changes
   React.useEffect(() => {
     setPage(1);
     setTransactions([]);
-  }, [filter, debouncedSearch]);
+  }, [
+    filter,
+    debouncedSearch,
+    appliedTypes,
+    appliedStatus,
+    appliedDirection,
+    appliedMin,
+    appliedMax,
+    appliedDateFrom,
+    appliedDateTo,
+  ]);
 
   const loadPage = React.useCallback(
     async (targetPage: number, replace: boolean) => {
@@ -138,6 +224,13 @@ export default function HistoryView() {
         });
         if (filter) params.set("filter", filter);
         if (debouncedSearch) params.set("search", debouncedSearch);
+        if (appliedTypes.length > 0) params.set("type", appliedTypes.join(","));
+        if (appliedStatus !== "ALL") params.set("status", appliedStatus);
+        if (appliedDirection !== "ALL") params.set("direction", appliedDirection);
+        if (appliedMin) params.set("minAmount", appliedMin);
+        if (appliedMax) params.set("maxAmount", appliedMax);
+        if (appliedDateFrom) params.set("dateFrom", appliedDateFrom);
+        if (appliedDateTo) params.set("dateTo", appliedDateTo);
 
         const res = await fetch(`/api/transactions?${params.toString()}`, {
           cache: "no-store",
@@ -149,6 +242,7 @@ export default function HistoryView() {
         );
         setHasMore(data.hasMore);
         setPage(targetPage);
+        setSummary(data.summary ?? null);
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "Failed to load transactions");
       } finally {
@@ -156,7 +250,17 @@ export default function HistoryView() {
         setLoadingMore(false);
       }
     },
-    [filter, debouncedSearch],
+    [
+      filter,
+      debouncedSearch,
+      appliedTypes,
+      appliedStatus,
+      appliedDirection,
+      appliedMin,
+      appliedMax,
+      appliedDateFrom,
+      appliedDateTo,
+    ],
   );
 
   // Initial + filter/search change
@@ -168,6 +272,57 @@ export default function HistoryView() {
   function handleLoadMore() {
     setLoadingMore(true);
     loadPage(page + 1, false);
+  }
+
+  function applyAdvancedFilters() {
+    setAppliedTypes(draftTypes);
+    setAppliedStatus(draftStatus);
+    setAppliedDirection(draftDirection);
+    setAppliedMin(draftMin);
+    setAppliedMax(draftMax);
+    setAppliedDateFrom(draftDateFrom);
+    setAppliedDateTo(draftDateTo);
+    // Clear chip filter if user picked types via advanced panel
+    if (draftTypes.length > 0 && filter) setFilter("");
+    toast.success("Filters applied");
+  }
+
+  function resetAdvancedFilters() {
+    setDraftTypes([]);
+    setDraftStatus("ALL");
+    setDraftDirection("ALL");
+    setDraftMin("");
+    setDraftMax("");
+    setDraftDateFrom("");
+    setDraftDateTo("");
+    setAppliedTypes([]);
+    setAppliedStatus("ALL");
+    setAppliedDirection("ALL");
+    setAppliedMin("");
+    setAppliedMax("");
+    setAppliedDateFrom("");
+    setAppliedDateTo("");
+    toast.info("Filters reset");
+  }
+
+  function toggleDraftType(typeId: string) {
+    setDraftTypes((prev) =>
+      prev.includes(typeId)
+        ? prev.filter((t) => t !== typeId)
+        : [...prev, typeId],
+    );
+  }
+
+  // When opening advanced panel, sync draft with applied
+  function openAdvanced() {
+    setDraftTypes(appliedTypes);
+    setDraftStatus(appliedStatus);
+    setDraftDirection(appliedDirection);
+    setDraftMin(appliedMin);
+    setDraftMax(appliedMax);
+    setDraftDateFrom(appliedDateFrom);
+    setDraftDateTo(appliedDateTo);
+    setAdvancedOpen((v) => !v);
   }
 
   function openStatementDialog() {
@@ -248,6 +403,13 @@ export default function HistoryView() {
       });
       if (filter) params.set("filter", filter);
       if (debouncedSearch) params.set("search", debouncedSearch);
+      if (appliedTypes.length > 0) params.set("type", appliedTypes.join(","));
+      if (appliedStatus !== "ALL") params.set("status", appliedStatus);
+      if (appliedDirection !== "ALL") params.set("direction", appliedDirection);
+      if (appliedMin) params.set("minAmount", appliedMin);
+      if (appliedMax) params.set("maxAmount", appliedMax);
+      if (appliedDateFrom) params.set("dateFrom", appliedDateFrom);
+      if (appliedDateTo) params.set("dateTo", appliedDateTo);
       const res = await fetch(`/api/transactions?${params.toString()}`, { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to fetch transactions");
       const data: TxResponse = await res.json();
@@ -328,7 +490,25 @@ export default function HistoryView() {
         title="Transactions"
         subtitle="Browse, search and export your money movements."
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant={hasAdvancedFilters ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5"
+              onClick={openAdvanced}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              <span className="hidden sm:inline">Filters</span>
+              {hasAdvancedFilters && (
+                <Badge variant="secondary" className="ml-0.5 h-5 px-1.5 text-[10px]">
+                  {appliedTypes.length +
+                    (appliedStatus !== "ALL" ? 1 : 0) +
+                    (appliedDirection !== "ALL" ? 1 : 0) +
+                    (appliedMin || appliedMax ? 1 : 0) +
+                    (appliedDateFrom || appliedDateTo ? 1 : 0)}
+                </Badge>
+              )}
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={openStatementDialog}>
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Statement</span>
@@ -368,7 +548,14 @@ export default function HistoryView() {
           return (
             <button
               key={c.id || "all"}
-              onClick={() => setFilter(c.id)}
+              onClick={() => {
+                setFilter(c.id);
+                // Clear advanced type selection when using chips (they conflict)
+                if (c.id) {
+                  setAppliedTypes([]);
+                  setDraftTypes([]);
+                }
+              }}
               className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                 activeChip
                   ? "border-primary bg-primary text-primary-foreground"
@@ -380,6 +567,167 @@ export default function HistoryView() {
           );
         })}
       </div>
+
+      {/* Advanced filter panel */}
+      <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+        <CollapsibleContent className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
+          <Card className="p-5 sm:p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold">Advanced filters</h3>
+              </div>
+              <button
+                onClick={() => setAdvancedOpen(false)}
+                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Close filters"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="grid gap-5 lg:grid-cols-2">
+              {/* Date range */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">Date range</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative">
+                    <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="date"
+                      value={draftDateFrom}
+                      onChange={(e) => setDraftDateFrom(e.target.value)}
+                      className="pl-9"
+                      max={draftDateTo || undefined}
+                    />
+                  </div>
+                  <div className="relative">
+                    <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="date"
+                      value={draftDateTo}
+                      onChange={(e) => setDraftDateTo(e.target.value)}
+                      className="pl-9"
+                      min={draftDateFrom || undefined}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Amount range */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">Amount range (₦)</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    step="100"
+                    placeholder="Min"
+                    value={draftMin}
+                    onChange={(e) => setDraftMin(e.target.value)}
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="100"
+                    placeholder="Max"
+                    value={draftMax}
+                    onChange={(e) => setDraftMax(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Type multi-select */}
+              <div className="space-y-2 lg:col-span-2">
+                <Label className="text-xs font-medium text-muted-foreground">Transaction type</Label>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {TYPE_OPTIONS.map((t) => {
+                    const checked = draftTypes.includes(t.id);
+                    return (
+                      <label
+                        key={t.id}
+                        className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition-colors ${
+                          checked
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:bg-muted/50"
+                        }`}
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={() => toggleDraftType(t.id)}
+                        />
+                        <span>{t.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">Status</Label>
+                <Select value={draftStatus} onValueChange={setDraftStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_OPTIONS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Direction */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">Direction</Label>
+                <Select value={draftDirection} onValueChange={setDraftDirection}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DIRECTION_OPTIONS.map((d) => (
+                      <SelectItem key={d.value} value={d.value}>
+                        {d.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={resetAdvancedFilters} className="gap-1.5">
+                <RotateCcw className="h-4 w-4" /> Reset
+              </Button>
+              <Button size="sm" onClick={applyAdvancedFilters} className="gap-1.5">
+                <Check className="h-4 w-4" /> Apply filters
+              </Button>
+            </div>
+          </Card>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Summary bar */}
+      {hasAnyFilter && summary && !loading && (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border bg-muted/30 px-4 py-3 text-sm">
+          <span className="font-medium">
+            {summary.count} {summary.count === 1 ? "transaction" : "transactions"}
+          </span>
+          <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+            <ArrowDownLeft className="h-4 w-4" />
+            <span className="font-semibold tabular-nums">{naira(summary.totalIn)}</span>
+            <span className="text-muted-foreground">in</span>
+          </span>
+          <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+            <ArrowUpRight className="h-4 w-4" />
+            <span className="font-semibold tabular-nums">{naira(summary.totalOut)}</span>
+            <span className="text-muted-foreground">out</span>
+          </span>
+        </div>
+      )}
 
       {/* List */}
       {loading ? (
@@ -398,11 +746,14 @@ export default function HistoryView() {
       ) : groups.length === 0 ? (
         <EmptyState
           icon={HistoryIcon}
+          illustration="no-transactions"
           title="No transactions found"
           description={
             debouncedSearch
-              ? `Nothing matches “${debouncedSearch}”. Try a different search.`
-              : "When you fund, transfer or pay bills, they will appear here."
+              ? `Nothing matches "${debouncedSearch}". Try a different search.`
+              : hasAdvancedFilters
+                ? "No transactions match your filters. Try adjusting them."
+                : "When you fund, transfer or pay bills, they will appear here."
           }
         />
       ) : (

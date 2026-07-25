@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useApp, type ViewKey } from "./store";
 import { Logo, Wordmark } from "./logo";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -58,9 +58,16 @@ import {
   Scale,
   Ticket,
   HelpCircle,
+  ArrowUpRight,
+  ShieldAlert,
+  BadgeCheck,
+  Info,
+  CheckCheck,
+  Inbox,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
+import { timeAgo } from "@/lib/money";
 
 const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any; cond?: (user: { country: string }) => boolean }[] }[] = [
   {
@@ -177,46 +184,141 @@ const VIEW_TITLES: Record<ViewKey, string> = {
   "help-center": "Help Center",
 };
 
+// Set of valid view keys — used to resolve notification actionUrl → setView.
+const VALID_VIEW_KEYS = new Set<string>([
+  "dashboard", "wallet", "transfer", "airtime", "bills", "history", "cards",
+  "savings", "investments", "kyc", "beneficiaries", "qr", "settings", "security",
+  "rewards", "support", "admin", "multi-currency", "intl-transfers", "mobile-money",
+  "payment-links", "scheduled-payments", "analytics", "disputes", "vouchers", "help-center",
+]);
+
+type NotifFilter = "all" | "unread" | "important";
+
+type AppNotification = {
+  id: string;
+  type: string; // TRANSACTION | SECURITY | KYC | REWARD | SYSTEM
+  title: string;
+  body: string;
+  priority: string; // LOW | NORMAL | HIGH
+  read: boolean;
+  actionUrl: string | null;
+  createdAt: string;
+};
+
+// Resolve an actionUrl like "/history?ref=TP-XXX" into a setView key, or null.
+function resolveActionView(actionUrl: string | null): ViewKey | null {
+  if (!actionUrl) return null;
+  const clean = actionUrl.startsWith("/") ? actionUrl.slice(1) : actionUrl;
+  const seg = clean.split(/[/?#]/)[0];
+  if (seg && VALID_VIEW_KEYS.has(seg)) return seg as ViewKey;
+  return null;
+}
+
+// Notification icon + tone by type.
+function notifVisual(type: string): { Icon: any; tone: string } {
+  switch (type) {
+    case "TRANSACTION":
+      return { Icon: ArrowUpRight, tone: "emerald" };
+    case "SECURITY":
+      return { Icon: ShieldAlert, tone: "red" };
+    case "KYC":
+      return { Icon: BadgeCheck, tone: "amber" };
+    case "REWARD":
+      return { Icon: Gift, tone: "emerald" };
+    case "SYSTEM":
+    default:
+      return { Icon: Info, tone: "slate" };
+  }
+}
+
+const TONE_CLASSES: Record<string, string> = {
+  emerald: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  red: "bg-red-500/15 text-red-600 dark:text-red-400",
+  amber: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  slate: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
+};
+
 export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.getState>["user"]> }) {
   const router = useRouter();
   const { view, setView, sidebarOpen, setSidebarOpen } = useApp();
   const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
+  const [notifFilter, setNotifFilter] = React.useState<NotifFilter>("all");
   const [unread, setUnread] = React.useState(0);
-  const [notifications, setNotifications] = React.useState<any[]>([]);
+  const [notifications, setNotifications] = React.useState<AppNotification[]>([]);
+  const [loadingNotifs, setLoadingNotifs] = React.useState(false);
+  const [markingAll, setMarkingAll] = React.useState(false);
 
-  const loadNotifs = React.useCallback(async () => {
+  React.useEffect(() => setMounted(true), []);
+
+  const loadNotifs = React.useCallback(async (filter: NotifFilter = "all") => {
     try {
-      const res = await fetch("/api/notifications");
+      setLoadingNotifs(true);
+      const res = await fetch(`/api/notifications?filter=${filter}`);
       if (res.ok) {
         const data = await res.json();
         setNotifications(data.notifications ?? []);
         setUnread(data.unread ?? 0);
       }
-    } catch {}
+    } catch {
+    } finally {
+      setLoadingNotifs(false);
+    }
   }, []);
 
-  // Initial load + 30s polling for the unread badge
+  // Initial load + 30s polling for the unread badge (lightweight: uses filter=all
+  // but we only care about the unread count between opens).
   React.useEffect(() => {
-    loadNotifs();
-    const id = setInterval(loadNotifs, 30_000);
+    loadNotifs("all");
+    const id = setInterval(() => {
+      fetch("/api/notifications?filter=all")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => {
+          if (d) setUnread(d.unread ?? 0);
+        })
+        .catch(() => {});
+    }, 30_000);
     return () => clearInterval(id);
   }, [loadNotifs]);
 
-  // When the panel is opened, mark all as read after a 1s delay
-  // so the user actually sees the unread items first.
+  // Reload with current filter whenever the panel opens.
   React.useEffect(() => {
-    if (!notifOpen) return;
+    if (notifOpen) loadNotifs(notifFilter);
+  }, [notifOpen, notifFilter, loadNotifs]);
+
+  async function handleMarkAllRead() {
     if (unread === 0) return;
-    const id = setTimeout(async () => {
+    try {
+      setMarkingAll(true);
+      await fetch("/api/notifications", { method: "PATCH" });
+      setUnread(0);
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      toast.success("All notifications marked as read");
+    } catch {
+      toast.error("Couldn't mark all as read");
+    } finally {
+      setMarkingAll(false);
+    }
+  }
+
+  async function handleNotificationClick(n: AppNotification) {
+    // Mark as read individually (fire-and-forget, optimistic local update).
+    if (!n.read) {
+      setNotifications((prev) =>
+        prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)),
+      );
+      setUnread((u) => Math.max(0, u - 1));
       try {
-        await fetch("/api/notifications", { method: "PATCH" });
-        setUnread(0);
-        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        await fetch(`/api/notifications/${n.id}/read`, { method: "PATCH" });
       } catch {}
-    }, 1_000);
-    return () => clearTimeout(id);
-  }, [notifOpen, unread]);
+    }
+    const targetView = resolveActionView(n.actionUrl);
+    if (targetView) {
+      setNotifOpen(false);
+      setView(targetView);
+    }
+  }
 
   async function handleLogout() {
     try {
@@ -331,21 +433,32 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
                 <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Fund wallet</span>
               </Button>
               <button
-                onClick={() => { setNotifOpen((v) => !v); if (!notifOpen) loadNotifs(); }}
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg hover:bg-muted"
+                onClick={() => setNotifOpen(true)}
+                aria-label={`Notifications${unread > 0 ? `, ${unread} unread` : ""}`}
+                className="relative flex h-9 w-9 items-center justify-center rounded-lg hover:bg-muted tp-btn-press"
               >
                 <Bell className="h-4.5 w-4.5" />
                 {unread > 0 && (
-                  <span className="tp-pulse-dot absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-[0_0_8px_1px_oklch(0.62_0.22_25/0.7)]">
+                  <span className="tp-badge-pulse absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
                     {unread > 9 ? "9+" : unread}
                   </span>
                 )}
               </button>
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-muted"
+                aria-label="Toggle theme"
+                className="tp-theme-toggle"
+                data-theme={mounted && theme === "dark" ? "dark" : "light"}
               >
-                {theme === "dark" ? <Sun className="h-4.5 w-4.5" /> : <Moon className="h-4.5 w-4.5" />}
+                <span className="tp-theme-toggle-icon"><Sun className="h-3.5 w-3.5" /></span>
+                <span className="tp-theme-toggle-icon"><Moon className="h-3.5 w-3.5" /></span>
+                <span className="tp-theme-toggle-thumb">
+                  {mounted && theme === "dark" ? (
+                    <Moon className="h-3.5 w-3.5" />
+                  ) : (
+                    <Sun className="h-3.5 w-3.5" />
+                  )}
+                </span>
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -384,27 +497,19 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
             </div>
           </header>
 
-          {/* Notifications panel */}
-          {notifOpen && (
-            <div className="absolute right-4 top-16 z-40 w-80 rounded-xl border bg-popover shadow-xl">
-              <div className="flex items-center justify-between border-b p-3">
-                <p className="text-sm font-semibold">Notifications</p>
-                <button onClick={() => setNotifOpen(false)} className="text-xs text-muted-foreground hover:text-foreground">Close</button>
-              </div>
-              <div className="max-h-96 overflow-y-auto scrollbar-thin">
-                {notifications.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-muted-foreground">No notifications yet</div>
-                ) : (
-                  notifications.map((n) => (
-                    <div key={n.id} className={`border-b p-3 ${n.read ? "opacity-60" : ""}`}>
-                      <p className="text-sm font-medium">{n.title}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">{n.body}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
+          {/* Notifications slide-over panel */}
+          <NotificationCenterPanel
+            open={notifOpen}
+            onOpenChange={setNotifOpen}
+            notifications={notifications}
+            loading={loadingNotifs}
+            unread={unread}
+            filter={notifFilter}
+            onFilterChange={setNotifFilter}
+            onMarkAllRead={handleMarkAllRead}
+            markingAll={markingAll}
+            onNotificationClick={handleNotificationClick}
+          />
 
           {/* Main content */}
           <main className="flex-1 px-4 py-6 pb-24 lg:pb-6">
@@ -587,5 +692,211 @@ function SessionTimeoutDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ============== Notification Center Slide-over ==============
+
+function NotificationCenterPanel({
+  open,
+  onOpenChange,
+  notifications,
+  loading,
+  unread,
+  filter,
+  onFilterChange,
+  onMarkAllRead,
+  markingAll,
+  onNotificationClick,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  notifications: AppNotification[];
+  loading: boolean;
+  unread: number;
+  filter: NotifFilter;
+  onFilterChange: (f: NotifFilter) => void;
+  onMarkAllRead: () => void;
+  markingAll: boolean;
+  onNotificationClick: (n: AppNotification) => void;
+}) {
+  const FILTERS: { key: NotifFilter; label: string }[] = [
+    { key: "all", label: "All" },
+    { key: "unread", label: "Unread" },
+    { key: "important", label: "Important" },
+  ];
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-md">
+        {/* Header */}
+        <SheetHeader className="gap-0 border-b p-0">
+          <div className="flex items-center justify-between px-5 pb-3 pt-5">
+            <div className="flex items-center gap-2">
+              <SheetTitle className="text-base">Notifications</SheetTitle>
+              {unread > 0 && (
+                <Badge variant="secondary" className="bg-primary/10 text-primary">
+                  {unread} new
+                </Badge>
+              )}
+            </div>
+            <button
+              onClick={onMarkAllRead}
+              disabled={unread === 0 || markingAll}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <CheckCheck className="h-3.5 w-3.5" />
+              {markingAll ? "Marking…" : "Mark all read"}
+            </button>
+          </div>
+
+          {/* Filter tabs */}
+          <div className="flex items-center gap-1 px-5 pb-3">
+            {FILTERS.map((f) => {
+              const active = filter === f.key;
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => onFilterChange(f.key)}
+                  className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                    active
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
+          </div>
+        </SheetHeader>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <NotificationListSkeleton />
+          ) : notifications.length === 0 ? (
+            <NotificationEmpty filter={filter} />
+          ) : (
+            <div className="tp-slide-in-right">
+              {notifications.map((n) => {
+                const { Icon, tone } = notifVisual(n.type);
+                const targetView = resolveActionView(n.actionUrl);
+                return (
+                  <div
+                    key={n.id}
+                    role="button"
+                    tabIndex={0}
+                    data-unread={!n.read}
+                    onClick={() => onNotificationClick(n)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onNotificationClick(n);
+                      }
+                    }}
+                    className="tp-notification-item"
+                  >
+                    {/* Icon tile */}
+                    <div
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${TONE_CLASSES[tone] ?? TONE_CLASSES.slate}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-semibold leading-tight">
+                          {n.title}
+                        </p>
+                        {!n.read && (
+                          <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                        )}
+                      </div>
+                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                        {n.body}
+                      </p>
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <span className="text-[11px] text-muted-foreground">
+                          {timeAgo(n.createdAt)}
+                        </span>
+                        {n.priority === "HIGH" && (
+                          <span className="inline-flex items-center gap-0.5 rounded-full bg-red-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-red-600 dark:text-red-400">
+                            <AlertTriangle className="h-2.5 w-2.5" />
+                            Important
+                          </span>
+                        )}
+                        {targetView && (
+                          <span className="tp-link-underline text-[11px] font-medium text-primary">
+                            View
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <SheetFooter className="border-t p-0">
+          <button
+            onClick={() => onOpenChange(false)}
+            className="flex w-full items-center justify-center gap-1.5 px-5 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
+          >
+            View all
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function NotificationListSkeleton() {
+  return (
+    <div className="space-y-0 p-0">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex gap-3 border-b p-4">
+          <div className="tp-skeleton-shimmer h-9 w-9 shrink-0 rounded-lg" />
+          <div className="flex-1 space-y-2">
+            <div className="tp-skeleton-shimmer h-3.5 w-3/4 rounded" />
+            <div className="tp-skeleton-shimmer h-3 w-full rounded" />
+            <div className="tp-skeleton-shimmer h-2.5 w-1/4 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function NotificationEmpty({ filter }: { filter: NotifFilter }) {
+  const msg =
+    filter === "unread"
+      ? "You're all caught up"
+      : filter === "important"
+        ? "No important notifications"
+        : "No notifications";
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+      <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+        <Bell className="h-7 w-7 text-primary" />
+        {/* Subtle ring around the bell illustration */}
+        <span
+          aria-hidden
+          className="absolute inset-0 rounded-full border-2 border-dashed border-primary/20"
+        />
+      </div>
+      <div>
+        <p className="text-sm font-semibold">{msg}</p>
+        <p className="mt-0.5 flex items-center justify-center gap-1 text-xs text-muted-foreground">
+          <Inbox className="h-3 w-3" />
+          New activity will appear here.
+        </p>
+      </div>
+    </div>
   );
 }
