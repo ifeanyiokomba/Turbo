@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://docs.minipay.xyz/getting-started/project-setup.html",
+    "name": "Project setup | Mini Apps",
+    "snippet": "This page covers recommended project structure, required config files , and environment variables for a Mini App. There is no MiniPay -specific manifest or ... Read more",
+    "host_name": "docs.minipay.xyz",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.celo.org/build-on-celo/build-on-minipay/quickstart",
+    "name": "Get Started Building on MiniPay",
+    "snippet": "A step-by-step guide to setting up, building, and testing your MiniPay Mini App. Download for Android and iOS. Fee Abstraction based transactions.",
+    "host_name": "docs.celo.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://minipay.to",
+    "name": "MiniPay | Dollar Stablecoin Wallet",
+    "snippet": "MiniPay is a self-custodial stablecoin wallet built on the Celo blockchain. All transactions are facilitated using USD stablecoins.",
+    "host_name": "minipay.to",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=CmWLa2142OA&vl=en",
+    "name": "How to Download & Set Up MiniPay (Step-by-Step Guide 2026)",
+    "snippet": "Learn how to download and set up MiniPay quickly and easily in this step-by-step tutorial. from installation to full setup. Step-by-step ...",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.minipay.xyz/getting-started/submit-your-miniapp.html",
+    "name": "Submit your MiniApp | Mini Apps",
+    "snippet": "There is no manifest or config file in your repo —listing is done only through this submission process. Network manifest - Provide a full manifest of all URLs, ...",
+    "host_name": "docs.minipay.xyz",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://minipay.to/faq",
+    "name": "FAQs",
+    "snippet": "Discover answers to common questions about our services, processes, and more. We're happy to help!",
+    "host_name": "minipay.to",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/lim-4158/BasePay-MiniApp",
+    "name": "lim-4158/BasePay-MiniApp",
+    "snippet": "The minikit.config.ts file configures your manifest located at app/.well-known/farcaster.json . Update your minikit.config.ts file",
+    "host_name": "github.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://blogs.opera.com/crypto/2025/02/minipay-cash-links",
+    "name": "Introducing MiniPay Cash Links: the easiest way to send",
+    "snippet": "Feb 28, 2025 — MiniPay Cash Links let you send and receive money instantly by generating a unique, shareable link. Simply create a link, send it via text or social media. Read more",
+    "host_name": "blogs.opera.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=EmiQX8iufsU",
+    "name": "How to activate your MiniPay Wallet",
+    "snippet": "In this video, we go over how to create a MiniPay wallet . To save in dollars, send for affordable fees, and do much more, get started by ...",
+    "host_name": "www.youtube.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://answers.microsoft.com/en-us/windows/forum/all/tcpipsys-systemserviceexception-win10-after-vpn/bd6d5392-7bc3-4613-8a65-2691135e1055",
+    "name": "tcpip.sys SYSTEM_SERVICE_EXCEPTION Win10 after VPN Connection",
+    "snippet": "Hey, I encouter some bluescreens lately when I try to start a VPN connection. The VPN connection itself is working and running. Some minutes (varies, normaly 5-10 min, if i leave the pc alone it's sometimes okay until I do something) after starting even…",
+    "host_name": "answers.microsoft.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

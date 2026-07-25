@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://docs.minipay.xyz/getting-started/setup-react.html",
+    "name": "Setting up a React App with MiniPay - Mini Apps",
+    "snippet": "This guide is the manual it walks through setting up a React project with MiniPay wallet integration by hand using Vite, TypeScript, and Wagmi.\nThis guide shows how to set up a React project with MiniPay wallet integration. We'll use Vite, TypeScript, and Wagmi for wallet interactions.",
+    "host_name": "docs.minipay.xyz",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://classic.yarnpkg.com/en/package/minipay-wagmi-connector",
+    "name": "minipay-wagmi-connector",
+    "snippet": "A Wagmi connector for interacting with MiniPay wallet . GitHub Installation Install and setup wagmi following the official documentation. npm install minipay - ...",
+    "host_name": "classic.yarnpkg.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://wagmi.sh/react/guides/connect-wallet",
+    "name": "Connect Wallet",
+    "snippet": "Jul 13, 2026 — Wagmi provides you with the Hooks to get started building your own Connect Wallet module. It takes less than five minutes to get up and running. Read more\nWagmi contains everything you need to get started with building a Connect Wallet module. To get started, you can either use a third-party library or build your own.",
+    "host_name": "wagmi.sh",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.cosx.ai/blogs/viem-and-wagmi-integration-with-operamini",
+    "name": "Viem and Wagmi Integration with OperaMini",
+    "snippet": "Dec 22, 2024 — Flow-diagram of integrating Viem and Wagmi with Minipay wallet . Steps to integrate Viem and Wagmi with Minipay. Folder structure for integration ... Read more",
+    "host_name": "www.cosx.ai",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/rainbow-me/rainbowkit/discussions/2330",
+    "name": "Accessing Wallet Connection Without Wagmi Hooks #2330",
+    "snippet": "Hey, I'm trying to avoid using wagmi's React hooks in my components. How can I access the connected wallet account or signer in vanilla JavaScript contexts ... Read more",
+    "host_name": "github.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=DTZbf5EIi8M",
+    "name": "How to Create React Front-ends with WAGMI.",
+    "snippet": "In this video, we'll see how to create a React front-end with WAGMI . Get access to #web3 tools https://qn.social/wagm.",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://rareskills.io/post/wagmi-react-example",
+    "name": "Wagmi + ReactJS Example: Transfer Crypto and Mint an NFT",
+    "snippet": "Step 2: Use configureChains to pick the network to connect to · Step 3: Use useConnect to enable picking the ... Read more",
+    "host_name": "rareskills.io",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://medium.com/@mirbasit01/building-multi-wallet-connection-with-wagmi-v2-viem-a-complete-developer-guide-a7bcf358ec2b",
+    "name": "Building Multi-Wallet Connection with Wagmi v2 & Viem",
+    "snippet": "This comprehensive guide will walk you through implementing a robust multi- wallet connection system that supports MetaMask, WalletConnect , ... Read more",
+    "host_name": "medium.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://stackoverflow.com/questions/77118750/how-to-connect-trust-wallet-with-wagmis-injectedconnector",
+    "name": "How to connect Trust Wallet with Wagmi's",
+    "snippet": "How do I connect Wagmi with Trust Wallet, so that users can connect their Trust Wallet accounts with my dApp? The Trust Wallet connector is not included ...",
+    "host_name": "stackoverflow.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.minipay.xyz",
+    "name": "docs.minipay.xyz - Mini Apps",
+    "snippet": "Getting Started — Overview of Mini Apps, Quick Start (create app, configure Wagmi, auto-connect), Installation (project setup, optional React setup), Test in MiniPay, FAQ.",
+    "host_name": "docs.minipay.xyz",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

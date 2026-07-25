@@ -33,7 +33,10 @@ export type ViewKey =
   | "achievements"
   | "marketplace"
   | "subscriptions"
-  | "wallet-insights";
+  | "wallet-insights"
+  | "minipay-wallet"
+  | "onchain-history"
+  | "celo-bridge";
 
 export interface AppUser {
   id: string;
@@ -56,10 +59,14 @@ interface AppState {
   view: ViewKey;
   sidebarOpen: boolean;
   loading: boolean;
+  minipayMode: boolean;
+  celoAddress: string | null;
   setUser: (u: AppUser | null) => void;
   setView: (v: ViewKey) => void;
   setSidebarOpen: (open: boolean) => void;
   setLoading: (l: boolean) => void;
+  setMinipayMode: (v: boolean) => void;
+  setCeloAddress: (a: string | null) => void;
   logoutClient: () => void;
 }
 
@@ -70,11 +77,15 @@ export const useApp = create<AppState>()(
       view: "dashboard",
       sidebarOpen: false,
       loading: true,
+      minipayMode: false,
+      celoAddress: null,
       setUser: (u) => set({ user: u }),
       setView: (v) => set({ view: v, sidebarOpen: false }),
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       setLoading: (l) => set({ loading: l }),
-      logoutClient: () => set({ user: null, view: "dashboard" }),
+      setMinipayMode: (v) => set({ minipayMode: v }),
+      setCeloAddress: (a) => set({ celoAddress: a }),
+      logoutClient: () => set({ user: null, view: "dashboard", minipayMode: false, celoAddress: null }),
     }),
     {
       name: "tp_app",

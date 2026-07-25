@@ -1,0 +1,65 @@
+[
+  {
+    "url": "https://developer.apple.com",
+    "name": "Apple Developer",
+    "snippet": "Join the Apple Developer Program to reach customers around the world on the App Store for iPhone, iPad, Mac, Apple Watch, Apple TV, and Apple Vision Pro. Read more",
+    "host_name": "developer.apple.com",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.reddit.com/r/learnprogramming/comments/1ms7bk5/what_define_a_developer",
+    "name": "What define a developer? : r/learnprogramming",
+    "snippet": "I have 7 years of experience in automotive software development as quality engineer and I learned python and sql programming while working, does not use ...",
+    "host_name": "www.reddit.com",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developer.arm.com",
+    "name": "Arm Developer",
+    "snippet": "The Arm Developer website includes documentation, tutorials, support resources, and downloads for products and technologies.",
+    "host_name": "developer.arm.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://developers.google.com",
+    "name": "Google for Developers | Build with Gemini",
+    "snippet": "From AI and Cloud to Mobile and Web: Explore developer resources and community events to help you build with Gemini.",
+    "host_name": "developers.google.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.merriam-webster.com/dictionary/developer",
+    "name": "DEVELOPER Definition & Meaning",
+    "snippet": "5 days ago — : one that develops : such as a : a chemical used to develop exposed photographic materials b : a person who develops real estate c : a person or company that ... Read more",
+    "host_name": "www.merriam-webster.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/@AppleDeveloper",
+    "name": "Apple Developer",
+    "snippet": "Hello and welcome to the official Apple Developer YouTube channel. online presentations and Q&As … more than 100 videos about design, tools, and technologies. ...",
+    "host_name": "www.youtube.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.developer.com",
+    "name": "Developer.com: CRE Commercial Real Estate Development",
+    "snippet": "Learn key stages of commercial real estate development , from planning & financing to construction and leasing, with essential tips for success.",
+    "host_name": "www.developer.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  }
+]

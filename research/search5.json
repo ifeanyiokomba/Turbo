@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://docs.minipay.xyz/technical-references",
+    "name": "Technical Reference - Mini Apps - MiniPay",
+    "snippet": "MiniPay injects an Ethereum provider when it loads your app . It is available as window.ethereum and follows the standard EIP-1193 API.\nThis section documents how to interact with the MiniPay wallet from your Mini App: provider, signing, transactions, and tokens. SDK / APIs at a glance Provider: MiniPay injects an Ethereum provider when it loads your app. It is available as window.ethereum and follows the standard EIP-1193 API.",
+    "host_name": "docs.minipay.xyz",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://minipay.to",
+    "name": "MiniPay | Dollar Stablecoin Wallet",
+    "snippet": "MiniPay is a self-custodial stablecoin wallet built on the Celo blockchain. All transactions are facilitated using USD stablecoins.",
+    "host_name": "minipay.to",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.celo.org/build-on-celo/build-on-minipay/code-library",
+    "name": "MiniPay Code Library",
+    "snippet": "The code must run in a browser environment and not in node environment if ( window && window . ethereum ) API Minipay injects one address",
+    "host_name": "docs.celo.org",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=oRqUNPwn05I",
+    "name": "Building MiniPay dApps – Technical Workshop",
+    "snippet": "Download Opera Mini Beta and get access to MiniPay ✅ Use Celo Composer to kick-start the development ✅ Use Ngrok to tunnel your localhost. Test ...",
+    "host_name": "www.youtube.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://play.google.com/store/apps/details?id=com.opera.minipay&hl=en_US",
+    "name": "MiniPay: Global Money App - Apps on Google Play",
+    "snippet": "MiniPay is a self-custodial stablecoin wallet built for real-world money movement. Hold USDT, send across borders in seconds, and cash out in local currency ... Read more",
+    "host_name": "play.google.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://investor.opera.com/news-releases/news-release-details/opera-launches-minipay-new-stablecoin-wallet-built-celo",
+    "name": "Opera Launches MiniPay, a New Stablecoin Wallet Built on",
+    "snippet": "Sep 13, 2023 — By integrating MiniPay into the Opera Mini browser, new and existing users will be able to experience fast and transparent transactions on the ...",
+    "host_name": "investor.opera.com",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://minipay.to/blog/cross-chain-deposits-in-minipay",
+    "name": "Deposit to MiniPay from any chain, any wallet",
+    "snippet": "Oct 21, 2025 — Go instantly from your ETH, on Ethereum, Base, App directly into MiniPay and withdraws to GCash within minutes. donate to charity using  ...",
+    "host_name": "minipay.to",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://apps.apple.com/us/app/minipay-easy-global-wallet/id6504087257",
+    "name": "MiniPay: Easy Global Wallet - App Store - Apple",
+    "snippet": "Experience fast, affordable, and secure digital transactions with MiniPay . to manage and send funds globally. Requires iOS 15.2 or later.",
+    "host_name": "apps.apple.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alchemy.com/dapps/minipay",
+    "name": "MiniPay - Web3 wallets",
+    "snippet": "MiniPay lets users create a wallet in one minute using a phone number , backed up in Google. It allows users to onramp to dollar stablecoins and offramp to any ... Read more",
+    "host_name": "www.alchemy.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.minipay.xyz/getting-started/wallet-connection.html",
+    "name": "Wallet Connection | Mini Apps - docs.minipay.xyz",
+    "snippet": "Check window.ethereum?.isMiniPay === true to detect MiniPay. Use this only if you need to branch behavior; most apps just require window.ethereum and auto-connect.",
+    "host_name": "docs.minipay.xyz",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

@@ -1055,3 +1055,75 @@ model MerchantReview {
   @@unique([merchantId, userId])
   @@index([merchantId, status])
 }
+
+// ===== MiniPay / Celo integration =====
+
+model CeloWallet {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  address       String   @unique // 0x... EIP-55 checksum
+  chainId       Int      @default(42220) // 42220 mainnet | 11142220 sepolia
+  linkedAt      DateTime @default(now())
+  lastSeenAt    DateTime @default(now())
+  metadata      String? // JSON: phone, ens, etc.
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  transactions  OnChainTransaction[]
+  @@index([userId])
+}
+
+model OnChainTransaction {
+  id                String   @id @default(cuid())
+  userId            String
+  celoWalletId      String
+  celoWallet        CeloWallet @relation(fields: [celoWalletId], references: [id], onDelete: Cascade)
+  hash              String   @unique // tx hash, idempotency key
+  type              String // DEPOSIT | WITHDRAW | PAYMENT | SWAP
+  direction         String // CREDIT | DEBIT
+  tokenSymbol       String // USDm | USDC | USDT | NGNm | CELO
+  tokenAddress      String // 0x... ERC-20 contract
+  amountHuman       String // "10.5" (display)
+  amountWei         String // "10500000000000000000" (raw)
+  amountKoboEquiv   Int? // NGN equivalent in kobo (for ledger linkage)
+  counterpartyAddress String
+  status            String   @default("PENDING") // PENDING | SUCCESS | FAILED | REVERSED
+  blockNumber       BigInt?
+  gasUsed           BigInt?
+  feeCurrency       String?
+  metadata          String? // JSON
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  @@index([userId, createdAt])
+  @@index([celoWalletId])
+  @@index([status])
+  @@index([hash])
+}
+
+model CeloBridgeEvent {
+  id                String   @id @default(cuid())
+  userId            String
+  onchainTxId       String   @unique
+  direction         String // NGN_TO_CUSD | CUSD_TO_NGN
+  status            String   @default("PENDING") // PENDING | COMPLETED | REVERSED
+  amountKobo        Int
+  amountUsdm        String
+  fxRate            Float
+  createdAt         DateTime @default(now())
+  completedAt       DateTime?
+  @@index([userId, createdAt])
+}
+
+model CeloTokenConfig {
+  id            String   @id @default(cuid())
+  symbol        String   @unique // USDm | USDC | USDT | NGNm | CELO
+  address       String   @unique // 0x...
+  decimals      Int // 18 | 6
+  chainId       Int // 42220 | 11142220
+  isActive      Boolean  @default(true)
+  isBridgeable  Boolean  @default(false)
+  displayOrder  Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@unique([symbol, chainId])
+  @@index([chainId, isActive])
+}

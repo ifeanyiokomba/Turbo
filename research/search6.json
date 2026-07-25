@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://docs.celo.org/build-on-celo/network-overview",
+    "name": "Network Information - Celo Docs",
+    "snippet": "Testnet network (replacing Alfajores) Chain ID 11142220 . Celo's new developer testnet designed to replace Alfajores\nDescription, The New Developer Testnet network (replacing Alfajores) ; Chain ID, 11142220 ; Currency Symbol, CELO ; RPC Nodes, List of RPC providers.\nDescription, The New Developer Testnet network (replacing Alfajores ) ; Chain ID , 11142220 ; Currency Symbol, CELO ; RPC Nodes, List of RPC providers. Read more",
+    "host_name": "docs.celo.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://chainlist.org/chain/44787",
+    "name": "Celo Alfajores Testnet RPC and Chain settings",
+    "snippet": "Users can use the information to connect their wallets and Web3 middleware providers to the appropriate Chain ID and Network ID to connect to the correct chain.\nUsers can use the information to connect their wallets and Web3 middleware providers to the appropriate Chain ID and Network ID to connect to the correct chain. Read more",
+    "host_name": "chainlist.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/celo-org/faucet/discussions/43",
+    "name": "[Faucet] Large amounts of CELO/cUSD/cEUR/cREAL on",
+    "snippet": "Dec 14, 2022 — Hey all, we've been getting frequent requests for larger amounts of CELO/cUSD/cEUR/cREAL on Alfajores.\n\nE.g.:\n• [...] is there a way to receive more ...",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://coinfactory.app/en/chainlist/44787",
+    "name": "Celo Alfajores Testnet Network Information",
+    "snippet": "Add Celo Alfajores Testnet network to Metamask. Chain ID: 44787 . Native currency: CELO (CELO). Decimals: 18. View chain settings, RPC urls, faucets, explorer",
+    "host_name": "coinfactory.app",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://tatum.io/faucets/celo",
+    "name": "Celo Faucet - Get Testnet CELO",
+    "snippet": "address : '0x690B9A9E9aa1C9dB991C7721a92d351Db4FaC990' }) Please note that we only support regular wallet addresses , not smart contracts . You can request 1 CELO ...\nFaucets offer developers testnet CELO to evaluate and refine applications prior to launching on the mainnet. can acquire these tokens from a faucet,",
+    "host_name": "tatum.io",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.celo.org/tooling/contracts/token-contracts",
+    "name": "Token Contracts",
+    "snippet": "Token addresses for Celo assets on Mainnet and the Celo Sepolia Testnet . Token Address Mento Australian Dollar AUDm 0x7175504C455076F15c04A2F90a8e352281F492F9",
+    "host_name": "docs.celo.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alchemy.com/rpc/celo",
+    "name": "Celo RPC URL & devtools",
+    "snippet": "Celo RPC & resources. Endpoints, websockets, and devtools. L1. L1. Chain ID : 42220. Chain ID : 42220 ... cUSD and cEUR stablecoins power payments in 100+ countries ...\nCopy RPC/WS endpoint URLs and chain IDs, Chain ID: 42220. Celo is a mobile-first, EVM-compatible L2 … its support of cUSD and cEUR stablecoins power payments ...\nCelo RPC & resources. Endpoints, websockets, and devtools. L1. L1. Chain ID : 42220. Chain ID : 42220 ... cUSD and cEUR stablecoins power payments in 100+ countries ... Read more",
+    "host_name": "www.alchemy.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://metaschool.so/rpc/celoAlfajoresTestnet",
+    "name": "Celo Alfajores Testnet RPC and Chain Settings",
+    "snippet": "Metaschool offers a comprehensive guide to configuring your Celo Alfajores Testnet network. Chain ID - 44787 Currency. Input the Network Name, RPC URL, Chain ...\nMetaschool offers a comprehensive guide to configuring your Celo Alfajores Testnet network. Input the Network Name, RPC URL, Chain ID, and Currency Symbol.\nMetaschool offers a comprehensive guide to configuring your Celo Alfajores Testnet network. Input the Network Name, RPC URL, Chain ID , and Currency Symbol.",
+    "host_name": "metaschool.so",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.chain.link/ccip/directory/testnet/chain/celo-testnet-alfajores",
+    "name": "Celo Alfajores CCIP Network (Inactive) - Testnet",
+    "snippet": "Inactive CCIP network for Celo Alfajores on Testnet . This chain is no longer active but historical transaction data remains accessible via CCIP Explorer.\nInactive CCIP network for Celo Alfajores on Testnet. This chain is no longer active but historical transaction data remains accessible via CCIP Explorer.",
+    "host_name": "docs.chain.link",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.celo.org/tooling/wallets/metamask/add-celo-testnet-to-metamask",
+    "name": "Add Celo Testnet to MetaMask",
+    "snippet": "Follow this quick guide to add Celo Sepolia to your MetaMask wallet. You can get funds from the Celo Faucet. Chain ID: 11142220",
+    "host_name": "docs.celo.org",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

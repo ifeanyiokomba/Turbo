@@ -1,0 +1,21 @@
+{
+  "code": 200,
+  "data": {
+    "description": "",
+    "html": "<html><head><meta name=\"color-scheme\" content=\"light dark\"></head><body><pre style=\"word-wrap: break-word; white-space: pre-wrap;\">---\nurl: /technical-references.md\ndescription: >-\n  API reference for the MiniPay wallet from Mini Apps—provider, signing,\n  transactions, and tokens.\n---\n\n# Technical Reference\n\nThis section documents how to interact with the MiniPay wallet from your Mini App: provider, signing, transactions, and tokens.\n\n## SDK / APIs at a glance\n\n* **Provider:** MiniPay injects an Ethereum provider when it loads your app. It is available as `window.ethereum` and follows the standard [EIP-1193](https://eips.ethereum.org/EIPS/eip-1193) API. You can detect MiniPay with `window.ethereum?.isMiniPay === true`. Optionally wrap access in a `getEthereumProvider()` that throws if the provider is missing (see [Project setup](/getting-started/project-setup)).\n* **Wagmi:** We recommend [Wagmi](https://wagmi.sh/react/getting-started) (with Viem) to talk to the provider. Use the **injected** connector and configure **Celo** and **Celo Sepolia** chains. In Wagmi v3, use `useConnection()` for address, chainId, and connection state.\n* **Signing and transactions:** Send tokens (e.g. USDC, USDT, USDm) via `useSendTransaction`. See [Send a transaction](./send-transaction) and [Transaction status](./transaction-status).\n* **Tokens:** Read balances with `useReadContracts` (balanceOf, decimals, symbol). See [Retrieve balance](./retrieve-balance). Supported networks: Celo Mainnet and Celo Sepolia only.\n\n> \\[!NOTE]\n> Wagmi is not required. You can use `window.ethereum` directly (e.g. with Viem's `createPublicClient` and `custom(provider)`), but Wagmi simplifies React integration.\n\n## Wallet connection\n\n* [Wallet connection](/getting-started/wallet-connection) — Auto-connect, connection state, and error handling\n\n## Code examples\n\nIn addition to the [Quick Start guide](/getting-started/quick-start), here are code examples for common wallet operations.\n\n### Basic operations\n\n* [Retrieve a balance](./retrieve-balance) — Get token balances from the wallet\n* [Send a transaction](./send-transaction) — Send token transactions (e.g. USDC, USDT, USDm)\n* [Transaction status](./transaction-status) — Track transaction confirmation\n* [Chain switching](./chain-switching) — Celo and Celo Sepolia\n\n### Advanced features\n\n* [Estimate gas](./gas-estimation) — Estimate transaction gas costs\n* [Phone number lookup](./phone-number-lookup) — Map phone number to wallet address\n* [Custom methods](./custom-methods/custom-methods) — MiniPay-specific RPC methods\n* [Deeplinks](./deeplinks) — Deep linking into MiniPay\n\n### Smart contracts\n\n* [Interacting with smart contracts](/getting-started/smart-contracts) — Read and write to smart contracts\n</pre></body></html>",
+    "httpStatus": 200,
+    "httpStatusText": "",
+    "publishedTime": "Wed, 22 Jul 2026 12:29:52 GMT",
+    "title": "",
+    "url": "https://docs.minipay.xyz/technical-references.md",
+    "usage": {
+      "tokens": 690
+    }
+  },
+  "meta": {
+    "usage": {
+      "tokens": 690
+    }
+  },
+  "status": 20000
+}

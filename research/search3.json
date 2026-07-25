@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://docs.celo.org/build-on-celo/build-on-minipay/quickstart",
+    "name": "Get Started Building on MiniPay",
+    "snippet": "A step-by-step guide to setting up, building, and testing your MiniPay Mini App. Use the Celo Composer MiniPay Template to start building. Enable Developer ...\nUse the Celo Composer MiniPay Template to start building. Follow the Quickstart Guide for a step-by-step tutorial. Follow the Helpful Tips Guide to ensure your app is MiniPay compatible. 3. Get Testnet Tokens. Request CELO testnet tokens from the Celo faucet to test your Mini App.",
+    "host_name": "docs.celo.org",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.minipay.xyz/faq.html",
+    "name": "Frequently Asked Questions (FAQ) - Mini Apps - MiniPay",
+    "snippet": "Check out the Quick Start for a practical example. MiniPay supports: Celo Mainnet (Chain ID: 42220 ) Celo Sepolia Testnet (Chain ID: 11142220) See our chain ...",
+    "host_name": "docs.minipay.xyz",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=HNMXOQAdi4o",
+    "name": "Build on Celo: Build for MiniPay",
+    "snippet": "Learn how to build for MiniPay on Celo . Build for 2 million people! MiniPay is a stablecoin wallet inside the Opera Mini browser.",
+    "host_name": "www.youtube.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/Bleyle823/Celo-Minipay-Plugin/blob/main/docs/docs/quickstart.md",
+    "name": "Celo-Minipay-Plugin/docs/docs/quickstart.md at main",
+    "snippet": "Celo Minipay Plugin for Eliza . For detailed API documentation, troubleshooting, and advanced features, check out our full documentation.",
+    "host_name": "github.com",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.celo.org/home/celo",
+    "name": "Celo Docs",
+    "snippet": "Give your coding assistant Celo ecosystem knowledge — contract addresses, MiniPay , DeFi, grants, and agent infrastructure.",
+    "host_name": "docs.celo.org",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://minipay.to",
+    "name": "MiniPay | Dollar Stablecoin Wallet",
+    "snippet": "MiniPay is a self-custodial stablecoin wallet built on the Celo blockchain . All transactions are facilitated using USD stablecoins. Download MiniPay to start ...",
+    "host_name": "minipay.to",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.alchemy.com/docs/reference/celo-api-quickstart",
+    "name": "Celo Chain API Quickstart",
+    "snippet": "How to get started building on Celo using Alchemy . Build faster with production-ready APIs, smart wallets and rollup infrastructure across 70+ chains. Create ...",
+    "host_name": "www.alchemy.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=l55SR8QG2O4",
+    "name": "Building MiniPay dApps - Technical Workshop",
+    "snippet": "Learn how to build for MiniPay on Celo . MiniPay is a stablecoin wallet inside the Opera Mini browser. MiniPay makes saving, sending, ...",
+    "host_name": "www.youtube.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.minipay.xyz/getting-started/test-in-minipay.html",
+    "name": "Test your Mini App inside MiniPay",
+    "snippet": "Return to Settings, then select Developer Settings. Enable Developer Mode and toggle Use Testnet to connect to Celo Sepolia testnet ( Chain ID 11142220). For ...",
+    "host_name": "docs.minipay.xyz",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.minipay.xyz/getting-started/quick-start.html",
+    "name": "Quick Start | Mini Apps - docs.minipay.xyz",
+    "snippet": "Quick Start to scaffold your first MiniPay Mini App using the Celo agent skills.",
+    "host_name": "docs.minipay.xyz",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

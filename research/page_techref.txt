@@ -1,0 +1,5 @@
+URL: https://docs.minipay.xyz/technical-references.html
+TITLE: Technical Reference | Mini Apps
+PUBLISHED: 
+
+Technical Reference | Mini Apps Skip to content Mini Apps Search K Main Navigation Getting Started Guides Reference Appearance Menu Return to top Sidebar Navigation Getting Started Overview Quick Start Manual setup Project setup Setup with React Test in MiniPay FAQ Guides Wallet connection UI & container Smart contracts Best practices Deployment Submit your Mini App Why MiniPay Availability Design standards Reference Overview Deeplinks Wallet operations Retrieve balance Send a transaction Gas estimation Phone number lookup Custom methods Overview Get exchange rate Scan QR code Request contact On this page Are you an LLM? You can read better optimized documentation at /technical-references.md for this page in Markdown format Technical Reference ​ Copy page Pager Next page Retrieve balance

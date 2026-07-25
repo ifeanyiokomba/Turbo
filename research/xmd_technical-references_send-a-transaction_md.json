@@ -1,0 +1,47 @@
+{
+  "code": 200,
+  "data": {
+    "description": "Not Found",
+    "external": {
+      "icon": {
+        "https://docs.minipay.xyz/minipay-logo.svg": {
+          "type": "image/svg+xml"
+        }
+      },
+      "preload": {
+        "https://docs.minipay.xyz/assets/inter-roman-latin.Di8DUHzh.woff2": {
+          "as": "font",
+          "crossorigin": "",
+          "type": "font/woff2"
+        },
+        "https://docs.minipay.xyz/assets/style.Vr9ttE8T.css": {
+          "as": "style"
+        },
+        "https://docs.minipay.xyz/vp-icons.css": {
+          "as": "style"
+        }
+      }
+    },
+    "html": "<html lang=\"en-US\" dir=\"ltr\"><head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">\n    <title>404 | Mini Apps</title>\n    <meta name=\"description\" content=\"Not Found\">\n    <meta name=\"generator\" content=\"VitePress v1.6.4\">\n    <link rel=\"preload stylesheet\" href=\"/assets/style.Vr9ttE8T.css\" as=\"style\">\n    <link rel=\"preload stylesheet\" href=\"/vp-icons.css\" as=\"style\">\n    \n    <script type=\"module\" src=\"/assets/app.Btvhv_Vx.js\"></script>\n    <link rel=\"preload\" href=\"/assets/inter-roman-latin.Di8DUHzh.woff2\" as=\"font\" type=\"font/woff2\" crossorigin=\"\">\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/minipay-logo.svg\">\n    <script id=\"check-dark-mode\">(()=>{const e=localStorage.getItem(\"vitepress-theme-appearance\")||\"auto\",a=window.matchMedia(\"(prefers-color-scheme: dark)\").matches;(!e||e===\"auto\"?a:e===\"dark\")&&document.documentElement.classList.add(\"dark\")})();</script>\n    <script id=\"check-mac-os\">document.documentElement.classList.toggle(\"mac\",/Mac|iPhone|iPod|iPad/i.test(navigator.platform));</script>\n  </head>\n  <body>\n    <div id=\"app\"></div>\n    <script>window.__VP_HASH_MAP__=JSON.parse(\"{\\\"design-standards_index.md\\\":\\\"6zTyAA5T\\\",\\\"faq.md\\\":\\\"qGLL3nxy\\\",\\\"getting-started_availability.md\\\":\\\"DWTnyN1_\\\",\\\"getting-started_best-practices.md\\\":\\\"CL0QRbOC\\\",\\\"getting-started_deployment.md\\\":\\\"Bb2kT1le\\\",\\\"getting-started_examples.md\\\":\\\"wRGg0Rna\\\",\\\"getting-started_index.md\\\":\\\"CB7BYHVB\\\",\\\"getting-started_overview.md\\\":\\\"Bh_YdL2j\\\",\\\"getting-started_project-setup.md\\\":\\\"ColQI2t9\\\",\\\"getting-started_quick-start.md\\\":\\\"C3xr5Bcv\\\",\\\"getting-started_setup-react.md\\\":\\\"BOlmoAMC\\\",\\\"getting-started_smart-contracts.md\\\":\\\"5i4hOlb1\\\",\\\"getting-started_submit-your-miniapp.md\\\":\\\"Dfur_FA0\\\",\\\"getting-started_test-in-minipay.md\\\":\\\"BFE3S5nr\\\",\\\"getting-started_ui-and-container.md\\\":\\\"bEFlxbcM\\\",\\\"getting-started_wallet-connection.md\\\":\\\"CasXiglS\\\",\\\"getting-started_why-minipay.md\\\":\\\"DVKeeDkc\\\",\\\"index.md\\\":\\\"DBohpAOX\\\",\\\"technical-references_chain-switching.md\\\":\\\"K6XK58wv\\\",\\\"technical-references_custom-methods_custom-methods.md\\\":\\\"BrPTRteq\\\",\\\"technical-references_custom-methods_get-exchange-rate.md\\\":\\\"DStFqsyN\\\",\\\"technical-references_custom-methods_request-contact.md\\\":\\\"CzhbyBfI\\\",\\\"technical-references_custom-methods_scan-qr-code.md\\\":\\\"CMLxEeGc\\\",\\\"technical-references_deeplinks.md\\\":\\\"Bn-fNZuK\\\",\\\"technical-references_gas-estimation.md\\\":\\\"CLSAlWAp\\\",\\\"technical-references_index.md\\\":\\\"DkzykCMz\\\",\\\"technical-references_phone-number-lookup.md\\\":\\\"BILL6EWb\\\",\\\"technical-references_retrieve-balance.md\\\":\\\"ClpMkjkd\\\",\\\"technical-references_send-transaction.md\\\":\\\"CXD8pzV7\\\",\\\"technical-references_transaction-status.md\\\":\\\"OyaTr29V\\\"}\");window.__VP_SITE_DATA__=JSON.parse(\"{\\\"lang\\\":\\\"en-US\\\",\\\"dir\\\":\\\"ltr\\\",\\\"title\\\":\\\"Mini Apps\\\",\\\"description\\\":\\\"Developer documentation\\\",\\\"base\\\":\\\"/\\\",\\\"head\\\":[],\\\"router\\\":{\\\"prefetchLinks\\\":true},\\\"appearance\\\":true,\\\"themeConfig\\\":{\\\"logo\\\":\\\"/minipay-logo.svg\\\",\\\"search\\\":{\\\"provider\\\":\\\"local\\\"},\\\"nav\\\":[{\\\"text\\\":\\\"Getting Started\\\",\\\"link\\\":\\\"/getting-started\\\"},{\\\"text\\\":\\\"Guides\\\",\\\"link\\\":\\\"/getting-started/wallet-connection\\\"},{\\\"text\\\":\\\"Reference\\\",\\\"link\\\":\\\"/technical-references\\\"}],\\\"sidebar\\\":[{\\\"text\\\":\\\"Getting Started\\\",\\\"collapsed\\\":false,\\\"items\\\":[{\\\"text\\\":\\\"Overview\\\",\\\"link\\\":\\\"/getting-started/overview\\\"},{\\\"text\\\":\\\"Quick Start\\\",\\\"link\\\":\\\"/getting-started/quick-start\\\"},{\\\"text\\\":\\\"Manual setup\\\",\\\"collapsed\\\":false,\\\"items\\\":[{\\\"text\\\":\\\"Project setup\\\",\\\"link\\\":\\\"/getting-started/project-setup\\\"},{\\\"text\\\":\\\"Setup with React\\\",\\\"link\\\":\\\"/getting-started/setup-react\\\"}]},{\\\"text\\\":\\\"Test in MiniPay\\\",\\\"link\\\":\\\"/getting-started/test-in-minipay\\\"},{\\\"text\\\":\\\"FAQ\\\",\\\"link\\\":\\\"/faq\\\"}]},{\\\"text\\\":\\\"Guides\\\",\\\"collapsed\\\":false,\\\"items\\\":[{\\\"text\\\":\\\"Wallet connection\\\",\\\"link\\\":\\\"/getting-started/wallet-connection\\\"},{\\\"text\\\":\\\"UI & container\\\",\\\"link\\\":\\\"/getting-started/ui-and-container\\\"},{\\\"text\\\":\\\"Smart contracts\\\",\\\"link\\\":\\\"/getting-started/smart-contracts\\\"},{\\\"text\\\":\\\"Best practices\\\",\\\"link\\\":\\\"/getting-started/best-practices\\\"},{\\\"text\\\":\\\"Deployment\\\",\\\"link\\\":\\\"/getting-started/deployment\\\"},{\\\"text\\\":\\\"Submit your Mini App\\\",\\\"link\\\":\\\"/getting-started/submit-your-miniapp\\\"},{\\\"text\\\":\\\"Why MiniPay\\\",\\\"link\\\":\\\"/getting-started/why-minipay\\\"},{\\\"text\\\":\\\"Availability\\\",\\\"link\\\":\\\"/getting-started/availability\\\"},{\\\"text\\\":\\\"Design standards\\\",\\\"link\\\":\\\"/design-standards\\\"}]},{\\\"text\\\":\\\"Reference\\\",\\\"items\\\":[{\\\"text\\\":\\\"Overview\\\",\\\"link\\\":\\\"/technical-references\\\"},{\\\"text\\\":\\\"Deeplinks\\\",\\\"link\\\":\\\"/technical-references/deeplinks\\\"},{\\\"text\\\":\\\"Wallet operations\\\",\\\"collapsed\\\":false,\\\"items\\\":[{\\\"text\\\":\\\"Retrieve balance\\\",\\\"link\\\":\\\"/technical-references/retrieve-balance\\\"},{\\\"text\\\":\\\"Send a transaction\\\",\\\"link\\\":\\\"/technical-references/send-transaction\\\"},{\\\"text\\\":\\\"Gas estimation\\\",\\\"link\\\":\\\"/technical-references/gas-estimation\\\"},{\\\"text\\\":\\\"Phone number lookup\\\",\\\"link\\\":\\\"/technical-references/phone-number-lookup\\\"}]},{\\\"text\\\":\\\"Custom methods\\\",\\\"collapsed\\\":true,\\\"items\\\":[{\\\"text\\\":\\\"Overview\\\",\\\"link\\\":\\\"/technical-references/custom-methods/custom-methods\\\"},{\\\"text\\\":\\\"Get exchange rate\\\",\\\"link\\\":\\\"/technical-references/custom-methods/get-exchange-rate\\\"},{\\\"text\\\":\\\"Scan QR code\\\",\\\"link\\\":\\\"/technical-references/custom-methods/scan-qr-code\\\"},{\\\"text\\\":\\\"Request contact\\\",\\\"link\\\":\\\"/technical-references/custom-methods/request-contact\\\"}]}]}]},\\\"locales\\\":{},\\\"scrollOffset\\\":134,\\\"cleanUrls\\\":false}\");</script>\n    \n  \n</body></html>",
+    "httpStatus": 404,
+    "httpStatusText": "",
+    "metadata": {
+      "description": "Not Found",
+      "generator": "VitePress v1.6.4",
+      "lang": "en-US",
+      "viewport": "width=device-width,initial-scale=1"
+    },
+    "title": "404 | Mini Apps",
+    "url": "https://docs.minipay.xyz/technical-references/send-a-transaction.md",
+    "usage": {
+      "tokens": 1444
+    },
+    "warning": "Target URL returned error 404: Not Found"
+  },
+  "meta": {
+    "usage": {
+      "tokens": 1444
+    }
+  },
+  "status": 20000
+}

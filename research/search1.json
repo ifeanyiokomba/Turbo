@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://docs.minipay.xyz",
+    "name": "Mini Apps - MiniPay",
+    "snippet": "MiniPay developer documentation for building Mini Apps with instant wallet access and Celo support. Build web apps that run inside MiniPay—we call them Mini ...",
+    "host_name": "docs.minipay.xyz",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.celo.org/build-on-celo/build-on-minipay/overview",
+    "name": "Build on MiniPay",
+    "snippet": "MiniPay is a stablecoin wallet with a built-in Mini App discovery page, integrated directly within the popular Opera Mini Android browser and also available as ...\nUseful Applications: MiniPay focuses on practical uses in everyday life, especially in emerging markets, where most of their users are located. Integrated App Discovery: MiniPay includes a built-in app discovery page, allowing users to interact with selected Mini Apps directly within their wallet, without needing to switch to other platforms.",
+    "host_name": "docs.celo.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/celo-org/minipay-minidapps",
+    "name": "celo-org/minipay-minidapps",
+    "snippet": "Ensure the \"Connect Wallet \" button is hidden when your DApp is loaded inside the MiniPay app , as the wallet connection is implicit.",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://minipay.to/mini-apps",
+    "name": "Launch Your Web3 App in MiniPay – Reach Millions Instantly",
+    "snippet": "MiniPay is a self-custody wallet supporting CELO blockchain stablecoins, offered by Blueboard Limited.",
+    "host_name": "minipay.to",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://minipay.to/blog/minipay-mini-apps-real-utility-global-reach",
+    "name": "Launch and scale your Mini App with MiniPay — Reach",
+    "snippet": "Jun 13, 2025 — * MiniPay is a self-custody wallet supporting CELO blockchain stablecoins, ... Read more",
+    "host_name": "minipay.to",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.celo.org/build-on-celo/build-on-minipay/quickstart",
+    "name": "Get Started Building on MiniPay",
+    "snippet": "A step-by-step guide to setting up, building, and testing your MiniPay Mini App. MiniPay is only available on Celo and Celo Sepolia Testnet. Download for ...\nGet Started Building on MiniPay Copy pageCopy page A step-by-step guide to setting up, building, and testing your MiniPay Mini App.",
+    "host_name": "docs.celo.org",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://press.opera.com/2026/04/22/minipay-builders-incentive-and-roadshow",
+    "name": "MiniPay Contributes up to $1 Million CELO to Back Mini",
+    "snippet": "Apr 22, 2026 — MiniPay is a non-custodial stablecoin wallet built on the Celo blockchain and designed to make digital finance accessible, affordable, and user ...",
+    "host_name": "press.opera.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://play.google.com/store/apps/details?id=com.opera.minipay&hl=en_US",
+    "name": "MiniPay: Global Money App - Apps on Google Play",
+    "snippet": "MiniPay is a non-custodial wallet built on the Celo blockchain . All transactions are facilitated using USD stablecoins. All exchanges between stablecoins ... Read more",
+    "host_name": "play.google.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.minipay.xyz/getting-started/quick-start.html",
+    "name": "Quick Start | Mini Apps - docs.minipay.xyz",
+    "snippet": "The fastest way to build a MiniPay Mini App is with Celopedia — a comprehensive Celo knowledge skill for AI coding assistants (Claude Code, Cursor, Codex, and similar). Install it once and your assistant can scaffold a Mini App, wire up wallet detection and stablecoin payments, and answer ecosystem questions inline.",
+    "host_name": "docs.minipay.xyz",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://deepwiki.com/celo-org/celopedia-skills/4.3-minipay-scaffolding-and-templates",
+    "name": "MiniPay Scaffolding & Templates | celo-org/celopedia-skills",
+    "snippet": "This section provides the technical implementation details for building MiniPay Mini Apps using a \"scaffold-from-scratch\" approach with Next.js and Viem. It contrasts this with the Celo Composer path and provides reusable code templates for core MiniPay functionality, including wallet detection, stablecoin payment flows, and fee abstraction.",
+    "host_name": "deepwiki.com",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]

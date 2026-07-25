@@ -1,0 +1,92 @@
+[
+  {
+    "url": "https://docs.minipay.xyz/getting-started/test-in-minipay.html",
+    "name": "Test your Mini App inside MiniPay",
+    "snippet": "Open the MiniPay app on your phone and navigate to settings . then select Developer Settings . In Developer Settings , tap \"Load test page\". For local development ...\nTestnet (Celo Sepolia): Use Developer Mode's \"Use Testnet\" to test with fake funds and avoid mainnet fees. Mainnet (Celo): Turn testnet off to test with real Celo and stablecoins.",
+    "host_name": "docs.minipay.xyz",
+    "rank": 0,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.celo.org/build-on-celo/build-on-minipay/quickstart",
+    "name": "Get Started Building on MiniPay",
+    "snippet": "Enable Developer Mode : Open the MiniPay app on your phone and navigate to settings. In Developer Settings, tap Load Test Page. If testing a local deployment, ...\nEnable Developer Mode and toggle Use Testnet to connect to Sepolia L2 testnet. In Developer Settings, tap Load Test Page. Enter your Mini App URL. If testing a local deployment, use ngrok to expose your localhost. MiniPay uses Custom Fee Abstraction based transactions.",
+    "host_name": "docs.celo.org",
+    "rank": 1,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://github.com/celo-org/minipay-minidapps",
+    "name": "celo-org/minipay-minidapps",
+    "snippet": "Open the MiniPay app on your phone and click on compass icon. minipay-app · Click on \"Test Page\" to open the MiniPay test page.",
+    "host_name": "github.com",
+    "rank": 2,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://minipay.to",
+    "name": "MiniPay | Dollar Stablecoin Wallet",
+    "snippet": "Seamlessly convert local cash into USDT, USDC, or cUSD using your preferred method—card, Google Pay, mobile money or bank transfer—and switch back just as fast.",
+    "host_name": "minipay.to",
+    "rank": 3,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=NxZojrjVXQA",
+    "name": "How to Build on MiniPay – Demo",
+    "snippet": "Guide you through the documentation ✅ Show you how to create a dapp inside MiniPay ✅ Share access to the Opera Mini Beta app. Demonstrate how ...",
+    "host_name": "www.youtube.com",
+    "rank": 4,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.minipay.xyz/getting-started",
+    "name": "Getting started - Mini Apps - MiniPay",
+    "snippet": "Test in MiniPay — Load your app in the wallet using Developer Mode . Guides Wallet connection — Auto-connect and error handling.",
+    "host_name": "docs.minipay.xyz",
+    "rank": 5,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=l55SR8QG2O4",
+    "name": "Building MiniPay dApps - Technical Workshop",
+    "snippet": "Learn how to build for MiniPay on Celo . MiniPay is a stablecoin wallet inside the Opera Mini browser. MiniPay makes saving, sending, ...",
+    "host_name": "www.youtube.com",
+    "rank": 6,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://razorpay.com/docs/payments/dashboard/test-live-modes/?preferred-country=US",
+    "name": "Test and Live Modes | Razorpay Docs",
+    "snippet": "The Test mode is a replica of your account in a sandbox environment. This allows you to test all aspects of your integration before you go live.",
+    "host_name": "razorpay.com",
+    "rank": 7,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://www.youtube.com/watch?v=EmiQX8iufsU",
+    "name": "How to activate your MiniPay Wallet",
+    "snippet": "In this video, we go over how to create a MiniPay wallet . To save in dollars, send for affordable fees, and do much more, get started by ...",
+    "host_name": "www.youtube.com",
+    "rank": 8,
+    "date": "",
+    "favicon": ""
+  },
+  {
+    "url": "https://docs.minipay.xyz/getting-started/quick-start.html",
+    "name": "Quick Start | Mini Apps - docs.minipay.xyz",
+    "snippet": "Expose your dev server with ngrok, enable Developer Mode in MiniPay, and use Load test page to enter your URL. Full instructions: Test in MiniPay. When your app is production-ready, list it in MiniPay's Discover page via the submission form.",
+    "host_name": "docs.minipay.xyz",
+    "rank": 9,
+    "date": "",
+    "favicon": ""
+  }
+]
