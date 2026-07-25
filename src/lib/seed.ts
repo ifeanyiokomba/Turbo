@@ -1,7 +1,8 @@
-// Turbopay seed — create admin + savings/investment products + tier limits if missing
+// Turbopay seed — create admin + savings/investment products + tier limits + turbocore platform
 
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
+import { seedTurboCore } from "@/lib/turbocore/seed";
 
 export async function ensureSeed() {
   // KYC tier limits
@@ -65,4 +66,7 @@ export async function ensureSeed() {
       ],
     });
   }
+
+  // TurboCore provider platform (providers, capabilities, country configs, FX config)
+  await seedTurboCore().catch((e) => console.error("[seed] turbocore failed", e));
 }

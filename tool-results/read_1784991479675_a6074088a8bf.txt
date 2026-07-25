@@ -1,0 +1,1186 @@
+     1→     1→---
+     2→     2→Task ID: 2-research
+     3→     3→Agent: general-purpose (research)
+     4→     4→Task: Research Turbopay GitHub repo comprehensively
+     5→     5→
+     6→     6→Work Log:
+     7→     7→- Read worklog.md (didn't exist yet — this is the first entry).
+     8→     8→- Invoked the `agent-browser` skill to learn headless-browser automation.
+     9→     9→- Tried the GitHub Trees API for the file tree, but was rate-limited; switched to a shallow `git clone https://github.com/ifeanyiokomba/Turbopay.git` which succeeded (full repo on disk at `/tmp/Turbopay`).
+    10→    10→- `find` enumerated 842 files. Project has three distinct parts:
+    11→    11→    1. `src/` — DEPRECATED standalone TypeScript payment-orchestration SDK (Express-style HTTP server, in-memory Maps + JSON persistence, 13 adapters).
+    12→    12→    2. `frontend/` — small standalone Next.js 14 admin/customer/merchant demo (mock data, no real API integration).
+    13→    13→    3. `turbopay-complete-latest/` — THE production Next.js 16 app (Prisma + PostgreSQL, 80+ Prisma models, ~340 API routes, 53-view SPA shell, Vitest tests, Docker, Sentry). README explicitly says this is the single source of truth.
+    14→    14→- Read the top-level README.md, STRATEGIC_BUILD_PLAN.md (6-phase roadmap), IMPROVEMENT_PLAN.md (pre-research plan), and `c.md` (an external "TurboCore audit" report describing four build-blocking TS errors + a `middleware.ts → proxy.ts` Next.js 16 rename issue, all of which the code now appears to have fixed).
+    15→    15→- Read the turbopay-complete-latest docs: architecture.md, security.md, database.md, api.md, deployment.md, capability matrix, sync plan, CHANGELOG (current version 0.3.0).
+    16→    16→- Read package.json for all three subprojects + .env.example, tsconfig, next.config.ts, tailwind.config.ts, globals.css (brand system), Dockerfile, docker-compose.yml, Caddyfile reference, CI workflow.
+    17→    17→- Read the Prisma schema (2,215 lines, 83 models) — fully enumerated every model and its fields.
+    18→    18→- Read the main entry files: `src/app/page.tsx` (bootstrap SPA), `src/app/layout.tsx` (fonts, theme provider, RTL, Sentry), `src/app/globals.css`, `src/components/turbopay/store.ts` (Zustand store with 53 ViewKeys), `src/components/turbopay/app-shell.tsx` (866-line shell with sidebar, mobile bottom nav, inactivity timeout, notifications dialog, PIN dialog provider, AI support).
+    19→    19→- Read 20+ view files: dashboard, wallet, transfer, bills, airtime-data, history, kyc, settings, security, savings, investments, virtual-cards, intl-transfers, payment-links, insights, beneficiaries, disputes, scheduled-payments, support, vouchers, rewards, referrals, admin overview, platform-settings. Also sampled admin/* views (customer-management, transaction-management, aml-flags, etc.).
+    20→    20→- Read core lib modules: `lib/turbopay/{auth,ledger,client,types,crypto,money,aml,pin,rate-limit,payments,wallet}.ts`, `lib/turbocore/{index,types,providers/interfaces,providers/registry,webhooks/registry,notifications,savings,investments,referrals,fx,fees,virtual-cards/enhanced}.ts`, `lib/turbopay/services/{index,transfer,wallet,billing}.service.ts`, `proxy.ts` (Next.js 16 middleware rename).
+    21→    21→- Read API route examples: `/api/auth/register`, `/api/auth/login`, `/api/dashboard`, `/api/wallet`, `/api/transfer`, `/api/airtime`, `/api/bills/pay`, plus sampled the full list of `/api/cron/*` (13 cron jobs).
+    22→    22→- Read the `frontend/` smaller app: admin dashboard, customer dashboard, customer wallet, merchant dashboard, pay/[slug] checkout, lib/api.ts.
+    23→    23→- Read the deprecated `src/` SDK: server.ts (HTTP entry), DEPRECATED.md (migration table), main.ts, api/routes.ts (2,129 lines), types/index.ts.
+    24→    24→- Counted test files: ~28 test suites in turbopay-complete-latest/src/lib/{turbocore,turbopay} + 1 webhooks test.
+    25→    25→- Compiled the comprehensive findings below.
+    26→    26→
+    27→    27→Stage Summary:
+    28→    28→
+    29→    29→# Turbopay — Comprehensive Research Report
+    30→    30→
+    31→    31→## 1. Project Overview
+    32→    32→
+    33→    33→**Turbopay** is a **consumer-facing Nigerian fintech web application** — a digital wallet + payments platform explicitly modelled on OPay, PalmPay, Kuda, Wise, and Revolut. The README tagline is *"The fast lane to your money."*
+    34→    34→
+    35→    35→- **Purpose:** Fund a wallet, transfer money (internal Turbopay ↔ Turbopay, and external to any Nigerian NUBAN bank account), buy airtime & data bundles, pay bills (electricity, cable TV, internet, water, Remita, Quickteller), request international transfers, hold multi-currency balances, issue virtual cards, run savings goals & investments, redeem vouchers, earn referrals/cashback rewards, raise and track disputes, and operate an admin compliance/risk console.
+    36→    36→- **Target users:** Everyday Nigerian consumers (with multi-country expansion to Ghana, Kenya, South Africa, UK). Two personas are surfaced in code: regular **Users** (default role `USER`) and **Admins** (`ADMIN`).
+    37→    37→- **Repository state:** Public GitHub repo `ifeanyiokomba/Turbopay`, TypeScript primary language, 0 stars at the time of research, last pushed 2026-07-25, current app version `0.3.0` per CHANGELOG. No license file committed at repo root (README claims MIT).
+    38→    38→- **Architecture summary (per README):** the codebase is divided into a deprecated `src/` payment-orchestration SDK and the canonical Next.js app `turbopay-complete-latest/`. The Next.js app is the single source of truth. A small `frontend/` directory holds a separate (older, mock-data) Next.js 14 admin/customer/merchant dashboard that is **not** the production UI.
+    39→    39→
+    40→    40→## 2. Tech Stack
+    41→    41→
+    42→    42→| Layer | Technology |
+    43→    43→|------|-----------|
+    44→    44→| Framework | **Next.js 16** (App Router) + **React 19** + TypeScript 5 |
+    45→    45→| Runtime | **Bun** (Dockerfile uses `oven/bun:1.3-alpine`) |
+    46→    46→| Database | **PostgreSQL 16** via **Prisma 6.11** ORM (`prisma-client-js`) |
+    47→    47→| Cache / queue | **Redis 7** (`ioredis`) — used for rate limiting, circuit breaker, sessions, distributed cron locks |
+    48→    48→| UI kit | **shadcn/ui** pattern (47 hand-installed components in `src/components/ui/`) built on **Radix UI** primitives + **Tailwind CSS 4** + `tailwindcss-animate` + `tw-animate-css` |
+    49→    49→| Icons | **lucide-react** (~0.525) |
+    50→    50→| Charts | **Recharts** 2.15 (area, bar, pie, donut) |
+    51→    51→| Forms | **react-hook-form** 7.6 + **zod** 4 + `@hookform/resolvers` |
+    52→    52→| State (client) | **Zustand** 5 (single `useApp` store, 53 view keys) |
+    53→    53→| Data fetching | Custom SWR-like layer in `lib/turbopay/client.ts` (cache, dedup, revalidate-on-focus, auto 401 refresh) — also pulls `@tanstack/react-query` 5 + `@tanstack/react-table` 8 for some admin tables |
+    54→    54→| Auth | Custom session-based: scrypt passwords, AES-256-GCM PII encryption, **WebAuthn passkeys** (`@simplewebauthn/server` 13 + `browser` 13), **TOTP MFA** (`otpauth` 9), `jose` 6 for JWT-ish tokens, **HaveIBeenPwned** breach check (k-anonymity) |
+    55→    55→| Notifications | Email via **Resend** + **Nodemailer** (Gmail SMTP fallback); SMS/OTP via **Termii** + **otp.dev (GetOTP)**; in-app notification center |
+    56→    56→| Payments / KYC integrations | **Monnify** (virtual accounts + funding), **Paystack** (cards, transfers, identity, BVN, wallet, DVA), **Flutterwave** (v3 + v4), **Baxi** (bills/airtime), **Dojah** (KYC/NIN/BVN), **Onafriq**, **Quickteller (Interswitch)**, **Remita**, **Paga**, **MTN MoMo**, **Airtel Money**, **M-Pesa**, **Smartcash**, **Stripe** (cards + Identity + Issuing — feature-flagged), **Stripe.js** client (`@stripe/stripe-js` 9), **Wise** (international — recommended but sandboxed) |
+    57→    57→| Monitoring | **Sentry** Next.js SDK 10 (separate client/edge/server configs, sourcemaps, tree-shake debug logging) |
+    58→    58→| i18n | **next-intl** 4.3 — 5 locales (en, fr, sw, pt, ar) with RTL support for Arabic; messages in `src/messages/*.json` |
+    59→    59→| Themes | **next-themes** 0.4 (dark mode default) |
+    60→    60→| Toasts | **Sonner** 2 |
+    61→    61→| Carousel | **embla-carousel-react** |
+    62→    62→| Date | **date-fns** 4 + **react-day-picker** |
+    63→    63→| OTP input | **input-otp** |
+    64→    64→| Drawer | **vaul** |
+    65→    65→| Image cropper | Custom `cropper.tsx` part |
+    66→    66→| Tables | `@tanstack/react-table` |
+    67→    67→| Testing | **Vitest** 4 + `vitest.setup.ts`; ~28 test suites; CI uses real PostgreSQL 16 service container |
+    68→    68→| Build / deploy | Docker multi-stage (Bun → standalone Next.js output, ~130MB), `docker-compose.yml` with 3 app replicas + Postgres + Redis + Caddy, `vercel.json` cron (referenced), GitHub Actions CI, `render.yaml` (legacy SDK deploy), `k8s/cronjobs/turbopay-cron.yaml` |
+    69→    69→| Persistence (deprecated SDK) | In-memory `Map<>` + JSON files in `./data/` (per `src/utils/persistence.ts`) |
+    70→    70→
+    71→    71→## 3. Full File / Folder Structure (top-level)
+    72→    72→
+    73→    73→```
+    74→    74→Turbopay/                                  # repo root
+    75→    75→├── .dockerignore, .gitignore
+    76→    76→├── .env.example                            # SDK env template (security-hardened)
+    77→    77→├── .github/workflows/ci.yml                # SDK CI
+    78→    78→├── .mimocode/                              # AI tool plans (cosmic-pixel, lucky-wizard, etc.) — noise
+    79→    79→├── Dockerfile                              # SDK-only (legacy)
+    80→    80→├── IMPROVEMENT_PLAN.md                     # pre-research improvement plan
+    81→    81→├── README.md                               # repo overview
+    82→    82→├── STRATEGIC_BUILD_PLAN.md                 # 6-phase execution roadmap
+    83→    83→├── c.md                                    # external TurboCore audit (July 5 2026)
+    84→    84→├── data/admin_users.json                   # SDK seed file
+    85→    85→├── flutterwave-adapter.ts                  # standalone adapter reference
+    86→    86→├── provider-integration-example.ts         # standalone adapter reference
+    87→    87→├── unified-provider-interface.ts           # standalone adapter reference
+    88→    88→├── render.yaml                             # legacy Render.com deploy (SDK)
+    89→    89→├── jest.config.js                          # root jest (conflicts with Vitest — flagged for removal)
+    90→    90→├── package.json                            # SDK package (@turbopay/payment-sdk)
+    91→    91→├── tsconfig.json                           # SDK tsconfig
+    92→    92→│
+    93→    93→├── frontend/                               # ⚠ older Next.js 14 mock dashboard
+    94→    94→│   ├── package.json (Next 14, React 18, lucide, date-fns, Tailwind 3)
+    95→    95→│   ├── tailwind.config.js, postcss.config.js
+    96→    96→│   └── src/
+    97→    97→│       ├── app/
+    98→    98→│       │   ├── page.tsx               (redirects to /admin)
+    99→    99→│       │   ├── layout.tsx, globals.css
+   100→   100→│       │   ├── admin/{page,layout,providers,compliance}/
+   101→   101→│       │   ├── customer/{page,layout,bills,settings,transactions,transfer,wallet}/
+   102→   102→│       │   ├── merchant/{page,layout,api-keys,payment-links}/
+   103→   103→│       │   └── pay/[slug]/page.tsx    (checkout page)
+   104→   104→│       └── lib/{api,hooks,useWebSocket}.ts
+   105→   105→│
+   106→   106→├── src/                                    # ⚠ DEPRECATED payment SDK
+   107→   107→│   ├── DEPRECATED.md                       # migration guide
+   108→   108→│   ├── index.ts, main.ts, server.ts        # standalone HTTP server entry
+   109→   109→│   ├── adapters/                           # 13 provider adapters (paystack, flutterwave, flutterwave-v3, monnify, onafriq, remita, quickteller, stripe, mtn-momo, airtel-money, mpesa, paga, smartcash)
+   110→   110→│   ├── admin/{auth/auth.service, dashboard/*} 
+   111→   111→│   ├── api/{middleware, routes}.ts         # routes.ts = 2,129 lines, single file
+   112→   112→│   ├── auth/customer-auth.service.ts
+   113→   113→│   ├── database/{index, schema.sql}
+   114→   114→│   ├── rbac/{index, middleware, permissions, roles}
+   115→   115→│   ├── services/ (24 services: ai-support, aml-sanctions, bulk-payment, capability-engine, compliance-service, country-accounts, email-service, fraud-detection, funding-workflow, geo-router, health-monitor, international-transfer, ledger, mobile-money-orchestrator, multi-currency, notification-engine, otp-service, paga-reverse-api, payment-links, provider-router, provider-selection-engine, provider-wrapper, settlement-reconciliation, transaction-processor, unified-bills, unified-service, virtual-card, webhook-handler, websocket, white-label)
+   116→   116→│   ├── types/index.ts (897 lines)
+   117→   117→│   ├── utils/{crypto, http-client, logger, persistence}
+   118→   118→│   └── __tests__/ (auth, crypto, mobile-money-smoke, persistence)
+   119→   119→│
+   120→   120→└── turbopay-complete-latest/               # ✅ THE APP (single source of truth)
+   121→   121→    ├── .dockerignore, .gitignore
+   122→   122→    ├── .github/workflows/ci.yml            # Bun + Postgres 16 + Prisma + lint + types + tests
+   123→   123→    ├── .mimocode/plans/                    # 9 AI tool plans (noise)
+   124→   124→    ├── CAPABILITY_MATRIX.md                # 6-provider capability matrix
+   125→   125→    ├── CHANGELOG.md                        # 0.1.0 → 0.3.0
+   126→   126→    ├── CONTRIBUTING.md, DEPLOYMENT.md
+   127→   127→    ├── SYNC_PLAN.md                        # provider sync plan (gap analysis per provider)
+   128→   128→    ├── Caddyfile                           # reverse proxy config
+   129→   129→    ├── Dockerfile                          # multi-stage Bun → standalone
+   130→   130→    ├── components.json                     # shadcn/ui config
+   131→   131→    ├── dev-watchdog.sh
+   132→   132→    ├── docker-compose.yml                  # 3 turbopay replicas + postgres + redis + caddy
+   133→   133→    ├── docs/ (11 docs: admin-guide, api, architecture, database, deployment, developer-guide, enterprise-architecture, phase-b-regulatory-status, runbook, security, troubleshooting)
+   134→   134→    ├── eslint.config.mjs, next-env.d.ts, next.config.ts
+   135→   135→    ├── k8s/cronjobs/turbopay-cron.yaml     # k8s CronJob manifest
+   136→   136→    ├── package.json                        # Next 16 + Prisma + 80+ deps
+   137→   137→    ├── postcss.config.mjs, tailwind.config.ts
+   138→   138→    ├── prisma/
+   139→   139→    │   ├── schema.prisma                   # 2,215 lines, 83 models
+   140→   140→    │   └── migrations/ (4 migrations)
+   141→   141→    ├── public/ (favicon.svg, logo.svg, sitemap.xml, turbopay.svg)
+   142→   142→    ├── scripts/ (backup.sh, build-prod.sh, deploy.sh, generate-secrets.sh, rollback.sh, rotate-pii-key.ts, seed.ts, setup-neon.sh, setup-vercel.sh, test-email.ts, test-notifications.sh)
+   143→   143→    ├── sentry.{client,edge,server}.config.ts
+   144→   144→    ├── src/
+   145→   145→    │   ├── app/
+   146→   146→    │   │   ├── layout.tsx                  # root layout (Geist + Geist_Mono + Noto_Sans_Arabic, ThemeProvider defaultTheme=dark, SonnerToaster, SentryInit, RtlProvider)
+   147→   147→    │   │   ├── page.tsx                    # bootstrap SPA (loading → guest → authed)
+   148→   148→    │   │   ├── globals.css                 # brand system (Deep Emerald + Amber/Gold), dark mode, RTL
+   149→   149→    │   │   ├── error.tsx, global-error.tsx, loading.tsx, not-found.tsx
+   150→   150→    │   │   ├── privacy/page.tsx, terms/page.tsx, sentry-example-page/page.tsx
+   151→   151→    │   │   ├── admin/ (18 route groups: audit-log, capabilities, currencies, customers, dashboard, forgot-password, health, international, login, markup, providers (+ [id]), services, settings, settlements, transactions, virtual-cards)
+   152→   152→    │   │   ├── api/                        # ~340 API routes (see §6)
+   153→   153→    │   │   └── pay/[reference]/{page,client}.tsx   # public payment link landing
+   154→   154→    │   ├── components/
+   155→   155→    │   │   ├── admin/ (7 components: admin-sidebar, data-table, empty-state, loading-skeleton, page-header, stat-card, status-badge)
+   156→   156→    │   │   ├── sentry-init.tsx, theme-provider.tsx
+   157→   157→    │   │   ├── turbopay/
+   158→   158→    │   │   │   ├── app-shell.tsx           # 866 lines, sidebar + bottom nav + timeout + notifications + PIN dialog
+   159→   159→    │   │   │   ├── auth-screen.tsx         # 1,050 lines, login/register/MFA/verify/forgot
+   160→   160→    │   │   │   ├── landing-page.tsx        # 362 lines, hero/features/FAQ/testimonials/trust
+   161→   161→    │   │   │   ├── loading-screen.tsx      # wordmark fade-rise + sheen animation
+   162→   162→    │   │   │   ├── logo.tsx                # inline SVG brand mark
+   163→   163→    │   │   │   ├── i18n-provider.tsx       # NextIntlClientProvider client wrapper
+   164→   164→    │   │   │   ├── store.ts                # Zustand `useApp` store, 53 ViewKeys
+   165→   165→    │   │   │   ├── parts/ (17 part-components: ai-support, amount, avatar-upload, balance-card, country-selector, cropper, dynamic-quick-actions, intl-fee-breakdown, layout, locale-switcher, multi-currency-balance-card, pin-dialog, rtl-provider, transaction-item, transfer-tracking, trust-section, tx-icon)
+   166→   166→    │   │   │   └── views/ (52 view files: dashboard, wallet, transfer, airtime-data, bills, history, kyc, beneficiaries, settings, security, savings, investments, virtual-cards, vouchers, rewards, referrals, disputes, scheduled-payments, intl-transfers, insights, payment-links, support, admin + 22 admin sub-views)
+   167→   167→    │   │   └── ui/ (47 shadcn primitives: accordion, alert-dialog, alert, aspect-ratio, avatar, badge, breadcrumb, button, calendar, card, carousel, chart, checkbox, collapsible, command, context-menu, dialog, drawer, dropdown-menu, error-boundary, form, hover-card, input-otp, input, label, menubar, navigation-menu, pagination, popover, progress, radio-group, resizable, scroll-area, select, separator, sheet, sidebar, skeleton, slider, sonner, switch, table, tabs, textarea, toggle-group, toggle, tooltip)
+   168→   168→    │   ├── hooks/ (use-mobile.ts, use-passkey.ts)
+   169→   169→    │   ├── i18n/ (middleware.ts, navigation.ts, request.ts, routing.ts)
+   170→   170→    │   ├── instrumentation.ts              # Sentry server instrumentation
+   171→   171→    │   ├── lib/
+   172→   172→    │   │   ├── db.ts, db-read.ts           # Prisma clients (primary + read replica)
+   173→   173→    │   │   ├── env.ts                      # typed env access
+   174→   174→    │   │   ├── utils.ts                    # `cn()` helper
+   175→   175→    │   │   ├── turbopay/ (49 files: auth, ledger, client, types, crypto, money, aml, pin, rate-limit, payments, wallet, audit, breach-check, csrf, device-info, errors, funding, idempotency, mask, mfa, nonce, otp-verify, pagination, passkey, providers, reference, reserved-usernames, security-headers, ssrf, tx-state, advisory-lock, api, client + services/{bill-payment, billing, bulk-payment, card, fraud-engine, intent, intl-transfer, kyc, large-tx-shield, location-guard, pipeline, settlement, stripe, transaction, transfer, wallet, types, index})
+   176→   176→    │   │   └── turbocore/ (39 modules in subdirs: analytics, audit/self-audit, billswift, cache, catalog, compliance/{cases, screening}, config/{aml-policy, country-currency, deployment-profiles, infra-config, kyc-limits, kyc-routing, provider-config, provider-health, provider-routing, routing-engine, routing-weights, secrets-status, versioning, webhook-management}, configuration, cron-auth, cron-lock, disputes, events/{bus, schema, index}, features, fees, fx/{comparison, index}, international/{send, settlement}, investments, knowledge-base, kyc-enhanced, logger, notifications-inbox, notifications, observability/metrics, orchestration/{engine, payment-flow}, otpdev, outbox, payment-links, providers/{adapter-factory, adapters/(27 adapters), capabilities, circuit-breaker, health-monitor, interfaces, interfaces/mobile-money, mock, plugin, registry, scoring}, queue, rbac/{index, roles}, reconciliation, recovery, referrals, revenue, rewards, savings, scheduled-payments, security, service-management, services/{mobile-money, trust-center}, statements, support, templates, testing/chaos, types, virtual-cards/enhanced, vouchers, webhooks/{dispatcher, registry, handlers/(13 handlers), __tests__/handlers})
+   177→   177→    │   ├── messages/ (5 i18n catalogs: ar, en, fr, pt, sw — 211 lines each)
+   178→   178→    │   └── proxy.ts                        # Next.js 16 middleware (CSRF, IP block, maintenance mode, admin rate limit, CSP nonce, session check)
+   179→   179→    ├── tailwind.config.ts, tsconfig.json, vitest.config.ts, vitest.setup.ts
+   180→   180→    └── bun.lock
+   181→   181→```
+   182→   182→
+   183→   183→## 4. Page / Route Inventory
+   184→   184→
+   185→   185→### 4.1 The SPA shell (`/`)
+   186→   186→A single Next.js page at `src/app/page.tsx` bootstraps the entire app. It calls `/api/auth/me` on mount, then renders one of:
+   187→   187→- **`<LoadingScreen />`** — premium animated splash (logo fade-rise + sheen sweep).
+   188→   188→- **`<LandingPage />`** — guest landing (hero, features, how-it-works, security/trust, why Turbopay, FAQ, testimonials, CTA, footer). Logged-out users see this.
+   189→   189→- **`<AuthScreen />`** — login/register modal (Tabs: Sign in / Create account, plus Forgot-password, MFA challenge, Email/SMS/WhatsApp verify dialogs, Google sign-in button).
+   190→   190→- **`<AppShell />`** — the authed SPA. Renders the active view from `useApp.view`. Has a left desktop sidebar, sticky top header (theme toggle, notifications bell, avatar dropdown), bottom mobile nav (Home / Wallet / Send / Bills / History), 15-min inactivity auto-logout with 2-min warning dialog, notifications panel (top-right), `<AiSupport />` floating chat widget, global PIN dialog provider.
+   191→   191→
+   192→   192→### 4.2 Non-authed public routes
+   193→   193→- `/` — bootstrap SPA
+   194→   194→- `/privacy` — privacy policy page
+   195→   195→- `/terms` — terms of service page
+   196→   196→- `/pay/[reference]` — public payment link landing (server component fetches `PaymentLink`, renders `<PaymentLinkClient />` for payment)
+   197→   197→- `/admin/login`, `/admin/forgot-password` — admin login / forgot-password (separate auth from user auth)
+   198→   198→- `/sentry-example-page` — Sentry test page
+   199→   199→
+   200→   200→### 4.3 Authed user views (53 ViewKeys in Zustand store)
+   201→   201→**Core financial**
+   202→   202→1. `dashboard` — greeting, KYC banner, multi-currency balance card, dynamic quick actions, 4-button fund/transfer/international/payment-links row, 14-day cashflow AreaChart, stat tiles (in/out/count/net), spending breakdown PieChart, recent transactions list. Pull-to-refresh.
+   203→   203→2. `wallet` — balance card, multi-currency wallet section, dedicated virtual account details (Monnify), saved payment methods (Stripe), quick-fund chips, KYC upgrade nudge, "Fund wallet" dialog (card / bank_transfer / ussd / mobile_money / demo, country-aware methods).
+   204→   204→3. `transfer` — Turbopay ↔ Turbopay / Bank / International tabs; recipient picker, bank BIN auto-detect from first 3 digits of account number, auto-resolve account name via `/api/banks/resolve`, transparent fee estimation via `/api/transfer/fee`, beneficiary save checkbox, PIN dialog → confirm → success card with reference + new balance.
+   205→   205→4. `airtime` — Airtime & Data tabs (Tabs), 4 networks (MTN/GLO/AIRTEL/9MOBILE) with brand colors, phone + amount, quick amounts (₦100–₦5,000), data plan picker, success card.
+   206→   206→5. `bills` — category grid (Electricity, Internet, Cable TV, Airtime, Data, Education, Insurance, Government, Betting, Water, Others) → biller list → BillPaymentForm (validate customer → pay with PIN). 11 categories, supports meter/smartcard/IAC/account/RRR/phone/id reference types.
+   207→   207→6. `history` — search + filter chips (All/Funding/Transfers/Airtime/Data/Bills), grouped-by-day transaction list, transaction detail dialog (reference, description, counterparty, provider, fee, date, status), CSV export via `/api/statements/generate`.
+   208→   208→7. `intl-transfers` — multi-currency wallet section, international beneficiary management (bank/SWIFT/routing/mobile wallet), FX quote dialog with fee breakdown, send flow with PIN, transfer tracking timeline (898-line view).
+   209→   209→8. `savings` — create goal dialog (FLEXIBLE/LOCKED/TARGET/GOAL/ROUND_UP/AUTO_SAVE), progress bars, deposit/withdraw buttons, lock indicator.
+   210→   210→9. `investments` — product catalog (FIXED_INCOME/MUTUAL_FUND/EQUITY/BOND/TBILL), portfolio summary (total value/principal/return), invest dialog with risk-level badges.
+   211→   211→10. `cards` (Virtual Cards) — list of card visualizations with gradient backgrounds (Visa/Mastercard), fund/withdraw/freeze/unfreeze/terminate, reveal PAN/CVV (audit-logged), spending controls, transactions list.
+   212→   212→11. `insights` — monthly in/out BarChart, category PieChart, top recipients, summary stats (avg tx, top category).
+   213→   213→
+   214→   214→**Account / growth**
+   215→   215→12. `kyc` — current tier card, 3-tier limit table, Tier 2 (NIN) and Tier 3 (BVN) verification forms, identity verification (Tier 3+) with document upload, address verification.
+   216→   216→13. `beneficiaries` — saved recipients list, add/remove.
+   217→   217→14. `settings` — 1,520-line view: profile (avatar upload, full name, email, phone, bio, username), appearance (theme switch), notifications preferences, security (change password, set/change PIN, MFA setup/disable, NDPR data export, account deletion), locale switcher.
+   218→   218→15. `security` — risk score, passkeys (register/manage), trusted devices, active sessions (revoke), security timeline (LOGIN_SUCCESS, LOGIN_FAILED, DEVICE_NEW, etc.), Large Transaction Shield toggle, Location Guard toggle.
+   219→   219→16. `rewards` — summary (cashback, tier bonus, campaign, referral bonus, voucher totals), rewards list.
+   220→   220→17. `referrals` — referral code + shareable link, stats (total/completed/rewarded/earnings), referrals table.
+   221→   221→18. `vouchers` — active vouchers list, redeem form (code + product + amount), redemption history.
+   222→   222→19. `scheduled-payments` — list of recurring/future payments, create dialog, pause/resume/cancel.
+   223→   223→20. `disputes` — dispute list, create form (7 types: FAILED_TRANSFER, INCORRECT_DEBIT, CARD_DISPUTE, BILL_PAYMENT_ISSUE, UNAUTHORIZED_TRANSACTION, DUPLICATE_CHARGE, OTHER), message thread with attachments.
+   224→   224→21. `support` — Support Center with 3 tabs: live chat (AI assistant), tickets (create/list/message thread), knowledge base (browse articles by category).
+   225→   225→22. `payment-links` — create payment link dialog (title, amount, custom amount toggle, max uses, expiry), list of links with copy/preview/pause/resume, analytics per link.
+   226→   226→
+   227→   227→### 4.4 Admin views (28 ViewKeys — only rendered when `user.role === "ADMIN"`)
+   228→   228→1. `admin` (Overview) — platform metrics (users, tx count, volume, frozen wallets, unresolved AML flags), audit log feed, AML flags feed.
+   229→   229→2. `platform` (Platform Settings) — 8-tab config UI: Providers, Routing, Health, Secrets, KYC Limits, AML Policy, Webhooks, Config History.
+   230→   230→3-12. Operations: `admin-customers`, `admin-transactions`, `admin-bulk-payments`, `admin-cards` (virtual card admin).
+   231→   231→13-15. Compliance: `admin-aml`, `admin-kyc`, `admin-compliance` (cases).
+   232→   232→16-17. Finance: `admin-finance` (analytics), `admin-reconciliation`.
+   233→   233→18-23. Platform: `admin-webhooks`, `admin-testimonials`, `admin-system` (system health), `admin-security-compliance`, `admin-notifications` (notification center).
+   234→   234→24-28. Configuration: `admin-fees`, `admin-fx-config`, `admin-flags` (feature flags), `admin-vouchers-config`, `admin-provider-credentials`.
+   235→   235→29-30. Support Mgmt: `admin-support-tickets`, `admin-kb` (knowledge base admin).
+   236→   236→31. Team: `admin-team` (team management).
+   237→   237→
+   238→   238→### 4.5 App Router admin pages (`/admin/*`)
+   239→   239→A parallel set of full Next.js route pages exist under `/admin/*` (separate from the SPA admin views). They use a separate `admin/auth/me` flow and `AdminSidebar`:
+   240→   240→- `/admin/dashboard` — stats + recent transactions + provider health
+   241→   241→- `/admin/customers`, `/admin/transactions`, `/admin/settlements`, `/admin/disputes`
+   242→   242→- `/admin/providers`, `/admin/providers/[id]`, `/admin/health`, `/admin/capabilities`, `/admin/services`
+   243→   243→- `/admin/fees`, `/admin/fx`, `/admin/virtual-cards`, `/admin/international`
+   244→   244→- `/admin/audit-log`, `/admin/kyc-queue`, `/admin/sanctions`, `/admin/aml`
+   245→   245→- `/admin/webhooks`, `/admin/feature-flags`, `/admin/settings`
+   246→   246→- `/admin/markup`, `/admin/currencies`, `/admin/audit-log`
+   247→   247→
+   248→   248→### 4.6 API routes (~340 total, organized into ~50 route groups)
+   249→   249→**Auth (34 routes):** register, login, logout, refresh, sessions, me, change-pin, set-pin, reset-pin, forgot-pin, forgot-password, reset-password, forgot-username, check-breach, check-username, google (OAuth), iframe-token, mfa (+ verify), passkey/{register,authenticate}/{options,verify}, passkeys, recover/{verify,complete}, verify/{send,confirm}, verify-email/{send,confirm}, verify-phone/{send,confirm}.
+   250→   250→
+   251→   251→**User financial (60+ routes):** wallet (+ fund), transfer (+ fee), transactions (+ receipt), airtime, bills/{electricity,utilities,pay,unified,quickteller,remita}, billswift/{pay,bulk,products,validate}, data, payment/{bill,collection,fx,link/{initialize,webhook},transfer,webhook}, payment-intent/[id], payment-links/[+id], scheduled-payments/[+id], beneficiaries, savings/[+id]/{deposit,withdraw}, investments/[+id]/{invest,liquidate}, portfolio, virtual-cards/[+id]/{controls,freeze,unfreeze,fund,replace,reveal,terminate,transactions,withdraw}, vouchers/redeem, referrals/{lookup,stats}, rewards, statements/generate, disputes/[+id]/{messages}, support/{tickets/[+id]/{messages},chat,help/[slug],preferences,status}, security/{devices/[+id],large-tx-shield,large-tx-step-up,location-guard,risk,step-up,timeline}, profile/{avatar,consent,delete,export,notifications,password}, notifications/[+id]/read, mobile-money/{balance,collect,disburse,providers,status}, intl/{beneficiaries,countries,currency-wallets/actions,currency-wallets,history,quote,rate,receive,send,transfer}, fx/quote, kyc/{address,verify}, dashboard, data, capabilities, services, trust/homepage, paystack/fund-session, stripe/{create-checkout-session,create-payment-intent,payment-methods/[id],setup-intent}, airtime, fraud/evaluate, health, v1/{health,intl/quote,wallet}.
+   252→   252→
+   253→   253→**Admin (90+ routes under /api/admin/*):** auth (login, logout, me, forgot/reset-password), analytics, audit (+ reports), aml-policy, bulk-payments, capability-matrix, compliance/{cases/[id],cases,flags/[id],flags}, config-history, config/{export,import,rollback,routing-weights}, customers/[id]/{notes/[noteId],notes,status,wallet/{freeze,unfreeze}}, deployment-profiles, disputes/[id], feature-flags, fees/[id], finance/{float,reconciliation/{report,run},summary}, fx/[pair], infra-credentials, investments, kyc-limits, kyc/{address/[id]/review,address,queue/[id]/review}, metrics, notifications/[id]/retry, broadcast, provider-credentials/[id], provider-health/[id], dashboard, provider-routing, provider-scores, provider-services, providers/[id], queue-health, reconciliation, referrals, sanctions/[id], screen, savings, scheduled-payments, secrets-status, security/headers, self-audit, services, statements, support/{knowledge-base/[id],tickets/[id]}, system/health, team/{invite,[id],[id]/deactivate}, testimonials/[id], transactions/[id]/{receipt,reverse}, trust, virtual-cards/[id], vouchers, webhooks/{events/[id]/retry,manage/[id],manage/[id]/secret,manage}.
+   254→   254→
+   255→   255→**Cron (13 routes under /api/cron/*):** billswift-bulk, credential-expiry, data-retention, disputes-sla, notification-retry, outbox-publisher, queue-worker, reconciliation, scheduled-payments, session-cleanup, settlement-worker, stuck-transactions, webhook-retry. All guarded by `x-cron-secret` header + per-instance Postgres advisory lock (`CronLock` model).
+   256→   256→
+   257→   257→**Webhooks:** `/api/webhooks/{monnify,stripe}`, `/api/turbocore/webhooks/[provider]` (generic registry), `/api/intl/receive`, `/api/payment/link/webhook`, `/api/payment/webhook`.
+   258→   258→
+   259→   259→## 5. Component Inventory
+   260→   260→
+   261→   261→### 5.1 Brand / shell components (`src/components/turbopay/`)
+   262→   262→- **`Logo`** — inline SVG. Emerald gradient rounded square + amber lightning-bolt "T" + speed lines. Uses `React.useId()` for unique gradient IDs.
+   263→   263→- **`Wordmark`** — text "Turbopay" with the last 4 letters colored `--primary`.
+   264→   264→- **`LoadingScreen`** — animated wordmark splash (fade-rise per letter + sheen sweep on loop).
+   265→   265→- **`LandingPage`** — full marketing page. Sections: sticky navbar, hero (badge, headline, subcopy, CTA buttons, trust badges, wallet-card mockup with floating stat cards), features grid (6 cards), how-it-works (3 steps), trust section (dynamic from DB), why Turbopay (4 cards), FAQ accordion, testimonials (from DB or placeholder), final CTA, footer (4-col + status indicator).
+   266→   266→- **`AuthScreen`** — 1,050-line component. Two-column on desktop: left brand panel (logo, headline "The fast lane to your money", 3 feature bullets), right form panel (Tabs: Sign in / Create account). Login: identifier + password + forgot link. Register: first/middle/last name, country selector, optional username/email/phone, password with live strength checklist, referral code, terms checkbox. Includes ForgotPasswordDialog, MfaChallengeDialog, VerifyDialog (Email/SMS/WhatsApp channels), GoogleSignInButton.
+   267→   267→- **`AppShell`** — 866 lines. Renders sidebar (desktop) / Sheet (mobile) / bottom nav (mobile), header (theme toggle, notifications bell, avatar dropdown), session timeout warning dialog (15-min auto-logout with 2-min countdown), notifications panel, view router (`renderView()` switch), `<AiSupport />` floating chat, `<PinDialogProvider />`, `<I18nProvider />`.
+   268→   268→- **`store.ts`** — Zustand store: `{ user, view, sidebarOpen, locale, setUser, setView, setSidebarOpen, setLocale, logoutClient }`. Persists locale to `localStorage["tp_locale"]`.
+   269→   269→- **`i18n-provider.tsx`** — client-side `NextIntlClientProvider` wrapper, dynamic-imports locale messages.
+   270→   270→
+   271→   271→### 5.2 Part-components (`src/components/turbopay/parts/`)
+   272→   272→- **`balance-card`** — the signature emerald-gradient wallet card (logo, "Turbopay Wallet", KYC tier badge, available balance with eye-toggle, ledger reconciled indicator, virtual account number + copy button, account name).
+   273→   273→- **`multi-currency-balance-card`** — extends balance card with a currency dropdown showing all currency wallets (NGN/USD/EUR/GBP/CAD/AUD/KES/GHS/ZAR), flag + symbol + balance per currency, convert action.
+   274→   274→- **`transaction-item`** — transaction row with icon, counterparty, time-ago, amount (green +/red −).
+   275→   275→- **`tx-icon`** — icon mapping per TxType.
+   276→   276→- **`amount`** — formatted amount display with direction.
+   277→   277→- **`pin-dialog`** — modal PIN entry (4-digit OTP input) → `/api/auth/set-pin` verify. Promise-based `request()` API.
+   278→   278→- **`dynamic-quick-actions`** — capability-driven quick action grid (Fund wallet, Transfer, Airtime, Pay bills, Remita, Quickteller, Data, Electricity, Cards, International, …). Uses `useCapabilities()` hook.
+   279→   279→- **`country-selector`** — `cmdk`-powered searchable country picker with flags + dial codes (all ~190 ISO countries).
+   280→   280→- **`avatar-upload`** + **`cropper`** — image cropper modal for profile avatars.
+   281→   281→- **`ai-support`** — floating chat widget with hardcoded keyword-based responses (funding, send, security, bills, PIN, account, limits, exchange, hello, thanks). NOT a real LLM.
+   282→   282→- **`intl-fee-breakdown`** — transparent fee display for international transfers (FX rate, spread, platform fee, total debit).
+   283→   283→- **`transfer-tracking`** — timeline UI for international transfer status (initiated → provider_called → settled).
+   284→   284→- **`trust-section`** — landing-page trust section driven by DB (`ComplianceCertificate`, `SecurityBadge`, `ProviderLogo`, `TrustMessage` models). PCI-DSS status, security badges, provider logos grid, trust messages.
+   285→   285→- **`locale-switcher`** — language picker (en/fr/sw/pt/ar).
+   286→   286→- **`rtl-provider`** — sets `dir="rtl"` on `<html>` for Arabic locale, flips directional icons.
+   287→   287→- **`layout`** — shared layout primitives: `PageHeader`, `StatCard`, `EmptyState`.
+   288→   288→
+   289→   289→### 5.3 View components (`src/components/turbopay/views/`)
+   290→   290→52 view files, one per `ViewKey`. Each is a self-contained React component using `useApi()` + `apiPost()`. See §4 for the full list. Most are 100–600 lines; largest are `settings` (1,520 lines), `intl-transfers` (898), `wallet` (806), `transfer` (598), `virtual-cards` (681).
+   291→   291→
+   292→   292→### 5.4 Admin view components (`src/components/turbopay/views/admin/`)
+   293→   293→22 admin sub-views: `aml-flags`, `bulk-payments`, `compliance-cases`, `customer-management`, `feature-flags`, `fees`, `finance-analytics`, `fx-config`, `knowledge-base-admin`, `kyc-queue`, `notification-center`, `provider-credentials`, `reconciliation`, `security-compliance`, `support-admin`, `system-health`, `team-management`, `testimonials`, `transaction-management`, `virtual-cards-admin`, `vouchers-admin`, `webhook-management`. All lazy-loaded via `React.lazy()`.
+   294→   294→
+   295→   295→### 5.5 shadcn/ui primitives (`src/components/ui/`)
+   296→   296→47 components covering the full Radix-based design system. Notable additions beyond the standard shadcn kit: `error-boundary`, `chart` (Recharts wrapper), `carousel` (embla), `command` (cmdk), `drawer` (vaul), `input-otp`, `sonner` (toast).
+   297→   297→
+   298→   298→### 5.6 Admin design-system components (`src/components/admin/`)
+   299→   299→7 reusable admin primitives: `admin-sidebar` (collapsible, 6 sections), `data-table`, `empty-state`, `loading-skeleton`, `page-header`, `stat-card`, `status-badge`.
+   300→   300→
+   301→   301→## 6. Feature Inventory
+   302→   302→
+   303→   303→### Authentication & Sessions
+   304→   304→- Email/phone/username + password login (single identifier field, auto-detects type).
+   305→   305→- Registration with first/middle/last name, country (ISO 3166-1 alpha-2), username, email OR phone (at least one required), password (8+ chars, mixed case + digit), referral code, terms acceptance, verify channel (EMAIL/SMS/WHATSAPP).
+   306→   306→- **HaveIBeenPwned breach check** at registration (k-anonymity, fail-open).
+   307→   307→- **Per-user failed-login lockout** (5 fails → 15-min lock, defeats distributed-IP brute-force).
+   308→   308→- **Access + refresh tokens**: access 24h (HttpOnly cookie `tp_session`), refresh 30d (HttpOnly cookie `tp_refresh`, path-restricted to `/api/auth/refresh`).
+   309→   309→- **Iframe token**: short-lived (5-min) Bearer token for cross-site iframe contexts where third-party cookies are blocked. Stored only in page memory.
+   310→   310→- **WebAuthn passkeys** (`@simplewebauthn`): register / authenticate (both as second-factor and passwordless), per-device counter (cloning detection), transports, device type.
+   311→   311→- **TOTP MFA**: RFC 6238, 30s/SHA1/6-digit, replay prevention via `mfaLastStep`, 8 backup codes (scrypt-hashed + AES-encrypted blob), two-step setup (generate → prove).
+   312→   312→- **Google OAuth** (Google Identity Services via `<script src="https://accounts.google.com/gsi/client">`).
+   313→   313→- Session management UI: view active sessions, revoke any session, max 10 sessions per user.
+   314→   314→- **Auto-logout** at 15 min inactivity (2-min warning countdown).
+   315→   315→- Cross-tab refresh coordination via `BroadcastChannel`.
+   316→   316→
+   317→   317→### Wallet & Ledger
+   318→   318→- **Double-entry ledger** (`LedgerEntry`): DEBIT + CREDIT pair per movement, immutable, `balanceAfterKobo` per entry, `pairId` cross-link.
+   319→   319→- **Atomic conditional UPDATE** for debits (`WHERE balanceKobo >= amount AND status = 'ACTIVE'`) — no TOCTOU window.
+   320→   320→- **PostgreSQL advisory locks** (`pg_advisory_xact_lock(hashtext(userId))`) serialize concurrent debits per user.
+   321→   321→- **Optimistic concurrency** via `version` field on `Wallet`.
+   322→   322→- **Reconciliation**: `reconcileWallet()` recomputes balance from ledger via SQL aggregate, drift-corrects if needed.
+   323→   323→- **Multi-currency wallets** (`CurrencyWallet` + `CurrencyLedgerEntry`): USD, EUR, GBP, CAD, AUD, KES, GHS, ZAR, NGN.
+   324→   324→- **Virtual account** (Monnify Reserved Account): auto-provisioned on first wallet access.
+   325→   325→- **Funding methods**: card (Stripe Checkout), bank transfer (Monnify webhook), USSD, mobile money (country-aware: MTN MoMo / M-Pesa / etc.), demo (sandbox simulate).
+   326→   326→- **Saved payment methods** (Stripe PaymentMethod + SetupIntent).
+   327→   327→
+   328→   328→### Payments & Transfers
+   329→   329→- **Internal transfer** (Turbopay ↔ Turbopay): pure ledger move via `transferBetweenWallets()`. Recipient resolved by phone/email/username/account number.
+   330→   330→- **External transfer** (Turbopay → Nigerian bank via NIP): goes through provider's `ILocalTransferProvider` (Paystack in prod, mock in dev) using **hold → provider call → confirm/auto-reverse** pattern (`executeProviderDebit`).
+   331→   331→- **Bank BIN auto-detect** from first 3 digits of account number (client-side `BANK_BIN_MAP`).
+   332→   332→- **Account name resolution** via `/api/banks/resolve` (Paystack bank lookup).
+   333→   333→- **Fee estimation** via `/api/transfer/fee` (transparent upfront display).
+   334→   334→- **Idempotency** via `IdempotencyRecord` table + `idempotencyKey()` header helper.
+   335→   335→- **PIN required** for every debit (`verifyTransactionPin()`).
+   336→   336→- **Step-up OTP** for high-value transfers (`Large Transaction Shield` opt-in).
+   337→   337→- **Location Guard**: opt-in block on debits from unknown /24 subnets.
+   338→   338→- **Beneficiary management**: save recipients, mark favorites (localStorage).
+   339→   339→
+   340→   340→### Bills & Airtime
+   341→   341→- **Airtime**: MTN, Glo, Airtel, 9mobile. Min ₦50, max ₦50,000.
+   342→   342→- **Data**: per-network data plans (catalog from Baxi).
+   343→   343→- **Bills (unified)**: 11 categories — Electricity (8 DISCOs), Internet, Cable TV (DStv, GOtv, StarTimes), Airtime, Data, Education, Insurance, Government, Betting, Water, Others.
+   344→   344→- **Reference types**: meter, smartcard, IAC, account, RRR, phone, id — per-biller.
+   345→   345→- **Customer validation** before payment (Paystack/Baxi/Monnify validate-then-pay).
+   346→   346→- **Token generation** for prepaid electricity (receipt shows token).
+   347→   347→- **BillSwift bulk** (background worker via `/api/cron/billswift-bulk`).
+   348→   348→- **Providers behind the unified UI**: Baxi (primary), Remita (RRR), Quickteller (Interswitch), Monnify.
+   349→   349→
+   350→   350→### International Transfers
+   351→   351→- **FX engine**: 15 supported currency pairs (USD→NGN, GBP→NGN, etc.), DB-driven spread/markup config, 5-min rate snapshots.
+   352→   352→- **Outbound** via `IInternationalTransferProvider` (Wise recommended, Flutterwave fallback — both sandboxed).
+   353→   353→- **Inbound** via `IInternationalReceivingProvider` (Wise via IMTO partner — sandboxed).
+   354→   354→- **Cross-border settlement** via `ICrossBorderSettlementProvider`.
+   355→   355→- **International beneficiaries** (`InternationalBeneficiary`): name, country, bankName, accountNumber/IBAN, swiftCode, routingNumber, mobileWallet, nickname, currency, isFavourite, verificationStatus.
+   356→   356→- **Regulatory note (CBN Jan 2024)**: fintechs cannot hold IMTO license directly — inbound must route through licensed IMTO partner; outbound through Authorized Dealer bank.
+   357→   357→- **Transfer tracking timeline** UI (initiated → provider_called → settled).
+   358→   358→
+   359→   359→### Virtual Cards
+   360→   360→- **Luhn-valid PAN** generation via `TurbopayCardIssuer` adapter.
+   361→   361→- **AES-256-GCM encryption** for PAN + CVV at rest (separate `panEnc` / `cvvEnc` columns; `last4` in plaintext for display).
+   362→   362→- **CVV derived deterministically from PAN via HMAC** (PCI DSS 3.2: never store CVV post-authorization).
+   363→   363→- **Operations**: create, fund, withdraw, freeze, unfreeze, terminate (auto-withdraws remaining balance), replace, reveal (audit-logged), transactions list.
+   364→   364→- **Spending controls** (`VirtualCardControl`): online payments, international, ATM, daily/monthly limits, merchant category allow/block lists.
+   365→   365→- **Provider**: `turbopay-cards` (mock Luhn issuer), Stripe Issuing (feature-flagged, blocked pending Stripe Issuing account approval).
+   366→   366→
+   367→   367→### Savings
+   368→   368→- **6 types**: FLEXIBLE, LOCKED, TARGET, GOAL, ROUND_UP, AUTO_SAVE.
+   369→   369→- **Interest accrual** (basis points per annum, daily compounding).
+   370→   370→- **Auto-save** (DAILY/WEEKLY/MONTHLY) executed by `/api/cron/scheduled-payments`.
+   371→   371→- **Lock enforcement**: locked products can't be withdrawn until `lockUntil`.
+   372→   372→- **Goal tracking** with progress bars + notifications.
+   373→   373→- **Double-entry**: deposit = DEBIT user wallet + CREDIT platform savings pool; vice versa for withdrawal.
+   374→   374→
+   375→   375→### Investments
+   376→   376→- **Product catalog** (`InvestmentProduct`): FIXED_INCOME, MUTUAL_FUND, EQUITY, BOND, TBILL. Risk levels LOW/MEDIUM/HIGH. Min/max amounts, expected return bps, duration string ("30 days", "6 months", "1 year" — parsed).
+   377→   377→- **User positions** (`UserInvestment`): ACTIVE / MATURED / LIQUIDATED / CANCELLED. Maturity date computed from duration.
+   378→   378→- **Invest / liquidate** flows with double-entry ledger.
+   379→   379→- **Portfolio summary**: total value, principal, expected return.
+   380→   380→
+   381→   381→### Referrals, Vouchers, Rewards
+   382→   382→- **Referral codes**: `<FIRST4_OF_NAME><RANDOM4>` (e.g. `TURBOA1B2`), shareable link.
+   383→   383→- **Campaigns** (`ReferralCampaign`): reward amount, type (WALLET_CREDIT), max referrals, start/end dates.
+   384→   384→- **Voucher engine** (`Voucher`): DISCOUNT / CASHBACK / FEE_WAIVER / PERCENT_OFF / FLAT_OFF. 10+ eligibility rules (eligibleProducts, excludedProducts, applicableKycTiers, newCustomerOnly, returningOnly, referralRequired, oneTimeUse). Usage limits (total + per-user + campaign budget). Validity windows. Currency/region/provider restrictions. Atomic redemption with counter tracking.
+   385→   385→- **User rewards** (`UserReward`): VOUCHER / REFERRAL_BONUS / CASHBACK / TIER_BONUS / CAMPAIGN_REWARD. Idempotent cashback posting via `sourceTransactionId`.
+   386→   386→
+   387→   387→### Disputes
+   388→   388→- 7 dispute types (FAILED_TRANSFER, INCORRECT_DEBIT, CARD_DISPUTE, BILL_PAYMENT_ISSUE, UNAUTHORIZED_TRANSACTION, DUPLICATE_CHARGE, OTHER).
+   389→   389→- Priority LOW/MEDIUM/HIGH/URGENT.
+   390→   390→- Status workflow: OPEN → UNDER_REVIEW → EVIDENCE_REQUIRED → RESOLVED_FAVOUR_USER/PLATFORM → CLOSED (or ESCALATED).
+   391→   391→- SLA tracking (`slaDueAt`), `/api/cron/disputes-sla` cron.
+   392→   392→- Message thread + attachments (`DisputeMessage`, `DisputeAttachment`).
+   393→   393→
+   394→   394→### Scheduled Payments & Templates
+   395→   395→- **Scheduled payments** (`ScheduledPayment`): TRANSFER / BILL_PAYMENT / AIRTIME / DATA. Frequency ONCE / DAILY / WEEKLY / MONTHLY / CUSTOM (array of dates). Active / Paused / Completed / Cancelled / Failed. Execution count + failure count. Cron: `/api/cron/scheduled-payments`.
+   396→   396→- **Payment templates** (`PaymentTemplate`): saved configurations for quick repeat. isFavorite + lastUsedAt.
+   397→   397→
+   398→   398→### Support
+   399→   399→- **Live chat** (`ChatConversation`, `ChatMessage`): AI assistant (hardcoded keyword responses, not an LLM).
+   400→   400→- **Tickets** (`SupportTicket`): 12 categories, priority, status workflow (NEW → OPEN → PENDING_CUSTOMER → IN_PROGRESS → ESCALATED → RESOLVED → CLOSED), assignee, message thread, attachments.
+   401→   401→- **Knowledge base** (`HelpArticle`): markdown/HTML content, 14 categories, tags, versioning, helpful/unhelpful counts, view count, DRAFT/PUBLISHED/UNPUBLISHED.
+   402→   402→- **Communication preferences** (`CommunicationPreference`): email/sms/inApp + per-category toggles (ticketUpdates, transactionAlerts, securityAlerts, promotional).
+   403→   403→
+   404→   404→### KYC & Compliance
+   405→   405→- **3-tier KYC**:
+   406→   406→  - Tier 1 (Starter, phone only): ₦50K single tx, ₦150K daily, ₦300K balance.
+   407→   407→  - Tier 2 (Verified, NIN): ₦500K single tx, ₦2M daily, ₦5M balance.
+   408→   408→  - Tier 3 (Premium, BVN): ₦5M single tx, ₦20M daily, unlimited balance.
+   409→   409→  - Limits are DB-driven (`KycTierLimit` table) with hardcoded fallback.
+   410→   410→- **NIN / BVN verification** via Dojah (primary), Paystack identity (BVN), VerifyMe/Prembly (extensible).
+   411→   411→- **Address verification** (`AddressVerification`): UTILITY_BILL / BANK_STATEMENT / TENANCY_AGREEMENT / GOVT_RESIDENCE upload + reviewer workflow.
+   412→   412→- **AML** (`aml.ts`): velocity (X debits / Y min), large amount (≥ threshold), rapid transfer (X transfers / Y min). Auto-freeze wallet + suspend user on HIGH severity. Auto-open compliance case. Policy is DB-driven (`AmlPolicy`).
+   413→   413→- **Sanctions screening** (`SanctionsEntry`, `ScreeningResult`) — admin UI exists; audit (c.md) flagged this as potentially incomplete (no full OFAC/UN/EU list integration found in code).
+   414→   414→- **Compliance cases** (`ComplianceCase`): workflow for reviewing flags. STR filing (`complianceCases.fileSTR()`).
+   415→   415→
+   416→   416→### Security
+   417→   417→- **Rate limiting** (`rate-limit.ts`): Redis-backed sliding window (sorted set), in-memory Map fallback. Per-IP, per-user, per-identifier. RFC 6585 `Retry-After` header. Per-route config (login: 10/min/IP + 5/hour/identifier; register: 5/hour/IP; PIN attempts: 10/min/user).
+   418→   418→- **CSRF** (`csrf.ts` + `proxy.ts`): origin validation on POST/PUT/PATCH/DELETE to `/api/*`. Bearer tokens exempt. Webhook/cron exempt (use HMAC/secret).
+   419→   419→- **CSP** (per-request nonce via `proxy.ts`): `default-src 'self'`, `frame-ancestors 'self'`, `base-uri 'self'`, no `unsafe-inline` in production script-src.
+   420→   420→- **Security headers** (`security-headers.ts`): X-Frame-Options DENY (prod), X-Content-Type-Options nosniff, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy camera/mic/geolocation=(), HSTS 2-year preload.
+   421→   421→- **PII encryption** (`crypto.ts`): AES-256-GCM with versioned payloads (`v1:<base64>`), key rotation via `TURBOPAY_PII_KEY` + `TURBOPAY_PII_PREV_KEYS`. Fails closed in production if key missing.
+   422→   422→- **Scrypt password hashing** (16-byte salt, 64-byte key, `scrypt$salt$hash` format), timing-safe compare via `crypto.timingSafeEqual`, dummy-hash path to prevent user-enumeration timing attacks.
+   423→   423→- **PIN**: 4-digit, scrypt-hashed, 5-fail → 15-min lockout, weak-PIN blocklist.
+   424→   424→- **OTP**: CSPRNG (`crypto.randomInt(100000, 1000000)`), SHA-256 hashed at rest, 10-min TTL, single-use `verificationToken` for email links (so OTP never in URL).
+   425→   425→- **Audit log** (`AuditLog`): every auth/wallet/transfer/bill/kyc/aml/admin/webhook action logged with userId, action, category, severity, IP, UA, metadata (JSON). Indexed for queries.
+   426→   426→- **Device tracking** (`Device`): sha256(UA + /24 IP subnet) fingerprint, trusted flag, first/last seen.
+   427→   427→- **Security events timeline** (`SecurityEvent`): 12 event types (LOGIN_SUCCESS/FAILED, DEVICE_NEW/RECOGNIZED/TRUSTED/REVOKED, SESSION_REVOKED, PIN_CHANGED, PASSWORD_CHANGED, STEP_UP_REQUIRED/PASSED/FAILED).
+   428→   428→- **Idempotency** (`IdempotencyRecord`): all payment operations dedup by client-provided key.
+   429→   429→- **Webhook verification** (`webhooks/registry.ts`): HMAC-SHA256 signatures, DB-backed secrets, `crypto.timingSafeEqual`, demo-bypass hard-gated to non-production, replay protection (timestamp window), idempotent via `WebhookEvent` table keyed on `[provider, providerRef]`, dead-letter queue.
+   430→   430→- **Outbox pattern** (`OutboxEvent`): events written inside the same Prisma tx as state change, drained by `/api/cron/outbox-publisher` every minute. Eliminates dual-write window.
+   431→   431→- **Cron leader election** (`CronLock` + `acquireCronLock`): Postgres row lock with TTL — only one instance runs each cron at a time.
+   432→   432→- **SSRF guard** (`ssrf.ts`): blocks private IPs + hostname blocklist. Audit noted it doesn't resolve DNS (potential DNS-rebinding bypass — admin-gated only).
+   433→   433→- **Circuit breaker** (`circuit-breaker.ts`): Redis-backed distributed state, 5 consecutive failures → OPEN (30s cooldown), 2 successes in HALF_OPEN → CLOSED.
+   434→   434→
+   435→   435→### Notifications
+   436→   436→- **Channel-agnostic** (`INotificationProvider`): SMS, EMAIL, WHATSAPP, PUSH.
+   437→   437→- **Provider chain** (SMS priority): GetOTP (otp.dev) → Termii → Resend (cross-channel email fallback). (EMAIL priority): Resend → Termii → GetOTP (cross-channel SMS fallback).
+   438→   438→- **Logging** (`NotificationLog`): every attempt logged, retry queue (`/api/cron/notification-retry` every 15 min, max 3 attempts, then `PERMANENTLY_FAILED`).
+   439→   439→- **In-app notification center** (`InAppNotification`): 8 types (TRANSACTION, SECURITY, KYC, SUPPORT, PROMOTIONAL, SYSTEM, DISPUTE, REFERRAL), priorities, read/unread, action URL + label.
+   440→   440→
+   441→   441→### Provider Orchestration
+   442→   442→- **11 provider contracts** (`IVirtualAccountProvider`, `IWalletFundingProvider`, `ILocalTransferProvider`, `IInternationalTransferProvider`, `IInternationalReceivingProvider`, `ICrossBorderSettlementProvider`, `IExchangeRateProvider`, `IBillPaymentProvider`, `IKYCProvider`, `INotificationProvider`, `IVirtualCardProvider`).
+   443→   443→- **27 production adapters**: Paystack (6 variants: base, dva, extended, identity, wallet), Flutterwave (v3, v4), Monnify (base + extended), Onafriq, Baxi, Dojah, Remita, Quickteller (base + extended), MTN MoMo, Airtel Money, M-Pesa, Paga, Smartcash, Stripe (base + identity + issuing), Termii, Resend, GetOTP (otpdev), Gmail-SMTP, Sandbox-Intl, Turbopay-Cards (mock card issuer), Wise (webhook handler exists; no adapter).
+   444→   444→- **Provider registry** (`registry.ts`): async resolvers, DB-backed routing engine, canary/rule-based/cost-optimal selection, health-tracking Proxy wrapper, mock fallback.
+   445→   445→- **Capability matrix** (`capabilities/`): per-provider capability declarations (which countries/currencies/fee profile).
+   446→   446→- **Routing engine** (`routing-engine.ts`): multi-factor scoring (settlement speed, capacity, success rate, cost). Default weights are in-code constants (audit suggested externalizing to DB).
+   447→   447→- **Health monitor** (`health-monitor.ts` + `provider-health/`): per-provider success rate, latency, circuit breaker state, admin dashboard.
+   448→   448→
+   449→   449→### Admin Platform
+   450→   450→- 28 admin views covering: overview, customers, transactions, bulk payments, virtual cards, AML flags, KYC queue, compliance cases, finance analytics, reconciliation, platform settings (providers/routing/health/secrets/limits/AML/webhooks/config-history), webhooks, testimonials, system health, security & compliance, notifications log, team management, fees, FX rates, feature flags, vouchers config, provider credentials, support tickets, knowledge base.
+   451→   451→- **Config versioning** (`ConfigVersion`): every config change recorded with diff, rollback support, export/import.
+   452→   452→- **Feature flags** (`FeatureFlag` + `FeatureFlagOverride`): DB-backed, deterministic percentage rollout (uniform hash, not `Math.random`), per-user overrides.
+   453→   453→- **Service flags** (`ServiceFlag`): enable/disable product modules per environment.
+   454→   454→- **Deployment profiles** (`DeploymentProfile`): per-env config sets.
+   455→   455→
+   456→   456→## 7. Data Model (Prisma Schema — 83 models, 2,215 lines)
+   457→   457→
+   458→   458→Money is stored as **Int kobo** (1 NGN = 100 kobo) for NGN; `Int minor` for other currencies (using `toMinorUnits`/`fromMinorUnits` with per-currency decimal places — 0 for UGX/TZS/RWF, 2 for most).
+   459→   459→
+   460→   460→### Identity & Auth
+   461→   461→- **User** (35+ fields): id, fullName, username (unique), email (unique, nullable for phone-only), phone (unique, nullable for Google OAuth), country (ISO alpha-2), passwordHash (scrypt), googleId/appleId, transactionPinHash, pinSetAt, pinFailCount, pinLockedUntil, loginFailCount, loginLockedUntil, bvn, nin, dateOfBirth, gender, stateOfOrigin, lga, town, kycTier (1|2|3), kycStatus, status (ACTIVE|FROZEN|SUSPENDED|CLOSED), emailVerified, phoneVerified, avatarUrl, bio, role (USER|ADMIN), mfaSecretEnc, mfaEnabled, mfaBackupCodesEnc, mfaEnabledAt, mfaLastStep, largeTxShieldEnabled, largeTxThresholdKobo (default ₦1,000), locationGuardEnabled, NDPR consent fields, timestamps.
+   462→   462→- **Session**: userId, tokenHash (unique sha256), refreshTokenHash, expiresAt (24h), refreshExpiresAt (30d), iframeTokenHash, iframeExpiresAt (5min), userAgent, ip, deviceInfo, revokedAt.
+   463→   463→- **Passkey**: userId, credentialId (unique base64url), publicKey, counter (BigInt, cloning detection), deviceName, deviceType, transports (JSON), lastUsedAt.
+   464→   464→- **KycVerification**: userId, tier (1|2|3), status, provider (dojah|verifyme|prembly), nin/bvn/phone/email, firstName/lastName/middleName, dob, gender, payload (JSON audit), verifiedAt.
+   465→   465→- **AddressVerification**: residentialAddress, state, lga, city, postalCode, country, documentType, documentPath, status (PENDING|APPROVED|REJECTED|RESUBMIT), reviewer fields.
+   466→   466→- **OtpCode**: userId, channel (EMAIL|SMS|WHATSAPP|PHONE), target, code (sha256), purpose (REGISTER|VERIFY_EMAIL|VERIFY_PHONE|RESET_PASSWORD), consumed, expiresAt (10 min), verificationToken (unique, for email links).
+   467→   467→- **Device**: userId, fingerprint (sha256 of UA + /24 subnet), deviceName, ip, trusted, firstSeenAt, lastSeenAt. Unique on `[userId, fingerprint]`.
+   468→   468→- **SecurityEvent**: userId, type (12 variants), ip, userAgent, metadata.
+   469→   469→- **SecurityQuestion**: userId, question, answerHash (sha256).
+   470→   470→- **LoginHistory**, **UsernameHistory**, **RecoveryToken**, **RecoveryAttempt**.
+   471→   471→
+   472→   472→### Wallet & Ledger
+   473→   473→- **Wallet**: userId (unique), balanceKobo (cache), currency (NGN), status (ACTIVE|FROZEN), version (OCC). Relations: ledgerEntries, transactions.
+   474→   474→- **LedgerEntry**: walletId, entryType (DEBIT|CREDIT), amountKobo, currency, refType (FUNDING|TRANSFER|AIRTIME|DATA|BILL|REVERSAL|FEE|WEBHOOK_CREDIT|VIRTUAL_CARD_FUND|VIRTUAL_CARD_WITHDRAW|REWARD_CASHBACK|REWARD_BONUS|REFERRAL_REWARD|INVESTMENT), refId, pairId (cross-link), balanceAfterKobo, description, immutable, createdAt. Indexes on `[walletId]`, `[walletId, entryType]`, `[refType, refId]`.
+   475→   475→- **CurrencyWallet**: userId, currency (USD|EUR|GBP|CAD|AUD|KES|GHS|ZAR), balanceMinor, lockedMinor, status, version. Unique on `[userId, currency]`.
+   476→   476→- **CurrencyLedgerEntry**: same shape as LedgerEntry but for CurrencyWallet.
+   477→   477→- **Transaction**: userId, walletId, reference (unique TP-XXXXXXXX), type (FUNDING|TRANSFER_IN|TRANSFER_OUT|AIRTIME|DATA|BILL_ELECTRICITY|BILL_UTILITY|REVERSAL|FEE), direction (CREDIT|DEBIT), amountKobo, feeKobo, status (PENDING|SUCCESS|FAILED|REVERSED), state (INITIATED|PIN_VERIFIED|AML_CHECKED|HOLD_POSTED|PROVIDER_CALLED|SETTLED|REVERSED|TIMEOUT), counterpartyName/Account/Bank, description, provider, providerRef, reversalOfId, metadata (JSON), timestamps. Heavy composite indexing for AML velocity + routing queries.
+   478→   478→- **VirtualAccount**: userId, accountNumber (unique), accountName, bankName, bankCode, provider (monnify default), providerRef, status.
+   479→   479→- **IdempotencyRecord**: key (unique), userId, endpoint, requestBody (hashed), responseBody (cached), status, completedAt.
+   480→   480→
+   481→   481→### Platform / Orchestration
+   482→   482→- **ProviderConfig**: contract, providerName, displayName, mode (mock|sandbox|production), enabled, priority, configId (link to ProviderCredentialVersion), health fields. Unique on `[contract, providerName]`.
+   483→   483→- **ProviderCredentialVersion**: encrypted credential blobs, versioning, rotation.
+   484→   484→- **ProviderRoute**: contract, routeKey, mode, providerConfigId, weight, canary %, rules (JSON).
+   485→   485→- **ProviderHealthCheck**: providerConfigId, status (HEALTHY|DEGRADED|DOWN), latencyMs, successRate, lastCheckedAt.
+   486→   486→- **ProviderCapability**: providerName, capability, supported, supportedCountries/Currencies (JSON), percentageFeeBps, fixedFeeMinor, requestsPerMinute, maxTransferAmount. Unique on `[providerName, capability]`.
+   487→   487→- **PaymentRoutingDecision**: contract, amountKobo, currency, country, selectedProvider, selectionReason, selectionScore, candidatesCount, eliminatedCount, factorScores (JSON), decisionMs.
+   488→   488→- **PaymentFlowLog**: userId, reference, contract (walletFunding|localTransfer|billPayment|exchangeRate), amountKobo, status, selectedProvider, selectionReason/Score, candidatesCount, attemptsCount, providerRef, providerStatus/Error, startedAt, completedAt, durationMs, metadata.
+   489→   489→- **WebhookEvent**: provider, providerRef (unique composite), payload (raw, capped), signature, status (PENDING|PROCESSED|FAILED|IGNORED), error, receivedAt, processedAt.
+   490→   490→- **WebhookEndpoint**: userId, url, secret, events (JSON), active, lastTriggeredAt.
+   491→   491→- **OutboxEvent**: aggregateType, aggregateId, eventType (e.g. `payment.succeeded`), payload (JSON), status (PENDING|PUBLISHED|FAILED), publishedAt.
+   492→   492→- **AsyncTask**: type (NOTIFY|CASHBACK|EVENT), payload (JSON), status, attempts, maxAttempts (3), error.
+   493→   493→- **SettlementQueue**: transactionId (unique), providerRef, status, attempts, maxAttempts (5), nextRetryAt, lastError.
+   494→   494→- **ReconciliationRun**: type, status, startedAt, completedAt, matchedCount, mismatchedCount, metadata.
+   495→   495→- **CronLock**: name (unique), lockedBy (instance ID), lockedAt, expiresAt (TTL).
+   496→   496→- **ConfigVersion**: entity, entityId, version, diff (JSON), changedBy, changedAt.
+   497→   497→- **SystemMetric**: key (unique), value (string), updatedAt. Cached aggregates.
+   498→   498→
+   499→   499→### Config / Policy
+   500→   500→- **FeeConfig**: product (turbopay|billswift), category, type (PERCENT|FLAT|TIERED), value (bps or minor), markupBps, minFeeMinor, maxFeeMinor, currency, active, metadata (tiered structure). Unique on `[product, category]`.
+   501→   501→- **FxConfig**: pair, fromCurrency, toCurrency, spreadBps, markupBps, minAmountMinor, maxAmountMinor, enabled.
+   502→   502→- **FxRateSnapshot**: pair, rate, source, fetchedAt, expiresAt (5-min TTL).
+   503→   503→- **KycTierLimit**: tier, product, singleTxMinor, dailyTxMinor, balanceMinor, label, active. Unique on `[tier, product]`.
+   504→   504→- **AmlPolicy**: name, description, policy (JSON: velocity/largeAmount/rapidTransfer/autoFreezeOnHigh/strThreshold), active.
+   505→   505→- **FeatureFlag**: key (unique), description, enabled, product, rollout (0–100), metadata. Has `FeatureFlagOverride` for per-user enable/disable.
+   506→   506→- **ServiceFlag**: service (unique), displayName, description, enabled, config (JSON), updatedBy.
+   507→   507→- **DeploymentProfile**: name, description, config (JSON), active.
+   508→   508→- **Role**: name (unique), description, permissions (JSON array).
+   509→   509→- **ComplianceCase**, **SanctionsEntry**, **ScreeningResult**, **ComplianceCertificate**, **SecurityBadge**, **ProviderLogo**, **TrustMessage**.
+   510→   510→
+   511→   511→### User Features
+   512→   512→- **Beneficiary**: userId, name, accountNumber, bankName, bankCode, type (TURBOPAY|EXTERNAL).
+   513→   513→- **InternationalBeneficiary**: userId, name, country, bankName, accountNumber/IBAN, swiftCode, routingNumber, mobileWallet, nickname, currency, isFavourite, verificationStatus.
+   514→   514→- **BillPayment**: userId, transactionId, category (ELECTRICITY|CABLE_TV|WATER|INTERNET|REMITA|QUICKTELLER), provider (baxi|quickteller|remita), customer, customerName, product, amountKobo, feeKobo, status, reference.
+   515→   515→- **AirtimeDataPurchase**: userId, transactionId, type (AIRTIME|DATA), phoneNumber, network, plan, amountKobo, status, reference, provider (baxi).
+   516→   516→- **BillSwiftBulkJob** + **BillSwiftBulkItem**: bulk bill processing.
+   517→   517→- **SavingsProduct**: userId, name, type (6 variants), targetAmountKobo, currentAmountKobo, interestRateBps, lockUntil, autoSaveAmountKobo, autoSaveFrequency, lastAutoSaveAt, status, metadata. Has `SavingsTransaction` (DEPOSIT|WITHDRAWAL|INTEREST).
+   518→   518→- **InvestmentProduct**: name, description, type (5 variants), provider, minAmountKobo, maxAmountKobo, expectedReturnBps, duration (string), riskLevel, active. Has `UserInvestment` (ACTIVE|MATURED|LIQUIDATED|CANCELLED, maturityDate).
+   519→   519→- **VirtualCard**: userId, provider, providerCardId, last4, brand (VISA|MASTERCARD), type (VIRTUAL|PHYSICAL), status (PENDING|ACTIVE|FROZEN|TERMINATED), balanceKobo, currency, spendingLimitKobo, panEnc, cvvEnc, expiryMonth, expiryYear, cardholderName. Has `VirtualCardTransaction` (FUNDING|SPEND|REFUND|FEE|WITHDRAWAL) + `VirtualCardControl`.
+   520→   520→- **Voucher**: code (unique), campaignName, type (5 variants), valueKobo, valueBps, maxDiscountKobo, minSpendKobo, eligibility rules (eligibleProducts/excludedProducts/applicableKycTiers/newCustomerOnly/returningOnly/referralRequired/oneTimeUse), usage limits (usageLimit/perUserLimit/campaignBudgetKobo), validity (startDate/endDate/active), restrictions (currency/region/provider), tracking (totalUsed/totalDiscountKobo). Has `VoucherRedemption`.
+   521→   521→- **UserReward**: userId, voucherId, type (5 variants), title, description, valueKobo, status (AVAILABLE|USED|EXPIRED|REVOKED), expiresAt, sourceTransactionId (idempotent cashback), ruleId, tier.
+   522→   522→- **Referral**: referrerId, referralCode, status (PENDING|COMPLETED|REWARDED), referredUserId, rewardKobo, completedAt. Has `ReferralCampaign`.
+   523→   523→- **ScheduledPayment**: userId, type, frequency (ONCE|DAILY|WEEKLY|MONTHLY|CUSTOM), nextExecutionAt, endDate, customDates (JSON), recipient/recipientName/bankName, amountKobo, description, productCode/meterType (bill-specific), status, lastExecutedAt, executionCount, failureCount, lastError.
+   524→   524→- **PaymentTemplate**: userId, name, type, transfer fields, bill fields, defaultAmountKobo, isFavorite, lastUsedAt.
+   525→   525→- **PaymentLink**: userId, reference (unique PL-XXXXXXXX), title, description, amountKobo (0 = custom), currency, allowCustomAmount, minAmountKobo, maxAmountKobo, maxUses, useCount, expiresAt, status (ACTIVE|PAUSED|EXPIRED|DEACTIVATED), metadata, providerRef. Has `PaymentLinkPayment` (reference, amountKobo, feeKobo, status, payerEmail/Name, provider, providerRef).
+   526→   526→- **PaymentIntent**: userId, type (AIRTIME|DATA|BILL_ELECTRICITY|BILL_UTILITY|TRANSFER|CARD_FUND), amountKobo, currency, status (PENDING|PROCESSING|SUCCEEDED|FAILED|CANCELLED), recipient, metadata, idempotencyKey.
+   527→   527→- **Dispute**: userId, transactionId, type (7 variants), priority, status (7 states), subject, description, amountDisputedKobo, resolution, assignedTo, slaDueAt, metadata. Has `DisputeMessage` + `DisputeAttachment`.
+   528→   528→- **SupportTicket**: userId (nullable for guest), fullName, email, phone, username, category (12), subcategory, priority (4), status (8), subject, description, assignedTo, metadata, resolvedAt, closedAt. Has `SupportTicketMessage` + `SupportTicketAttachment`.
+   529→   529→- **HelpArticle**: title, slug (unique), content (markdown/HTML), category (14), tags (JSON), status (DRAFT|PUBLISHED|UNPUBLISHED), version, views, helpfulCount, unhelpfulCount, authorId, authorName.
+   530→   530→- **ChatConversation** + **ChatMessage**: live chat with AI/agent/customer roles.
+   531→   531→- **InAppNotification**: userId, type (8), title, message, priority (4), read, readAt, actionUrl, actionLabel, metadata.
+   532→   532→- **NotificationLog**: userId, channel, target, template, variables (JSON), status, providerMessageId, error, attempts, createdAt.
+   533→   533→- **CommunicationPreference**: userId (unique), emailEnabled/smsEnabled/inAppEnabled/ticketUpdates/transactionAlerts/securityAlerts/promotional.
+   534→   534→- **StatementRequest**: userId, format (PDF|CSV|EXCEL), fromDate, toDate, filters (JSON), status, filePath, emailTo, emailStatus.
+   535→   535→- **Receipt**: transactionId, format, content, filePath.
+   536→   536→- **Testimonial**: name, role, location, quote, rating (1-5), avatarUrl, approved, display, sortOrder.
+   537→   537→- **InternationalTransfer**: userId, reference, sourceCurrency/AmountMinor, destinationCurrency/AmountMinor, rate (Decimal), feesMinor, settlementCurrency, beneficiary fields, purpose, status, provider, providerRef, metadata.
+   538→   538→- **Settlement**: providerRef (unique), provider, type, settlementCurrency, settlementAmountMinor, status, settledAt, reference.
+   539→   539→- **MobileMoneyTransaction**: userId, provider (mtn-momo|airtel-money|m-pesa|paga), type (collection|disbursement), phoneNumber, amountMinor, currency, country, reference, status, providerRef, errorMessage, metadata.
+   540→   540→- **StripeCustomer**: userId (unique), stripeCustomerId.
+   541→   541→- **ComplianceCertificate**, **SecurityBadge**, **ProviderLogo**, **TrustMessage**: trust-center content.
+   542→   542→
+   543→   543→### Audit & Operations
+   544→   544→- **AuditLog**: userId, action, category (AUTH|WALLET|TRANSFER|BILL|KYC|AML|ADMIN|WEBHOOK), severity (INFO|WARN|ERROR|CRITICAL), ip, deviceInfo, userAgent, metadata (JSON). Indexed on `[userId]`, `[category]`, `[severity]`, `[createdAt]`, `[userId, category, createdAt]`.
+   545→   545→- **AmlFlag**: userId, rule (VELOCITY|LARGE_AMOUNT|RAPID_TRANSFER|SUSPICIOUS), severity (LOW|MEDIUM|HIGH), description, metadata, resolved, resolvedAt.
+   546→   546→
+   547→   547→## 8. Styling / Theme
+   548→   548→
+   549→   549→### Brand system (`src/app/globals.css`)
+   550→   550→- **Primary**: Deep Emerald (`oklch(0.48 0.13 162)` in light, `oklch(0.72 0.14 162)` in dark) — "Naira prosperity, trust, growth".
+   551→   551→- **Accent**: Amber/Gold (`oklch(0.92 0.06 80)` light, `oklch(0.35 0.08 70)` dark) — "energy, premium, speed/turbo".
+   552→   552→- **Sidebar**: dark emerald in light mode, near-black in dark mode.
+   553→   553→- **Charts**: 5-color palette derived from primary/accent/success/warning/destructive.
+   554→   554→- **Radius**: 0.75rem base (sm/md/lg/xl computed).
+   555→   555→- **Success**: green, **Warning**: amber, **Destructive**: red.
+   556→   556→- **Custom utility classes**: `.tp-grain` (radial-gradient dot pattern), `.tp-wallet-card` (signature emerald radial-gradient wallet card), `.tp-amber-grad`, `.tp-glass` (backdrop-blur), `.tabular-nums`, `.scrollbar-thin`, `.animate-in-fade`.
+   557→   557→- **Animations**: `tp-fade-rise` (per-letter fade-rise for loading screen), `tp-sheen` (gradient sweep), `wordmarkReveal`.
+   558→   558→- **Dark mode**: class-based (`next-themes` `attribute="class"`), default to `dark`.
+   559→   559→- **RTL support**: `html[dir="rtl"]` overrides font to Noto Sans Arabic, `.rtl-flip` mirrors icons, `.no-flip` forces LTR.
+   560→   560→
+   561→   561→### Fonts
+   562→   562→- **Geist** (sans, variable `--font-geist-sans`) — primary UI font.
+   563→   563→- **Geist Mono** (mono, variable `--font-geist-mono`) — references, account numbers.
+   564→   564→- **Noto Sans Arabic** (variable `--font-noto-arabic`) — Arabic locale only.
+   565→   565→
+   566→   566→### Design tokens
+   567→   567→- All colors defined as CSS custom properties (`--background`, `--foreground`, `--primary`, etc.) in `:root` and `.dark`, then mapped to Tailwind via `@theme inline` block in `globals.css`.
+   568→   568→- shadcn/ui conventions: `bg-background`, `text-foreground`, `bg-primary text-primary-foreground`, `bg-card`, `bg-muted`, `bg-accent`, etc.
+   569→   569→- `Card`, `Button`, `Input`, `Dialog`, `Tabs`, `Badge`, etc. all use these tokens → automatic theme consistency.
+   570→   570→
+   571→   571→### Mobile-first
+   572→   572→- Bottom nav (Home / Wallet / Send / Bills / History) fixed at viewport bottom on `lg:hidden`.
+   573→   573→- Desktop sidebar (`hidden lg:flex`, 64×256px) with grouped nav.
+   574→   574→- Header sticky top with menu button (mobile), logo (mobile), title (sm+), fund-wallet button, theme toggle, notifications, avatar.
+   575→   575→- `Sheet` for mobile sidebar.
+   576→   576→- Pull-to-refresh on dashboard (touch handlers).
+   577→   577→- `pb-20` on main + footer to clear bottom nav.
+   578→   578→
+   579→   579→## 9. Third-Party Integrations
+   580→   580→
+   581→   581→### Payment providers (9 production adapters, 27 total)
+   582→   582→- **Monnify** — virtual account creation + wallet funding webhook (primary for NGN bank-transfer funding).
+   583→   583→- **Paystack** — cards (Checkout), bank transfers, transfer recipients, bank/_account resolve, BVN verification, identity, dedicated virtual accounts (DVA), wallet. 6 adapter variants.
+   584→   584→- **Flutterwave v3 + v4** — alternate cards + splits/chargebacks + African-market redundancy.
+   585→   585→- **Baxi (Interswitch)** — primary bills/airtime/data/electricity/cable TV.
+   586→   586→- **Dojah** — KYC (NIN + BVN verification).
+   587→   587→- **Termii** — SMS + email fallback.
+   588→   588→- **Resend** — primary email.
+   589→   589→- **otp.dev (GetOTP)** — primary SMS.
+   590→   590→- **Onafriq, Remita, Quickteller, Paga** — additional bill/transfer providers (some blocked pending business registration per architecture.md).
+   591→   591→- **Stripe** — `@stripe/stripe-js` client + Stripe Checkout (card funding), PaymentMethod + SetupIntent (saved cards), Stripe Identity (KYC), Stripe Issuing (virtual cards — feature-flagged, blocked pending account approval).
+   592→   592→- **MTN MoMo, Airtel Money, M-Pesa, Smartcash** — mobile money (multi-country: GH, KE, ZA, NG).
+   593→   593→
+   594→   594→### International
+   595→   595→- **Wise** — recommended for outbound international transfers + inbound receiving (via IMTO partner) + FX (via CurrencyCloud). Sandbox only — blocked pending IMTO partner agreement.
+   596→   596→- **Sandbox-Intl** — built-in mock for testing international flows.
+   597→   597→
+   598→   598→### Auth
+   599→   599→- **Google Identity Services** — `<script src="https://accounts.google.com/gsi/client">` for "Continue with Google" button.
+   600→   600→- **HaveIBeenPwned** — k-anonymity breach check at registration.
+   601→   601→
+   602→   602→### Infrastructure
+   603→   603→- **Sentry** — `@sentry/nextjs` 10, separate client/edge/server configs, sourcemaps upload, tree-shake debug logging in prod, custom test route `/api/test/sentry`.
+   604→   604→- **Caddy** — reverse proxy + load balancer + automatic TLS (docker-compose).
+   605→   605→- **PostgreSQL 16** — primary DB (Prisma).
+   606→   606→- **Redis 7** — `ioredis` for rate limiting, circuit breaker, cron locks, caching.
+   607→   607→- **Docker** — multi-stage Bun → standalone Next.js output.
+   608→   608→- **Vercel** — recommended frontend deploy (`scripts/setup-vercel.sh`).
+   609→   609→- **Neon / Supabase** — recommended PostgreSQL providers (`scripts/setup-neon.sh`).
+   610→   610→
+   611→   611→### UI / libraries
+   612→   612→- **lucide-react** — icons.
+   613→   613→- **Recharts** — area/bar/pie charts.
+   614→   614→- **Radix UI** — 30+ primitives behind shadcn/ui.
+   615→   615→- **react-hook-form + zod** — forms + validation.
+   616→   616→- **date-fns** — date formatting.
+   617→   617→- **Sonner** — toasts.
+   618→   618→- **embla-carousel-react** — carousels.
+   619→   619→- **input-otp** — OTP input.
+   620→   620→- **vaul** — drawer.
+   621→   621→- **cmdk** — command palette.
+   622→   622→- **react-day-picker** — calendar.
+   623→   623→- **@tanstack/react-table** — admin data tables.
+   624→   624→- **react-resizable-panels** — resizable panels.
+   625→   625→- **sharp** — image optimization (Next.js).
+   626→   626→
+   627→   627→## 10. Notable Bugs / Issues (Audit Findings)
+   628→   628→
+   629→   629→These come from `c.md` (an external TurboCore audit dated July 5 2026) cross-referenced with what I read in the code:
+   630→   630→
+   631→   631→### Critical
+   632→   632→1. **`middleware.ts` → `proxy.ts` rename for Next.js 16** — `c.md` flagged that the original `src/middleware.ts` was not being picked up by Next.js 16 (which expects `proxy.ts` with an exported `proxy` function). **Verified fixed**: `src/proxy.ts` exists with `export default function proxy(req: NextRequest)` and exports the proper config. CSRF, IP block/allow list, maintenance mode, and admin edge rate limit all run from `proxy.ts` now.
+   633→   633→
+   634→   634→### High (build-blockers — `c.md` flagged 4)
+   635→   635→2. **Investment liquidation import bug** — `c.md` said `/api/investments/[id]/liquidate/route.ts` imported a non-existent `liquidate` function. **Verified pattern**: the route exists; the liquidate logic is now a method on the `investments` singleton (`investments.liquidate(user.id, id)`). Could not confirm the import is correct without reading that specific route file, but the pattern is in place.
+   636→   636→3. **`/api/v1/intl/quote` dropped `sourceAmountMinor`** — `c.md` said the route referenced a non-existent field on `FxQuoteResult`. The `FxQuote` interface in `providers/interfaces.ts` does only have `destinationAmountMinor`. Audit recommended using the parsed request value — status unverified.
+   637→   637→4. **Card freeze/unfreeze/terminate/create imported from non-existent `virtualCards`** — `c.md` said `card.service.ts` imported `virtualCards` from `@/lib/turbocore/virtual-cards` (which has no `index.ts`, only `enhanced.ts`). The audit recommended replacing with `enhancedCards`. **Verified**: `enhanced.ts` is the only file in that directory; the export `enhancedCards` exists. Could not confirm `card.service.ts` is fully migrated without reading it, but the fix path is clear.
+   638→   638→5. **Admin circuit-breaker `getState()` was private** — `c.md` said `listCircuitBreakers()` called `breaker.getState()` which was `private`. Recommended dropping the modifier. Status unverified.
+   639→   639→
+   640→   640→### High (security)
+   641→   641→6. **Cron secret fallback gap** — `c.md` flagged that `/api/cron/data-retention/route.ts` used `process.env.CRON_SECRET ?? "dev-cron-secret"` without the production guard. The other 12 cron routes use the proper `?? (process.env.NODE_ENV === "production" ? null : "dev-cron-secret")` pattern. **Spot-checked**: `cron-auth.ts` exists with `verifyCronSecret()` helper that handles this. Status: likely still inconsistent or now centralized.
+   642→   642→7. **Referral rewards tagged as `"FUNDING"`** — `c.md` flagged that referral rewards were tagged as `Transaction.type: "FUNDING"`, indistinguishable from genuine deposits in AML/reconciliation. Recommended `"REFERRAL_REWARD"`. **Verified**: `RefType` now includes `"REFERRAL_REWARD"` (in `types.ts`), and `referrals/index.ts` calls `creditWallet(wallet.id, referral.rewardKobo, "REFERRAL_REWARD", …)`. **Fixed.**
+   643→   643→
+   644→   644→### Medium
+   645→   645→8. **SSRF guard checks hostnames, not resolved IPs** — `ssrf.ts` blocks literal private IPs + hostname blocklist but doesn't `dns.lookup()` before connecting. DNS-rebinding bypass possible. Admin-gated only (provider `baseUrl` / health-check URLs settable only via admin routes). Audit recommended resolving + pinning IP via custom `lookup` function. Status: unverified.
+   646→   646→9. **No sanctions/watchlist screening found** — `c.md` searched broadly for sanctions/OFAC/PEP and found only `compliance/cases.ts` (case workflow, not screening). Models `SanctionsEntry` + `ScreeningResult` exist in Prisma schema now, and admin route `/api/admin/sanctions/screen` exists. Status: appears added but possibly still stub-level.
+   647→   647→10. **Routing engine weights are hardcoded** — `routing-engine.ts` has `DEFAULT_WEIGHTS`/`FX_WEIGHTS` as in-code constants. Changing routing priorities requires code change + redeploy. Not a bug but a limitation.
+   648→   648→
+   649→   649→### Low / code quality (from `c.md` + `IMPROVEMENT_PLAN.md`)
+   650→   650→11. **`src/app/api/intl/send/route.ts`** — `pinResult.error` typed `string | undefined` but `errorJson()` wants `string`. Fix: `pinResult.error ?? "Invalid PIN"`. Status unverified.
+   651→   651→12. **`src/lib/turbocore/international/send.ts:220`** — TS narrowing didn't carry into the `$transaction` closure. Recommended capturing `const data = providerResult.data` before the closure. Status unverified.
+   652→   652→13. **`src/lib/turbopay/providers.ts`** — `Math.random()` in non-test code (mock/simulated provider layer). Confirmed dead (adapter-factory never calls it in real routing). Should be deleted or marked `@deprecated`.
+   653→   653→14. **641 ESLint warnings** (mostly `any` types) in turbopay-complete-latest.
+   654→   654→15. **49 mixed tabs/spaces** in `tailwind.config.ts` — I read this file and it looked clean; possibly already fixed.
+   655→   655→16. **`Math.random()` in render** at `sidebar.tsx:611` — flagged in IMPROVEMENT_PLAN. Not verified.
+   656→   656→17. **5 missing hook dependencies** — React useEffect warnings.
+   657→   657→18. **28 failing test suites** at time of IMPROVEMENT_PLAN — caused by root `jest.config.js` conflicting with Vitest + missing `prisma generate`. CI now uses Bun + Vitest + real Postgres 16 service container; root jest.config.js is still present (flagged for deletion).
+   658→   658→
+   659→   659→### Issues I noticed during research
+   660→   660→19. **Duplicate admin surfaces** — both `/admin/*` App Router pages and the in-SPA `admin` view exist. They use different auth paths (`/api/admin/auth/me` vs `/api/auth/me`). Confusing — admin could end up in either surface depending on entry point.
+   661→   661→20. **`frontend/` directory is stale** — Next.js 14 + React 18 + mock data, never integrated with the real API. Adds confusion to the repo.
+   662→   662→21. **`.mimocode/` plan files committed** — these are AI tool working files (cosmic-pixel, lucky-wizard, etc.), shouldn't be in version control.
+   663→   663→22. **No license file at repo root** despite README claiming MIT.
+   664→   664→23. **`jest.config.js` at repo root** — conflicts with Vitest, IMPROVEMENT_PLAN says delete it, still present.
+   665→   665→24. **`flutterwave-adapter.ts`, `provider-integration-example.ts`, `unified-provider-interface.ts` at repo root** — standalone reference files outside any package; redundant with the SDK and turbopay-complete-latest adapters.
+   666→   666→25. **Auth-screen.tsx has a syntax glitch at line 46** — `const ounted, setMounted] = React.useState(false);` (missing `m` in `mounted`). Likely a copy-paste artifact; would break the build. Also `const faStatus, setMfaStatus] = React.useState` (missing `m`). Also `const essages, setMessages] = React.useState` (missing `m`). And `const m faStatus` etc. These are in the file I read — would need verification but they look like real bugs. (Note: it's possible these are display artifacts in my Read output, but they appear consistent across multiple Read calls, so likely real.)
+   667→   667→26. **`transfer.tsx` line 46** has duplicate `Sterling Bank` entries (code `232` appears twice in `NIGERIAN_BANKS`) — minor data quality bug.
+   668→   668→27. **Inconsistent auth-cleartext handling** — `auth.ts` comments say "no tokens in localStorage" but `client.ts` still has `setIframeToken()` storing in module-scope variable (in-memory only, but the comment acknowledges this is acceptable for the iframe use case).
+   669→   669→28. **`store.ts` persists only `tp_locale` to localStorage** — no persistence of session or auth tokens (good), but also no persistence of last view (minor UX — user always lands on dashboard after refresh).
+   670→   670→
+   671→   671→## 11. Areas for Improvement
+   672→   672→
+   673→   673→### UX
+   674→   674→1. **Bottom nav doesn't include "Cards" or "Savings"** — only Home/Wallet/Send/Bills/History. Cards is in the sidebar's "Financial" group but mobile users have to open the sheet to reach it.
+   675→   675→2. **No search across transactions/beneficiaries** from the dashboard — Strategic Plan §3.5 promised this.
+   676→   676→3. **Transfer success rate indicator** (OPay delighter, Strategic Plan §3.2) — not implemented in the transfer view.
+   677→   677→4. **Bank auto-detect** uses a hardcoded `BANK_BIN_MAP` of 20 banks — should call Paystack's bank-list API for completeness. The code does have `/api/banks/resolve` but the auto-detect on the client is BIN-based.
+   678→   678→5. **Pull-to-refresh only on dashboard** — should be on wallet, history, and other list views.
+   679→   679→6. **AI Support is keyword-based** — not a real LLM. Users will hit the "I'm here to help!" fallback often. Should integrate a real LLM (the repo's own `LLM` skill could power this).
+   680→   680→7. **No biometric prompt** for the PIN dialog — WebAuthn is set up for sign-in but the per-transaction PIN is still typed.
+   681→   681→8. **No QR code receive/send** — DynamicQuickActions has a `QrCode` icon referenced but no QR view exists.
+   682→   682→9. **Dark mode is the default** — could surprise some users; consider respecting `prefers-color-scheme`.
+   683→   683→10. **No progressive feature unlock** based on KYC tier — Strategic Plan §3.6 promised this; the UI shows a KYC banner but doesn't hide features the user can't use yet.
+   684→   684→11. **Admin has two surfaces** (App Router pages + SPA views) — should consolidate.
+   685→   685→12. **No transaction receipt download** in the history view — only CSV export of the last 90 days.
+   686→   686→13. **No merchant/business tier** — Strategic Plan §6.3 deferred this; the data model has `ProductId = "merchant" | "business" | "developer"` but no UI.
+   687→   687→14. **No notifications bell badge** — the bell always shows a static dot.
+   688→   688→
+   689→   689→### Performance
+   690→   690→1. **Dashboard fetches 14-day series by loading all transactions into JS and bucketing in a loop** — should be a SQL `GROUP BY DATE_TRUNC('day', …)` query (the code notes SQLite lacks `DATE_TRUNC`, but production is Postgres).
+   691→   691→2. **No CDN for static assets** beyond Next.js defaults — `next.config.ts` sets long cache headers but doesn't reference a CDN domain.
+   692→   692→3. **No image optimization** beyond `next/image` — Strategic Plan §5.3 mentioned AVIF/WebP (next.config does enable these formats).
+   693→   693→4. **No Redis-backed session cache** — every auth check hits Postgres. The architecture doc says Redis is used for sessions but `auth.ts` reads from Postgres directly.
+   694→   694→5. **Admin views are lazy-loaded** (good) but the `app-shell.tsx` itself is 866 lines + imports 22 admin view chunks — initial bundle is still large.
+   695→   695→6. **No connection pooling configured** — `DATABASE_URL` uses `?connection_limit=10&pool_timeout=10` per the docs, but no PgBouncer layer in docker-compose.
+   696→   696→7. **No read replica usage** — `db-read.ts` exists but isn't imported anywhere in the codebase I read.
+   697→   697→
+   698→   698→### Code quality
+   699→   699→1. **641 ESLint warnings** — mostly `any` types. Should be tightened.
+   700→   700→2. **Duplicate codebases** — `src/` SDK is deprecated but still present. Should be deleted once the migration guide is no longer needed.
+   701→   701→3. **`frontend/` mock dashboard** is dead weight. Should be deleted or moved to a `examples/` folder.
+   702→   702→4. **`flutterwave-adapter.ts`, `provider-integration-example.ts`, `unified-provider-interface.ts`** at repo root are orphaned reference files.
+   703→   703→5. **`.mimocode/`** AI tool plan files shouldn't be committed.
+   704→   704→6. **`jest.config.js`** at root conflicts with Vitest.
+   705→   705→7. **No license file** at repo root.
+   706→   706→8. **`src/lib/turbopay/providers.ts`** uses `Math.random()` — dead code, should be deleted.
+   707→   707→9. **`auth-screen.tsx`** has multiple apparent syntax errors (missing `m` in destructuring).
+   708→   708→10. **`transfer.tsx`** has duplicate Sterling Bank entries.
+   709→   709→11. **No JSDoc** on most public interfaces — `IMPROVEMENT_PLAN.md` flagged this.
+   710→   710→12. **`routes.ts` in the deprecated SDK is 2,129 lines** — should be split if the SDK is ever revived (it shouldn't be).
+   711→   711→13. **Inconsistent error handling** — some routes use `handleError(e)`, others use inline `if (e instanceof ServiceError)`, others use `try/catch` with `errorJson(e.message, 500)`.
+   712→   712→
+   713→   713→### Missing features (per Strategic Plan)
+   714→   714→1. **CBN licensing** — sandbox only, no live payments possible without it.
+   715→   715→2. **IMTO partner agreement** — international inbound blocked.
+   716→   716→3. **Authorized Dealer bank** — international outbound blocked.
+   717→   717→4. **Stripe Issuing account approval** — virtual cards feature-flagged.
+   718→   718→5. **Remita business registration** — Remita adapter blocked.
+   719→   719→6. **Quickteller business registration** — Quickteller adapter blocked.
+   720→   720→7. **NDPA registration with NDPC** — compliance gap.
+   721→   721→8. **Sanctions screening** — incomplete.
+   722→   722→9. **PAPSS** — not supported (Onafriq supports it but adapter doesn't expose it).
+   723→   723→10. **Apple Pay** — Paystack supports it, adapter doesn't.
+   724→   724→11. **Subscriptions/Plans** — Paystack supports it, adapter doesn't.
+   725→   725→12. **Direct Debit/Mandates** — Paystack supports it, adapter doesn't.
+   726→   726→13. **Enterprise CRM** — deferred.
+   727→   727→14. **Certified Merchant tier** — deferred.
+   728→   728→15. **Multi-region deployment** — deferred.
+   729→   729→16. **Full pricing management interface** — deferred.
+   730→   730→
+   731→   731→## 12. Visual Description (per page, inferred from code)
+   732→   732→
+   733→   733→### Landing page (`/`)
+   734→   734→- **Navbar** (sticky, blurred): Logo + Wordmark left, anchor links (Features, How it works, Security) center, "Get Started" button right.
+   735→   735→- **Hero**: badge ("⚡ The fast lane to your money"), headline ("Your money, faster than ever." with "faster than ever." in emerald), subcopy, "Create free account" + "Sign in" buttons, trust badges (No hidden fees / Bank-grade security / Instant transfers). Right: wallet card mockup (emerald gradient, balance ₦49,400.00, Fund/Transfer/Airtime/Bills pills) with floating stat cards (Instant transfer ₦0 fee / Funding speed Instant).
+   736→   736→- **Features**: 6 cards (Wallet & Virtual Account, Free Transfers, Airtime & Data, Bill Payments, Protected at Every Step, KYC Tiers).
+   737→   737→- **How it works**: 3 numbered circles (Create account → Fund wallet → Start transacting).
+   738→   738→- **Trust section** (dynamic from DB): compliance certificates, security badges, provider logos grid, trust messages.
+   739→   739→- **Why Turbopay**: 4 cards (Lightning Fast, No Hidden Fees, Always Protected, Made for Nigeria).
+   740→   740→- **FAQ**: 6 accordion items.
+   741→   741→- **Testimonials**: 3 cards with star ratings (from DB or placeholder "Coming soon").
+   742→   742→- **CTA**: "Ready to move money faster?" + 3 buttons.
+   743→   743→- **Footer**: 4-column (brand, Product, Company, Support) + status indicator.
+   744→   744→
+   745→   745→### Auth screen (`/` with `showAuth=true`)
+   746→   746→- **Two-column on desktop** (lg:grid-cols-2):
+   747→   747→  - **Left brand panel** (emerald background, grain overlay): Logo + Wordmark, headline "The fast lane to your money.", subcopy, 3 feature bullets (Instant wallet funding, Bank-grade ledger, KYC tiers), copyright footer.
+   748→   748→  - **Right form panel**: "Welcome to Turbopay" heading, Tabs (Create account / Sign in).
+   749→   749→    - **Login**: identifier input (with mail icon), password input (with lock icon + eye toggle), "Sign in" button, "Forgot password?" link.
+   750→   750→    - **Register**: First/Last name (2-col), Middle name (optional), Country selector (cmdk popover), Username (with @ prefix), Email (optional), Phone (optional), Password (with strength checklist: 8+ chars, uppercase, lowercase, number), Referral code, Terms checkbox, "Create wallet" button.
+   751→   751→  - **Divider** ("or"), **Google Sign-In button**.
+   752→   752→- **Dialogs**: Forgot password, MFA challenge (6-digit OTP input + backup code link), Verify (Email/SMS/WhatsApp tabs, 6-digit OTP, resend, dev-OTP display).
+   753→   753→
+   754→   754→### App shell (authed)
+   755→   755→- **Desktop**: left sidebar (256px, dark emerald) with logo header, grouped nav (Financial / Account / Help for users; Overview / Operations / Compliance / Finance / Platform / Configuration / Support Mgmt / Team for admins), footer ("Turbopay MFB · Licensed partners · NDPR-aware").
+   756→   756→- **Mobile**: top header with menu button (opens Sheet), logo, title; bottom fixed nav (Home / Wallet / Send / Bills / History).
+   757→   757→- **Header**: title, "Fund wallet" button (hidden on wallet/transfer views), theme toggle (sun/moon), notifications bell (with dot), avatar dropdown (KYC tier, Settings, Admin Console if admin, Sign out).
+   758→   758→- **Main**: max-w-6xl centered, animate-in-fade per view change, ErrorBoundary + Suspense wrapper.
+   759→   759→
+   760→   760→### Dashboard
+   761→   761→- Greeting ("Good morning, Adaeze 👋") + "Your money at a glance" heading + "Upgrade KYC" button (if tier < 3).
+   762→   762→- KYC banner (amber) if status !== VERIFIED.
+   763→   763→- 3-column grid (lg): left 2-col (balance card, dynamic quick actions, 4-button row, 14-day cashflow AreaChart), right 1-col (4 stat tiles: Money in/out/tx count/net flow, spending breakdown PieChart with legend).
+   764→   764→- Recent transactions card (5 items, "View all" link).
+   765→   765→
+   766→   766→### Wallet
+   767→   767→- PageHeader with Refresh + "Fund wallet" buttons.
+   768→   768→- 3-column grid: left 2-col (BalanceCard, multi-currency wallet section, virtual account details card with copy button, saved payment methods), right 1-col (Available balance stat, Ledger balance stat, Quick fund chips ₦1K-₦100K, KYC upgrade nudge).
+   769→   769→- Fund dialog: amount input, country-aware method picker (Bank Transfer / Debit Card / USSD / Mobile Money / Demo), method-specific fields.
+   770→   770→
+   771→   771→### Transfer
+   772→   772→- PageHeader "Transfer".
+   773→   773→- 3-column grid: left 2-col (transfer form card with type toggle [Turbopay / Bank], balance display, recipient input or bank picker + account number + auto-resolved name, amount, note, save-beneficiary checkbox, fee display, "Continue" button), right 1-col (saved beneficiaries list with favorite stars).
+   774→   774→- Confirm dialog: recipient, amount, fee, total, PIN entry.
+   775→   775→- Success card: green check, amount, recipient, reference, new balance, "New transfer" / "View receipt" buttons.
+   776→   776→
+   777→   777→### Bills
+   778→   778→- PageHeader "Pay Bills".
+   779→   779→- Wallet balance bar.
+   780→   780→- Category grid (2-4 cols): Electricity (yellow ⚡), Internet (blue 📡), Cable TV (purple 📺), Airtime (green 📱), Data (cyan 🌐), Education (orange 🎓), Insurance (indigo 🛡️), Government (gray 🏛️), Betting (red 🔥), Water (blue 💧), Others (gray 📄). Each tile shows biller count.
+   781→   781→- Biller list (per category): searchable, click to open BillPaymentForm.
+   782→   782→- BillPaymentForm: customer reference input (meter/smartcard/IAC/etc.), validate button, amount, PIN, pay. Shows token for electricity.
+   783→   783→
+   784→   784→### Airtime & Data
+   785→   785→- PageHeader "Airtime & Data".
+   786→   786→- Wallet balance bar.
+   787→   787→- Tabs (Airtime / Data).
+   788→   788→- Airtime form: 4 network buttons (MTN yellow, Glo green, Airtel red, 9mobile green), phone input, amount input + quick chips (₦100-₦5K), "Buy airtime" button.
+   789→   789→- Data form: network picker, phone, plan dropdown (from API), "Buy data" button.
+   790→   790→- Success card with reference + new balance.
+   791→   791→
+   792→   792→### History
+   793→   793→- PageHeader "Transaction History" with Export button.
+   794→   794→- Search input + filter chips (All / Funding / Transfers / Airtime / Data / Bills).
+   795→   795→- Transactions grouped by day, each with day-header + count.
+   796→   796→- Transaction item: icon (per type), counterparty name, description, time-ago, amount (green +/red −), status badge.
+   797→   797→- Detail dialog: large icon, type label, amount, status, reference, description, counterparty, account, bank, provider, fee, date.
+   798→   798→
+   799→   799→### Virtual Cards
+   800→   800→- PageHeader "Virtual Cards".
+   801→   801→- Card list: each card is a gradient background (Visa dark slate, Mastercard stone-amber) with brand logo, last4, expiry, cardholder name, status badge, balance, spending limit.
+   802→   802→- Card actions: Fund, Withdraw, Freeze/Unfreeze, Terminate, Settings (controls), Reveal (eye icon → shows PAN + CVV with audit log), History (transactions).
+   803→   803→
+   804→   804→### KYC
+   805→   805→- PageHeader "KYC & Limits".
+   806→   806→- Current status card (emerald-tinted): tier label, status badge, verified date.
+   807→   807→- 3 stat tiles (Single transaction / Daily limit / Max balance).
+   808→   808→- Tier comparison table (all 3 tiers side-by-side).
+   809→   809→- Tier 2 (NIN) form: NIN input, "Verify NIN" button.
+   810→   810→- Tier 3 (BVN) form: BVN input, "Verify BVN" button.
+   811→   811→- Identity verification (Tier 3+): document upload.
+   812→   812→- Address verification: address fields + document upload + reviewer status.
+   813→   813→
+   814→   814→### Settings
+   815→   815→- PageHeader "Settings".
+   816→   816→- Multi-section card layout:
+   817→   817→  - **Profile**: avatar upload (with cropper), full name, email, phone, bio, username.
+   818→   818→  - **Appearance**: theme toggle (Light/Dark/System).
+   819→   819→  - **Notifications**: communication preferences (email/sms/inApp + per-category).
+   820→   820→  - **Security**: change password, set/change PIN, MFA setup/disable, Large Transaction Shield toggle + threshold, Location Guard toggle.
+   821→   821→  - **Data & Privacy**: NDPR notice, "Download my data" (JSON export), "Delete account" (with confirmation).
+   822→   822→  - **Locale**: language picker.
+   823→   823→  - **Sign out** button.
+   824→   824→
+   825→   825→### Security
+   826→   826→- PageHeader "Security Center".
+   827→   827→- Risk score card (low/medium/high badge + bar).
+   828→   828→- Passkeys section: list of registered passkeys (device name, last used), "Add passkey" button.
+   829→   829→- Trusted devices: list with revoke buttons.
+   830→   830→- Active sessions: list with revoke buttons (current session marked).
+   831→   831→- Security timeline: chronological list of events (LOGIN_SUCCESS, LOGIN_FAILED, DEVICE_NEW, etc.) with icons + tone colors.
+   832→   832→- MFA card (if enabled): status, backup codes count, disable button.
+   833→   833→
+   834→   834→### Savings
+   835→   835→- PageHeader "Savings" + "New goal" button.
+   836→   836→- 2-col grid of savings cards: each shows name, type label, interest rate, current amount (large), target amount, progress bar, lock indicator, Deposit/Withdraw buttons.
+   837→   837→
+   838→   838→### Investments
+   839→   839→- PageHeader "Investments".
+   840→   840→- Portfolio summary: total value, total principal, total return (3 stat tiles).
+   841→   841→- Product catalog: cards with name, type, provider, risk badge, min/max amount, expected return, duration, "Invest" button.
+   842→   842→- Holdings list: active investments with principal, current value, maturity date, "Liquidate" button.
+   843→   843→
+   844→   844→### International Transfers
+   845→   845→- PageHeader "International Transfers".
+   846→   846→- Multi-currency wallet section (with convert action).
+   847→   847→- Tabs: Send / Beneficiaries / History.
+   848→   848→- Send form: source currency/amount, destination currency/amount, FX quote (rate + fee breakdown), beneficiary picker, purpose, PIN.
+   849→   849→- Beneficiaries: list with country flag, bank/account, favorite star.
+   850→   850→- History: transfer list with status timeline.
+   851→   851→
+   852→   852→### Admin Overview
+   853→   853→- PageHeader "Admin Overview" + Refresh button.
+   854→   854→- 5 stat tiles (Users, Transactions, Volume, Frozen wallets, Unresolved flags).
+   855→   855→- 2-column grid: Audit log feed (recent admin/user actions with severity badges) + AML flags feed (with severity badges).
+   856→   856→
+   857→   857→### Platform Settings
+   858→   858→- PageHeader "Platform Settings".
+   859→   859→- 8-tab interface: Providers (table), Routing (rules), Health (monitor), Secrets (status), KYC Limits (editable table), AML Policy (JSON editor), Webhooks (endpoints), Config History (version diff).
+   860→   860→
+   861→   861→## Next Actions (for recreating this in a fresh Next.js project)
+   862→   862→
+   863→   863→1. **Decide scope**: The Turbopay codebase is enormous (83 models, ~340 API routes, 52 views). For a clean Next.js recreation, pick a subset (e.g. MVP: auth + wallet + transfer + airtime + bills + history + KYC + admin overview).
+   864→   864→2. **Adopt the architecture**: Next.js 16 App Router + Prisma + PostgreSQL + Redis + Tailwind 4 + shadcn/ui + Zustand + custom SWR client. Same as Turbopay.
+   865→   865→3. **Skip the deprecated `src/` SDK and `frontend/` mock dashboard** entirely.
+   866→   866→4. **Reuse the brand system**: Deep Emerald primary + Amber accent, Geist fonts, dark mode default, RTL support, signature wallet card gradient.
+   867→   867→5. **Reuse the data model**: The Prisma schema is the most valuable artifact. Port the 20-30 most important models (User, Session, Wallet, LedgerEntry, Transaction, VirtualAccount, IdempotencyRecord, AuditLog, AmlFlag, Beneficiary, BillPayment, AirtimeDataPurchase, OtpCode, KycVerification, etc.).
+   868→   868→6. **Reuse the security primitives**: scrypt password hashing, AES-256-GCM PII encryption, double-entry ledger with conditional UPDATEs, advisory locks, hold-confirm-reverse payment orchestrator, idempotency, CSRF + CSP nonce, rate limiting (Redis + in-memory fallback).
+   869→   869→7. **Reuse the provider abstraction**: 11 contracts, registry with mock fallback, adapter factory, capability matrix, routing engine, circuit breaker, health monitor.
+   870→   870→8. **Reuse the SPA shell pattern**: single `page.tsx` bootstraps `LoadingScreen` → `LandingPage` → `AuthScreen` → `AppShell` with Zustand view state. Lazy-load admin views.
+   871→   871→9. **Fix the bugs flagged in §10** before porting: `auth-screen.tsx` syntax errors, duplicate Sterling Bank, `Math.random()` in providers.ts, root jest.config.js conflict.
+   872→   872→10. **Consolidate admin surfaces**: pick either App Router `/admin/*` pages OR in-SPA admin views — not both.
+   873→   873→11. **Replace the keyword-based AI Support with a real LLM** (the repo's own LLM skill can power this).
+   874→   874→12. **Add real sanctions screening** (OFAC SDN list, UN, EU) — Turbopay has the models but no implementation.
+   875→   875→13. **Externalize routing weights** to the DB (Turbopay has them as code constants).
+   876→   876→14. **Implement progressive feature unlock** based on KYC tier (Turbopay shows a banner but doesn't hide features).
+   877→   877→15. **Add a real search** across transactions + beneficiaries.
+   878→   878→16. **Add transaction receipt download** (PDF) in addition to CSV export.
+   879→   879→
+   880→   880→---
+   881→   881→Task ID: 4-5
+   882→   882→Agent: main (orchestrator)
+   883→   883→Task: Build Turbopay foundation + spine (schema, brand, lib, auth, dashboard) and verify
+   884→   884→
+   885→   885→Work Log:
+   886→   886→- Researched Turbopay GitHub repo comprehensively (see Task 2-research above)
+   887→   887→- Wrote Prisma schema adapted to SQLite (User, Session, Wallet, LedgerEntry, Transaction, VirtualAccount, Beneficiary, BillPayment, AirtimeDataPurchase, VirtualCard, SavingsProduct/Transaction, InvestmentProduct/UserInvestment, KycVerification, AuditLog, AmlFlag, InAppNotification, SupportTicket, KycTierLimit, IdempotencyRecord)
+   888→   888→- Built lib: constants.ts (enum constants), money.ts (kobo formatting), auth.ts (scrypt + AES-256-GCM), ledger.ts (double-entry credit/debit/transfer with optimistic concurrency), session.ts (HttpOnly cookie sessions), api.ts (json/errorJson/requireUser/requireAdmin/verifyPin/audit), banks.ts (deduped Nigerian banks — audit fix, BILLERS, DATA_PLANS), seed.ts (admin + products + tier limits)
+   889→   889→- Built brand CSS: deep emerald primary + amber accent, dark mode default, tp-wallet-card/tp-emerald-grad/tp-amber-grad/tp-glass/tp-grain/tp-sheen/tp-fade-rise utilities
+   890→   890→- Built spine: theme-provider, logo (emerald gradient + amber lightning bolt), loading-screen, store (Zustand, 16 ViewKeys), landing-page (hero+features+how+security+FAQ+CTA+footer), auth-screen (login/register with validation), app-shell (sidebar+header+bottom-nav+notifications+pin-provider+lazy view registry), page.tsx bootstrap
+   891→   891→- Built parts: balance-card, transaction-item, pin-dialog (Promise-based), layout (PageHeader/StatCard/EmptyState)
+   892→   892→- Built auth APIs: register, login, logout, me — with scrypt, sessions, lockout, audit
+   893→   893→- Built dashboard API + view: balance, virtual account, 14-day cashflow AreaChart, spending PieChart, stats, recent transactions
+   894→   894→- Created stub views for all 16 screens so app boots cleanly
+   895→   895→- Verified with agent-browser: landing renders, register flow works, dashboard loads with balance card + virtual account + quick actions. No errors.
+   896→   896→
+   897→   897→Stage Summary:
+   898→   898→- Foundation VERIFIED working end-to-end (landing → register → dashboard)
+   899→   899→- Audit fixes applied: removed duplicate Sterling bank, no Math.random in non-mock code (only in explicit demo generators), real session-based auth
+   900→   900→- 16 views stubbed; 5 feature modules to be implemented by parallel subagents (Tasks 6-a..6-e)
+   901→   901→- Shared lib API is final; subagents must NOT modify foundation files
+   902→   902→
+   903→   903→---
+   904→   904→Task ID: 6-a
+   905→   905→Agent: full-stack-developer (Module A)
+   906→   906→Task: Wallet/Fund/Transfer/Beneficiaries views+APIs
+   907→   907→
+   908→   908→Work Log:
+   909→   909→- Read worklog.md, prisma schema, and all foundation files (lib/api, lib/ledger, lib/auth, lib/money, lib/banks, lib/constants, lib/session, store.tsx, parts/balance-card, parts/pin-dialog, parts/layout, parts/transaction-item, api/dashboard, views/dashboard).
+   910→   910→- Built 7 API routes: /api/wallet (GET), /api/wallet/fund (POST), /api/transfer (POST), /api/transfer/fee (GET), /api/transfer/resolve (GET), /api/beneficiaries (GET/POST), /api/beneficiaries/[id] (PATCH/DELETE).
+   911→   911→- Implemented wallet view: BalanceCard + Fund dialog with Bank/Card/USSD/Demo tabs + quick chips + recent ledger entries + KYC nudge + virtual account summary + funding methods menu.
+   912→   912→- Implemented transfer view: Turbopay/Bank tabs, recipient resolution, amount/note/fee/total panel, save-beneficiary, confirm dialog, PIN entry via usePin().request, success card; beneficiaries right rail with favorite/delete/prefill; auto-prefills when arriving from Beneficiaries "Send" via sessionStorage token.
+   913→   913→- Implemented beneficiaries view: search, list with type badge + favorite star + Send + delete (AlertDialog confirm), add-beneficiary dialog with type toggle and bank picker.
+   914→   914→- Ran `bun run lint`: one warning (unused eslint-disable) → fixed → 0 errors 0 warnings.
+   915→   915→
+   916→   916→Stage Summary:
+   917→   917→- Files created: src/app/api/wallet/route.ts, src/app/api/wallet/fund/route.ts, src/app/api/transfer/route.ts, src/app/api/transfer/fee/route.ts, src/app/api/transfer/resolve/route.ts, src/app/api/beneficiaries/route.ts, src/app/api/beneficiaries/[id]/route.ts.
+   918→   918→- Files modified (overwrote stubs): src/components/turbopay/views/wallet.tsx, src/components/turbopay/views/transfer.tsx, src/components/turbopay/views/beneficiaries.tsx.
+   919→   919→- All money is kobo (Int); displays via naira()/nairaPlain()/parseKobo(). All debits verifyPin then debitWallet/transferBetweenWallets. Every tx creates Transaction + LedgerEntry + AuditLog. TURBOPAY transfers write matched DEBIT+CREDIT Transaction records. Bank transfer fee is 5250 kobo (₦52.50), Turbopay is free. Beneficiary upsert dedupes by (userId, accountNumber, bankCode). Emerald+amber brand, mobile-first, loading skeletons, sonner toasts.
+   920→   920→- Did NOT modify any foundation files (schema.prisma, lib/*, store.tsx, parts/*, app-shell, layout, globals.css, api/auth/*, api/dashboard/*, api/notifications/*). Did NOT run db:push. Did NOT create test files.
+   921→   921→
+   922→   922→---
+   923→   923→Task ID: 6-b
+   924→   924→Agent: full-stack-developer (Module B)
+   925→   925→Task: Airtime/Data/Bills/History views+APIs
+   926→   926→
+   927→   927→Work Log:
+   928→   928→- Read worklog.md and foundation files (lib/api.ts, ledger.ts, auth.ts, money.ts, banks.ts, constants.ts; store.tsx, parts/transaction-item.tsx, parts/pin-dialog.tsx, parts/layout.tsx; api/dashboard/route.ts, views/dashboard.tsx, api/wallet/route.ts, api/wallet/fund/route.ts).
+   929→   929→- Created /api/airtime/route.ts: POST {network, phone, amountKobo, pin} — verifyPin → debitWallet(AIRTIME) → Transaction + AirtimeDataPurchase in $transaction → audit → {transaction, newBalance}.
+   930→   930→- Created /api/data/route.ts: POST {network, phone, planId, amountKobo, pin} — looks up plan in DATA_PLANS, validates amount matches plan, same pattern with refType=DATA, type=DATA, planName set.
+   931→   931→- Created /api/bills/route.ts: GET returns BILL_CATEGORIES mapped with BILLERS; POST {category, billerCode, billerName, customerRef, amountKobo, pin} — validates against BILLERS, debitWallet(BILL) → Transaction + BillPayment. For ELECTRICITY generates 20-digit token stored in BillPayment.token + Transaction.metadata.
+   932→   932→- Created /api/transactions/route.ts: GET ?filter=&type=&search=&page=&limit= — filter chips expand to TxType[] sets, search uses contains on counterpartyName/description/reference, paginates with take+1 for hasMore, returns {transactions, total, page, limit, hasMore}.
+   933→   933→- Overwrote views/airtime.tsx: Tabs (Airtime/Data) — emerald gradient balance bar, 4 colored network buttons (MTN/Glo/Airtel/9mobile), phone+amount inputs with quick chips, plan Select for data tab, PIN dialog integration via usePin(), shared SuccessCard with green check + reference + new balance + "Buy again".
+   934→   934→- Overwrote views/bills.tsx: balance bar, category grid (8 tiles with lucide Zap/Wifi/Tv/Droplets/GraduationCap/ShieldCheck/Landmark/Flame), biller list with search + back button, BillPaymentDialog with customerRef + Validate button (mock 700ms) + amount + PIN → POST /api/bills, success content with amber-highlighted electricity token + copy button.
+   935→   935→- Overwrote views/history.tsx: PageHeader with Export CSV (last 90 days, proper RFC-4180 escaping), debounced search (350ms), 8 filter chips (All/Funding/Transfers/Airtime/Data/Bills/Cards/Savings), transactions grouped by day with count header, reused TransactionItem, "Load more" pagination, TxDetailDialog with all fields (type/amount/status/reference/description/counterparty/account/bank/provider/fee/date/state), empty state, loading skeletons.
+   936→   936→- Ran `bun run lint` — 0 errors / 0 warnings in my files (only pre-existing warning in another agent's transfer.tsx stub).
+   937→   937→
+   938→   938→Stage Summary:
+   939→   939→- Files created:
+   940→   940→  - src/app/api/airtime/route.ts
+   941→   941→  - src/app/api/data/route.ts
+   942→   942→  - src/app/api/bills/route.ts
+   943→   943→  - src/app/api/transactions/route.ts
+   944→   944→- Files modified (stub → full implementation):
+   945→   945→  - src/components/turbopay/views/airtime.tsx
+   946→   946→  - src/components/turbopay/views/bills.tsx
+   947→   947→  - src/components/turbopay/views/history.tsx
+   948→   948→- Agent-ctx record: /home/z/my-project/agent-ctx/6-b-full-stack-developer.md
+   949→   949→- Key decisions:
+   950→   950→  1. Used array-form $transaction([create Transaction, create Purchase/BillPayment]) for atomic record creation after ledger debit succeeded (ledger is source of truth for balance).
+   951→   951→  2. Electricity token generated server-side and stored both in BillPayment.token (canonical) and Transaction.metadata JSON (for receipt reuse).
+   952→   952→  3. Filter chips decoupled from API filter values — chip "transfers" maps to API filter=transfers which expands to type:{in:[TRANSFER]}.
+   953→   953→  4. Search uses Prisma contains (SQLite-friendly); debounce on the client (350ms) prevents request floods.
+   954→   954→  5. CSV export uses proper RFC-4180 escaping (double-quote → "" wrapping) and triggers a blob download.
+   955→   955→- All foundation files left untouched. Dev server compiled cleanly. Ready for end-to-end testing once wallet-funding flow exists (separate module).
+   956→   956→
+   957→   957→---
+   958→   958→Task ID: 6-e
+   959→   959→Agent: full-stack-developer (Module E)
+   960→   960→Task: AI Support (real LLM via z-ai-web-dev-sdk)
+   961→   961→
+   962→   962→Work Log:
+   963→   963→- Read worklog.md + prior agent-ctx records (6-a wallet/transfer/beneficiaries, 6-b airtime/data/bills/history) to learn established API/view patterns (requireUser, handleError, json, kobo money, tp-glass, scrollbar-thin, sonner toasts).
+   964→   964→- Invoked the `LLM` skill to learn the exact z-ai-web-dev-sdk chat API (`ZAI.create()` → `zai.chat.completions.create({ messages, thinking: { type: "disabled" } })` → `completion.choices[0].message.content`).
+   965→   965→- Inspected the SDK's TypeScript types at `node_modules/z-ai-web-dev-sdk/dist/index.d.ts` — confirmed `ChatMessage.role: 'system' | 'user' | 'assistant'`, so using `role: "system"` for the system prompt is type-safe (the skill examples used `'assistant'` but the SDK accepts both).
+   966→   966→- Created `src/app/api/ai-support/route.ts`: POST handler, `requireUser()`, validates/sanitises incoming messages (last 10 turns), builds the Turbopay system prompt with the current user's `{username}` + `KYC tier {kycTier}` interpolated, calls the LLM, returns `{ content }`, errors via `handleError`.
+   967→   967→- Created `src/components/turbopay/ai-support.tsx`: `"use client"` default export `AiSupport`. Floating emerald-gradient round button (z-50, bottom-right, above mobile bottom-nav) with a subtle ping ring + amber notification dot when closed. Opens a `tp-glass` chat panel (responsive: full-width mobile / 400×560px desktop). Header with assistant avatar + clear/close. Scrollable body with user (emerald bubble, right) / assistant (card bubble, left) messages, framer-motion typing dots, auto-scroll. Empty-state greeting + 4 suggested-prompt chips. Footer Input + Send (Enter-to-send). localStorage persistence (`tp_ai_chat`) with hydration guard. Graceful error fallback ("Sorry, I couldn't respond…"). Accepts optional `user` prop, falls back to `useApp((s) => s.user)`, renders `null` if no user. Did NOT touch app-shell.tsx.
+   968→   968→- Ran `bun run lint` → 0 errors, 0 warnings in both new files.
+   969→   969→
+   970→   970→Stage Summary:
+   971→   971→- Files created (only 2; no existing files modified):
+   972→   972→  - `src/app/api/ai-support/route.ts` — LLM-backed chat API (server-side, auth-protected).
+   973→   973→  - `src/components/turbopay/ai-support.tsx` — floating AI support chat widget (default export `AiSupport`).
+   974→   974→- Key decisions: `role: "system"` (type-verified against SDK), `thinking: { type: "disabled" }` for speed, last-10-message history trim (client + server), hydration-safe localStorage, mobile-first responsive panel that clears the bottom nav, framer-motion for typing dots + panel/button transitions, graceful fetch-error fallback so the widget never breaks.
+   975→   975→- Integration for orchestrator: `import AiSupport from "@/components/turbopay/ai-support"` then `<AiSupport />` (auto-reads user from `useApp`) or `<AiSupport user={user} />`. Mount once inside `AppShell`; it self-hides when logged out.
+   976→   976→
+   977→   977→---
+   978→   978→Task ID: 6-d
+   979→   979→Agent: full-stack-developer (Module D)
+   980→   980→Task: Settings/Security/Rewards/Support/Admin views+APIs
+   981→   981→
+   982→   982→Work Log:
+   983→   983→- Read worklog.md (prior agents' work: foundation 4-5, Module A 6-a, Module B 6-b) and foundation files (lib/api.ts, lib/ledger.ts, lib/auth.ts, lib/money.ts, lib/constants.ts, lib/db.ts, lib/session.ts; store.tsx, parts/layout.tsx, parts/pin-dialog.tsx, parts/transaction-item.tsx; api/dashboard/route.ts, api/notifications/route.ts, api/transactions/route.ts, api/transfer/route.ts, api/wallet/route.ts, api/auth/login/route.ts, api/auth/logout/route.ts; views/dashboard.tsx, views/wallet.tsx, views/airtime.tsx, views/history.tsx; prisma/schema.prisma; app-shell.tsx).
+   984→   984→- Created 8 API routes:
+   985→   985→  - /api/settings (GET profile, PATCH {fullName,email,phone,bio,avatarUrl} with email/phone uniqueness check)
+   986→   986→  - /api/settings/pin (POST set: only if !hasPin, isWeakPin check, hashPin, pinSetAt; PUT change: verifyPin old, isWeakPin new, hashPin)
+   987→   987→  - /api/settings/password (PUT: verifyPassword old, validatePassword new, hashPassword new)
+   988→   988→  - /api/security (GET: sessions w/ isCurrent flag, auditLog AUTH/KYC/AML last 20, checklist {hasPin,emailVerified,kycVerified})
+   989→   989→  - /api/security/sessions/[id] (DELETE: ownership-checked soft revoke, audit SESSION_REVOKED)
+   990→   990→  - /api/rewards (GET: deterministic referralCode from fullName+id via generateReferralCode, shareLink, stats {totalReferrals,totalEarned,activeCampaigns}, 3 mock campaigns, last 20 REWARD/REFERRAL tx)
+   991→   991→  - /api/support (GET tickets + 6 mock FAQ articles; POST creates SupportTicket status:OPEN with audit SUPPORT_TICKET_CREATED)
+   992→   992→  - /api/admin (GET requireAdmin: stats {users, transactions, volume sum, frozenWallets, frozenUsers, amlFlags}, recentUsers 10, recentTransactions 10 with user names, amlFlags 10 unresolved with user names)
+   993→   993→  - /api/admin/customers (GET requireAdmin: paginated users + wallet balance, debounced search across fullName/username/email/phone)
+   994→   994→  - /api/admin/transactions (GET requireAdmin: paginated all tx with user info, optional type/status filters)
+   995→   995→- Overwrote 5 view stubs (settings.tsx, security.tsx, rewards.tsx, support.tsx, admin.tsx) with full implementations.
+   996→   996→- Settings view: 2-col grid (left = Profile form + Appearance theme toggle; right = PIN/Password/Session cards). Avatar shows initials fallback. PIN uses InputOTP 4-digit. Password uses show/hide eye toggles. Sign out → POST /api/auth/logout → useApp().logoutClient() → router.refresh().
+   997→   997→- Security view: risk score (0-100, PIN=35/emailVerified=25/kycVerified=40) with custom progress bar (emerald/amber/red tone), security checklist (4 items, CTAs link to settings/kyc views, MFA marked "Coming soon"), active sessions list with UA parsed → device+browser, current session highlighted, AlertDialog revoke confirmation, recent security events with severity tone colors.
+   998→   998→- Rewards view: emerald-gradient referral hero card with code + share link + copy buttons + WhatsApp/Twitter share buttons (window.open share URLs), 3 stat cards (referrals/earned/campaigns), active campaigns grid, rewards history list (last 20 REWARD/REFERRAL transactions with referral vs reward icons).
+   999→   999→- Support view: PageHeader "Help & Support", FAQ accordion with 6 mock articles (searchable), 2 contact option cards (AI assistant + Email), Create ticket dialog (subject/category/priority/message), My tickets list with status badges (OPEN/IN_PROGRESS/RESOLVED/CLOSED) + expandable details.
+  1000→  1000→- Admin view: role gate (non-admin → "Admin access required" EmptyState), Tabs (Overview/Customers/Transactions/AML). Overview: 5 StatCard tiles + 2 scrollable tables (recent users, recent transactions) + AML feed. Customers: debounced search (350ms) + paginated table with wallet balance + Previous/Next pagination. Transactions: type filter + paginated table. AML: full unresolved flags list with severity tone colors.
+  1001→  1001→- Ran `bun run lint` — exit 0, 0 errors, 0 warnings in my files.
+  1002→  1002→
+  1003→  1003→Stage Summary:
+  1004→  1004→- Files created:
+  1005→  1005→  - src/app/api/settings/route.ts
+  1006→  1006→  - src/app/api/settings/pin/route.ts
+  1007→  1007→  - src/app/api/settings/password/route.ts
+  1008→  1008→  - src/app/api/security/route.ts
+  1009→  1009→  - src/app/api/security/sessions/[id]/route.ts
+  1010→  1010→  - src/app/api/rewards/route.ts
+  1011→  1011→  - src/app/api/support/route.ts
+  1012→  1012→  - src/app/api/admin/route.ts
+  1013→  1013→  - src/app/api/admin/customers/route.ts
+  1014→  1014→  - src/app/api/admin/transactions/route.ts
+  1015→  1015→- Files modified (stub → full implementation):
+  1016→  1016→  - src/components/turbopay/views/settings.tsx
+  1017→  1017→  - src/components/turbopay/views/security.tsx
+  1018→  1018→  - src/components/turbopay/views/rewards.tsx
+  1019→  1019→  - src/components/turbopay/views/support.tsx
+  1020→  1020→  - src/components/turbopay/views/admin.tsx
+  1021→  1021→- Agent-ctx record: /home/z/my-project/agent-ctx/6-d-full-stack-developer.md
+  1022→  1022→- Key decisions:
+  1023→  1023→  1. Money is always kobo (Int); displays via naira()/nairaPlain()/nairaCompact() from @/lib/money.
+  1024→  1024→  2. PIN operations: POST set (only if !hasPin, isWeakPin check, hashPin); PUT change (verifyPin old, isWeakPin new, hashPin, pinSetAt). Both reset pinFailCount and pinLockedUntil.
+  1025→  1025→  3. Password change: server uses verifyPassword + validatePassword + hashPassword; client also pre-validates for UX.
+  1026→  1026→  4. Settings PATCH: only updates provided fields; email/phone uniqueness checked before update; username is read-only (disabled input).
+  1027→  1027→  5. Security risk score formula: PIN=35 + emailVerified=25 + kycVerified=40 (max 100). Tones: ≥80 emerald/Low, ≥50 amber/Medium, <50 red/High.
+  1028→  1028→  6. Referral code is deterministic per user — `generateReferralCode(fullName + "-" + id)` so the code is stable across requests (avoids the randomBytes inside generateReferralCode returning different values each call).
+  1029→  1029→  7. Admin role gate enforced BOTH client (EmptyState if user.role !== "ADMIN") AND server (requireAdmin() throws 403).
+  1030→  1030→  8. Session revoke verifies session.userId === user.id (no cross-user revoke), sets revokedAt (soft delete), audits SESSION_REVOKED severity WARN.
+  1031→  1031→  9. Admin tables scrollable on mobile (overflow-x-auto); debounced search (350ms) on Customers tab; pagination via take+1 hasMore pattern (consistent with /api/transactions).
+  1032→  1032→  10. SupportTicket reference generated via generateReference("TKT") and stored in audit metadata (no dedicated DB column).
+  1033→  1033→  11. Active campaigns: 3 static mock campaigns (welcome bonus ₦500, referral boost ₦1,000, summer savings challenge) returned by /api/rewards.
+  1034→  1034→  12. Security checklist items link to relevant views (settings for PIN/email, kyc for KYC) using setView from useApp().
+  1035→  1035→- All foundation files left untouched (schema.prisma, lib/*, store.tsx, parts/*, app-shell, layout, globals.css, api/auth/*, api/dashboard/*, api/notifications/*). Did NOT run db:push. Did NOT create test files.
+  1036→  1036→
+  1037→  1037→---
+  1038→  1038→Task ID: 6-c
+  1039→  1039→Agent: full-stack-developer (Module C)
+  1040→  1040→Task: Virtual Cards/Savings/Investments/KYC views+APIs
+  1041→  1041→
+  1042→  1042→Work Log:
+  1043→  1043→- Read worklog + foundation files (api.ts, ledger.ts, auth.ts, money.ts, banks.ts, constants.ts, store.tsx, pin-dialog, layout, dashboard example, prisma schema).
+  1044→  1044→- Studied prior agents' (6-a, 6-b) API patterns (requireUser → verifyPin → debit/creditWallet → Transaction + audit) for consistency.
+  1045→  1045→- Built 5 Cards API routes:
+  1046→  1046→  • POST /api/cards — generates 16-digit Luhn PAN + 3-digit CVV + expiry via generatePan/generateExpiry, encrypts with encryptSecret (AES-256-GCM), random Visa/Mastercard brand, default ₦5,000 spending limit.
+  1047→  1047→  • GET /api/cards — lists user's cards with transactionsCount + last 10 VirtualCardTransactions.
+  1048→  1048→  • GET/PATCH /api/cards/[id] — single card + freeze/unfreeze/terminate state machine with status validation.
+  1049→  1049→  • POST /api/cards/[id]/fund — verifyPin → debitWallet(CARD_FUND) → atomic increment card balance + create VirtualCardTransaction + Transaction (CARD_FUND/DEBIT) + audit. Enforces spending limit.
+  1050→  1050→  • POST /api/cards/[id]/withdraw — verifyPin → conditional decrement via updateMany (prevents race overdraft) → creditWallet(CARD_WITHDRAW) → VirtualCardTransaction + Transaction (CARD_WITHDRAW/CREDIT) + audit.
+  1051→  1051→  • POST /api/cards/[id]/reveal — audit INFO "CARD_REVEAL" then decryptSecret(panEnc) + decryptSecret(cvvEnc) and return plaintext details.
+  1052→  1052→- Built Virtual Cards view: premium card visuals (slate gradient for Visa, amber/orange gradient for Mastercard with two-circle logo), chip, masked PAN, status pill, balance + limit progress bar. Actions dropdown (Fund, Withdraw, Reveal, Transactions, Freeze/Unfreeze, Terminate) with confirm dialogs. Reveal dialog with 30s auto-hide countdown, copy buttons, audit warning.
+  1053→  1053→- Built Savings API: GET returns products + mySavings grouped by product (latest balanceAfterKobo as current balance, computed locked-until date from first deposit + lockDays) + totalSaved + estInterest; POST {type:DEPOSIT|WITHDRAW} enforces min deposit, lock period (throws ServiceError "Locked until X" when firstDeposit + lockDays > now),” uses debit/creditWallet(SAVINGS) + SavingsTransaction + Transaction (SAVINGS_DEPOSIT/SAVINGS_WITHDRAW).
+  1054→  1054→- Built Savings view: portfolio summary (total saved, est. annual interest, active plans), product grid with type badges (Flexible/Locked/Target), interest %, min amount, lock period; "My savings" list with deposit/withdraw/history buttons per product; deposit dialog with quick chips + projected interest; withdraw dialog with "withdraw all" shortcut; per-product transaction history modal.
+  1055→  1055→- Built Investments API: GET returns products + holdings + totals (value/principal/return); POST {productId, amountKobo, pin} validates min/max, parseDuration helper converts "30 days"/"6 months"/"1 year" → maturityAt Date, debitWallet(INVESTMENT) + UserInvestment (status=ACTIVE, currentValueKobo=principalKobo) + Transaction (INVESTMENT/DEBIT); POST /api/investments/[id]/liquidate verifyPin → creditWallet(currentValueKobo) → mark LIQUIDATED + Transaction (INVESTMENT/CREDIT, severity WARN audit).
+  1056→  1056→- Built Investments view: portfolio summary (value, principal, return with overall %), product catalog with risk badges (LOW=green, MEDIUM=amber, HIGH=red) and expected return %, duration, provider, min/max; holdings list with progress bar to maturity, gain/loss, status (ACTIVE/MATURED/LIQUIDATED), Liquidate button (with AlertDialog confirm). Invest dialog with quick amount chips and projected return at maturity + risk disclaimer.
+  1057→  1057→- Built KYC API: GET returns current tier, status, masked NIN/BVN, current-tier limits from KYC_TIER_LIMITS, and verification history; POST {tier:2|3, nin|bvn} validates 11-digit identifier, rejects if tier <= current tier, creates KycVerification + updates User (kycTier, kycStatus, nin/bvn) atomically, audits, returns updated user object + new limits (mock instant verification via "turbopay" provider).
+  1058→  1058→- Built KYC view: current status card (gradient emerald if verified, amber if not) with tier label + status badge + verified date + masked identifiers; 3 stat tiles for current tier (single tx, daily, max balance — "Unlimited" for tier 3 max); tier comparison table with all 3 tiers side-by-side and unlock/lock icons; Tier 2 (NIN) and Tier 3 (BVN) verification forms with 11-digit input validation; verification history list. On success: toast + refreshUser via /api/auth/me + setUser.
+  1059→  1059→- Ran `bun run lint` → 0 errors, 0 warnings. Confirmed via `bun x tsc --noEmit` that none of my 13 new files have any TypeScript errors (only pre-existing errors in foundation files like lib/ledger.ts and other agents' files).
+  1060→  1060→
+  1061→  1061→Stage Summary:
+  1062→  1062→- Files created (13):
+  1063→  1063→  • src/app/api/cards/route.ts (GET list + POST create)
+  1064→  1064→  • src/app/api/cards/[id]/route.ts (GET single + PATCH freeze/unfreeze/terminate)
+  1065→  1065→  • src/app/api/cards/[id]/fund/route.ts (POST)
+  1066→  1066→  • src/app/api/cards/[id]/withdraw/route.ts (POST)
+  1067→  1067→  • src/app/api/cards/[id]/reveal/route.ts (POST)
+  1068→  1068→  • src/app/api/savings/route.ts (GET + POST deposit/withdraw)
+  1069→  1069→  • src/app/api/investments/route.ts (GET + POST invest)
+  1070→  1070→  • src/app/api/investments/[id]/liquidate/route.ts (POST)
+  1071→  1071→  • src/app/api/kyc/route.ts (GET + POST verify)
+  1072→  1072→- Files modified (overwrote stubs, 4):
+  1073→  1073→  • src/components/turbopay/views/cards.tsx
+  1074→  1074→  • src/components/turbopay/views/savings.tsx
+  1075→  1075→  • src/components/turbopay/views/investments.tsx
+  1076→  1076→  • src/components/turbopay/views/kyc.tsx
+  1077→  1077→- Key decisions:
+  1078→  1078→  • Card PAN/CVV always encrypted via encryptSecret (AES-256-GCM); only decrypted on reveal endpoint with audit log. Never returned in plaintext to the list endpoint.
+  1079→  1079→  • Card withdrawal uses atomic conditional updateMany (balanceKobo: { gte: amountKobo }) to prevent race-condition overdrafts before crediting wallet.
+  1080→  1080→  • Savings balance is derived from the latest SavingsTransaction.balanceAfterKobo per product (no separate running-balance column needed).
+  1081→  1081→  • Savings lock enforcement uses first DEPOSIT's createdAt + product.lockDays; throws a ServiceError with a human-readable "Locked until DD Mon YYYY" message.
+  1082→  1082→  • Investment currentValueKobo starts at principal (mock — accrual would be a background job). Liquidation credits the current value to wallet.
+  1083→  1083→  • KYC verification is instant (mock) — in production this would call NIBSS/NIMC. NIN/BVN stored on User for higher-tier features; verification history preserved in KycVerification table.
+  1084→  1084→  • All money is kobo (Int). Display via naira()/nairaPlain()/parseKobo() from @/lib/money.
+  1085→  1085→  • Every debit calls verifyPin first, then debitWallet/creditWallet, then creates a Transaction record with generateReference() + matching LedgerEntry, then writes an AuditLog.
+  1086→  1086→  • All views: "use client" default exports, fetch on mount, loading skeletons, sonner toasts, mobile-first responsive grids (sm:grid-cols-2 lg:grid-cols-3), emerald+amber brand throughout, lucide icons + shadcn/ui only.
+  1087→  1087→
+  1088→  1088→---
+  1089→  1089→Task ID: P1
+  1090→  1090→Agent: full-stack-developer (Visual polish)
+  1091→  1091→Task: Framer Motion transitions, skeleton loaders, mobile nav feedback
+  1092→  1092→
+  1093→  1093→Work Log:
+  1094→  1094→- Read worklog.md + prior agent-ctx records to understand established patterns (tp-wallet-card, tp-sheen, tp-fade-rise, tp-glass brand utilities in globals.css; BalanceCard / StatCard / TransactionItem shapes; framer-motion ^12.23.2 already installed).
+  1095→  1095→- Created src/components/turbopay/view-transition.tsx ("use client", exports ViewTransition). Single motion.div with key={viewKey} remounts on every view switch and replays the entrance animation (opacity 0→1, y 12→0, 0.25s ease [0.22,1,0.36,1]). Deliberately avoided AnimatePresence because it would race with the React.Suspense boundary the wrapper contains.
+  1096→  1096→- Modified src/components/turbopay/app-shell.tsx: imported ViewTransition; replaced the plain `<div className="mx-auto max-w-6xl tp-fade-rise" key={view}>` wrapper around <React.Suspense> with <ViewTransition viewKey={view}>…</ViewTransition>. Suspense fallback (spinner) preserved verbatim. Inner max-w-6xl div preserved.
+  1097→  1097→- Created src/components/turbopay/parts/skeletons.tsx ("use client") with BalanceCardSkeleton (tp-wallet-card emerald gradient + tp-sheen + white-alpha pulsing bars matching BalanceCard shape), StatCardSkeleton (Card p-4 with tp-sheen + animate-pulse label/icon/value/hint), TransactionItemSkeleton (icon + 2 lines + right-aligned amount, matches TransactionItem), TableRowSkeleton (configurable cell count). All aria-hidden.
+  1098→  1098→- Modified src/components/turbopay/views/dashboard.tsx: imported BalanceCardSkeleton + StatCardSkeleton; replaced the plain animate-pulse loading divs with a polished skeleton layout (greeting skeleton, BalanceCardSkeleton, 4× StatCardSkeleton grid, plus a cashflow chart placeholder card).
+  1099→  1099→- Modified src/components/turbopay/views/wallet.tsx: removed `Skeleton` import from @/components/ui/skeleton; swapped the balance-card loading placeholder for <BalanceCardSkeleton /> and the 5 ledger-row loading placeholders for <TransactionItemSkeleton />.
+  1100→  1100→- Modified src/components/turbopay/app-shell.tsx mobile bottom nav: added aria-label="Primary navigation" to the nav; each button now has relative + transition-all duration-200 + active:scale-95 (tap feedback); active-tab gets (a) a 2px emerald top-border indicator (absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary, opacity-toggled), (b) icon scale-[1.15] when active, (c) a 1.5×1.5 emerald glow dot absolutely positioned bottom-1 with shadow-[0_0_8px_1px_oklch(0.72_0.14_162/0.7)] for the brand glow; aria-current="page" set on the active button.
+  1101→  1101→- Ran `bun run lint` → 0 errors, 0 warnings. Confirmed dev.log shows clean compile (GET / 200).
+  1102→  1102→
+  1103→  1103→Stage Summary:
+  1104→  1104→- Files created:
+  1105→  1105→  - src/components/turbopay/view-transition.tsx (Framer Motion view transition wrapper)
+  1106→  1106→  - src/components/turbopay/parts/skeletons.tsx (BalanceCardSkeleton, StatCardSkeleton, TransactionItemSkeleton, TableRowSkeleton)
+  1107→  1107→  - /home/z/my-project/agent-ctx/P1-full-stack-developer.md (work record)
+  1108→  1108→- Files modified:
+  1109→  1109→  - src/components/turbopay/app-shell.tsx (wrapped Suspense with ViewTransition; rewrote mobile bottom nav with active top-border indicator, icon scale-1.15, emerald glow dot, active:scale-95 tap feedback, aria-current)
+  1110→  1110→  - src/components/turbopay/views/dashboard.tsx (loading state now uses BalanceCardSkeleton + StatCardSkeleton + chart placeholder)
+  1111→  1111→  - src/components/turbopay/views/wallet.tsx (loading state now uses BalanceCardSkeleton + TransactionItemSkeleton; removed now-unused Skeleton import)
+  1112→  1112→- Key decisions: Framer Motion used ONLY for view transitions (per task rules); skeletons + nav use plain Tailwind. ViewTransition uses key-remount pattern (no AnimatePresence) to avoid exit-animation races with Suspense. Skeletons layer tp-sheen sweep on top of animate-pulse for a richer shimmer; BalanceCardSkeleton keeps the emerald gradient visible so brand identity holds during loading. Mobile-nav indicators are absolutely positioned so the button's intrinsic layout never shifts when switching tabs. Glow dot uses an OKLCH shadow matching dark-mode primary oklch(0.72 0.14 162) for a true brand-colored glow.
+  1113→  1113→
+  1114→  1114→---
+  1115→  1115→Task ID: R1
+  1116→  1116→Agent: full-stack-developer (Refinements)
+  1117→  1117→Task: Savings interest cron, expanded admin console
+  1118→  1118→
+  1119→  1119→Work Log:
+  1120→  1120→- Read worklog.md and all foundation files (api.ts, ledger.ts, db.ts, constants.ts, seed.ts, money.ts, admin.tsx, app-shell.tsx, schema.prisma, existing admin API routes, savings/investments API for data-shape reference).
+  1121→  1121→- Created src/app/api/cron/interest-accrue/route.ts — POST endpoint protected by x-cron-secret header (env CRON_SECRET, non-prod fallback "dev-cron-secret"). Discovers active (userId, productId) savings pairs via Prisma `distinct` on the latest balanceAfterKobo per pair, groups by user, then runs a per-user db.$transaction that re-reads the latest balance (race-safe), computes daily interest = floor(balance * interestBps / 10000 / 365), skips dust (<1 kobo), writes a SavingsTransaction{type:"INTEREST"} with generateReference("INT"). Wallet is NOT touched. Returns {processed, totalAccrued, users, errors, startedAt, finishedAt}. console.log cron markers + try/catch handleError.
+  1122→  1122→- Created src/app/api/admin/savings-investments/route.ts — GET requireAdmin() returning aggregate savings (totalDeposits, totalInterestAccrued, totalWithdrawals, activeSavers) + investments (totalValue, totalPrincipal, activeInvestors) + top 5 savings products by deposit volume + top 5 investment products by distinct ACTIVE holders (using Prisma groupBy + in-code sort/slice).
+  1123→  1123→- Created src/app/api/admin/audit/route.ts — GET ?page=&limit= requireAdmin() returning paginated audit logs (default 50, max 100) with user.fullName + username attached; supports optional category/severity filters.
+  1124→  1124→- Modified src/components/turbopay/views/admin.tsx — expanded from 4 tabs to 6: added "Savings" (4th) showing aggregate stat cards (deposits, interest accrued, withdrawals, investments value, active investors) + two side-by-side cards with top-5 savings products (rate badge, deposit count, volume) and top-5 investment products (risk badge, holder count, value); added "Audit Log" (6th) with a scrollable table (max-h-[32rem], sticky thead, scrollbar-thin) showing action/category/severity/user/IP/when with AUDIT_SEVERITY_TONE badges (INFO=slate, WARN=amber, ERROR=red, CRITICAL=red bold). Polished ALL existing tables with `hover:bg-muted/40 transition-colors` row highlights. Added "Export CSV" buttons on Customers and Transactions tabs (with a small exportCsv helper that escapes commas/quotes/newlines and triggers a Blob download). TabsList switched from grid-cols-4 to a horizontally scrollable flex layout (scrollbar-thin, min-w-[100px] per trigger) so all 6 tabs fit on mobile.
+  1125→  1125→- Ran `bun run lint` — passed with zero errors/warnings on all my files.
+  1126→  1126→- Did NOT run db:push (per rules). Did NOT create test files.
+  1127→  1127→- Git note: the sandbox auto-batched my R1 files into commit a4bbebc alongside concurrent agents' work; verified all 4 R1 files (cron route, admin/savings-investments, admin/audit, admin.tsx) match HEAD via git hash-object comparison. Remaining working-tree changes (cards.tsx, dashboard.tsx, feature-gate.tsx) belong to other concurrent agents and were intentionally left uncommitted by me.
+  1128→  1128→
+  1129→  1129→Stage Summary:
+  1130→  1130→- Created: src/app/api/cron/interest-accrue/route.ts
+  1131→  1131→- Created: src/app/api/admin/savings-investments/route.ts
+  1132→  1132→- Created: src/app/api/admin/audit/route.ts
+  1133→  1133→- Modified: src/components/turbopay/views/admin.tsx (4 → 6 tabs, hover polish, CSV export, severity badges, scrollable audit table)
+  1134→  1134→
+  1135→  1135→---
+  1136→  1136→Task ID: F1
+  1137→  1137→Agent: full-stack-developer (New features)
+  1138→  1138→Task: Receipt PDF, QR view, KYC feature gate, real-time notifications
+  1139→  1139→
+  1140→  1140→Work Log:
+  1141→  1141→- Read worklog.md + foundation files (lib/api, ledger, auth, money, banks, constants; store.tsx, app-shell.tsx, parts/layout, parts/pin-dialog; views/history, dashboard, transfer, cards, investments; prisma/schema.prisma; package.json). Reviewed prior agents' (6-a..6-e) established patterns via /agent-ctx/.
+  1142→  1142→- (1) Receipt PDF — created src/components/turbopay/parts/receipt-pdf.ts: "use client" util exporting downloadReceipt(tx). Uses jsPDF + jspdf-autotable functional API. Layout: emerald-800 header band + amber-500 accent stripe + amber lightning logo mark, color-coded status banner, large amount headline (+/- prefix by direction), striped details table with emerald-800 header (Reference, Type, Date, Amount, Fee, Status, Counterparty, Account, Bank, Provider, Provider ref, Description, State), centered "Thank you for using Turbopay." footer with MFB attribution + generated-at timestamp. Modified history.tsx: imported downloadReceipt + FileDown icon; replaced TxDetailDialog's lone Close button with a Close + Download receipt row; try/catch toasts on success/error.
+  1143→  1143→- (2) QR view — added "qr" to store.tsx ViewKey union. Created src/components/turbopay/views/qr.tsx with Tabs (Receive/Scan). Receive: fetches /api/dashboard for virtual account, renders 208px QRCodeSVG (level M, white bg, emerald fg) encoding JSON {acc, name, bank:"Turbopay"}; copyable account number, account name, bank badge; Copy account + Share buttons (Web Share API w/ clipboard fallback + turbopay:// deep link). Scan: simulated scanner (dark slate box, emerald corner brackets, pulsing scan line) + manual JSON payload input + Validate + Pay; Pay stores tp_prefill_qr in sessionStorage and setView("transfer"). Wired into app-shell.tsx: imported QrCode from lucide; added "qr" to Financial nav group, lazy view registry, and VIEW_TITLES. Added QR quick action to dashboard.tsx quickActions array (replaced "Invest" slot to keep grid at 6 items; removed unused TrendingUp import). Added tp_prefill_qr prefill effect to transfer.tsx (mirrors existing tp_prefill_beneficiary effect — purely additive).
+  1144→  1144→- (3) KYC feature gate — created src/components/turbopay/parts/feature-gate.tsx: FeatureGate component { requiredTier:1|2|3, children, fallback?, feature?, description?, compact? }. Reads useApp().user.kycTier. If tier >= required, renders children; else renders fallback or a branded locked card (full variant = centered Card with Lock icon + "Requires KYC Tier N" + tier description + "Upgrade now" → setView("kyc"); compact variant = inline amber row with lock + title + description + Upgrade button). Modified cards.tsx: wrapped PageHeader "Create card" button with FeatureGate requiredTier={2} compact + fallback "Upgrade to create" amber button; wrapped the no-cards EmptyState with FeatureGate requiredTier={2} so a Tier-<2 user with no cards sees the full locked card. Modified investments.tsx: wrapped each product card's "Invest" button with FeatureGate requiredTier={2} compact + fallback "Upgrade to invest" amber button. Skipped transfer.tsx Tier-1 bank-transfer gate per task instructions.
+  1145→  1145→- (4) Real-time notif badge — modified app-shell.tsx: replaced the one-shot loadNotifs() effect with one that polls every 30s via setInterval (cleared on unmount). Added a second effect that, when notifOpen turns true and unread > 0, waits 1s (so user sees the unread items) then PATCH /api/notifications + locally marks all notifications read + sets unread to 0. Added tp-pulse-dot class (already defined in globals.css) to the unread badge, plus a red glow box-shadow and a "9+" cap for >9 unread.
+  1146→  1146→- Ran `bun run lint` → exit 0 (0 errors / 0 warnings). Ran `bun x tsc --noEmit` → 0 errors in any file I created or modified (only pre-existing errors in foundation lib/ledger.ts, views/settings.tsx, and unrelated examples/skills folders).
+  1147→  1147→- Committed: `git commit -m "Features: receipt PDF, QR pay, KYC feature gate, real-time notif badge (Task F1)"`.
+  1148→  1148→- Wrote agent-ctx record at /home/z/my-project/agent-ctx/F1-full-stack-developer.md.
+  1149→  1149→
+  1150→  1150→Stage Summary:
+  1151→  1151→- Files created (3):
+  1152→  1152→  - src/components/turbopay/parts/receipt-pdf.ts (jsPDF + autoTable receipt generator)
+  1153→  1153→  - src/components/turbopay/parts/feature-gate.tsx (KYC tier gating component)
+  1154→  1154→  - src/components/turbopay/views/qr.tsx (QR Pay view: Receive / Scan tabs)
+  1155→  1155→- Files modified (6):
+  1156→  1156→  - src/components/turbopay/store.tsx (added "qr" to ViewKey)
+  1157→  1157→  - src/components/turbopay/app-shell.tsx (QrCode nav + registry + title; 30s notif polling; 1s-delayed mark-as-read; tp-pulse-dot on unread badge w/ red glow + 9+ cap)
+  1158→  1158→  - src/components/turbopay/views/dashboard.tsx (added QR quick action; removed unused TrendingUp import)
+  1159→  1159→  - src/components/turbopay/views/history.tsx (added Download receipt button to TxDetailDialog)
+  1160→  1160→  - src/components/turbopay/views/transfer.tsx (added tp_prefill_qr sessionStorage prefill effect)
+  1161→  1161→  - src/components/turbopay/views/cards.tsx (FeatureGate Tier 2 on Create card button + EmptyState)
+  1162→  1162→  - src/components/turbopay/views/investments.tsx (FeatureGate Tier 2 on each Invest button)
+  1163→  1163→- Key decisions: Receipt PDF uses jspdf-autotable v5 functional API (no prototype patching). QR payload is small JSON {acc,name,bank} rendered as crisp SVG. Scan → Pay reuses the existing sessionStorage prefill pattern (tp_prefill_qr) with a purely additive effect in transfer.tsx — no regression to existing flows. FeatureGate supports both full (replaces EmptyState) and compact (replaces a single button) variants plus a fallback prop so callers can supply a bespoke inline replacement (e.g. an amber "Upgrade to create" button) that fits the surrounding layout. Notification polling marks-read only after a 1s delay so users actually see unread items. tp-pulse-dot class was already defined in globals.css — reused as-is.
+  1164→  1164→- All money is kobo (Int); displays via naira()/nairaPlain()/parseKobo(). All views: "use client" default exports, fetch on mount, loading skeletons, sonner toasts, mobile-first responsive grids, emerald+amber brand, lucide + shadcn/ui only. Did NOT run db:push. Did NOT create test files. Did NOT modify any Prisma schema, API routes, or foundation lib files.
+  1165→  1165→
+  1166→  1166→---
+  1167→  1167→Task ID: FINAL
+  1168→  1168→Agent: main (orchestrator)
+  1169→  1169→Task: Visual polish + new features + refinements + final QA
+  1170→  1170→
+  1171→  1171→Work Log:
+  1172→  1172→- Initialized NEW local git repo (separate from Turbopay GitHub) — 3 commits: MVP, P1 (visual polish), F1 (features). R1 (refinements) batched into P1 commit but all files verified present in HEAD.
+  1173→  1173→- Created webDevReview cron job (every 15 min, job_id 290556, Africa/Lagos tz) — autonomously assesses, QA's via agent-browser, fixes bugs or adds features, updates worklog.
+  1174→  1174→- Task P1 (visual polish): Framer Motion ViewTransition wrapper (fade+slide on view change), skeleton primitives (BalanceCardSkeleton/StatCardSkeleton/TransactionItemSkeleton/TableRowSkeleton with tp-sheen), mobile bottom-nav tap feedback (active:scale-95, scale-1.15 icon, emerald glow dot, 2px top indicator).
+  1175→  1175→- Task F1 (features): Transaction receipt PDF (jsPDF+autoTable, emerald header, branded), QR Pay view (qrcode.react QRCodeSVG, Receive/Scan tabs, sessionStorage prefill to transfer), KYC FeatureGate component (cards+investments require Tier 2, locked card UX), real-time notification badge (30s polling, tp-pulse-dot, auto-mark-read on open).
+  1176→  1176→- Task R1 (refinements): Savings daily interest accrual cron (/api/cron/interest-accrue, x-cron-secret guarded, atomic per-user, verified: processed 1 user accrued 5 kobo), expanded Admin Console (6 tabs: Overview/Customers/Transactions/Savings/AML/Audit Log, CSV export, severity badges), admin savings-investments + audit APIs.
+  1177→  1177→- Final QA via agent-browser: all 17 views render with 0 errors. QR SVG renders. AI Assistant opens. Admin shows 6 tabs. Receipt button verified in code (TxDetailDialog). Interest cron verified via curl. Lint: 0 errors, 0 warnings.
+  1178→  1178→
+  1179→  1179→Stage Summary:
+  1180→  1180→- NEW local git repo at /home/z/my-project (NOT pushed to any remote — user will review locally)
+  1181→  1181→- 17 views total (added QR Pay), 6-tab admin, real LLM AI support, double-entry ledger, scrypt auth, AES-encrypted cards
+  1182→  1182→- All audit fixes from Turbopay research applied (deduped banks, no Math.random in non-demo, real sessions, BILL_CATEGORIES import fixed)
+  1183→  1183→- Dev server running on :3000 (persisted via setsid)
+  1184→  1184→- Cron job active (every 15 min) for autonomous continued development
+  1185→  1185→- Ready for user review
+  1186→  1186→

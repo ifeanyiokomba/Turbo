@@ -389,3 +389,461 @@ model KycTierLimit {
   dailyLimitKobo     Int
   maxBalanceKobo     Int
 }
+
+// ===== TurboCore Provider Platform Layer (31 new models) =====
+// All money in minor units (kobo/cents) as Int. SQLite has no enums => String + app constants.
+
+// --- Provider system ---
+model ProviderConfig {
+  code          String   @id // "paystack" | "flutterwave" | "monnify" | "mpesa" | "wise" | ...
+  displayName   String
+  sandbox       Boolean  @default(true)
+  enabled       Boolean  @default(true)
+  weightsJSON   String   @default("{}") // routing weights: {capability:0.4,health:0.3,cost:0.2,settle:0.1}
+  defaultPriority Int    @default(50)
+  website       String?
+  logoUrl       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ProviderCredentialVersion {
+  id            String   @id @default(cuid())
+  providerCode  String
+  version       Int
+  secretsEnc    String // AES-256-GCM encrypted JSON of secrets
+  activatedAt   DateTime @default(now())
+  rotatedAt     DateTime?
+  rotatedBy     String?
+  active        Boolean  @default(true)
+  @@unique([providerCode, version])
+  @@index([providerCode, active])
+}
+
+model ProviderRoute {
+  id            String   @id @default(cuid())
+  contract      String // ContractName
+  providerCode  String
+  country       String // ISO alpha-2 or "ALL"
+  currency      String // ISO 4217 or "ALL"
+  priority      Int      @default(50)
+  weight        Int      @default(100)
+  canaryPercent Int      @default(100)
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@index([contract, country, currency, enabled])
+}
+
+model ProviderHealthCheck {
+  id            String   @id @default(cuid())
+  providerCode  String
+  ok            Boolean
+  latencyMs     Int
+  errorCode     String?
+  healthScore   Int // 0-100 EMA
+  sampledAt     DateTime @default(now())
+  @@index([providerCode, sampledAt])
+}
+
+model ProviderCapability {
+  id            String   @id @default(cuid())
+  providerCode  String
+  contract      String
+  country       String
+  currency      String
+  service       String? // e.g. "BILL:ELECTRICITY" | "MOBILE_MONEY:MPESA"
+  direction     String // INBOUND | OUTBOUND
+  minAmountMinor Int
+  maxAmountMinor Int
+  feeBps        Int      @default(0)
+  feeFixedMinor Int      @default(0)
+  settleHours   Int      @default(0)
+  enabled       Boolean  @default(true)
+  @@index([contract, country, currency, enabled])
+  @@index([providerCode])
+}
+
+model PaymentRoutingDecision {
+  id            String   @id @default(cuid())
+  transactionId String?
+  contract      String
+  providerCode  String
+  chosenProvider String
+  reason        String // scored | fallback | preferred | only_viable
+  scoresJSON    String
+  alternativesJSON String
+  requestId     String
+  createdAt     DateTime @default(now())
+  @@index([transactionId])
+  @@index([createdAt])
+}
+
+model PaymentFlowLog {
+  id            String   @id @default(cuid())
+  transactionId String?
+  step          String // HOLD_DEBIT | PROVIDER_CALLED | CONFIRMED | AUTO_REVERSED
+  status        String
+  providerCode  String?
+  payloadJSON   String?
+  latencyMs     Int?
+  at            DateTime @default(now())
+  @@index([transactionId, at])
+}
+
+// --- Webhooks & events ---
+model WebhookEvent {
+  id            String   @id @default(cuid())
+  providerCode  String
+  eventId       String   @unique
+  eventType     String
+  payloadJSON   String
+  signatureValid Boolean @default(false)
+  processedAt   DateTime?
+  transactionId String?
+  createdAt     DateTime @default(now())
+  @@index([providerCode, createdAt])
+}
+
+model WebhookEndpoint {
+  id            String   @id @default(cuid())
+  merchantId    String
+  url           String
+  secretHash    String
+  eventsJSON    String   @default("[]")
+  enabled       Boolean  @default(true)
+  lastFailedAt  DateTime?
+  consecutiveFailures Int @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@index([merchantId])
+}
+
+model OutboxEvent {
+  id            String   @id @default(cuid())
+  aggregateType String // TRANSACTION | USER | WALLET
+  aggregateId   String
+  type          String // PAYMENT_SETTLED | PAYMENT_REVERSED | PAYMENT_PENDING | FX_CONVERTED ...
+  payloadJSON   String
+  headersJSON   String   @default("{}")
+  status        String   @default("PENDING") // PENDING | PUBLISHED | FAILED
+  attempts      Int      @default(0)
+  nextRetryAt   DateTime @default(now())
+  publishedAt   DateTime?
+  createdAt     DateTime @default(now())
+  @@index([status, nextRetryAt])
+  @@index([aggregateType, aggregateId])
+}
+
+model AsyncTask {
+  id            String   @id @default(cuid())
+  type          String // retry_provider_call | scheduled_payment | webhook_dispatch
+  payloadJSON   String
+  status        String   @default("PENDING") // PENDING | RUNNING | DONE | FAILED
+  attempts      Int      @default(0)
+  maxAttempts   Int      @default(3)
+  nextRetryAt   DateTime @default(now())
+  lockedBy      String?
+  lockedUntil   DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+  @@index([status, nextRetryAt])
+}
+
+// --- Georouting & multi-currency ---
+model CountryConfig {
+  code          String   @id // NG | KE | GH | ZA | GB | US ...
+  name          String
+  currency      String // NGN | KES | GHS | ZAR | USD ...
+  dialCode      String
+  flagEmoji     String
+  locale        String   @default("en") // en | sw | fr | pt | ar
+  rtl           Boolean  @default(false)
+  paymentMethodsJSON String @default("[]") // ["CARD","BANK_TRANSFER","USSD","MOBILE_MONEY","VIRTUAL_ACCOUNT"]
+  billerCatalogKey String? // ng_baxi | ke_kplc
+  kycRequirementsJSON String @default("{}")
+  providersPreferredJSON String @default("{}")
+  taxRateBps    Int      @default(0)
+  regulatoryNotes String?
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model CurrencyWallet {
+  id            String   @id @default(cuid())
+  userId        String
+  currency      String // NGN | USD | EUR | GBP | KES | GHS | ZAR ...
+  balanceMinor  Int      @default(0)
+  status        String   @default("ACTIVE") // ACTIVE | FROZEN
+  version       Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@unique([userId, currency])
+  @@index([userId])
+}
+
+model CurrencyLedgerEntry {
+  id            String   @id @default(cuid())
+  currencyWalletId String
+  userId        String
+  entryType     String // DEBIT | CREDIT
+  amountMinor   Int
+  currency      String
+  refType       String
+  refId         String?
+  pairId        String?
+  balanceAfterMinor Int
+  description   String
+  createdAt     DateTime @default(now())
+  @@index([currencyWalletId])
+  @@index([userId, createdAt])
+}
+
+model FxRateSnapshot {
+  id            String   @id @default(cuid())
+  base          String
+  quote         String
+  rate          Float
+  source        String // paystack | flutterwave | wise | open-market
+  fetchedAt     DateTime @default(now())
+  expiresAt     DateTime
+  @@index([base, quote, fetchedAt])
+}
+
+model FxConfig {
+  id            String   @id @default(cuid())
+  base          String
+  quote         String
+  spreadBps     Int      @default(150)
+  markupBps     Int      @default(50)
+  feeFixedMinor Int      @default(0)
+  feeBps        Int      @default(0)
+  updatedAt     DateTime @updatedAt
+  @@unique([base, quote])
+}
+
+// --- Merchant & payment links ---
+model Merchant {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  apiKeyPrefix  String
+  webhookSecretHash String
+  status        String   @default("ACTIVE") // ACTIVE | SUSPENDED | CLOSED
+  businessName  String?
+  country       String   @default("NG")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model MerchantApiKey {
+  id            String   @id @default(cuid())
+  merchantId    String
+  keyHash       String   @unique
+  prefix        String
+  scopesJSON    String   @default("[]")
+  lastUsedAt    DateTime?
+  revokedAt     DateTime?
+  createdAt     DateTime @default(now())
+  @@index([merchantId])
+}
+
+model PaymentLink {
+  id            String   @id @default(cuid())
+  merchantId    String
+  slug          String   @unique
+  title         String
+  amountMinor   Int?
+  currency      String   @default("NGN")
+  maxUses       Int      @default(0) // 0 = unlimited
+  usesCount     Int      @default(0)
+  expiresAt     DateTime?
+  status        String   @default("ACTIVE") // ACTIVE | DISABLED | EXPIRED
+  metadataJSON  String   @default("{}")
+  createdAt     DateTime @default(now())
+  @@index([merchantId])
+}
+
+model PaymentLinkPayment {
+  id            String   @id @default(cuid())
+  paymentLinkId String
+  transactionId String?
+  amountMinor   Int
+  currency      String
+  payerEmail    String?
+  payerName     String?
+  status        String   @default("PENDING") // PENDING | SUCCESS | FAILED
+  reference     String   @unique
+  createdAt     DateTime @default(now())
+  @@index([paymentLinkId])
+}
+
+model SubscriptionPlan {
+  id            String   @id @default(cuid())
+  merchantId    String
+  name          String
+  amountMinor   Int
+  currency      String
+  interval      String // DAY | WEEK | MONTH | YEAR
+  intervalCount Int      @default(1)
+  trialDays     Int      @default(0)
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
+  @@index([merchantId])
+}
+
+model Subscription {
+  id            String   @id @default(cuid())
+  planId        String
+  customerId    String // userId
+  status        String   @default("ACTIVE") // ACTIVE | PAST_DUE | CANCELED | TRIALING
+  currentPeriodEnd DateTime
+  nextChargeAt  DateTime
+  mandateId     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@index([customerId])
+  @@index([planId])
+}
+
+model Mandate {
+  id            String   @id @default(cuid())
+  userId        String
+  merchantId    String
+  providerRef   String?
+  currency      String
+  maxAmountMinor Int
+  status        String   @default("ACTIVE") // ACTIVE | REVOKED
+  revokedAt     DateTime?
+  createdAt     DateTime @default(now())
+  @@index([userId])
+}
+
+model ScheduledPayment {
+  id            String   @id @default(cuid())
+  userId        String
+  type          String // TRANSFER | BILL | AIRTIME | DATA
+  payloadJSON   String
+  frequency     String // ONCE | DAILY | WEEKLY | MONTHLY
+  nextRunAt     DateTime
+  status        String   @default("ACTIVE") // ACTIVE | PAUSED | DONE | FAILED
+  runCount      Int      @default(0)
+  failCount     Int      @default(0)
+  lastRunAt     DateTime?
+  createdAt     DateTime @default(now())
+  @@index([userId, nextRunAt])
+  @@index([status, nextRunAt])
+}
+
+// --- Compliance ---
+model SanctionsEntry {
+  id            String   @id @default(cuid())
+  listName      String // OFAC_SDN | UN_CONSOLIDATED | CBN_WATCHLIST
+  entityType    String // INDIVIDUAL | ENTITY
+  primaryName   String
+  aliasesJSON   String   @default("[]")
+  country       String?
+  program       String?
+  listedAt      DateTime?
+  rawJSON       String?
+  createdAt     DateTime @default(now())
+  @@index([primaryName])
+  @@index([listName])
+}
+
+model ScreeningResult {
+  id            String   @id @default(cuid())
+  entityType    String // TRANSACTION | USER | BENEFICIARY
+  entityName    String
+  transactionId String?
+  userId        String?
+  hit           Boolean  @default(false)
+  score         Float
+  matchedEntryId String?
+  screenedAt    DateTime @default(now())
+  @@index([transactionId])
+  @@index([hit, screenedAt])
+}
+
+model ComplianceCase {
+  id            String   @id @default(cuid())
+  userId        String?
+  transactionId String?
+  type          String // AML | KYC | SANCTIONS | FRAUD
+  status        String   @default("OPEN") // OPEN | IN_REVIEW | ESCALATED | CLOSED
+  assignedTo    String?
+  summary       String
+  metadataJSON  String   @default("{}")
+  createdAt     DateTime @default(now())
+  closedAt      DateTime?
+  @@index([status])
+  @@index([userId])
+}
+
+// --- Platform config & scale ---
+model FeatureFlag {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  description   String?
+  type          String   @default("BOOL") // BOOL | PERCENT | VARIANT
+  valueJSON     String   @default("true")
+  enabled       Boolean  @default(true)
+  updatedAt     DateTime @updatedAt
+  updatedBy     String?
+}
+
+model FeatureFlagOverride {
+  id            String   @id @default(cuid())
+  flagKey       String
+  targetType    String // USER | COUNTRY | KYC_TIER
+  targetId      String
+  valueJSON     String
+  createdAt     DateTime @default(now())
+  @@unique([flagKey, targetType, targetId])
+}
+
+model ConfigVersion {
+  id            String   @id @default(cuid())
+  scope         String // PROVIDERS | FX | FEES | CAPABILITIES
+  version       Int
+  snapshotJSON  String
+  changedBy     String?
+  changedAt     DateTime @default(now())
+  reason        String?
+  @@index([scope, version])
+}
+
+model Settlement {
+  id            String   @id @default(cuid())
+  providerCode  String
+  periodStart   DateTime
+  periodEnd     DateTime
+  expectedMinor Int
+  settledMinor  Int
+  currency      String
+  status        String   @default("PENDING") // PENDING | CONFIRMED | RECONCILED
+  settledAt     DateTime?
+  createdAt     DateTime @default(now())
+  @@index([providerCode, status])
+}
+
+model SettlementAccount {
+  id            String   @id @default(cuid())
+  providerCode  String
+  accountName   String
+  accountNumber String
+  bankCode      String
+  bankName      String
+  currency      String
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  @@index([providerCode])
+}
+
+model CronLock {
+  key           String   @id
+  lockedBy      String?
+  lockedUntil   DateTime?
+  acquiredAt    DateTime @default(now())
+}
