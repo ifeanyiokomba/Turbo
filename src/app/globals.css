@@ -210,6 +210,34 @@
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
   }
+  .tp-card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .tp-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px -12px oklch(0.30 0.12 162 / 0.25);
+    border-color: color-mix(in oklch, var(--primary) 30%, var(--border));
+  }
+  .tp-focus-glow:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 25%, transparent);
+  }
+  .tp-shimmer {
+    background: linear-gradient(90deg, var(--muted) 25%, color-mix(in oklch, var(--muted) 50%, var(--background)) 50%, var(--muted) 75%);
+    background-size: 200% 100%;
+    animation: tp-shimmer 1.5s ease-in-out infinite;
+  }
+  @keyframes tp-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .tp-slide-up {
+    animation: tp-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes tp-slide-up {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 }
 
 /* Logo lightning glow */

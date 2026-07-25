@@ -137,6 +137,23 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
         </div>
       </section>
 
+      {/* Stats bar */}
+      <section className="border-y bg-card/60 py-6">
+        <div className="mx-auto grid max-w-5xl grid-cols-2 gap-4 px-4 md:grid-cols-4">
+          {[
+            { value: "16+", label: "Payment providers" },
+            { value: "6", label: "Countries supported" },
+            { value: "0%", label: "Hidden fees" },
+            { value: "24/7", label: "Uptime & support" },
+          ].map((s) => (
+            <div key={s.label} className="text-center">
+              <p className="text-2xl font-bold text-primary md:text-3xl">{s.value}</p>
+              <p className="text-xs text-muted-foreground">{s.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Provider network */}
       <section id="providers" className="border-t bg-background py-14">
         <div className="mx-auto max-w-6xl px-4">

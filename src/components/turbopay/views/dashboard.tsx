@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  RadialBarChart, RadialBar, PolarAngleAxis,
 } from "recharts";
 import {
   ArrowDownLeft, ArrowUpRight, Activity, Wallet as WalletIcon, ArrowLeftRight,
@@ -240,6 +241,29 @@ export default function DashboardView() {
               <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
             </div>
           </Card>
+
+          {/* Monthly spending ring */}
+          {data?.stats && data.stats.moneyOut > 0 && (
+            <Card className="p-5">
+              <p className="mb-1 text-sm font-semibold">Monthly spending</p>
+              <p className="mb-3 text-xs text-muted-foreground">vs ₦500,000 budget</p>
+              <div className="flex items-center gap-4">
+                <ResponsiveContainer width={100} height={100}>
+                  <RadialBarChart innerRadius="65%" outerRadius="100%" data={[{ name: "spent", value: Math.min(100, (data.stats.moneyOut / 5000000) * 100), fill: data.stats.moneyOut > 4000000 ? "oklch(0.70 0.20 18)" : "oklch(0.62 0.14 162)" }]} startAngle={90} endAngle={-270}>
+                    <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+                    <RadialBar background={{ fill: "var(--muted)" }} dataKey="value" cornerRadius={8} />
+                  </RadialBarChart>
+                </ResponsiveContainer>
+                <div>
+                  <p className="text-lg font-bold tabular-nums">{naira(data.stats.moneyOut)}</p>
+                  <p className="text-xs text-muted-foreground">of ₦50,000 (14d)</p>
+                  <Badge variant="secondary" className="mt-1.5 text-[10px]">
+                    {Math.round((data.stats.moneyOut / 5000000) * 100)}% used
+                  </Badge>
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Spending breakdown */}
           <Card className="p-5">
