@@ -1,0 +1,9 @@
+node_modules/
+.next/
+dev.log
+server.log
+*.db
+agent-ctx/
+/worklog.md
+.env
+.env.local

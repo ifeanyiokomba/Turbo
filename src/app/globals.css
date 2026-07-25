@@ -1,0 +1,218 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.75rem;
+  /* Turbopay brand: deep emerald primary, amber accent */
+  --background: oklch(0.99 0.005 162);
+  --foreground: oklch(0.18 0.02 162);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.02 162);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 162);
+  --primary: oklch(0.52 0.13 162);
+  --primary-foreground: oklch(0.99 0.01 162);
+  --secondary: oklch(0.96 0.02 162);
+  --secondary-foreground: oklch(0.30 0.05 162);
+  --muted: oklch(0.96 0.01 162);
+  --muted-foreground: oklch(0.52 0.02 162);
+  --accent: oklch(0.92 0.08 80);
+  --accent-foreground: oklch(0.35 0.10 70);
+  --destructive: oklch(0.58 0.22 27);
+  --success: oklch(0.60 0.14 155);
+  --success-foreground: oklch(0.99 0.01 162);
+  --warning: oklch(0.80 0.13 75);
+  --warning-foreground: oklch(0.30 0.08 70);
+  --border: oklch(0.91 0.01 162);
+  --input: oklch(0.91 0.01 162);
+  --ring: oklch(0.52 0.13 162);
+  --chart-1: oklch(0.52 0.13 162);
+  --chart-2: oklch(0.80 0.13 75);
+  --chart-3: oklch(0.60 0.14 155);
+  --chart-4: oklch(0.62 0.18 250);
+  --chart-5: oklch(0.65 0.20 18);
+  --sidebar: oklch(0.98 0.01 162);
+  --sidebar-foreground: oklch(0.20 0.03 162);
+  --sidebar-primary: oklch(0.52 0.13 162);
+  --sidebar-primary-foreground: oklch(0.99 0.01 162);
+  --sidebar-accent: oklch(0.94 0.03 162);
+  --sidebar-accent-foreground: oklch(0.30 0.05 162);
+  --sidebar-border: oklch(0.91 0.01 162);
+  --sidebar-ring: oklch(0.52 0.13 162);
+}
+
+.dark {
+  --background: oklch(0.16 0.015 162);
+  --foreground: oklch(0.97 0.01 162);
+  --card: oklch(0.21 0.02 162);
+  --card-foreground: oklch(0.97 0.01 162);
+  --popover: oklch(0.21 0.02 162);
+  --popover-foreground: oklch(0.97 0.01 162);
+  --primary: oklch(0.72 0.14 162);
+  --primary-foreground: oklch(0.16 0.02 162);
+  --secondary: oklch(0.26 0.02 162);
+  --secondary-foreground: oklch(0.97 0.01 162);
+  --muted: oklch(0.26 0.02 162);
+  --muted-foreground: oklch(0.68 0.02 162);
+  --accent: oklch(0.38 0.09 72);
+  --accent-foreground: oklch(0.95 0.05 80);
+  --destructive: oklch(0.70 0.19 22);
+  --success: oklch(0.70 0.15 155);
+  --success-foreground: oklch(0.16 0.02 162);
+  --warning: oklch(0.80 0.13 75);
+  --warning-foreground: oklch(0.20 0.05 70);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.72 0.14 162);
+  --chart-1: oklch(0.72 0.14 162);
+  --chart-2: oklch(0.80 0.13 75);
+  --chart-3: oklch(0.70 0.15 155);
+  --chart-4: oklch(0.65 0.18 250);
+  --chart-5: oklch(0.70 0.20 18);
+  --sidebar: oklch(0.13 0.02 162);
+  --sidebar-foreground: oklch(0.95 0.01 162);
+  --sidebar-primary: oklch(0.72 0.14 162);
+  --sidebar-primary-foreground: oklch(0.13 0.02 162);
+  --sidebar-accent: oklch(0.22 0.02 162);
+  --sidebar-accent-foreground: oklch(0.95 0.01 162);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(0.72 0.14 162);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* ===== Turbopay brand utilities ===== */
+@layer utilities {
+  /* Signature emerald-gradient wallet card */
+  .tp-wallet-card {
+    background:
+      radial-gradient(120% 120% at 0% 0%, oklch(0.62 0.16 162) 0%, oklch(0.42 0.12 162) 55%, oklch(0.30 0.08 162) 100%);
+    box-shadow: 0 18px 40px -18px oklch(0.30 0.12 162 / 0.55);
+  }
+  .tp-wallet-card-dark {
+    background:
+      radial-gradient(120% 120% at 0% 0%, oklch(0.50 0.13 162) 0%, oklch(0.34 0.10 162) 55%, oklch(0.22 0.06 162) 100%);
+  }
+  .tp-amber-grad {
+    background: linear-gradient(135deg, oklch(0.85 0.13 80) 0%, oklch(0.72 0.15 70) 100%);
+  }
+  .tp-emerald-grad {
+    background: linear-gradient(135deg, oklch(0.62 0.14 162) 0%, oklch(0.45 0.11 162) 100%);
+  }
+  .tp-glass {
+    backdrop-filter: blur(14px) saturate(140%);
+    background: color-mix(in oklch, var(--card) 75%, transparent);
+  }
+  .tp-grain {
+    background-image: radial-gradient(circle at 1px 1px, oklch(1 0 0 / 0.06) 1px, transparent 0);
+    background-size: 14px 14px;
+  }
+  .tp-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+  .tp-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, transparent 30%, oklch(1 0 0 / 0.25) 50%, transparent 70%);
+    transform: translateX(-100%);
+    animation: tp-sheen 3.2s ease-in-out infinite;
+  }
+  @keyframes tp-sheen {
+    0% { transform: translateX(-100%); }
+    60%, 100% { transform: translateX(100%); }
+  }
+  .tp-fade-rise {
+    animation: tp-fade-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes tp-fade-rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .tp-pulse-dot {
+    animation: tp-pulse-dot 1.8s ease-in-out infinite;
+  }
+  @keyframes tp-pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted-foreground) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--muted-foreground) 40%, transparent);
+    border-radius: 999px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* Logo lightning glow */
+.tp-bolt-glow {
+  filter: drop-shadow(0 0 6px oklch(0.85 0.15 75 / 0.6));
+}

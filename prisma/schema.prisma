@@ -1,0 +1,391 @@
+// Turbopay — Prisma schema (SQLite adaptation)
+// Money stored as Integer kobo (1 NGN = 100 kobo).
+// SQLite has no native enums => use String + app-level validation constants.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String   @id @default(cuid())
+  fullName           String
+  username           String   @unique
+  email              String?  @unique
+  phone              String?  @unique
+  country            String   @default("NG")
+  passwordHash       String
+  transactionPinHash String?
+  pinSetAt           DateTime?
+  pinFailCount       Int      @default(0)
+  pinLockedUntil     DateTime?
+  loginFailCount     Int      @default(0)
+  loginLockedUntil   DateTime?
+  kycTier            Int      @default(1) // 1 | 2 | 3
+  kycStatus          String   @default("UNVERIFIED") // UNVERIFIED | PENDING | VERIFIED
+  bvn                String?
+  nin                String?
+  status             String   @default("ACTIVE") // ACTIVE | FROZEN | SUSPENDED | CLOSED
+  emailVerified      Boolean  @default(false)
+  phoneVerified      Boolean  @default(false)
+  avatarUrl          String?
+  bio                String?
+  role               String   @default("USER") // USER | ADMIN
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  sessions           Session[]
+  wallet             Wallet?
+  transactions       Transaction[]
+  ledgerEntries      LedgerEntry[]
+  virtualAccounts    VirtualAccount[]
+  virtualCards       VirtualCard[]
+  beneficiaries      Beneficiary[]
+  billPayments       BillPayment[]
+  airtimePurchases   AirtimeDataPurchase[]
+  savingsTx          SavingsTransaction[]
+  investments        UserInvestment[]
+  kycVerifications   KycVerification[]
+  auditLogs          AuditLog[]
+  amlFlags           AmlFlag[]
+  notifications      InAppNotification[]
+  supportTickets     SupportTicket[]
+}
+
+model Session {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash       String   @unique
+  expiresAt       DateTime
+  userAgent       String?
+  ip              String?
+  createdAt       DateTime @default(now())
+  revokedAt       DateTime?
+
+  @@index([userId])
+}
+
+model Wallet {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balanceKobo  Int      @default(0)
+  currency     String   @default("NGN")
+  status       String   @default("ACTIVE") // ACTIVE | FROZEN
+  version      Int      @default(0) // optimistic concurrency
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  ledgerEntries LedgerEntry[]
+  transactions  Transaction[]
+}
+
+model LedgerEntry {
+  id              String   @id @default(cuid())
+  walletId        String
+  wallet          Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entryType       String // DEBIT | CREDIT
+  amountKobo      Int
+  currency        String   @default("NGN")
+  refType         String // FUNDING | TRANSFER | AIRTIME | DATA | BILL | REVERSAL | FEE | CARD_FUND | CARD_WITHDRAW | REWARD | REFERRAL | SAVINGS | INVESTMENT
+  refId           String?
+  pairId          String?
+  balanceAfterKobo Int
+  description     String
+  createdAt       DateTime @default(now())
+
+  @@index([walletId])
+  @@index([userId, createdAt])
+  @@index([refType, refId])
+}
+
+model Transaction {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  walletId        String?
+  wallet          Wallet?  @relation(fields: [walletId], references: [id])
+  reference       String   @unique
+  type            String // FUNDING | TRANSFER | AIRTIME | DATA | BILL | CARD_FUND | CARD_WITHDRAW | REWARD | REFERRAL | SAVINGS_DEPOSIT | SAVINGS_WITHDRAW | INVESTMENT
+  direction       String // CREDIT | DEBIT
+  amountKobo      Int
+  feeKobo         Int      @default(0)
+  status          String   @default("PENDING") // PENDING | SUCCESS | FAILED | REVERSED
+  state           String   @default("INITIATED") // INITIATED | PIN_VERIFIED | SETTLED | REVERSED
+  counterpartyName String?
+  counterpartyAccount String?
+  counterpartyBank   String?
+  description     String?
+  provider        String?
+  providerRef     String?
+  reversalOfId    String?
+  metadata        String? // JSON string
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([type])
+  @@index([status])
+}
+
+model VirtualAccount {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountNumber String   @unique
+  accountName   String
+  bankName      String   @default("Turbopay MFB")
+  bankCode      String   @default("000")
+  provider      String   @default("turbopay")
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
+}
+
+model Beneficiary {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  accountNumber String
+  bankName      String
+  bankCode      String?
+  type          String   @default("BANK") // BANK | TURBOPAY
+  isFavorite    Boolean  @default(false)
+  lastUsedAt    DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+}
+
+model BillPayment {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category      String // ELECTRICITY | INTERNET | CABLE | WATER | EDUCATION | INSURANCE | GOVERNMENT | BETTING
+  billerName    String
+  billerCode    String
+  customerRef   String
+  amountKobo    Int
+  status        String   @default("SUCCESS")
+  reference     String   @unique
+  token         String? // electricity token
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([category])
+}
+
+model AirtimeDataPurchase {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          String // AIRTIME | DATA
+  network       String // MTN | GLO | AIRTEL | NMOBILE
+  phone         String
+  amountKobo    Int
+  planName      String?
+  status        String   @default("SUCCESS")
+  reference     String   @unique
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model VirtualCard {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  panMasked     String // last4 stored as "•••• 4242"
+  last4         String
+  panEnc        String // AES-encrypted full PAN (demo key)
+  cvvEnc        String
+  expiry        String // MM/YY
+  cardholder    String
+  brand         String   @default("VISA") // VISA | MASTERCARD
+  balanceKobo   Int      @default(0)
+  status        String   @default("ACTIVE") // ACTIVE | FROZEN | TERMINATED
+  spendingLimitKobo Int @default(500000)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  transactions  VirtualCardTransaction[]
+
+  @@index([userId])
+}
+
+model VirtualCardTransaction {
+  id            String   @id @default(cuid())
+  cardId        String
+  card          VirtualCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  userId        String
+  type          String // FUND | WITHDRAW | PAYMENT
+  amountKobo    Int
+  description   String
+  status        String   @default("SUCCESS")
+  reference     String   @unique
+  createdAt     DateTime @default(now())
+
+  @@index([cardId, createdAt])
+}
+
+model SavingsProduct {
+  id            String   @id @default(cuid())
+  name          String
+  type          String // FLEXIBLE | LOCKED | TARGET | GOAL
+  interestBps   Int // basis points per annum
+  minAmountKobo Int      @default(1000)
+  lockDays      Int      @default(0)
+  description   String?
+  createdAt      DateTime @default(now())
+  transactions  SavingsTransaction[]
+}
+
+model SavingsTransaction {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId     String
+  product       SavingsProduct @relation(fields: [productId], references: [id])
+  type          String // DEPOSIT | WITHDRAW | INTEREST
+  amountKobo    Int
+  balanceAfterKobo Int
+  status        String   @default("SUCCESS")
+  reference     String   @unique
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model InvestmentProduct {
+  id            String   @id @default(cuid())
+  name          String
+  type          String // FIXED_INCOME | MUTUAL_FUND | TBILL | BOND
+  riskLevel     String   @default("LOW") // LOW | MEDIUM | HIGH
+  minAmountKobo Int
+  maxAmountKobo Int
+  expectedReturnBps Int
+  durationLabel String // "30 days", "6 months"
+  provider      String
+  createdAt      DateTime @default(now())
+  investments    UserInvestment[]
+}
+
+model UserInvestment {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId     String
+  product       InvestmentProduct @relation(fields: [productId], references: [id])
+  principalKobo Int
+  currentValueKobo Int
+  status        String   @default("ACTIVE") // ACTIVE | MATURED | LIQUIDATED
+  maturityAt    DateTime
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+}
+
+model KycVerification {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier          Int // 2 | 3
+  status        String   @default("PENDING")
+  provider      String   @default("turbopay")
+  nin           String?
+  bvn           String?
+  payload       String? // JSON audit
+  verifiedAt    DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action        String
+  category      String // AUTH | WALLET | TRANSFER | BILL | KYC | AML | ADMIN
+  severity      String   @default("INFO") // INFO | WARN | ERROR | CRITICAL
+  ip            String?
+  userAgent     String?
+  metadata      String? // JSON
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([category])
+}
+
+model AmlFlag {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rule          String // VELOCITY | LARGE_AMOUNT | RAPID_TRANSFER
+  severity      String   @default("MEDIUM") // LOW | MEDIUM | HIGH
+  description   String
+  metadata      String?
+  resolved      Boolean  @default(false)
+  resolvedAt    DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model IdempotencyRecord {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  userId        String?
+  endpoint      String
+  requestBody   String?
+  responseBody  String?
+  status        Int
+  completedAt   DateTime?
+  createdAt     DateTime @default(now())
+}
+
+model InAppNotification {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type          String // TRANSACTION | SECURITY | KYC | REWARD | SYSTEM
+  title         String
+  body          String
+  priority      String   @default("NORMAL") // LOW | NORMAL | HIGH
+  read          Boolean  @default(false)
+  actionUrl     String?
+  createdAt     DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+model SupportTicket {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject       String
+  category      String
+  priority      String   @default("NORMAL")
+  status        String   @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | CLOSED
+  message       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model KycTierLimit {
+  id            Int      @id
+  tier          Int      @unique
+  label         String
+  singleTxLimitKobo  Int
+  dailyLimitKobo     Int
+  maxBalanceKobo     Int
+}

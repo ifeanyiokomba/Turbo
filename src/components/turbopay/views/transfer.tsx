@@ -1,0 +1,747 @@
+"use client";
+
+import * as React from "react";
+import { useApp } from "../store";
+import { usePin } from "../parts/pin-dialog";
+import { PageHeader, EmptyState } from "../parts/layout";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ArrowRight,
+  ArrowLeftRight,
+  Landmark,
+  Search,
+  Star,
+  Trash2,
+  CheckCircle2,
+  RefreshCw,
+  UserPlus,
+  ChevronRight,
+  ShieldCheck,
+} from "lucide-react";
+import { UNIQUE_BANKS } from "@/lib/banks";
+import { naira, nairaPlain, parseKobo } from "@/lib/money";
+import { toast } from "sonner";
+
+type TransferType = "TURBOPAY" | "BANK";
+
+interface Beneficiary {
+  id: string;
+  name: string;
+  accountNumber: string;
+  bankName: string;
+  bankCode: string | null;
+  type: string;
+  isFavorite: boolean;
+  lastUsedAt: string | null;
+}
+
+interface ResolveResult {
+  name: string;
+  type: "TURBOPAY" | "BANK";
+  accountNumber?: string;
+  bankName?: string;
+  username?: string;
+}
+
+interface TransferResult {
+  transaction: {
+    id: string;
+    reference: string;
+    amountKobo: number;
+    feeKobo: number;
+    counterpartyName: string | null;
+    counterpartyAccount: string | null;
+    counterpartyBank: string | null;
+    createdAt: string;
+  };
+  newBalance: number;
+  type: TransferType;
+  recipientName: string;
+}
+
+const BANK_FEE_KOBO = 5250;
+
+export default function TransferView() {
+  const { setView } = useApp();
+  const pin = usePin();
+
+  const [type, setType] = React.useState<TransferType>("TURBOPAY");
+
+  // Turbopay form
+  const [tpRecipient, setTpRecipient] = React.useState("");
+  const [tpResolved, setTpResolved] = React.useState<ResolveResult | null>(null);
+  const [tpResolving, setTpResolving] = React.useState(false);
+
+  // Bank form
+  const [bankCode, setBankCode] = React.useState("");
+  const [bankAccount, setBankAccount] = React.useState("");
+  const [bankResolved, setBankResolved] = React.useState<ResolveResult | null>(null);
+  const [bankResolving, setBankResolving] = React.useState(false);
+
+  // Shared fields
+  const [amountInput, setAmountInput] = React.useState("");
+  const [note, setNote] = React.useState("");
+  const [saveBeneficiary, setSaveBeneficiary] = React.useState(true);
+
+  // Beneficiaries list
+  const [beneficiaries, setBeneficiaries] = React.useState<Beneficiary[]>([]);
+  const [benLoading, setBenLoading] = React.useState(true);
+
+  // Confirm + success
+  const [confirmOpen, setConfirmOpen] = React.useState(false);
+  const [submitting, setSubmitting] = React.useState(false);
+  const [result, setResult] = React.useState<TransferResult | null>(null);
+
+  const amountKobo = parseKobo(amountInput);
+  const feeKobo = type === "BANK" ? BANK_FEE_KOBO : 0;
+  const totalKobo = amountKobo + feeKobo;
+
+  const resolved = type === "TURBOPAY" ? tpResolved : bankResolved;
+  const recipientLabel = type === "TURBOPAY" ? tpRecipient : bankAccount;
+
+  const loadBeneficiaries = React.useCallback(async () => {
+    setBenLoading(true);
+    try {
+      const res = await fetch("/api/beneficiaries", { cache: "no-store" });
+      if (res.ok) {
+        const json = await res.json();
+        setBeneficiaries(json.beneficiaries ?? []);
+      }
+    } finally {
+      setBenLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadBeneficiaries();
+  }, [loadBeneficiaries]);
+
+  // Prefill from beneficiaries view "Send" action
+  React.useEffect(() => {
+    try {
+      const id = sessionStorage.getItem("tp_prefill_beneficiary");
+      if (!id) return;
+      sessionStorage.removeItem("tp_prefill_beneficiary");
+      (async () => {
+        try {
+          const res = await fetch("/api/beneficiaries", { cache: "no-store" });
+          if (!res.ok) return;
+          const json = await res.json();
+          const found: Beneficiary | undefined = (json.beneficiaries ?? []).find(
+            (b: Beneficiary) => b.id === id,
+          );
+          if (found) prefill(found);
+        } catch {}
+      })();
+    } catch {}
+  }, []);
+
+  function resetForm() {
+    setTpRecipient("");
+    setTpResolved(null);
+    setBankCode("");
+    setBankAccount("");
+    setBankResolved(null);
+    setAmountInput("");
+    setNote("");
+    setSaveBeneficiary(true);
+  }
+
+  async function resolveTurbopay() {
+    const q = tpRecipient.trim();
+    if (q.length < 3) {
+      toast.error("Enter a valid username, phone, email or account number");
+      return;
+    }
+    setTpResolving(true);
+    setTpResolved(null);
+    try {
+      const url = `/api/transfer/resolve?query=${encodeURIComponent(q)}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json?.error ?? "Could not resolve recipient");
+        return;
+      }
+      setTpResolved(json);
+      toast.success(`Resolved: ${json.name}`);
+    } finally {
+      setTpResolving(false);
+    }
+  }
+
+  async function resolveBank() {
+    const acc = bankAccount.trim();
+    if (!/^\d{6,10}$/.test(acc)) {
+      toast.error("Enter a valid 10-digit account number");
+      return;
+    }
+    if (!bankCode) {
+      toast.error("Select a bank first");
+      return;
+    }
+    setBankResolving(true);
+    setBankResolved(null);
+    try {
+      const url = `/api/transfer/resolve?query=${encodeURIComponent(acc)}&bankCode=${encodeURIComponent(bankCode)}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json?.error ?? "Could not resolve account");
+        return;
+      }
+      setBankResolved(json);
+      toast.success(`Resolved: ${json.name}`);
+    } finally {
+      setBankResolving(false);
+    }
+  }
+
+  function canContinue(): boolean {
+    if (amountKobo <= 0) return false;
+    if (type === "TURBOPAY") return !!tpResolved;
+    return !!bankResolved && !!bankCode;
+  }
+
+  function onContinue() {
+    if (!canContinue()) {
+      toast.error("Resolve recipient and enter amount first");
+      return;
+    }
+    setConfirmOpen(true);
+  }
+
+  async function submitTransfer() {
+    setConfirmOpen(false);
+    try {
+      const pinValue = await pin.request({
+        title: "Confirm transfer",
+        description: `Send ${naira(amountKobo)} to ${resolved?.name ?? recipientLabel}`,
+      });
+      if (!pinValue || pinValue.length !== 4) {
+        toast.error("PIN required to authorise transfer");
+        return;
+      }
+      setSubmitting(true);
+      const body = {
+        type,
+        recipient: type === "TURBOPAY" ? tpRecipient.trim() : bankAccount.trim(),
+        bankCode: type === "BANK" ? bankCode : undefined,
+        amountKobo,
+        note,
+        pin: pinValue,
+        saveBeneficiary,
+      };
+      const res = await fetch("/api/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json?.error ?? "Transfer failed");
+        return;
+      }
+      setResult(json);
+      resetForm();
+      loadBeneficiaries();
+      toast.success("Transfer successful");
+    } catch {
+      toast.error("Network error. Try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function toggleFavorite(b: Beneficiary) {
+    const next = !b.isFavorite;
+    setBeneficiaries((arr) =>
+      arr.map((x) => (x.id === b.id ? { ...x, isFavorite: next } : x)),
+    );
+    try {
+      await fetch(`/api/beneficiaries/${b.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isFavorite: next }),
+      });
+    } catch {
+      // revert on failure
+      setBeneficiaries((arr) =>
+        arr.map((x) => (x.id === b.id ? { ...x, isFavorite: !next } : x)),
+      );
+    }
+  }
+
+  async function deleteBeneficiary(b: Beneficiary) {
+    const prev = beneficiaries;
+    setBeneficiaries((arr) => arr.filter((x) => x.id !== b.id));
+    try {
+      const res = await fetch(`/api/beneficiaries/${b.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      toast.success("Beneficiary removed");
+    } catch {
+      setBeneficiaries(prev);
+      toast.error("Could not delete beneficiary");
+    }
+  }
+
+  function prefill(b: Beneficiary) {
+    if (b.type === "TURBOPAY") {
+      setType("TURBOPAY");
+      setTpRecipient(b.accountNumber);
+      setTpResolved({
+        name: b.name,
+        type: "TURBOPAY",
+        accountNumber: b.accountNumber,
+        username: b.accountNumber,
+      });
+    } else {
+      setType("BANK");
+      setBankCode(b.bankCode ?? "");
+      setBankAccount(b.accountNumber);
+      setBankResolved({
+        name: b.name,
+        type: "BANK",
+        accountNumber: b.accountNumber,
+        bankName: b.bankName,
+      });
+    }
+    setAmountInput("");
+    setNote("");
+    setSaveBeneficiary(false);
+    toast.success(`Prefilled ${b.name}`);
+  }
+
+  return (
+    <div className="space-y-6 tp-fade-rise">
+      <PageHeader
+        title="Transfer"
+        subtitle="Send money to Turbopay users or any Nigerian bank account."
+      />
+
+      {result ? (
+        <SuccessCard result={result} onNew={() => setResult(null)} onViewHistory={() => setView("history")} />
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Left column - form */}
+          <div className="space-y-6 lg:col-span-2">
+            <Card className="p-5">
+              <Tabs value={type} onValueChange={(v) => setType(v as TransferType)}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="TURBOPAY" className="gap-1.5">
+                    <ArrowLeftRight className="h-3.5 w-3.5" /> Turbopay
+                  </TabsTrigger>
+                  <TabsTrigger value="BANK" className="gap-1.5">
+                    <Landmark className="h-3.5 w-3.5" /> Bank
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="TURBOPAY" className="mt-5 space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="tp-recipient">Recipient</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="tp-recipient"
+                        placeholder="@username, phone, email or account no."
+                        value={tpRecipient}
+                        onChange={(e) => {
+                          setTpRecipient(e.target.value);
+                          setTpResolved(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") resolveTurbopay();
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={resolveTurbopay}
+                        disabled={tpResolving || tpRecipient.trim().length < 3}
+                        className="gap-1.5 shrink-0"
+                      >
+                        {tpResolving ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Search className="h-4 w-4" />
+                        )}
+                        Resolve
+                      </Button>
+                    </div>
+                    {tpResolved && (
+                      <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-sm font-medium">{tpResolved.name}</span>
+                        <Badge variant="secondary" className="ml-auto">Turbopay user</Badge>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="BANK" className="mt-5 space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bank-select">Bank</Label>
+                    <Select value={bankCode} onValueChange={(v) => { setBankCode(v); setBankResolved(null); }}>
+                      <SelectTrigger id="bank-select" className="w-full">
+                        <SelectValue placeholder="Select bank" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-72">
+                        {UNIQUE_BANKS.map((b) => (
+                          <SelectItem key={b.code + b.name} value={b.code}>
+                            {b.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="bank-account">Account number</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="bank-account"
+                        inputMode="numeric"
+                        placeholder="0123456789"
+                        value={bankAccount}
+                        onChange={(e) => {
+                          setBankAccount(e.target.value.replace(/[^\d]/g, ""));
+                          setBankResolved(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") resolveBank();
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={resolveBank}
+                        disabled={bankResolving || !bankCode || bankAccount.length < 6}
+                        className="gap-1.5 shrink-0"
+                      >
+                        {bankResolving ? (
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Search className="h-4 w-4" />
+                        )}
+                        Resolve
+                      </Button>
+                    </div>
+                    {bankResolved && (
+                      <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-sm font-medium">{bankResolved.name}</span>
+                        <Badge variant="secondary" className="ml-auto">
+                          {bankResolved.bankName ?? "Bank"}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+
+              {/* Shared fields */}
+              <div className="mt-5 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="amount">Amount (₦)</Label>
+                  <Input
+                    id="amount"
+                    inputMode="numeric"
+                    placeholder="0.00"
+                    value={amountInput}
+                    onChange={(e) => setAmountInput(e.target.value)}
+                  />
+                  <div className="flex flex-wrap gap-1.5">
+                    {[1000, 5000, 10000, 25000, 50000].map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setAmountInput(String(v))}
+                        className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                      >
+                        ₦{v.toLocaleString()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="note">Note (optional)</Label>
+                  <Input
+                    id="note"
+                    placeholder="What's this for?"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    maxLength={100}
+                  />
+                </div>
+
+                {/* Fee + total */}
+                <div className="rounded-xl border bg-muted/40 p-3 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Transfer fee</span>
+                    <span className="font-medium tabular-nums">
+                      {feeKobo > 0 ? naira(feeKobo) : "Free"}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between border-t pt-1.5">
+                    <span className="font-medium">Total debit</span>
+                    <span className="font-bold tabular-nums">{naira(totalKobo)}</span>
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={saveBeneficiary}
+                    onCheckedChange={(v) => setSaveBeneficiary(v === true)}
+                  />
+                  Save as beneficiary
+                </label>
+
+                <Button
+                  className="w-full gap-1.5"
+                  size="lg"
+                  disabled={!canContinue() || submitting}
+                  onClick={onContinue}
+                >
+                  Continue <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </Card>
+          </div>
+
+          {/* Right column - beneficiaries */}
+          <div className="space-y-4">
+            <Card className="p-5">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-semibold">Beneficiaries</p>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 gap-1.5 px-2"
+                  onClick={() => setView("beneficiaries")}
+                >
+                  <UserPlus className="h-3.5 w-3.5" /> Manage
+                </Button>
+              </div>
+              {benLoading ? (
+                <div className="space-y-2">
+                  {[0, 1, 2].map((i) => (
+                    <Skeleton key={i} className="h-14 w-full rounded-xl" />
+                  ))}
+                </div>
+              ) : beneficiaries.length === 0 ? (
+                <EmptyState
+                  icon={UserPlus}
+                  title="No beneficiaries yet"
+                  description="Saved recipients will appear here."
+                  action={
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setView("beneficiaries")}
+                    >
+                      Add beneficiary
+                    </Button>
+                  }
+                />
+              ) : (
+                <div className="max-h-96 space-y-1.5 overflow-y-auto scrollbar-thin pr-1">
+                  {beneficiaries.map((b) => (
+                    <div
+                      key={b.id}
+                      className="group flex items-center gap-3 rounded-xl border border-transparent p-2 transition-colors hover:border-border hover:bg-muted/40"
+                    >
+                      <button
+                        onClick={() => prefill(b)}
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      >
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                          <span className="text-xs font-bold">
+                            {b.name.slice(0, 2).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{b.name}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {b.accountNumber} · {b.bankName}
+                          </p>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => toggleFavorite(b)}
+                        className="shrink-0 p-1.5"
+                        title={b.isFavorite ? "Unfavorite" : "Favorite"}
+                      >
+                        <Star
+                          className={`h-4 w-4 ${
+                            b.isFavorite
+                              ? "fill-amber-400 text-amber-400"
+                              : "text-muted-foreground"
+                          }`}
+                        />
+                      </button>
+                      <button
+                        onClick={() => deleteBeneficiary(b)}
+                        className="shrink-0 p-1.5 text-muted-foreground hover:text-destructive"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+
+            <Card className="border-emerald-500/30 bg-emerald-500/5 p-5">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <div>
+                  <p className="text-sm font-semibold">Safe &amp; secure</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    All transfers require your 4-digit PIN. Bank transfers are
+                    protected by name verification.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm dialog */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirm transfer</DialogTitle>
+            <DialogDescription>Review the details before continuing.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Row label="Recipient" value={resolved?.name ?? recipientLabel} />
+            <Row
+              label="Account"
+              value={
+                type === "TURBOPAY"
+                  ? tpResolved?.username ?? tpRecipient
+                  : `${bankAccount} · ${bankResolved?.bankName ?? ""}`
+              }
+            />
+            <Row label="Amount" value={naira(amountKobo)} />
+            <Row label="Fee" value={feeKobo > 0 ? naira(feeKobo) : "Free"} />
+            {note && <Row label="Note" value={note} />}
+            <div className="rounded-xl border bg-muted/50 p-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Total debit</span>
+                <span className="text-lg font-bold tabular-nums">{naira(totalKobo)}</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button variant="outline" className="flex-1" onClick={() => setConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="flex-1 gap-1.5"
+              disabled={submitting}
+              onClick={submitTransfer}
+            >
+              {submitting ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <ShieldCheck className="h-4 w-4" />
+              )}
+              Enter PIN
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="text-right font-medium">{value}</span>
+    </div>
+  );
+}
+
+function SuccessCard({
+  result,
+  onNew,
+  onViewHistory,
+}: {
+  result: TransferResult;
+  onNew: () => void;
+  onViewHistory: () => void;
+}) {
+  const tx = result.transaction;
+  return (
+    <Card className="mx-auto max-w-md p-6 text-center tp-fade-rise">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+        <CheckCircle2 className="h-9 w-9" />
+      </div>
+      <h2 className="mt-4 text-xl font-bold">Transfer successful</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {naira(tx.amountKobo)} sent to{" "}
+        <span className="font-medium text-foreground">
+          {tx.counterpartyName ?? result.recipientName}
+        </span>
+      </p>
+
+      <div className="mt-5 space-y-2 rounded-xl border bg-muted/40 p-4 text-left text-sm">
+        <Row label="Reference" value={tx.reference} />
+        <Row label="Amount" value={naira(tx.amountKobo)} />
+        {tx.feeKobo > 0 && <Row label="Fee" value={naira(tx.feeKobo)} />}
+        {tx.counterpartyBank && <Row label="Bank" value={tx.counterpartyBank} />}
+        <Row label="New balance" value={nairaPlain(result.newBalance)} />
+        <Row
+          label="Date"
+          value={new Date(tx.createdAt).toLocaleString("en-NG", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        />
+      </div>
+
+      <div className="mt-5 flex gap-2">
+        <Button variant="outline" className="flex-1 gap-1.5" onClick={onNew}>
+          <ArrowLeftRight className="h-4 w-4" /> New transfer
+        </Button>
+        <Button className="flex-1 gap-1.5" onClick={onViewHistory}>
+          View receipt <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </Card>
+  );
+}

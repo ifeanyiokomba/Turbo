@@ -1,0 +1,702 @@
+   600→  enabled     Boolean  // explicit per-user enable/disable
+   601→  createdAt   DateTime @default(now())
+   602→
+   603→  @@unique([flagId, userId])
+   604→  @@index([userId])
+   605→}
+   606→
+   607→/// RBAC — roles + permissions. A user has one role; a role has many permissions.
+   608→model Role {
+   609→  id          String   @id @default(cuid())
+   610→  name        String   @unique // user | admin | support | compliance | finance
+   611→  description String?
+   612→  permissions String   // JSON array of permission strings
+   613→  createdAt   DateTime @default(now())
+   614→  updatedAt   DateTime @updatedAt
+   615→}
+   616→
+   617→/// Configurable fee schedule — data-driven fee engine.
+   618→model FeeConfig {
+   619→  id            String   @id @default(cuid())
+   620→  product       String   // turbopay | billswift
+   621→  category      String   // TRANSFER | AIRTIME | DATA | BILL_ELECTRICITY | BILL_UTILITY | INTL_TRANSFER | ...
+   622→  // Fee type: PERCENT | FLAT | TIERED
+   623→  type          String   @default("PERCENT")
+   624→  // For PERCENT: basis points (100 = 1%). For FLAT: minor units.
+   625→  value         Int      @default(0)
+   626→  /// Market percent — platform markup margin in basis points (100 = 1%).
+   627→  /// Applied on top of the base fee as the platform's revenue margin.
+   628→  markupBps     Int      @default(0)
+   629→  minFeeMinor   Int      @default(0)
+   630→  maxFeeMinor   Int?     // null = no cap
+   631→  currency      String   @default("NGN")
+   632→  active        Boolean  @default(true)
+   633→  metadata      String?  // JSON — tiered fee structure, promo config, etc.
+   634→  createdAt     DateTime @default(now())
+   635→  updatedAt     DateTime @updatedAt
+   636→
+   637→  @@unique([product, category])
+   638→  @@index([product, active])
+   639→}
+   640→
+   641→/// FX Engine — per-pair configuration (spread, fees, limits, enabled flag).
+   642→/// One row per supported currency pair (e.g. "USD→NGN"). Managed via the
+   643→/// /api/admin/fx routes. The FX engine caches this row in-memory for 60s
+   644→/// (see src/lib/turbocore/fx/index.ts) so quote-heavy flows don't hammer the DB.
+   645→model FxConfig {
+   646→  id              String   @id @default(cuid())
+   647→  pair            String   @unique // e.g. "USD→NGN" (from→to)
+   648→  fromCurrency    String   // USD
+   649→  toCurrency      String   // NGN
+   650→  /// Spread/markup applied on top of the provider's raw mid-market rate,
+   651→  /// in basis points (150 bps = 1.5%). The customer receives
+   652→  /// rawRate * (1 - spreadBps/10000) — a slightly worse rate.
+   653→  spreadBps       Int      @default(150)
+   654→  /// Platform fee charged per conversion, in basis points of the source amount.
+   655→  platformFeeBps  Int      @default(50)
+   656→  /// Minimum source-currency amount (minor units) for a conversion.
+   657→  minAmountMinor  Int      @default(0)
+   658→  /// Maximum source-currency amount (minor units) for a single conversion
+   659→  /// (null = no cap).
+   660→  maxAmountMinor  Int?
+   661→  enabled         Boolean  @default(true)
+   662→  createdAt       DateTime @default(now())
+   663→  updatedAt       DateTime @updatedAt
+   664→
+   665→  @@index([enabled])
+   666→  @@index([fromCurrency, toCurrency])
+   667→}
+   668→
+   669→/// FX Engine — cached mid-market rate snapshots from the provider.
+   670→/// One row per (pair, fetchedAt); the FX engine always reads the most recent
+   671→/// non-expired snapshot for a pair, and calls refreshSnapshot() when none is
+   672→/// available. Snapshots expire after SNAPSHOT_TTL_MS (default 5 min).
+   673→model FxRateSnapshot {
+   674→  id            String   @id @default(cuid())
+   675→  pair          String   // "USD→NGN"
+   676→  /// Raw mid-market rate returned by the provider (no spread applied).
+   677→  rate          Decimal @db.Decimal(18, 8)
+   678→  /// Provider's own quote reference (audit trail).
+   679→  providerRef   String?
+   680→  fetchedAt     DateTime @default(now())
+   681→  expiresAt     DateTime
+   682→
+   683→  @@index([pair, expiresAt])
+   684→  @@index([pair, fetchedAt])
+   685→}
+   686→
+   687→/// BillSwift bulk bill processing job — queue-based large uploads.
+   688→model BillSwiftBulkJob {
+   689→  id            String   @id @default(cuid())
+   690→  userId        String
+   691→  reference     String   @unique
+   692→  fileName      String?
+   693→  totalItems    Int      @default(0)
+   694→  processedItems Int     @default(0)
+   695→  successCount  Int      @default(0)
+   696→  failedCount   Int      @default(0)
+   697→  status        String   @default("PENDING") // PENDING | PROCESSING | COMPLETED | FAILED
+   698→  error         String?
+   699→  metadata      String?  // JSON
+   700→  items         BillSwiftBulkItem[]
+   701→  createdAt     DateTime @default(now())
+   702→  updatedAt     DateTime @updatedAt
+   703→
+   704→  @@index([userId])
+   705→  @@index([status])
+   706→}
+   707→
+   708→/// Individual item in a BillSwift bulk job.
+   709→model BillSwiftBulkItem {
+   710→  id            String   @id @default(cuid())
+   711→  jobId         String
+   712→  job           BillSwiftBulkJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+   713→  rowIndex      Int
+   714→  productCode   String
+   715→  customer      String
+   716→  customerName  String?
+   717→  amountMinor   Int
+   718→  meterType     String?
+   719→  status        String   @default("PENDING") // PENDING | SUCCESS | FAILED
+   720→  providerRef   String?
+   721→  error         String?
+   722→  transactionId String?
+   723→  createdAt     DateTime @default(now())
+   724→
+   725→  @@index([jobId])
+   726→  @@index([status])
+   727→}
+   728→
+   729→/// Receipt — generated for bill payments + transfers.
+   730→model Receipt {
+   731→  id            String   @id @default(cuid())
+   732→  transactionId String   @unique
+   733→  userId        String
+   734→  reference     String
+   735→  type          String   // TRANSFER | BILL | AIRTIME | DATA | FUNDING | INTL
+   736→  amountMinor   Int
+   737→  currency      String   @default("NGN")
+   738→  counterparty  String?
+   739→  token         String?  // prepaid electricity token
+   740→  metadata      String?  // JSON
+   741→  createdAt     DateTime @default(now())
+   742→
+   743→  @@index([userId])
+   744→  @@index([createdAt])
+   745→}
+   746→
+   747→/// Reconciliation run — daily drift detection between wallet cache + ledger.
+   748→model ReconciliationRun {
+   749→  id            String   @id @default(cuid())
+   750→  type          String   // DAILY | MONTHLY | MANUAL
+   751→  status        String   @default("PENDING") // PENDING | COMPLETED | FAILED
+   752→  walletsChecked Int     @default(0)
+   753→  driftDetected Int      @default(0)
+   754→  driftCorrected Int     @default(0)
+   755→  metadata      String?  // JSON of drift details
+   756→  startedAt     DateTime @default(now())
+   757→  completedAt   DateTime?
+   758→}
+   759→
+   760→// ============================================================
+   761→// PLATFORM CONFIGURATION & PROVIDER MANAGEMENT (Phase 4 — audit-corrected)
+   762→// ============================================================
+   763→
+   764→model ProviderConfig {
+   765→  id             String   @id @default(cuid())
+   766→  contract       String
+   767→  providerName   String
+   768→  displayName    String
+   769→  mode           String   @default("mock")
+   770→  credentialsEnc String?
+   771→  credentialKeys String?  // JSON string[] — key names only, set at write time (avoids decrypt on list)
+   772→  config         String?
+   773→  priority       Int      @default(100)
+   774→  enabled        Boolean  @default(true)
+   775→  healthCheckUrl String?
+   776→  healthCheckIntervalSec Int @default(300)
+   777→  lastHealthCheckAt DateTime?
+   778→  lastHealthStatus String?
+   779→  lastHealthLatencyMs Int?
+   780→  /// Cost basis points for this provider on this contract (e.g. 150 = 1.5%).
+   781→  /// Used by the cost-aware router to pick the cheapest healthy provider
+   782→  /// when no manual override is set. 0 = free / not applicable.
+   783→  /// Set per contract because a provider can be cheap for airtime (50 bps)
+   784→  /// and expensive for electricity (200 bps).
+   785→  costBasisPoints Int @default(0)
+   786→  /// Average settlement speed in minutes (faster = better for routing).
+   787→  settlementSpeedMin Int @default(60)
+   788→  /// Max transactions per minute (0 = unlimited).
+   789→  capacityPerMin Int @default(0)
+   790→  /// Rolling average latency in ms (updated by health tracking).
+   791→  avgLatencyMs Int @default(0)
+   792→  /// Optional credential expiry date. When set, a cron job flags
+   793→  /// credentials that are approaching expiry for admin attention.
+   794→  expiresAt    DateTime?
+   795→  createdAt      DateTime @default(now())
+   796→  updatedAt      DateTime @updatedAt
+   797→
+   798→  routes              ProviderRoute[]
+   799→  healthChecks        ProviderHealthCheck[]
+   800→  credentialVersions  ProviderCredentialVersion[]
+   801→
+   802→  @@unique([contract, providerName])
+   803→  @@index([contract, enabled])
+   804→  @@index([priority])
+   805→}
+   806→
+   807→model ProviderRoute {
+   808→  id                String   @id @default(cuid())
+   809→  contract          String
+   810→  tier              String   // PRIMARY | SECONDARY | FALLBACK | CANARY
+   811→  providerConfigId  String
+   812→  providerConfig    ProviderConfig @relation(fields: [providerConfigId], references: [id], onDelete: Cascade)
+   813→  manualOverrideId  String?  // stored providerConfigId for manual override (no FK — just a string ref)
+   814→  canaryPercent     Int      @default(0) // 0 = not canary; 1-100 = traffic percentage
+   815→  rules             String?
+   816→  enabled           Boolean  @default(true)
+   817→  failoverThreshold Int      @default(3)
+   818→  createdAt         DateTime @default(now())
+   819→  updatedAt         DateTime @updatedAt
+   820→
+   821→  @@unique([contract, tier])
+   822→  @@index([contract, enabled])
+   823→}
+   824→
+   825→model ProviderHealthCheck {
+   826→  id                String   @id @default(cuid())
+   827→  providerConfigId  String
+   828→  providerConfig    ProviderConfig @relation(fields: [providerConfigId], references: [id], onDelete: Cascade)
+   829→  status            String
+   830→  latencyMs         Int?
+   831→  errorMessage      String?
+   832→  checkedAt         DateTime @default(now())
+   833→
+   834→  @@index([providerConfigId, checkedAt])
+   835→}
+   836→
+   837→/// Credential version history — retains prior encrypted credentials when
+   838→/// rotated. Each row stores the OLD credentialsEnc before it was overwritten.
+   839→/// Admins can view the history to verify which keys were active when.
+   840→model ProviderCredentialVersion {
+   841→  id                String   @id @default(cuid())
+   842→  providerConfigId  String
+   843→  providerConfig    ProviderConfig @relation(fields: [providerConfigId], references: [id], onDelete: Cascade)
+   844→  credentialsEnc    String   // the OLD encrypted credentials (before rotation)
+   845→  credentialKeys    String   // JSON string[] of key names at the time
+   846→  changedBy         String?  // userId of the admin who rotated
+   847→  changedByName     String?
+   848→  createdAt         DateTime @default(now())
+   849→
+   850→  @@index([providerConfigId])
+   851→  @@index([createdAt])
+   852→}
+   853→
+   854→model WebhookEndpoint {
+   855→  id            String   @id @default(cuid())
+   856→  providerName  String
+   857→  contract      String
+   858→  url           String
+   859→  secretEnc     String?
+   860→  enabled       Boolean  @default(true)
+   861→  maxRetries    Int      @default(5)
+   862→  retryDelaySec Int      @default(60)
+   863→  verified      Boolean  @default(false)
+   864→  verifiedAt    DateTime?
+   865→  createdAt     DateTime @default(now())
+   866→  updatedAt     DateTime @updatedAt
+   867→
+   868→  @@unique([providerName, contract])
+   869→  @@index([enabled])
+   870→}
+   871→
+   872→model KycTierLimit {
+   873→  id            String   @id @default(cuid())
+   874→  tier          Int
+   875→  product       String   @default("turbopay")
+   876→  singleTxMinor Int
+   877→  dailyTxMinor  Int
+   878→  balanceMinor  Int
+   879→  label         String
+   880→  active        Boolean  @default(true)
+   881→  createdAt     DateTime @default(now())
+   882→  updatedAt     DateTime @updatedAt
+   883→
+   884→  @@unique([tier, product])
+   885→}
+   886→
+   887→model AmlPolicy {
+   888→  id          String   @id @default(cuid())
+   889→  name        String   @unique
+   890→  description String?
+   891→  policy      String   // JSON
+   892→  active      Boolean  @default(false)
+   893→  createdAt   DateTime @default(now())
+   894→  updatedAt   DateTime @updatedAt
+   895→
+   896→  @@index([active])
+   897→}
+   898→
+   899→model DeploymentProfile {
+   900→  id          String   @id @default(cuid())
+   901→  name        String   @unique
+   902→  description String?
+   903→  config      String   // JSON
+   904→  active      Boolean  @default(true)
+   905→  createdAt   DateTime @default(now())
+   906→  updatedAt   DateTime @updatedAt
+   907→}
+   908→
+   909→model ConfigVersion {
+   910→  id            String   @id @default(cuid())
+   911→  entityType    String
+   912→  entityId      String
+   913→  action        String
+   914→  before        String?
+   915→  after         String?
+   916→  reason        String?
+   917→  changedBy     String?
+   918→  changedByName String?
+   919→  version       Int
+   920→  createdAt     DateTime @default(now())
+   921→
+   922→  @@index([entityType, entityId])
+   923→  @@index([changedBy])
+   924→  @@index([createdAt])
+   925→}
+   926→
+   927→model ComplianceCase {
+   928→  id          String    @id @default(cuid())
+   929→  userId      String
+   930→  amlFlagId   String?
+   931→  type        String    // "STR" | "REVIEW" | "FREEZE" | "OTHER"
+   932→  status      String    @default("OPEN") // OPEN | UNDER_REVIEW | FILED | CLOSED
+   933→  severity    String    // LOW | MEDIUM | HIGH
+   934→  description String
+   935→  notes       String?
+   936→  assignedTo  String?
+   937→  resolvedAt  DateTime?
+   938→  createdAt   DateTime  @default(now())
+   939→  updatedAt   DateTime  @updatedAt
+   940→
+   941→  @@index([userId, status])
+   942→  @@index([type, status])
+   943→}
+   944→
+   945→/// Sanctions/watchlist entry — used by the screening engine to check
+   946→/// user names against known sanctioned entities (OFAC SDN, UN, EU, etc.).
+   947→/// Admins can bulk-import entries or add them manually.
+   948→model SanctionsEntry {
+   949→  id          String   @id @default(cuid())
+   950→  name        String   // full name of the sanctioned entity
+   951→  listSource  String   // OFAC_SDN | UN_SANCTIONS | EU_SANCTIONS | CUSTOM
+   952→  country     String?  // ISO 3166-1 alpha-2 of the entity's nationality
+   953→  entityType  String   @default("INDIVIDUAL") // INDIVIDUAL | ENTITY | VESSEL
+   954→  reason      String?  // reason for sanctions listing
+   955→  active      Boolean  @default(true)
+   956→  createdAt   DateTime @default(now())
+   957→  updatedAt   DateTime @updatedAt
+   958→
+   959→  @@index([name])
+   960→  @@index([listSource])
+   961→  @@index([active])
+   962→}
+   963→
+   964→/// Screening result — log of every sanctions check performed.
+   965→model ScreeningResult {
+   966→  id          String   @id @default(cuid())
+   967→  userId      String
+   968→  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   969→  fullName    String   // the name that was screened
+   970→  nationality String?
+   971→  matches     String   // JSON array of match objects
+   972→  riskLevel   String   // LOW | MEDIUM | HIGH
+   973→  action      String   @default("PASS") // PASS | FLAG | BLOCK
+   974→  screenedAt  DateTime @default(now())
+   975→
+   976→  @@index([userId])
+   977→  @@index([riskLevel])
+   978→  @@index([screenedAt])
+   979→}
+   980→
+   981→// ============================================================
+   982→// OPERATIONS PLATFORM MODELS (Phase 5)
+   983→// ============================================================
+   984→
+   985→/// NotificationLog — tracks every notification attempt (SMS, email, push).
+   986→model NotificationLog {
+   987→  id          String   @id @default(cuid())
+   988→  userId      String?
+   989→  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+   990→  channel     String   // SMS | EMAIL | PUSH
+   991→  recipient   String   // phone or email (masked)
+   992→  template    String   // template key
+   993→  status      String   @default("SENT") // SENT | FAILED | PERMANENTLY_FAILED | PENDING
+   994→  provider    String?  // termii | resend | mock
+   995→  messageId   String?
+   996→  errorMsg    String?
+   997→  retryCount  Int      @default(0) // number of retry attempts (0 = initial send only)
+   998→  metadata    String?  // JSON
+   999→  createdAt   DateTime @default(now())
+  1000→  updatedAt   DateTime @updatedAt
+  1001→
+  1002→  @@index([userId])
+  1003→  @@index([status, createdAt])
+  1004→  @@index([template, createdAt])
+  1005→}
+  1006→
+  1007→/// SupportNote — internal notes on customers by support staff.
+  1008→model SupportNote {
+  1009→  id          String   @id @default(cuid())
+  1010→  userId      String
+  1011→  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  1012→  authorId    String
+  1013→  authorName  String
+  1014→  note        String
+  1015→  pinned      Boolean  @default(false)
+  1016→  createdAt   DateTime @default(now())
+  1017→  updatedAt   DateTime @updatedAt
+  1018→
+  1019→  @@index([userId, createdAt])
+  1020→}
+  1021→
+  1022→// ============================================================
+  1023→// ACCOUNT MANAGEMENT MODELS (Phase 6)
+  1024→// ============================================================
+  1025→
+  1026→/// Username change history — tracks every username a user has had.
+  1027→model UsernameHistory {
+  1028→  id          String   @id @default(cuid())
+  1029→  userId      String
+  1030→  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  1031→  username    String   // the previous username
+  1032→  changedAt   DateTime @default(now())
+  1033→
+  1034→  @@index([userId])
+  1035→  @@index([username])
+  1036→}
+  1037→
+  1038→/// Login history — tracks every login attempt (success + failure).
+  1039→model LoginHistory {
+  1040→  id          String   @id @default(cuid())
+  1041→  userId      String?
+  1042→  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  1043→  identifier  String   // what they tried to log in with
+  1044→  success     Boolean
+  1045→  ip          String?
+  1046→  userAgent   String?
+  1047→  errorMessage String?
+  1048→  createdAt   DateTime @default(now())
+  1049→
+  1050→  @@index([userId, createdAt])
+  1051→  @@index([createdAt])
+  1052→}
+  1053→
+  1054→/// Recovery token — for password/PIN/username reset flows.
+  1055→model RecoveryToken {
+  1056→  id          String   @id @default(cuid())
+  1057→  userId      String
+  1058→  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  1059→  channel     String   // EMAIL | PHONE
+  1060→  target      String   // email or phone (masked)
+  1061→  code        String   // OTP code
+  1062→  purpose     String   // RESET_PASSWORD | RESET_PIN | RECOVER_USERNAME
+  1063→  consumed    Boolean  @default(false)
+  1064→  expiresAt   DateTime
+  1065→  createdAt   DateTime @default(now())
+  1066→
+  1067→  @@index([userId, purpose])
+  1068→  @@index([code, purpose])
+  1069→}
+  1070→
+  1071→// ============================================================
+  1072→// ECOSYSTEM MODELS (Phase 7 — Multi-product platform)
+  1073→// ============================================================
+  1074→
+  1075→/// Referral system — tracks referral codes, earnings, and campaigns.
+  1076→model Referral {
+  1077→  id              String   @id @default(cuid())
+  1078→  referrerId      String   // the user who refers
+  1079→  referrer        User     @relation(fields: [referrerId], references: [id], onDelete: Cascade)
+  1080→  referralCode    String   @unique
+  1081→  referredId      String?  // the user who was referred (null until they sign up)
+  1082→  status          String   @default("PENDING") // PENDING | COMPLETED | REWARDED | FRAUD
+  1083→  rewardKobo      Int      @default(0)
+  1084→  rewardType      String   @default("WALLET_CREDIT") // WALLET_CREDIT | FEE_DISCOUNT | NONE
+  1085→  campaignId      String?  // optional campaign
+  1086→  metadata        String?  // JSON
+  1087→  createdAt       DateTime @default(now())
+  1088→  completedAt     DateTime?
+  1089→
+  1090→  @@index([referrerId])
+  1091→  @@index([referralCode])
+  1092→  @@index([status])
+  1093→}
+  1094→
+  1095→/// Referral campaign — configurable reward rules.
+  1096→model ReferralCampaign {
+  1097→  id              String   @id @default(cuid())
+  1098→  name            String   @unique
+  1099→  description     String?
+  1100→  rewardKobo      Int      @default(0)
+  1101→  rewardType      String   @default("WALLET_CREDIT")
+  1102→  maxReferrals    Int      @default(0) // 0 = unlimited
+  1103→  active          Boolean  @default(true)
+  1104→  startDate       DateTime?
+  1105→  endDate         DateTime?
+  1106→  createdAt       DateTime @default(now())
+  1107→  updatedAt       DateTime @updatedAt
+  1108→
+  1109→  @@index([active])
+  1110→}
+  1111→
+  1112→/// Virtual card — architecture for card issuing (no sensitive data stored).
+  1113→model VirtualCard {
+  1114→  id              String   @id @default(cuid())
+  1115→  userId          String
+  1116→  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  1117→  provider        String   @default("mock") // mock | turbopay | stripe | marqeta
+  1118→  providerCardId  String?  // provider's card ID (not the PAN)
+  1119→  last4           String?  // last 4 digits only — safe to display
+  1120→  brand           String?  // VISA | MASTERCARD
+  1121→  type            String   @default("VIRTUAL") // VIRTUAL | PHYSICAL
+  1122→  status          String   @default("PENDING") // PENDING | ACTIVE | FROZEN | TERMINATED
+  1123→  balanceKobo     Int      @default(0)
+  1124→  currency        String   @default("NGN")
+  1125→  spendingLimitKobo Int?   // monthly limit
+  1126→  metadata        String?  // JSON
+  1127→
+  1128→  // ─── Card credentials (AES-256-GCM encrypted, never returned in list views) ───
+  1129→  // The full PAN and CVV are encrypted at rest using the same encryptPii()
+  1130→  // primitive used for PII. They are ONLY decrypted on-demand when the
+  1131→  // authenticated cardholder explicitly reveals card details (and the event
+  1132→  // is audit-logged). last4 is stored separately in plaintext for display.
+  1133→  panEnc          String?  // encrypted full PAN (16 digits)
+  1134→  cvvEnc          String?  // encrypted 3-digit CVV
+  1135→  expiryMonth     Int?     // 1-12 (plaintext — not sensitive on its own)
+  1136→  expiryYear      Int?     // 4-digit year (plaintext — not sensitive on its own)
+  1137→  cardholderName  String?  // name printed on the card
+  1138→
+  1139→  createdAt       DateTime @default(now())
+  1140→  updatedAt       DateTime @updatedAt
+  1141→
+  1142→  transactions    VirtualCardTransaction[]
+  1143→  controls        VirtualCardControl[]
+  1144→
+  1145→  @@index([userId])
+  1146→  @@index([status])
+  1147→}
+  1148→
+  1149→/// Savings product — flexible, locked, target, goal, round-up.
+  1150→model SavingsProduct {
+  1151→  id              String   @id @default(cuid())
+  1152→  userId          String
+  1153→  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  1154→  name            String
+  1155→  type            String   // FLEXIBLE | LOCKED | TARGET | GOAL | ROUND_UP | AUTO_SAVE
+  1156→  targetAmountKobo Int?
+  1157→  currentAmountKobo Int    @default(0)
+  1158→  interestRateBps Int      @default(0) // basis points per annum (100 = 1%)
+  1159→  lockUntil       DateTime?
+  1160→  autoSaveAmountKobo Int?  // for AUTO_SAVE
+  1161→  autoSaveFrequency String? // DAILY | WEEKLY | MONTHLY
+  1162→  lastAutoSaveAt  DateTime? // last time auto-save was executed
+  1163→  status          String   @default("ACTIVE") // ACTIVE | WITHDRAWN | MATURED | CANCELLED
+  1164→  metadata        String?  // JSON
+  1165→  transactions    SavingsTransaction[]
+  1166→  createdAt       DateTime @default(now())
+  1167→  updatedAt       DateTime @updatedAt
+  1168→
+  1169→  @@index([userId])
+  1170→  @@index([type])
+  1171→  @@index([status])
+  1172→}
+  1173→
+  1174→/// Savings transaction — deposits, withdrawals, interest.
+  1175→model SavingsTransaction {
+  1176→  id              String   @id @default(cuid())
+  1177→  savingsProductId String
+  1178→  savingsProduct  SavingsProduct @relation(fields: [savingsProductId], references: [id], onDelete: Cascade)
+  1179→  type            String   // DEPOSIT | WITHDRAWAL | INTEREST
+  1180→  amountKobo      Int
+  1181→  status          String   @default("SUCCESS")
+  1182→  reference       String
+  1183→  metadata        String?  // JSON
+  1184→  createdAt       DateTime @default(now())
+  1185→
+  1186→  @@index([savingsProductId])
+  1187→}
+  1188→
+  1189→/// Investment product — catalog of available investments.
+  1190→model InvestmentProduct {
+  1191→  id              String   @id @default(cuid())
+  1192→  name            String
+  1193→  description     String?
+  1194→  type            String   // FIXED_INCOME | MUTUAL_FUND | EQUITY | BOND | TBILL
+  1195→  provider        String?  // licensed investment partner
+  1196→  minAmountKobo   Int
+  1197→  maxAmountKobo   Int?
+  1198→  expectedReturnBps Int?   // basis points per annum
+  1199→  duration        String?  // e.g. "90 days", "1 year"
+  1200→  riskLevel       String   @default("LOW") // LOW | MEDIUM | HIGH
+  1201→  active          Boolean  @default(true)
+  1202→  metadata        String?  // JSON
+  1203→  userInvestments UserInvestment[]
+  1204→  createdAt       DateTime @default(now())
+  1205→  updatedAt       DateTime @updatedAt
+  1206→
+  1207→  @@index([active])
+  1208→  @@index([type])
+  1209→}
+  1210→
+  1211→/// User investment — a user's position in an investment product.
+  1212→model UserInvestment {
+  1213→  id              String   @id @default(cuid())
+  1214→  userId          String
+  1215→  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  1216→  investmentProductId String
+  1217→  investmentProduct InvestmentProduct @relation(fields: [investmentProductId], references: [id])
+  1218→  amountKobo      Int
+  1219→  status          String   @default("ACTIVE") // ACTIVE | MATURED | LIQUIDATED | CANCELLED
+  1220→  expectedReturnKobo Int?
+  1221→  maturityDate    DateTime?
+  1222→  metadata        String?  // JSON
+  1223→  createdAt       DateTime @default(now())
+  1224→  updatedAt       DateTime @updatedAt
+  1225→
+  1226→  @@index([userId])
+  1227→  @@index([status])
+  1228→}
+  1229→
+  1230→/// Service management — enable/disable product modules per environment.
+  1231→model ServiceFlag {
+  1232→  id              String   @id @default(cuid())
+  1233→  service         String   @unique // wallet | transfers | bills | cards | savings | investments | international | etc.
+  1234→  displayName     String
+  1235→  description     String?
+  1236→  enabled         Boolean  @default(true)
+  1237→  config          String?  // JSON — service-specific config
+  1238→  updatedAt       DateTime @updatedAt
+  1239→  updatedBy       String?
+  1240→}
+  1241→
+  1242→// ============================================================
+  1243→// SUPPORT & RECOVERY SYSTEM (Phase 8)
+  1244→// ============================================================
+  1245→
+  1246→/// Support ticket — customer support ticketing system.
+  1247→model SupportTicket {
+  1248→  id              String   @id @default(cuid())
+  1249→  ticketNumber    String   @unique // TP-2026-000123
+  1250→  userId          String?  // null = anonymous/guest submission
+  1251→  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  1252→  fullName        String
+  1253→  email           String
+  1254→  phone           String?
+  1255→  username        String?
+  1256→  category        String   // LOGIN | WALLET | TRANSFER | BILLS | KYC | SAVINGS | INVESTMENTS | CARDS | INTERNATIONAL | REFERRAL | TECHNICAL | OTHER
+  1257→  subcategory     String?
+  1258→  priority        String   @default("MEDIUM") // LOW | MEDIUM | HIGH | URGENT
+  1259→  status          String   @default("NEW") // NEW | OPEN | PENDING_CUSTOMER | PENDING_INTERNAL | IN_PROGRESS | ESCALATED | RESOLVED | CLOSED
+  1260→  subject         String
+  1261→  description     String
+  1262→  assignedTo      String?  // admin userId
+  1263→  metadata        String?  // JSON — related transaction IDs, etc.
+  1264→  createdAt       DateTime @default(now())
+  1265→  updatedAt       DateTime @updatedAt
+  1266→  resolvedAt      DateTime?
+  1267→  closedAt        DateTime?
+  1268→
+  1269→  messages        SupportTicketMessage[]
+  1270→  attachments     SupportTicketAttachment[]
+  1271→
+  1272→  @@index([userId])
+  1273→  @@index([status])
+  1274→  @@index([category, priority])
+  1275→  @@index([assignedTo])
+  1276→  @@index([createdAt])
+  1277→}
+  1278→
+  1279→/// Ticket message — communication history within a ticket.
+  1280→model SupportTicketMessage {
+  1281→  id              String   @id @default(cuid())
+  1282→  ticketId        String
+  1283→  ticket          SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  1284→  authorId        String?  // null = customer (guest), admin userId for staff
+  1285→  authorName      String
+  1286→  authorRole      String   @default("CUSTOMER") // CUSTOMER | AGENT | SYSTEM
+  1287→  message         String
+  1288→  isInternal      Boolean  @default(false) // internal notes not visible to customer
+  1289→  createdAt       DateTime @default(now())
+  1290→
+  1291→  @@index([ticketId, createdAt])
+  1292→}
+  1293→
+  1294→/// Ticket attachment — file uploads (screenshots, documents).
+  1295→model SupportTicketAttachment {
+  1296→  id              String   @id @default(cuid())
+  1297→  ticketId        String
+  1298→  ticket          SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  1299→  messageId       String?  // optional link to a specific message
+
+[showing lines 600-1299 of 2216; use offset=1300 with limit to continue reading]
