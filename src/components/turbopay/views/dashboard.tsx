@@ -16,6 +16,7 @@ import {
   ArrowDownLeft, ArrowUpRight, Activity, Wallet as WalletIcon, ArrowLeftRight,
   Smartphone, Receipt, CreditCard, PiggyBank, Plus, ChevronRight, ShieldAlert,
   QrCode,
+  BarChart3,
 } from "lucide-react";
 import { naira, nairaCompact, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
@@ -225,6 +226,20 @@ export default function DashboardView() {
             icon={Activity}
             hint={`${data?.stats.txCount ?? 0} successful transactions`}
           />
+
+          {/* Quick analytics link */}
+          <Card className="group cursor-pointer p-4 transition-all hover:-translate-y-0.5 hover:shadow-md" onClick={() => setView("analytics")}>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/20 to-sky-500/10 text-violet-600 dark:text-violet-400">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold">View full analytics</p>
+                <p className="text-xs text-muted-foreground">Trends, categories, insights</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+            </div>
+          </Card>
 
           {/* Spending breakdown */}
           <Card className="p-5">

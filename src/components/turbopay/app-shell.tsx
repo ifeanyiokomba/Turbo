@@ -36,6 +36,7 @@ import {
   LifeBuoy,
   Gift,
   UserCog,
+  BarChart3,
   Plus,
   QrCode,
   Globe,
@@ -65,6 +66,7 @@ const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any
       { key: "investments", label: "Investments", icon: TrendingUp },
       { key: "scheduled-payments", label: "Scheduled", icon: CalendarClock },
       { key: "history", label: "Transactions", icon: History },
+      { key: "analytics", label: "Analytics", icon: BarChart3 },
     ],
   },
   {
@@ -122,6 +124,7 @@ const Views: Record<ViewKey, React.LazyExoticComponent<React.ComponentType>> = {
   "mobile-money": React.lazy(() => import("./views/mobile-money")),
   "payment-links": React.lazy(() => import("./views/payment-links")),
   "scheduled-payments": React.lazy(() => import("./views/scheduled-payments")),
+  analytics: React.lazy(() => import("./views/analytics")),
 };
 
 const VIEW_TITLES: Record<ViewKey, string> = {
@@ -147,6 +150,7 @@ const VIEW_TITLES: Record<ViewKey, string> = {
   "mobile-money": "Mobile Money",
   "payment-links": "Payment Links",
   "scheduled-payments": "Scheduled Payments",
+  analytics: "Analytics",
 };
 
 export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.getState>["user"]> }) {

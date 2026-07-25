@@ -25,7 +25,8 @@ export type ViewKey =
   | "intl-transfers"
   | "mobile-money"
   | "payment-links"
-  | "scheduled-payments";
+  | "scheduled-payments"
+  | "analytics";
 
 export interface AppUser {
   id: string;
