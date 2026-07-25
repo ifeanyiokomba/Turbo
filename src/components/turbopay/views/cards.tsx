@@ -35,6 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { FeatureGate } from "../parts/feature-gate";
 import {
   Plus,
   RefreshCw,
@@ -51,6 +52,7 @@ import {
   ShieldAlert,
   Check,
   Copy,
+  Lock,
 } from "lucide-react";
 import { naira, parseKobo, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
@@ -207,7 +209,7 @@ function CardVisual({
 }
 
 export default function CardsView() {
-  const { user } = useApp();
+  const { user, setView } = useApp();
   const pin = usePin();
   const [data, setData] = React.useState<CardsData | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -456,9 +458,25 @@ export default function CardsView() {
             <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-1.5">
               <RefreshCw className={loading ? "h-4 w-4 animate-spin" : "h-4 w-4"} /> Refresh
             </Button>
-            <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
-              <Plus className="h-4 w-4" /> Create card
-            </Button>
+            <FeatureGate
+              requiredTier={2}
+              feature="Virtual cards"
+              compact
+              fallback={
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setView("kyc")}
+                  className="gap-1.5 border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-400"
+                >
+                  <Lock className="h-4 w-4" /> Upgrade to create
+                </Button>
+              }
+            >
+              <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
+                <Plus className="h-4 w-4" /> Create card
+              </Button>
+            </FeatureGate>
           </>
         }
       />
@@ -470,16 +488,22 @@ export default function CardsView() {
           ))}
         </div>
       ) : cards.length === 0 ? (
-        <EmptyState
-          icon={CreditCard}
-          title="No virtual cards yet"
-          description="Create a card to spend online or in-store. Cards are issued instantly."
-          action={
-            <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
-              <Plus className="h-4 w-4" /> Create your first card
-            </Button>
-          }
-        />
+        <FeatureGate
+          requiredTier={2}
+          feature="Virtual cards"
+          description="Verify your NIN (KYC Tier 2) to issue virtual cards you can spend anywhere Visa or Mastercard is accepted."
+        >
+          <EmptyState
+            icon={CreditCard}
+            title="No virtual cards yet"
+            description="Create a card to spend online or in-store. Cards are issued instantly."
+            action={
+              <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
+                <Plus className="h-4 w-4" /> Create your first card
+              </Button>
+            }
+          />
+        </FeatureGate>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {cards.map((c) => (

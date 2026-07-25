@@ -14,7 +14,7 @@ import {
 } from "recharts";
 import {
   ArrowDownLeft, ArrowUpRight, Activity, Wallet as WalletIcon, ArrowLeftRight,
-  Smartphone, Receipt, CreditCard, PiggyBank, TrendingUp, Plus, ChevronRight, ShieldAlert,
+  Smartphone, Receipt, CreditCard, PiggyBank, Plus, ChevronRight, ShieldAlert,
   QrCode,
 } from "lucide-react";
 import { naira, nairaCompact, timeAgo } from "@/lib/money";
@@ -59,11 +59,11 @@ export default function DashboardView() {
 
   const quickActions = [
     { label: "Transfer", icon: ArrowLeftRight, view: "transfer" as const, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
+    { label: "QR", icon: QrCode, view: "qr" as const, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
     { label: "Airtime", icon: Smartphone, view: "airtime" as const, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
     { label: "Bills", icon: Receipt, view: "bills" as const, color: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
     { label: "Cards", icon: CreditCard, view: "cards" as const, color: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
     { label: "Save", icon: PiggyBank, view: "savings" as const, color: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
-    { label: "Invest", icon: TrendingUp, view: "investments" as const, color: "bg-teal-500/10 text-teal-600 dark:text-teal-400" },
   ];
 
   if (loading) {

@@ -1,8 +1,10 @@
 "use client";
 
 import * as React from "react";
+import { useApp } from "../store";
 import { usePin } from "../parts/pin-dialog";
 import { PageHeader, EmptyState, StatCard } from "../parts/layout";
+import { FeatureGate } from "../parts/feature-gate";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +41,7 @@ import {
   Check,
   Calendar,
   ArrowDownLeft,
+  Lock,
 } from "lucide-react";
 import { naira, parseKobo, formatDate, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
@@ -97,6 +100,7 @@ function pct(bps: number): string {
 }
 
 export default function InvestmentsView() {
+  const { setView } = useApp();
   const pin = usePin();
   const [data, setData] = React.useState<InvestmentsData | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -304,9 +308,25 @@ export default function InvestmentsView() {
                   </div>
 
                   <div className="mt-auto pt-4">
-                    <Button size="sm" className="w-full gap-1.5" onClick={() => openInvest(p)}>
-                      <Plus className="h-4 w-4" /> Invest
-                    </Button>
+                    <FeatureGate
+                      requiredTier={2}
+                      feature="Investments"
+                      compact
+                      fallback={
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full gap-1.5 border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/15 dark:text-amber-400"
+                          onClick={() => setView("kyc")}
+                        >
+                          <Lock className="h-4 w-4" /> Upgrade to invest
+                        </Button>
+                      }
+                    >
+                      <Button size="sm" className="w-full gap-1.5" onClick={() => openInvest(p)}>
+                        <Plus className="h-4 w-4" /> Invest
+                      </Button>
+                    </FeatureGate>
                   </div>
                 </Card>
               );
