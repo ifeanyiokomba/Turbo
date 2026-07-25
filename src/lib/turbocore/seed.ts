@@ -27,7 +27,7 @@ export async function seedTurboCore(): Promise<void> {
   for (const p of providers) {
     await db.providerConfig.upsert({
       where: { code: p.code },
-      create: { ...p, weightsJSON: "{}", defaultPriority: p.priority },
+      create: { code: p.code, displayName: p.displayName, sandbox: p.sandbox, enabled: p.enabled, weightsJSON: "{}", defaultPriority: p.priority },
       update: {},
     });
   }
