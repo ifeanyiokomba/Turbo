@@ -7,3 +7,4 @@ agent-ctx/
 /worklog.md
 .env
 .env.local
+tool-results/
