@@ -236,6 +236,9 @@ export default function SavingsView() {
         )}
       </div>
 
+      {/* Savings Goals */}
+      <SavingsGoalsSection />
+
       {/* Products grid */}
       <div>
         <div className="mb-3 flex items-center justify-between">
@@ -554,3 +557,249 @@ export default function SavingsView() {
   );
 }
 
+
+// ===== Savings Goals Section =====
+interface SavingsGoal {
+  id: string;
+  name: string;
+  targetKobo: number;
+  currentKobo: number;
+  targetDate: string | null;
+  color: string;
+  icon: string;
+  status: string;
+  createdAt: string;
+}
+
+function SavingsGoalsSection() {
+  const pin = usePin();
+  const [goals, setGoals] = React.useState<SavingsGoal[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [showCreate, setShowCreate] = React.useState(false);
+  const [contribGoal, setContribGoal] = React.useState<{ goal: SavingsGoal; mode: "DEPOSIT" | "WITHDRAW" } | null>(null);
+  const [amountInput, setAmountInput] = React.useState("");
+  const amountKobo = parseKobo(amountInput);
+
+  const load = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/savings-goals", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setGoals(data.goals ?? []);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => { load(); }, [load]);
+
+  async function createGoal(name: string, targetKobo: number, targetDate: string | null, color: string, initialKobo: number) {
+    const res = await fetch("/api/savings-goals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, targetKobo, targetDate, color, initialDepositKobo: initialKobo }),
+    });
+    if (!res.ok) { const e = await res.json(); toast.error(e.error || "Failed"); return; }
+    toast.success("Goal created!");
+    setShowCreate(false);
+    load();
+  }
+
+  async function contribute(goal: SavingsGoal, mode: "DEPOSIT" | "WITHDRAW", amount: number) {
+    const pinVal = await pin.request({ title: mode === "DEPOSIT" ? "Deposit to goal" : "Withdraw from goal", description: `₦${(amount / 100).toLocaleString()}` });
+    if (!pinVal) return;
+    const res = await fetch(`/api/savings-goals/${goal.id}/contribute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amountKobo: amount, pin: pinVal, type: mode }),
+    });
+    if (!res.ok) { const e = await res.json(); toast.error(e.error || "Failed"); return; }
+    toast.success(mode === "DEPOSIT" ? "Deposited!" : "Withdrawn!");
+    setContribGoal(null);
+    setAmountInput("");
+    load();
+  }
+
+  async function deleteGoal(id: string) {
+    const res = await fetch(`/api/savings-goals/${id}`, { method: "DELETE" });
+    if (!res.ok) { toast.error("Failed to delete"); return; }
+    toast.success("Goal deleted");
+    load();
+  }
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Target className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">My Savings Goals</h2>
+        </div>
+        <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
+          <Plus className="h-4 w-4" /> New goal
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}
+        </div>
+      ) : goals.length === 0 ? (
+        <div className="rounded-2xl border border-dashed p-8 text-center">
+          <Target className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+          <p className="text-sm font-medium">No savings goals yet</p>
+          <p className="mt-1 text-xs text-muted-foreground">Create a goal to track your progress toward a target.</p>
+          <Button size="sm" className="mt-4 gap-1.5" onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4" /> Create your first goal
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {goals.map((g) => {
+            const pct = g.targetKobo > 0 ? Math.min(100, Math.round((g.currentKobo / g.targetKobo) * 100)) : 0;
+            const completed = pct >= 100;
+            return (
+              <Card key={g.id} className="p-5 tp-card-hover">
+                <div className="mb-3 flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${completed ? "bg-emerald-500/15 text-emerald-600" : "bg-primary/10 text-primary"}`}>
+                      {completed ? <Check className="h-4 w-4" /> : <Target className="h-4 w-4" />}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">{g.name}</p>
+                      <p className="text-xs text-muted-foreground">{completed ? "Completed!" : g.targetDate ? `By ${formatDate(g.targetDate)}` : "No deadline"}</p>
+                    </div>
+                  </div>
+                  {completed && <Badge className="bg-emerald-500/15 text-emerald-600 text-[10px]">100%</Badge>}
+                </div>
+
+                {/* Progress ring */}
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="relative h-16 w-16">
+                    <svg className="h-16 w-16 -rotate-90" viewBox="0 0 64 64">
+                      <circle cx="32" cy="32" r="28" fill="none" stroke="var(--muted)" strokeWidth="6" />
+                      <circle cx="32" cy="32" r="28" fill="none" stroke={completed ? "oklch(0.60 0.14 155)" : pct >= 75 ? "oklch(0.62 0.14 162)" : pct >= 50 ? "oklch(0.80 0.13 75)" : "oklch(0.62 0.14 162)"} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(pct / 100) * 176} 176`} className="transition-all duration-700" />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">{pct}%</span>
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold tabular-nums">{naira(g.currentKobo)}</p>
+                    <p className="text-xs text-muted-foreground">of {naira(g.targetKobo)}</p>
+                  </div>
+                </div>
+
+                {/* Milestones */}
+                <div className="mb-3 flex items-center gap-1.5">
+                  {[25, 50, 75, 100].map((m) => (
+                    <div key={m} className={`flex-1 rounded-full py-0.5 text-center text-[9px] font-medium ${pct >= m ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
+                      {pct >= m ? "✓" : `${m}%`}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex gap-1.5">
+                  <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs" onClick={() => { setContribGoal({ goal: g, mode: "DEPOSIT" }); setAmountInput(""); }}>
+                    <ArrowDownToLine className="h-3.5 w-3.5" /> Add
+                  </Button>
+                  <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs" onClick={() => { setContribGoal({ goal: g, mode: "WITHDRAW" }); setAmountInput(""); }}>
+                    <ArrowUpFromLine className="h-3.5 w-3.5" /> Withdraw
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-destructive px-2" onClick={() => deleteGoal(g.id)}>
+                    ✕
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Create goal dialog */}
+      {showCreate && (
+        <CreateGoalDialog onClose={() => setShowCreate(false)} onCreate={createGoal} />
+      )}
+
+      {/* Contribute dialog */}
+      {contribGoal && (
+        <Dialog open onOpenChange={() => setContribGoal(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>{contribGoal.mode === "DEPOSIT" ? "Add to" : "Withdraw from"} {contribGoal.goal.name}</DialogTitle>
+              <DialogDescription>Current: {naira(contribGoal.goal.currentKobo)} of {naira(contribGoal.goal.targetKobo)}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <Label>Amount (₦)</Label>
+              <Input type="number" value={amountInput} onChange={(e) => setAmountInput(e.target.value)} placeholder="5000" />
+              <div className="flex gap-2">
+                {[1000, 5000, 10000, 50000].map((v) => (
+                  <button key={v} onClick={() => setAmountInput(String(v))} className="rounded-full bg-muted px-3 py-1 text-xs hover:bg-muted/70">{naira(v * 100).replace(".00", "")}</button>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setContribGoal(null)}>Cancel</Button>
+              <Button disabled={amountKobo <= 0} onClick={() => contribute(contribGoal.goal, contribGoal.mode, amountKobo)}>
+                {contribGoal.mode === "DEPOSIT" ? "Deposit" : "Withdraw"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+function CreateGoalDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string, target: number, date: string | null, color: string, initial: number) => void }) {
+  const [name, setName] = React.useState("");
+  const [target, setTarget] = React.useState("");
+  const [date, setDate] = React.useState("");
+  const [color, setColor] = React.useState("emerald");
+  const [initial, setInitial] = React.useState("");
+  const targetKobo = parseKobo(target);
+  const initialKobo = parseKobo(initial);
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create savings goal</DialogTitle>
+          <DialogDescription>Set a target and track your progress.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-2">
+          <div className="space-y-1.5">
+            <Label>Goal name</Label>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. New laptop, Vacation, Emergency fund" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Target amount (₦)</Label>
+              <Input type="number" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="100000" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Target date (optional)</Label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Initial deposit (₦, optional)</Label>
+            <Input type="number" value={initial} onChange={(e) => setInitial(e.target.value)} placeholder="0" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Color</Label>
+            <div className="flex gap-2">
+              {["emerald", "amber", "violet", "sky", "rose"].map((c) => (
+                <button key={c} onClick={() => setColor(c)} className={`h-8 w-8 rounded-full border-2 ${color === c ? "border-foreground" : "border-transparent"}`} style={{ background: `var(--color-${c === "emerald" ? "primary" : c})` }} />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button disabled={!name.trim() || targetKobo <= 0} onClick={() => onCreate(name.trim(), targetKobo, date || null, color, initialKobo)}>
+            Create goal
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

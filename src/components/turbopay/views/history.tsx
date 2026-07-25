@@ -44,9 +44,11 @@ import {
   ArrowUpRight,
   RotateCcw,
   Check,
+  Scale,
 } from "lucide-react";
 import { naira, formatDate } from "@/lib/money";
 import { toast } from "sonner";
+import { useApp } from "../store";
 
 interface Tx {
   id: string;
@@ -972,6 +974,19 @@ function TxDetailDialog({ tx, onClose }: { tx: Tx | null; onClose: () => void })
             Close
           </Button>
           <Button
+            variant="outline"
+            className="flex-1 gap-1.5 border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
+            onClick={() => {
+              try {
+                sessionStorage.setItem("tp_prefill_dispute", JSON.stringify({ transactionId: tx.id, subject: `Dispute: ${tx.reference}` }));
+              } catch {}
+              onClose();
+              toast.info("Opening dispute form...");
+            }}
+          >
+            <Scale className="h-4 w-4" /> Raise dispute
+          </Button>
+          <Button
             className="flex-1 gap-1.5"
             onClick={() => {
               try {
@@ -984,7 +999,7 @@ function TxDetailDialog({ tx, onClose }: { tx: Tx | null; onClose: () => void })
               }
             }}
           >
-            <FileDown className="h-4 w-4" /> Download receipt
+            <FileDown className="h-4 w-4" /> Receipt
           </Button>
         </div>
       </DialogContent>
