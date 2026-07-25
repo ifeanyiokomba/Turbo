@@ -1115,8 +1115,8 @@ model CeloBridgeEvent {
 
 model CeloTokenConfig {
   id            String   @id @default(cuid())
-  symbol        String   @unique // USDm | USDC | USDT | NGNm | CELO
-  address       String   @unique // 0x...
+  symbol        String // USDm | USDC | USDT | NGNm | CELO (not globally unique — same symbol on mainnet + testnet)
+  address       String // 0x... (unique per chain, but may repeat across chains)
   decimals      Int // 18 | 6
   chainId       Int // 42220 | 11142220
   isActive      Boolean  @default(true)
