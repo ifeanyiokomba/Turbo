@@ -30,7 +30,9 @@ export type ViewKey =
   | "disputes"
   | "vouchers"
   | "help-center"
-  | "achievements";
+  | "achievements"
+  | "marketplace"
+  | "subscriptions";
 
 export interface AppUser {
   id: string;

@@ -1005,3 +1005,23 @@ model UserBadge {
   @@unique([userId, badgeKey])
   @@index([userId])
 }
+
+model MarketplaceMerchant {
+  id            String   @id @default(cuid())
+  name          String
+  category      String   @default("SHOPPING") // SHOPPING | FOOD | TRANSPORT | UTILITIES | ENTERTAINMENT | HEALTH | EDUCATION | TRAVEL
+  description   String
+  logoUrl       String?
+  website       String?
+  phone         String?
+  email         String?
+  address       String?
+  rating        Float    @default(4.5)
+  reviewCount   Int      @default(0)
+  verified      Boolean  @default(false)
+  featured      Boolean  @default(false)
+  status        String   @default("ACTIVE")
+  createdAt     DateTime @default(now())
+  @@index([category, status])
+  @@index([featured])
+}

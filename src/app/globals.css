@@ -695,4 +695,67 @@ html { scroll-behavior: smooth; }
   .tp-award-shine { animation: none !important; }
   .tp-tip-glow::before { animation: none !important; }
   .tp-testimonial { transition: none !important; }
+  .tp-confetti-piece { animation: none !important; display: none !important; }
+}
+
+/* ===== Transaction success confetti (pure CSS) ===== */
+.tp-confetti-piece {
+  position: absolute;
+  top: -10vh;
+  border-radius: 1px;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation-name: tp-confetti-fall;
+  animation-timing-function: cubic-bezier(0.25, 0.6, 0.4, 1);
+  animation-fill-mode: forwards;
+  box-shadow: 0 0 4px oklch(0 0 0 / 0.06);
+}
+@keyframes tp-confetti-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  80% { opacity: 1; }
+  100% {
+    /* Fall from -10vh to 110vh, drift horizontally, and spin a full turn. */
+    transform: translate3d(var(--tp-confetti-drift, 0vw), 120vh, 0) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* ===== Sidebar active nav polish (Task R7-B) ===== */
+/* Active item: 3px emerald left border (rounded), subtle emerald gradient
+   background, icon scale-up (1.1), and a soft emerald glow. */
+.tp-nav-item {
+  position: relative;
+  transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.22s ease, transform 0.18s ease;
+}
+.tp-nav-item:hover { transform: translateX(1px); }
+.tp-nav-item[data-active="true"] {
+  background:
+    linear-gradient(135deg,
+      color-mix(in oklch, var(--primary) 14%, transparent) 0%,
+      color-mix(in oklch, var(--primary) 4%, transparent) 100%);
+  color: var(--primary);
+  box-shadow:
+    0 6px 16px -8px color-mix(in oklch, var(--primary) 50%, transparent),
+    inset 0 0 0 1px color-mix(in oklch, var(--primary) 12%, transparent);
+}
+.tp-nav-item[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  border-radius: 0 3px 3px 0;
+  background: var(--primary);
+  box-shadow: 0 0 8px 0 color-mix(in oklch, var(--primary) 60%, transparent);
+}
+.tp-nav-item[data-active="true"] svg {
+  transform: scale(1.1);
+}
+.tp-nav-item svg {
+  transition: transform 0.18s ease;
 }

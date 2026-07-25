@@ -28,6 +28,7 @@ import {
 import { naira, nairaCompact, formatDate } from "@/lib/money";
 import { BADGE_COLOR_CLASSES, type BadgeKey } from "@/lib/badges";
 import { toast } from "sonner";
+import { Confetti } from "../parts/confetti";
 
 interface DashData {
   wallet: { balanceKobo: number; currency: string; status: string } | null;
@@ -100,6 +101,9 @@ export default function DashboardView() {
   const [hideBalance, setHideBalance] = React.useState(false);
   const [insights, setInsights] = React.useState<InsightsData | null>(null);
   const [badges, setBadges] = React.useState<BadgesData | null>(null);
+  // Confetti fires when a NEW successful funding or transfer lands in `recent`
+  // (i.e. user returned to the dashboard after funding / sending money).
+  const [showConfetti, setShowConfetti] = React.useState(false);
 
   const load = React.useCallback(async () => {
     try {
@@ -110,6 +114,35 @@ export default function DashboardView() {
     }
   }, []);
   React.useEffect(() => { load(); }, [load]);
+
+  // Fire confetti when a new SUCCESS FUNDING/TRANSFER transaction appears
+  // compared to the last-seen id stored in localStorage. We skip the very
+  // first load (no baseline yet) so we don't celebrate old transactions.
+  React.useEffect(() => {
+    const recent = data?.recent;
+    if (!recent || recent.length === 0) return;
+    const latest = recent[0] as { id: string; type: string; status: string };
+    const STORAGE_KEY = "tp_last_tx_id";
+    let lastSeen: string | null = null;
+    try {
+      lastSeen = localStorage.getItem(STORAGE_KEY);
+    } catch {
+      /* localStorage unavailable — skip confetti */
+    }
+
+    const isCelebrateType = latest.type === "FUNDING" || latest.type === "TRANSFER";
+    if (lastSeen && lastSeen !== latest.id && latest.status === "SUCCESS" && isCelebrateType) {
+      setShowConfetti(true);
+      const t = setTimeout(() => setShowConfetti(false), 3000);
+      try { localStorage.setItem(STORAGE_KEY, latest.id); } catch {}
+      return () => clearTimeout(t);
+    }
+
+    // Always advance the baseline so the next change is detectable.
+    if (lastSeen !== latest.id) {
+      try { localStorage.setItem(STORAGE_KEY, latest.id); } catch {}
+    }
+  }, [data?.recent]);
 
   // Load insights (analytics + recent transactions for day-of-week counts) and
   // badges in parallel — both decorative, non-fatal.
@@ -173,6 +206,9 @@ export default function DashboardView() {
 
   return (
     <div className="space-y-6">
+      {/* Transaction success confetti — fires when `showConfetti` flips to true */}
+      <Confetti trigger={showConfetti} />
+
       {/* Greeting */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>

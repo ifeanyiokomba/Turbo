@@ -15,6 +15,7 @@ import { ViewTransition } from "./view-transition";
 import AiSupport from "./ai-support";
 import { useSessionTimeout } from "./parts/use-session-timeout";
 import { OnboardingOverlay } from "./onboarding-overlay";
+import { CommandPalette } from "./command-palette";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,7 @@ import {
   Menu,
   LogOut,
   ChevronRight,
+  ChevronLeft,
   Sparkles,
   LifeBuoy,
   Gift,
@@ -65,10 +67,14 @@ import {
   CheckCheck,
   Inbox,
   Award,
+  Search,
+  Store,
+  Repeat,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { timeAgo } from "@/lib/money";
+import { cn } from "@/lib/utils";
 
 const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any; cond?: (user: { country: string }) => boolean }[] }[] = [
   {
@@ -84,6 +90,8 @@ const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any
       { key: "intl-transfers", label: "International", icon: Plane },
       { key: "mobile-money", label: "Mobile Money", icon: Smartphone, cond: (u) => MOBILE_MONEY_COUNTRIES.has(u.country) },
       { key: "payment-links", label: "Payment Links", icon: LinkIcon },
+      { key: "marketplace", label: "Marketplace", icon: Store },
+      { key: "subscriptions", label: "Subscriptions", icon: Repeat },
       { key: "cards", label: "Virtual Cards", icon: CreditCard },
       { key: "savings", label: "Savings", icon: PiggyBank },
       { key: "investments", label: "Investments", icon: TrendingUp },
@@ -156,6 +164,8 @@ const Views: Record<ViewKey, React.LazyExoticComponent<React.ComponentType>> = {
   vouchers: React.lazy(() => import("./views/vouchers")),
   "help-center": React.lazy(() => import("./views/help-center")),
   achievements: React.lazy(() => import("./views/achievements")),
+  marketplace: React.lazy(() => import("./views/marketplace")),
+  subscriptions: React.lazy(() => import("./views/subscriptions")),
 };
 
 const VIEW_TITLES: Record<ViewKey, string> = {
@@ -186,6 +196,8 @@ const VIEW_TITLES: Record<ViewKey, string> = {
   vouchers: "Vouchers",
   "help-center": "Help Center",
   achievements: "Achievements",
+  marketplace: "Marketplace",
+  subscriptions: "Subscriptions",
 };
 
 // Set of valid view keys — used to resolve notification actionUrl → setView.
@@ -194,7 +206,7 @@ const VALID_VIEW_KEYS = new Set<string>([
   "savings", "investments", "kyc", "beneficiaries", "qr", "settings", "security",
   "rewards", "support", "admin", "multi-currency", "intl-transfers", "mobile-money",
   "payment-links", "scheduled-payments", "analytics", "disputes", "vouchers", "help-center",
-  "achievements",
+  "achievements", "marketplace", "subscriptions",
 ]);
 
 type NotifFilter = "all" | "unread" | "important";
@@ -254,6 +266,39 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
   const [notifications, setNotifications] = React.useState<AppNotification[]>([]);
   const [loadingNotifs, setLoadingNotifs] = React.useState(false);
   const [markingAll, setMarkingAll] = React.useState(false);
+
+  // Command palette (Cmd+K / Ctrl+K)
+  const [cmdOpen, setCmdOpen] = React.useState(false);
+
+  // Sidebar collapse — persisted to localStorage so it survives reloads.
+  const [collapsed, setCollapsed] = React.useState(false);
+  React.useEffect(() => {
+    try {
+      const stored = localStorage.getItem("tp_sidebar_collapsed");
+      if (stored === "true") setCollapsed(true);
+    } catch {
+      /* localStorage may be unavailable (private mode) — skip */
+    }
+  }, []);
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("tp_sidebar_collapsed", String(collapsed));
+    } catch {
+      /* ignore quota / privacy errors */
+    }
+  }, [collapsed]);
+
+  // Global Cmd+K / Ctrl+K keyboard shortcut to toggle the command palette.
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setCmdOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   React.useEffect(() => setMounted(true), []);
 
@@ -357,63 +402,108 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
   const initials = user.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
   const navGroups = user.role === "ADMIN" ? [...USER_NAV, ...ADMIN_NAV] : USER_NAV;
 
-  const sidebarContent = (
-    <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center gap-2 border-b px-5">
-        <Logo size={30} />
-        <Wordmark size={18} />
-      </div>
-      <nav className="flex-1 overflow-y-auto scrollbar-thin px-3 py-4">
-        {navGroups.map((group) => (
-          <div key={group.group} className="mb-5">
-            <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{group.group}</p>
-            <div className="space-y-0.5">
-              {group.items.map((item) => {
-                if (item.cond && !item.cond(user)) return null;
-                const active = view === item.key;
-                return (
-                  <button
-                    key={item.key}
-                    onClick={() => setView(item.key)}
-                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                      active
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    }`}
-                  >
-                    <item.icon className="h-4.5 w-4.5" />
-                    {item.label}
-                    {item.key === "kyc" && user.kycStatus !== "VERIFIED" && (
-                      <span className="ml-auto h-1.5 w-1.5 rounded-full bg-amber-500" />
-                    )}
-                  </button>
-                );
-              })}
+  const renderSidebarContent = (opts: { collapsed: boolean; onToggleCollapse?: () => void }) => {
+    const { collapsed: c, onToggleCollapse } = opts;
+    return (
+      <div className="flex h-full flex-col">
+        {/* Header — logo + collapse toggle (desktop only) */}
+        <div className={cn("flex h-16 items-center gap-2 border-b", c ? "justify-center px-2" : "px-4")}>
+          <Logo size={30} />
+          {!c && <Wordmark size={18} />}
+          {onToggleCollapse && (
+            <button
+              onClick={onToggleCollapse}
+              aria-label={c ? "Expand sidebar" : "Collapse sidebar"}
+              title={c ? "Expand sidebar" : "Collapse sidebar"}
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-muted hover:text-foreground tp-btn-press",
+                c ? "ml-0" : "ml-auto",
+              )}
+            >
+              <ChevronLeft className={cn("h-4 w-4 transition-transform duration-300", c && "rotate-180")} />
+            </button>
+          )}
+        </div>
+
+        {/* Nav groups */}
+        <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 py-3">
+          {navGroups.map((group) => (
+            <div key={group.group} className={cn(c ? "mb-3" : "mb-4")}>
+              {!c && (
+                <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  {group.group}
+                </p>
+              )}
+              {c && <div className="mx-auto mb-2 h-px w-6 bg-border" aria-hidden />}
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  if (item.cond && !item.cond(user)) return null;
+                  const active = view === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      onClick={() => setView(item.key)}
+                      title={c ? item.label : undefined}
+                      aria-current={active ? "page" : undefined}
+                      data-active={active ? "true" : "false"}
+                      className={cn(
+                        "tp-nav-item flex w-full items-center rounded-lg text-sm font-medium",
+                        c ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2",
+                        active
+                          ? ""
+                          : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                      )}
+                    >
+                      <item.icon className="h-4.5 w-4.5 shrink-0" />
+                      {!c && <span className="truncate">{item.label}</span>}
+                      {!c && item.key === "kyc" && user.kycStatus !== "VERIFIED" && (
+                        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
-      </nav>
-      <div className="border-t p-3">
-        <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-          <p className="font-semibold text-foreground">Turbopay MFB</p>
-          <p className="mt-0.5">Licensed partners · NDPR-aware</p>
+          ))}
+        </nav>
+
+        {/* Footer — licensed-by badge (or dot when collapsed) */}
+        <div className="border-t p-2">
+          {!c ? (
+            <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
+              <p className="font-semibold text-foreground">Turbopay MFB</p>
+              <p className="mt-0.5">Licensed partners · NDPR-aware</p>
+            </div>
+          ) : (
+            <div className="flex justify-center py-1" title="Turbopay MFB · Licensed partners">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_1px_oklch(0.72_0.14_162/0.6)]" />
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <PinDialogProvider>
       <div className="flex min-h-screen bg-background">
-        {/* Desktop sidebar */}
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r bg-sidebar lg:block">
-          {sidebarContent}
+        {/* Desktop sidebar — collapses to icon-only (w-16) when `collapsed` is true */}
+        <aside
+          className={cn(
+            "sticky top-0 hidden h-screen shrink-0 border-r bg-sidebar transition-all duration-300 lg:block",
+            collapsed ? "w-16" : "w-64",
+          )}
+        >
+          {renderSidebarContent({
+            collapsed,
+            onToggleCollapse: () => setCollapsed((v) => !v),
+          })}
         </aside>
 
-        {/* Mobile sidebar */}
+        {/* Mobile sidebar (always expanded — collapse toggle is desktop-only) */}
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetContent side="left" className="w-72 p-0">
-            {sidebarContent}
+            {renderSidebarContent({ collapsed: false })}
           </SheetContent>
         </Sheet>
 
@@ -433,6 +523,17 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
             </div>
             <h2 className="hidden text-lg font-semibold sm:block">{VIEW_TITLES[view]}</h2>
             <div className="ml-auto flex items-center gap-1.5">
+              {/* Command palette trigger — discoverable ⌘K hint (desktop only) */}
+              <button
+                onClick={() => setCmdOpen(true)}
+                aria-label="Open command palette"
+                title="Open command palette (⌘K)"
+                className="hidden h-9 items-center gap-2 rounded-lg border bg-muted/40 px-3 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:inline-flex"
+              >
+                <Search className="h-3.5 w-3.5" />
+                <span>Search</span>
+                <kbd className="rounded border bg-background px-1 py-0.5 font-mono text-[10px] shadow-sm">⌘K</kbd>
+              </button>
               <CountrySwitcher />
               <Button size="sm" className="gap-1.5" onClick={() => setView("wallet")}>
                 <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Fund wallet</span>
@@ -592,6 +693,9 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
 
       {/* Guided onboarding overlay (shows after login until PIN + wallet + KYC complete) */}
       <OnboardingOverlay user={user} />
+
+      {/* Command palette (Cmd+K / Ctrl+K) */}
+      <CommandPalette open={cmdOpen} onOpenChange={setCmdOpen} />
     </PinDialogProvider>
   );
 }
