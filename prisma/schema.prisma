@@ -263,6 +263,34 @@ model SavingsTransaction {
   @@index([userId, createdAt])
 }
 
+model SavingsGoal {
+  id            String   @id @default(cuid())
+  userId        String
+  name          String
+  targetKobo    Int
+  currentKobo   Int      @default(0)
+  targetDate    DateTime?
+  color         String   @default("emerald")
+  icon          String   @default("Target")
+  status        String   @default("ACTIVE") // ACTIVE | COMPLETED | CANCELLED
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  contributions SavingsGoalContribution[]
+  @@index([userId, status])
+}
+
+model SavingsGoalContribution {
+  id            String   @id @default(cuid())
+  goalId        String
+  goal          SavingsGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  userId        String
+  amountKobo    Int
+  type          String   @default("DEPOSIT") // DEPOSIT | WITHDRAW
+  reference     String   @unique
+  createdAt     DateTime @default(now())
+  @@index([goalId, createdAt])
+}
+
 model InvestmentProduct {
   id            String   @id @default(cuid())
   name          String

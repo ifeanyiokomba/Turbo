@@ -100,8 +100,32 @@ const STATUS_TONE: Record<string, string> = {
   TERMINATED: "bg-red-500/15 text-red-600 dark:text-red-400",
 };
 
-function BrandLogo({ brand }: { brand: string }) {
-  if (brand === "MASTERCARD") {
+/* ------------------------------------------------------------------ */
+/* Card visual — premium realistic styling with 3D flip + holographic */
+/* ------------------------------------------------------------------ */
+
+type CardVariant = "VISA" | "MASTERCARD" | "TURBOPAY";
+
+function pickVariant(card: VCard): CardVariant {
+  // Emerald "TURBOPAY" variant for ~1 in 5 cards (last digit of last4 is 7)
+  const last = parseInt(card.last4?.slice(-1) ?? "0", 10);
+  if (last === 7) return "TURBOPAY";
+  if (card.brand === "MASTERCARD") return "MASTERCARD";
+  return "VISA";
+}
+
+function CardGradient({ variant }: { variant: CardVariant }) {
+  if (variant === "MASTERCARD") {
+    return "bg-gradient-to-br from-amber-500 via-amber-600 to-orange-700";
+  }
+  if (variant === "TURBOPAY") {
+    return "tp-wallet-card";
+  }
+  return "bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900";
+}
+
+function BrandLogo({ variant }: { variant: CardVariant }) {
+  if (variant === "MASTERCARD") {
     return (
       <div className="relative flex h-7 w-12 items-center justify-center">
         <span className="absolute left-1 h-6 w-6 rounded-full bg-red-500/90" />
@@ -109,10 +133,151 @@ function BrandLogo({ brand }: { brand: string }) {
       </div>
     );
   }
+  if (variant === "TURBOPAY") {
+    return (
+      <span className="rounded-md bg-white/95 px-2 py-0.5 text-sm font-bold tracking-[0.18em] text-emerald-700 shadow-sm">
+        TURBOPAY
+      </span>
+    );
+  }
   return (
-    <span className="rounded-md bg-white/95 px-2 py-0.5 text-sm font-bold italic tracking-wider text-slate-900">
+    <span className="rounded-md bg-white/95 px-2 py-0.5 text-sm font-bold italic tracking-[0.18em] text-slate-900 shadow-sm">
       VISA
     </span>
+  );
+}
+
+/* NFC contactless wifi-wave icon (3 nested bars) */
+function NfcIcon({ className = "" }: { className?: string }) {
+  return (
+    <span className={`tp-nfc-wave ${className}`} aria-hidden>
+      <span />
+      <span />
+      <span />
+    </span>
+  );
+}
+
+/* Realistic card chip — gold gradient with chip lines */
+function CardChip() {
+  return (
+    <div className="relative h-7 w-10 overflow-hidden rounded-md bg-gradient-to-br from-amber-200 via-amber-300 to-amber-500 shadow-inner ring-1 ring-amber-700/30">
+      <div className="absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-amber-700/40" />
+      <div className="absolute inset-y-1 left-1/2 w-px -translate-x-1/2 bg-amber-700/40" />
+      <div className="absolute left-1 top-1 h-1.5 w-2 rounded-sm border border-amber-700/40" />
+      <div className="absolute right-1 bottom-1 h-1.5 w-2 rounded-sm border border-amber-700/40" />
+      <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-amber-700/30" />
+    </div>
+  );
+}
+
+function CardFaceFront({ card, variant }: { card: VCard; variant: CardVariant }) {
+  return (
+    <div
+      className={`tp-card-face ${CardGradient({ variant })} relative flex aspect-[1.586/1] w-full flex-col justify-between overflow-hidden rounded-2xl p-5 text-white shadow-xl ring-1 ring-white/10`}
+    >
+      {/* sheen + radial highlight */}
+      <div className="pointer-events-none absolute -top-1/2 -left-1/4 h-[200%] w-1/2 rotate-12 bg-white/5 blur-2xl" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_55%)]" />
+
+      {/* status pill */}
+      <div className="absolute right-3 top-3 z-10">
+        <span
+          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide backdrop-blur ${
+            card.status === "ACTIVE"
+              ? "bg-emerald-400/30 text-emerald-50"
+              : card.status === "FROZEN"
+              ? "bg-amber-400/30 text-amber-50"
+              : "bg-red-400/30 text-red-50"
+          }`}
+        >
+          {card.status}
+        </span>
+      </div>
+
+      {/* Top row: brand text + NFC + brand logo */}
+      <div className="relative flex items-start justify-between">
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] opacity-70">TURBOPAY</p>
+          <p className="mt-0.5 text-xs font-medium opacity-90">Virtual Card</p>
+        </div>
+        <div className="flex items-center gap-2 pt-1">
+          <NfcIcon className="opacity-80" />
+          <BrandLogo variant={variant} />
+        </div>
+      </div>
+
+      {/* Chip + PAN */}
+      <div className="relative">
+        <CardChip />
+        <p className="mt-3 font-mono text-base tracking-[0.18em] drop-shadow-sm sm:text-lg">
+          {card.panMasked}
+        </p>
+      </div>
+
+      {/* Bottom row: cardholder + expiry */}
+      <div className="relative flex items-end justify-between">
+        <div className="min-w-0">
+          <p className="text-[9px] uppercase tracking-widest opacity-70">Cardholder</p>
+          <p className="truncate text-xs font-semibold uppercase tracking-wide">
+            {card.cardholder}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[9px] uppercase tracking-widest opacity-70">Expires</p>
+          <p className="font-mono text-xs">{card.expiry}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CardFaceBack({ card, variant }: { card: VCard; variant: CardVariant }) {
+  // CVV derived deterministically from last4 (3 digits)
+  const cvv = String((parseInt(card.last4 || "0000", 10) * 7) % 900 + 100);
+  return (
+    <div
+      className={`tp-card-face tp-card-face--back ${CardGradient({ variant })} relative flex aspect-[1.586/1] w-full flex-col overflow-hidden rounded-2xl text-white shadow-xl ring-1 ring-white/10`}
+    >
+      {/* Magnetic strip */}
+      <div className="mt-5 h-10 w-full bg-black/85" />
+
+      {/* Signature + CVV row */}
+      <div className="mt-5 px-5">
+        <div className="flex items-stretch gap-2">
+          <div className="relative h-8 flex-1 overflow-hidden rounded-sm bg-white/95">
+            <div
+              className="absolute inset-0 opacity-60"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(135deg, oklch(0.85 0.05 80) 0 6px, white 6px 12px)",
+              }}
+            />
+            <p className="absolute inset-y-0 right-2 flex items-center font-mono text-[10px] tracking-wider text-slate-800">
+              {card.cardholder.slice(0, 18).toUpperCase()}
+            </p>
+          </div>
+          <div className="flex h-8 w-14 flex-col items-center justify-center rounded-sm bg-white/95">
+            <p className="text-[7px] font-semibold uppercase tracking-wide text-slate-500">CVV</p>
+            <p className="font-mono text-xs font-bold text-slate-900">{cvv}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="mt-auto flex items-end justify-between px-5 pb-5">
+        <div>
+          <p className="text-[9px] uppercase tracking-widest opacity-70">Authorised signature</p>
+          <p className="text-[10px] opacity-70">Not valid unless signed</p>
+        </div>
+        <p className="text-[10px] font-medium uppercase tracking-[0.2em] opacity-80">
+          TURBOPAY MFB
+        </p>
+      </div>
+
+      {/* radial highlight */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.10),transparent_55%)]" />
+    </div>
   );
 }
 
@@ -123,67 +288,31 @@ function CardVisual({
   card: VCard;
   onClick?: () => void;
 }) {
-  const isVisa = card.brand === "VISA";
-  const gradient = isVisa
-    ? "from-slate-800 via-slate-700 to-slate-900"
-    : "from-amber-500 via-amber-600 to-orange-700";
+  const [flipped, setFlipped] = React.useState(false);
+  const variant = pickVariant(card);
   const usage = card.spendingLimitKobo > 0 ? (card.balanceKobo / card.spendingLimitKobo) * 100 : 0;
 
   return (
-    <button
-      onClick={onClick}
-      className="group block w-full text-left"
-      aria-label={`Card •••• ${card.last4} actions`}
-    >
+    <div className="block w-full text-left">
       <div
-        className={`relative aspect-[1.586/1] w-full overflow-hidden rounded-2xl bg-gradient-to-br ${gradient} p-5 text-white shadow-xl ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-[1.015] group-focus-visible:ring-2 group-focus-visible:ring-white`}
+        className="tp-card-scene cursor-pointer select-none"
+        onClick={() => {
+          setFlipped((f) => !f);
+          onClick?.();
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label={`Card •••• ${card.last4} — click to flip`}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setFlipped((f) => !f);
+          }
+        }}
       >
-        {/* sheen */}
-        <div className="pointer-events-none absolute -top-1/2 -left-1/4 h-[200%] w-1/2 rotate-12 bg-white/5 blur-2xl" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_55%)]" />
-
-        <div className="relative flex items-start justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-widest opacity-70">Turbopay</p>
-            <p className="mt-0.5 text-sm font-semibold">Virtual Card</p>
-          </div>
-          <BrandLogo brand={card.brand} />
-        </div>
-
-        {/* chip */}
-        <div className="relative mt-3 h-6 w-9 rounded-md bg-gradient-to-br from-amber-200 to-amber-400 shadow-inner">
-          <div className="absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-amber-700/40" />
-        </div>
-
-        {/* pan masked */}
-        <p className="relative mt-3 font-mono text-base tracking-[0.18em] sm:text-lg">
-          {card.panMasked}
-        </p>
-
-        <div className="relative mt-3 flex items-end justify-between">
-          <div>
-            <p className="text-[9px] uppercase opacity-70">Cardholder</p>
-            <p className="text-xs font-medium uppercase tracking-wide">{card.cardholder}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[9px] uppercase opacity-70">Expires</p>
-            <p className="font-mono text-xs">{card.expiry}</p>
-          </div>
-        </div>
-
-        {/* status pill */}
-        <div className="absolute right-3 top-3">
-          <span
-            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${
-              card.status === "ACTIVE"
-                ? "bg-emerald-400/30 text-emerald-50"
-                : card.status === "FROZEN"
-                ? "bg-amber-400/30 text-amber-50"
-                : "bg-red-400/30 text-red-50"
-            }`}
-          >
-            {card.status}
-          </span>
+        <div className="tp-card-flipper tp-holo" data-flipped={flipped}>
+          <CardFaceFront card={card} variant={variant} />
+          <CardFaceBack card={card} variant={variant} />
         </div>
       </div>
 
@@ -201,10 +330,10 @@ function CardVisual({
         </div>
         <p className="mt-1 text-[10px] text-muted-foreground">
           Limit {naira(card.spendingLimitKobo)} · {card.transactionsCount} txn
-          {card.transactionsCount === 1 ? "" : "s"}
+          {card.transactionsCount === 1 ? "" : "s"} · <span className="text-primary/80">Click card to flip</span>
         </p>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -675,7 +804,7 @@ export default function CardsView() {
               <div className="rounded-2xl bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 p-4 text-white">
                 <div className="flex items-start justify-between">
                   <p className="text-[10px] uppercase tracking-widest opacity-70">{revealData.brand}</p>
-                  <BrandLogo brand={revealData.brand} />
+                  <BrandLogo variant={revealData.brand === "MASTERCARD" ? "MASTERCARD" : "VISA"} />
                 </div>
                 <p className="mt-4 font-mono text-lg tracking-wider">{revealData.pan}</p>
                 <div className="mt-3 flex justify-between text-xs">

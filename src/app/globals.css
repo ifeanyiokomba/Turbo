@@ -524,3 +524,175 @@ html { scroll-behavior: smooth; }
 .tp-link-underline:hover {
   background-size: 100% 1.5px;
 }
+
+/* ===== Payment card 3D flip ===== */
+.tp-card-scene {
+  perspective: 1400px;
+}
+.tp-card-flipper {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.7s cubic-bezier(0.45, 0.05, 0.15, 0.95);
+  will-change: transform;
+}
+.tp-card-flipper[data-flipped="true"] {
+  transform: rotateY(180deg);
+}
+.tp-card-face {
+  position: relative;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translate3d(0, 0, 0);
+}
+.tp-card-face--back {
+  position: absolute;
+  inset: 0;
+  transform: rotateY(180deg);
+}
+
+/* Holographic shimmer overlay (revealed on hover) */
+.tp-holo {
+  position: relative;
+  overflow: hidden;
+}
+.tp-holo::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 0%,
+    transparent 35%,
+    rgba(255, 255, 255, 0.18) 48%,
+    rgba(255, 200, 250, 0.28) 52%,
+    rgba(180, 220, 255, 0.22) 56%,
+    transparent 65%,
+    transparent 100%
+  );
+  background-size: 250% 100%;
+  background-position: 200% 0;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.tp-holo:hover::before {
+  opacity: 1;
+  animation: tp-holo-sweep 1.4s ease-out;
+}
+@keyframes tp-holo-sweep {
+  0% { background-position: 200% 0; opacity: 0; }
+  25% { opacity: 1; }
+  100% { background-position: -100% 0; opacity: 1; }
+}
+
+/* NFC "contactless" wifi-wave icon — three nested arcs that pulse */
+.tp-nfc-wave {
+  display: inline-flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1.5px;
+  width: 16px;
+  height: 16px;
+}
+.tp-nfc-wave span {
+  display: block;
+  width: 2.5px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.85;
+  animation: tp-nfc-pulse 1.8s ease-in-out infinite;
+}
+.tp-nfc-wave span:nth-child(1) { height: 35%; animation-delay: 0s; }
+.tp-nfc-wave span:nth-child(2) { height: 65%; animation-delay: 0.18s; }
+.tp-nfc-wave span:nth-child(3) { height: 100%; animation-delay: 0.36s; }
+@keyframes tp-nfc-pulse {
+  0%, 100% { opacity: 0.5; transform: scaleY(0.85); }
+  50% { opacity: 1; transform: scaleY(1); }
+}
+
+/* Testimonial carousel fade transition */
+.tp-testimonial {
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.tp-testimonial[data-active="true"] {
+  opacity: 1;
+  transform: translateY(0);
+  position: relative;
+}
+.tp-testimonial[data-active="false"] {
+  opacity: 0;
+  transform: translateY(8px);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Smooth accordion expand/collapse (works with shadcn/ui Accordion) */
+[data-state="open"] > .tp-accordion-trigger svg.tp-accordion-icon {
+  transform: rotate(45deg);
+}
+.tp-accordion-trigger svg.tp-accordion-icon {
+  transition: transform 0.25s ease;
+}
+[data-state="item"] .tp-accordion-content,
+.tp-accordion-content {
+  overflow: hidden;
+  animation: tp-accordion-open 0.3s ease-out;
+}
+@keyframes tp-accordion-open {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Awards / recognition marquee shimmer */
+.tp-award-shine {
+  background: linear-gradient(110deg,
+    color-mix(in oklch, var(--primary) 10%, transparent) 0%,
+    color-mix(in oklch, var(--warning) 22%, transparent) 50%,
+    color-mix(in oklch, var(--primary) 10%, transparent) 100%);
+  background-size: 200% 100%;
+  animation: tp-award-shine 4s ease-in-out infinite;
+}
+@keyframes tp-award-shine {
+  0%, 100% { background-position: 0% 0; }
+  50% { background-position: 100% 0; }
+}
+
+/* Insights tip card subtle rotating gradient border */
+.tp-tip-glow {
+  position: relative;
+  isolation: isolate;
+}
+.tp-tip-glow::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--tip-angle, 0deg),
+    color-mix(in oklch, var(--primary) 30%, transparent),
+    color-mix(in oklch, var(--warning) 30%, transparent),
+    color-mix(in oklch, var(--primary) 30%, transparent));
+  z-index: -1;
+  opacity: 0.5;
+  filter: blur(8px);
+  animation: tp-tip-rotate 8s linear infinite;
+}
+@property --tip-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+@keyframes tp-tip-rotate {
+  to { --tip-angle: 360deg; }
+}
+
+/* Extend reduced-motion guard with the new animations */
+@media (prefers-reduced-motion: reduce) {
+  .tp-card-flipper { transition: none !important; }
+  .tp-holo::before { animation: none !important; opacity: 0; }
+  .tp-nfc-wave span { animation: none !important; }
+  .tp-award-shine { animation: none !important; }
+  .tp-tip-glow::before { animation: none !important; }
+  .tp-testimonial { transition: none !important; }
+}

@@ -9,8 +9,9 @@ import { BalanceCardSkeleton, StatCardSkeleton } from "../parts/skeletons";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
   RadialBarChart, RadialBar, PolarAngleAxis,
 } from "recharts";
 import {
@@ -18,8 +19,10 @@ import {
   Smartphone, Receipt, CreditCard, PiggyBank, Plus, ChevronRight, ShieldAlert,
   QrCode,
   BarChart3,
+  TrendingUp, TrendingDown, CalendarDays, Lightbulb,
+  Crown, Sparkles,
 } from "lucide-react";
-import { naira, nairaCompact, timeAgo } from "@/lib/money";
+import { naira, nairaCompact } from "@/lib/money";
 import { toast } from "sonner";
 
 interface DashData {
@@ -29,6 +32,38 @@ interface DashData {
   cashflow: { date: string; inflow: number; outflow: number }[];
   stats: { moneyIn: number; moneyOut: number; netFlow: number; txCount: number };
   spending: { name: string; value: number }[];
+}
+
+interface AnalyticsData {
+  stats: {
+    totalIncome30: number;
+    totalExpense30: number;
+    txCount30: number;
+    thisWeekExpense: number;
+    lastWeekExpense: number;
+    weekChange: number;
+    thisWeekIncome: number;
+    lastWeekIncome: number;
+    incomeWeekChange: number;
+    avgTxSize: number;
+  };
+  spendingByCategory: { name: string; value: number; count: number }[];
+  incomeByCategory: { name: string; value: number; count: number }[];
+  dowData: { day: string; income: number; expense: number }[];
+}
+
+interface TxItem {
+  id: string;
+  type: string;
+  status: string;
+  direction: string;
+  createdAt: string;
+  amountKobo: number;
+}
+
+interface InsightsData {
+  analytics: AnalyticsData | null;
+  transactions: TxItem[];
 }
 
 const SPEND_COLORS = ["oklch(0.62 0.14 162)", "oklch(0.80 0.13 75)", "oklch(0.65 0.18 250)", "oklch(0.70 0.20 18)", "oklch(0.60 0.14 155)", "oklch(0.65 0.18 303)"];
@@ -44,6 +79,7 @@ export default function DashboardView() {
   const [data, setData] = React.useState<DashData | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [hideBalance, setHideBalance] = React.useState(false);
+  const [insights, setInsights] = React.useState<InsightsData | null>(null);
 
   const load = React.useCallback(async () => {
     try {
@@ -54,6 +90,26 @@ export default function DashboardView() {
     }
   }, []);
   React.useEffect(() => { load(); }, [load]);
+
+  // Load insights (analytics + recent transactions for day-of-week counts)
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [aRes, tRes] = await Promise.all([
+          fetch("/api/analytics", { cache: "no-store" }),
+          fetch("/api/transactions?limit=100", { cache: "no-store" }),
+        ]);
+        const a = aRes.ok ? await aRes.json() : null;
+        const t = tRes.ok ? await tRes.json() : null;
+        if (cancelled) return;
+        if (a || t) setInsights({ analytics: a, transactions: t?.transactions ?? [] });
+      } catch {
+        /* non-fatal — insights are decorative */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -189,6 +245,9 @@ export default function DashboardView() {
               </AreaChart>
             </ResponsiveContainer>
           </Card>
+
+          {/* Spending insights */}
+          <InsightsSection insights={insights} setView={setView} />
 
           {/* Recent transactions */}
           <Card className="p-5">
@@ -327,6 +386,358 @@ export default function DashboardView() {
             )}
           </Card>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================================================================= */
+/* Spending insights — 4 smart cards below the cashflow chart        */
+/* ================================================================= */
+
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEKDAY_FULL: Record<string, string> = {
+  Sun: "Sunday", Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday",
+  Thu: "Thursday", Fri: "Friday", Sat: "Saturday",
+};
+
+function pickSmartTip(opts: {
+  topCategory: { name: string; value: number } | null;
+  weekChange: number;
+  savingsRate: number;
+  totalIncome: number;
+  totalExpense: number;
+}): { icon: React.ComponentType<{ className?: string }>; tone: string; tip: string } {
+  const { topCategory, weekChange, savingsRate, totalExpense } = opts;
+
+  if (totalExpense <= 0) {
+    return {
+      icon: Sparkles,
+      tone: "from-emerald-500/15 to-emerald-600/5 text-emerald-600 dark:text-emerald-400",
+      tip: "No spending in the last 30 days. Perfect time to set savings goals for the months ahead.",
+    };
+  }
+
+  // Spending dropped significantly vs last week
+  if (weekChange <= -10) {
+    return {
+      icon: TrendingDown,
+      tone: "from-emerald-500/15 to-emerald-600/5 text-emerald-600 dark:text-emerald-400",
+      tip: `You spent ${Math.abs(weekChange)}% less this week vs last week. Keep the momentum going!`,
+    };
+  }
+
+  // Spending up significantly
+  if (weekChange >= 20) {
+    return {
+      icon: TrendingUp,
+      tone: "from-amber-500/15 to-orange-500/5 text-amber-600 dark:text-amber-400",
+      tip: `Spending is up ${weekChange}% this week. Consider setting a budget to stay on track.`,
+    };
+  }
+
+  // Low savings rate
+  if (savingsRate >= 0 && savingsRate < 5) {
+    return {
+      icon: Lightbulb,
+      tone: "from-amber-500/15 to-orange-500/5 text-amber-600 dark:text-amber-400",
+      tip: "You're saving less than 5% of your income. Even ₦1,000 a month adds up over time.",
+    };
+  }
+
+  // Great savings rate
+  if (savingsRate >= 20) {
+    return {
+      icon: Crown,
+      tone: "from-emerald-500/15 to-emerald-600/5 text-emerald-600 dark:text-emerald-400",
+      tip: `You're saving ${savingsRate.toFixed(0)}% of your income — ahead of the curve. Keep it up!`,
+    };
+  }
+
+  // Category-specific nudges
+  if (topCategory?.name === "AIRTIME") {
+    return {
+      icon: Smartphone,
+      tone: "from-amber-500/15 to-orange-500/5 text-amber-600 dark:text-amber-400",
+      tip: "Airtime is your top spend this month. A data + voice bundle could save you up to 20%.",
+    };
+  }
+  if (topCategory?.name === "BILL") {
+    return {
+      icon: Receipt,
+      tone: "from-violet-500/15 to-violet-600/5 text-violet-600 dark:text-violet-400",
+      tip: "Bills make up most of your spending. Schedule payments to avoid late fees.",
+    };
+  }
+  if (topCategory?.name === "TRANSFER") {
+    return {
+      icon: ArrowLeftRight,
+      tone: "from-sky-500/15 to-sky-600/5 text-sky-600 dark:text-sky-400",
+      tip: "Transfers are your top category. Use Turbopay-to-Turbopay transfers — they're free and instant.",
+    };
+  }
+
+  return {
+    icon: Lightbulb,
+    tone: "from-emerald-500/15 to-emerald-600/5 text-emerald-600 dark:text-emerald-400",
+    tip: "Track your spending daily to spot hidden patterns and find easy ways to save.",
+  };
+}
+
+function InsightsCard({
+  icon: Icon,
+  tone,
+  label,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  tone: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Card className="tp-card-hover tp-card-gradient relative overflow-hidden p-5">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <div className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${tone}`}>
+          <Icon className="h-4 w-4" />
+        </div>
+      </div>
+      <div className="mt-3">{children}</div>
+    </Card>
+  );
+}
+
+function InsightsSection({
+  insights,
+  setView,
+}: {
+  insights: InsightsData | null;
+  setView: (v: "savings" | "analytics" | "history") => void;
+}) {
+  const a = insights?.analytics;
+
+  // 1. Top spending category
+  const topCat = a?.spendingByCategory?.[0] ?? null;
+  const totalSpend = a?.spendingByCategory?.reduce((s, c) => s + c.value, 0) ?? 0;
+  const topCatPct = topCat && totalSpend > 0 ? (topCat.value / totalSpend) * 100 : 0;
+  const weekChange = a?.stats?.weekChange ?? 0;
+
+  // 2. Busiest day of week — by transaction count from raw txns
+  const dowCounts = React.useMemo(() => {
+    const counts: Record<string, number> = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
+    for (const t of insights?.transactions ?? []) {
+      const d = new Date(t.createdAt);
+      const dow = WEEKDAYS[d.getDay()];
+      counts[dow]++;
+    }
+    return counts;
+  }, [insights]);
+  const busiestEntry = Object.entries(dowCounts).sort((x, y) => y[1] - x[1])[0];
+  const busiestDay = busiestEntry?.[0] ?? null;
+  const busiestCount = busiestEntry?.[1] ?? 0;
+
+  // 3. Saving rate
+  const savingsDeposits =
+    a?.spendingByCategory?.find((c) => c.name === "SAVINGS_DEPOSIT")?.value ?? 0;
+  const totalIncome = a?.stats?.totalIncome30 ?? 0;
+  const savingsRate = totalIncome > 0 ? (savingsDeposits / totalIncome) * 100 : 0;
+
+  // 4. Smart tip
+  const tip = React.useMemo(
+    () =>
+      pickSmartTip({
+        topCategory: topCat ? { name: topCat.name, value: topCat.value } : null,
+        weekChange,
+        savingsRate,
+        totalIncome,
+        totalExpense: totalSpend,
+      }),
+    [topCat, weekChange, savingsRate, totalIncome, totalSpend],
+  );
+
+  // Loading skeleton
+  if (!insights) {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2">
+        {[0, 1, 2, 3].map((i) => (
+          <Card key={i} className="p-5">
+            <div className="flex items-center justify-between">
+              <div className="tp-skeleton-shimmer h-3 w-24 rounded-full" />
+              <div className="tp-skeleton-shimmer h-9 w-9 rounded-lg" />
+            </div>
+            <div className="tp-skeleton-shimmer mt-3 h-6 w-32 rounded-full" />
+            <div className="tp-skeleton-shimmer mt-2 h-3 w-40 rounded-full" />
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  // No data state
+  const hasNoData = !a || totalSpend <= 0;
+  if (hasNoData) {
+    return (
+      <Card className="p-5">
+        <div className="flex flex-col items-center justify-center py-6 text-center">
+          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Lightbulb className="h-5 w-5" />
+          </div>
+          <p className="text-sm font-medium">Spending insights appear here</p>
+          <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+            Make a few transactions and we&apos;ll surface smart insights about your spending patterns.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 gap-1.5"
+            onClick={() => setView("history")}
+          >
+            View transactions <ChevronRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold">Spending insights</p>
+          <p className="text-xs text-muted-foreground">Smart observations from your last 30 days</p>
+        </div>
+        <Badge variant="secondary" className="gap-1">
+          <Sparkles className="h-3 w-3 text-amber-500" /> AI-powered
+        </Badge>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {/* Top spending category */}
+        <InsightsCard
+          icon={Crown}
+          tone="from-amber-500/15 to-orange-500/5 text-amber-600 dark:text-amber-400"
+          label="Top spending category"
+        >
+          {topCat ? (
+            <>
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-xl font-bold">{TYPE_LABELS[topCat.name] ?? topCat.name}</p>
+                <p className="text-sm font-bold tabular-nums">{naira(topCat.value)}</p>
+              </div>
+              <div className="mt-2 flex items-center gap-2">
+                <Progress value={topCatPct} className="h-1.5" />
+                <span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">
+                  {topCatPct.toFixed(0)}%
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-1.5 text-xs">
+                {weekChange < 0 ? (
+                  <>
+                    <TrendingDown className="h-3.5 w-3.5 text-emerald-500" />
+                    <span className="text-emerald-600 dark:text-emerald-400">
+                      Down {Math.abs(weekChange)}% vs last week
+                    </span>
+                  </>
+                ) : weekChange > 0 ? (
+                  <>
+                    <TrendingUp className="h-3.5 w-3.5 text-amber-500" />
+                    <span className="text-amber-600 dark:text-amber-400">
+                      Up {weekChange}% vs last week
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">No change vs last week</span>
+                )}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">No spending yet</p>
+          )}
+        </InsightsCard>
+
+        {/* Busiest day */}
+        <InsightsCard
+          icon={CalendarDays}
+          tone="from-sky-500/15 to-sky-600/5 text-sky-600 dark:text-sky-400"
+          label="Busiest day of week"
+        >
+          {busiestDay && busiestCount > 0 ? (
+            <>
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="text-xl font-bold">{WEEKDAY_FULL[busiestDay] ?? busiestDay}</p>
+                <p className="text-sm font-bold tabular-nums">{busiestCount} txn{busiestCount === 1 ? "" : "s"}</p>
+              </div>
+              <div className="mt-3 flex items-end justify-between gap-1.5">
+                {WEEKDAYS.map((d) => {
+                  const c = dowCounts[d] ?? 0;
+                  const maxC = Math.max(busiestCount, 1);
+                  const h = Math.max(4, (c / maxC) * 36);
+                  const isBusiest = d === busiestDay;
+                  return (
+                    <div key={d} className="flex flex-1 flex-col items-center gap-1">
+                      <div
+                        className={`w-full rounded-sm transition-all ${
+                          isBusiest ? "bg-sky-500" : "bg-sky-500/25"
+                        }`}
+                        style={{ height: `${h}px` }}
+                        title={`${d}: ${c} txn${c === 1 ? "" : "s"}`}
+                      />
+                      <span className="text-[9px] text-muted-foreground">{d[0]}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">No transactions yet</p>
+          )}
+        </InsightsCard>
+
+        {/* Saving rate */}
+        <InsightsCard
+          icon={PiggyBank}
+          tone="from-emerald-500/15 to-emerald-600/5 text-emerald-600 dark:text-emerald-400"
+          label="Saving rate (30d)"
+        >
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-xl font-bold tabular-nums">{savingsRate.toFixed(1)}%</p>
+            <p className="text-xs text-muted-foreground">
+              of {nairaCompact(totalIncome)}
+            </p>
+          </div>
+          <div className="mt-2">
+            <Progress value={Math.min(100, savingsRate)} className="h-1.5" />
+            <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>Saved: {nairaCompact(savingsDeposits)}</span>
+              <span>Target: 20%</span>
+            </div>
+          </div>
+          {savingsRate < 20 && (
+            <button
+              onClick={() => setView("savings")}
+              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              Boost your savings <ChevronRight className="h-3 w-3" />
+            </button>
+          )}
+        </InsightsCard>
+
+        {/* Smart tip */}
+        <Card className="tp-tip-glow relative overflow-hidden p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium text-muted-foreground">Smart tip</p>
+            <div className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${tip.tone}`}>
+              <tip.icon className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed">{tip.tip}</p>
+          <button
+            onClick={() => setView("analytics")}
+            className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+          >
+            See full breakdown <ChevronRight className="h-3 w-3" />
+          </button>
+        </Card>
       </div>
     </div>
   );
