@@ -129,10 +129,27 @@ export async function GET() {
     // ----- Persist new badges + notifications ---------------------------
     if (newlyEarned.length > 0) {
       await db.$transaction(async (tx) => {
-        await tx.userBadge.createMany({
-          data: newlyEarned.map((key) => ({ userId: user.id, badgeKey: key })),
-          skipDuplicates: true,
-        });
+        // SQLite's createMany doesn't support skipDuplicates, so we create
+        // each badge individually and swallow the rare unique-constraint
+        // race (the @@unique([userId, badgeKey]) guard is the source of truth).
+        await Promise.all(
+          newlyEarned.map((key) =>
+            tx.userBadge
+              .create({ data: { userId: user.id, badgeKey: key } })
+              .catch((err) => {
+                // P2002 = unique constraint violation — acceptable here.
+                if (
+                  typeof err === "object" &&
+                  err !== null &&
+                  "code" in err &&
+                  (err as { code: string }).code === "P2002"
+                ) {
+                  return;
+                }
+                throw err;
+              }),
+          ),
+        );
         await tx.inAppNotification.createMany({
           data: newlyEarned.map((key) => ({
             userId: user.id,
