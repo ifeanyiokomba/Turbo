@@ -14,6 +14,7 @@ import { CountrySwitcher } from "./parts/country-switcher";
 import { ViewTransition } from "./view-transition";
 import AiSupport from "./ai-support";
 import { useSessionTimeout } from "./parts/use-session-timeout";
+import { OnboardingOverlay } from "./onboarding-overlay";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +57,7 @@ import {
   AlertTriangle,
   Scale,
   Ticket,
+  HelpCircle,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
@@ -90,6 +92,7 @@ const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any
       { key: "rewards", label: "Rewards", icon: Gift },
       { key: "vouchers", label: "Vouchers", icon: Ticket },
       { key: "disputes", label: "Disputes", icon: Scale },
+      { key: "help-center", label: "Help Center", icon: HelpCircle },
       { key: "security", label: "Security", icon: ShieldCheck },
       { key: "settings", label: "Settings", icon: Settings },
       { key: "support", label: "Help & Support", icon: LifeBuoy },
@@ -142,6 +145,7 @@ const Views: Record<ViewKey, React.LazyExoticComponent<React.ComponentType>> = {
   analytics: React.lazy(() => import("./views/analytics")),
   disputes: React.lazy(() => import("./views/disputes")),
   vouchers: React.lazy(() => import("./views/vouchers")),
+  "help-center": React.lazy(() => import("./views/help-center")),
 };
 
 const VIEW_TITLES: Record<ViewKey, string> = {
@@ -170,6 +174,7 @@ const VIEW_TITLES: Record<ViewKey, string> = {
   analytics: "Analytics",
   disputes: "Disputes",
   vouchers: "Vouchers",
+  "help-center": "Help Center",
 };
 
 export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.getState>["user"]> }) {
@@ -471,6 +476,9 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
         onStay={session.staySignedIn}
         onSignOut={session.signOutNow}
       />
+
+      {/* Guided onboarding overlay (shows after login until PIN + wallet + KYC complete) */}
+      <OnboardingOverlay user={user} />
     </PinDialogProvider>
   );
 }

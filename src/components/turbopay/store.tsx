@@ -28,7 +28,8 @@ export type ViewKey =
   | "scheduled-payments"
   | "analytics"
   | "disputes"
-  | "vouchers";
+  | "vouchers"
+  | "help-center";
 
 export interface AppUser {
   id: string;

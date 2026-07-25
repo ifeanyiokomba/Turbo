@@ -952,3 +952,17 @@ model TeamMember {
   lastLoginAt   DateTime?
   @@index([status])
 }
+
+model SpendingBudget {
+  id            String   @id @default(cuid())
+  userId        String
+  category      String   @default("TOTAL") // TOTAL | TRANSFER | AIRTIME | DATA | BILL | CARD_FUND
+  monthlyLimitKobo Int
+  periodStart   DateTime @default(now())
+  alertThreshold Int     @default(80) // % at which to alert
+  enabled       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  @@unique([userId, category])
+  @@index([userId])
+}

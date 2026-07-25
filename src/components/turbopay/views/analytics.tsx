@@ -4,6 +4,25 @@ import * as React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, RadialBarChart, RadialBar,
@@ -11,10 +30,12 @@ import {
 import {
   TrendingUp, TrendingDown, ArrowDownLeft, ArrowUpRight, Activity,
   Calendar, Clock, Users, BarChart3, Wallet, Zap, Trophy,
+  Target, Plus, Trash2, AlertTriangle, RefreshCw, PiggyBank,
 } from "lucide-react";
-import { naira, nairaCompact, timeAgo } from "@/lib/money";
-import { PageHeader, StatCard, EmptyState } from "../parts/layout";
-import { useApp } from "../store";
+import { naira, nairaCompact, timeAgo, parseKobo } from "@/lib/money";
+import { PageHeader, EmptyState } from "../parts/layout";
+import { AnimatedNumber } from "../parts/animated-number";
+import { toast } from "sonner";
 
 interface AnalyticsData {
   trends: { date: string; income: number; expense: number; net: number }[];
@@ -70,6 +91,7 @@ export default function AnalyticsView() {
     return (
       <>
         <PageHeader title="Analytics" subtitle="Deep-dive into your spending patterns" />
+        <BudgetsSection />
         <EmptyState
           icon={BarChart3}
           title="No data to analyze yet"
@@ -93,6 +115,9 @@ export default function AnalyticsView() {
           </Badge>
         }
       />
+
+      {/* Budgets section */}
+      <BudgetsSection />
 
       {/* Stat tiles with gradient accents */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -375,6 +400,446 @@ function GradientStatCard({
           {change > 0 ? "↑" : "↓"} {Math.abs(change)}% {changeLabel}
         </p>
       )}
+    </Card>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Budgets section                                                     */
+/* ------------------------------------------------------------------ */
+
+interface BudgetRow {
+  id: string;
+  category: string;
+  categoryLabel: string;
+  monthlyLimitKobo: number;
+  periodStart: string;
+  alertThreshold: number;
+  enabled: boolean;
+  spentKobo: number;
+  pct: number;
+  remainingKobo: number;
+  overThreshold: boolean;
+  overBudget: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const BUDGET_CATEGORY_OPTIONS: { value: string; label: string; hint: string }[] = [
+  { value: "TOTAL", label: "Total spending", hint: "All debits combined" },
+  { value: "TRANSFER", label: "Transfers", hint: "P2P transfers" },
+  { value: "AIRTIME", label: "Airtime", hint: "Airtime purchases" },
+  { value: "DATA", label: "Data", hint: "Data bundles" },
+  { value: "BILL", label: "Bills", hint: "Bill payments" },
+  { value: "CARD_FUND", label: "Card funding", hint: "Virtual card topups" },
+];
+
+function toneForPct(pct: number, overBudget: boolean): {
+  barClass: string;
+  textClass: string;
+  ringClass: string;
+  label: string;
+} {
+  if (overBudget || pct >= 100) {
+    return {
+      barClass: "bg-red-500",
+      textClass: "text-red-600 dark:text-red-400",
+      ringClass: "ring-red-500/30",
+      label: "Over budget",
+    };
+  }
+  if (pct >= 80) {
+    return {
+      barClass: "bg-red-500",
+      textClass: "text-red-600 dark:text-red-400",
+      ringClass: "ring-red-500/30",
+      label: "Near limit",
+    };
+  }
+  if (pct >= 50) {
+    return {
+      barClass: "bg-amber-500",
+      textClass: "text-amber-600 dark:text-amber-400",
+      ringClass: "ring-amber-500/30",
+      label: "On track",
+    };
+  }
+  return {
+    barClass: "bg-emerald-500",
+    textClass: "text-emerald-600 dark:text-emerald-400",
+    ringClass: "ring-emerald-500/30",
+    label: "Healthy",
+  };
+}
+
+function BudgetRowCard({
+  budget,
+  onEdit,
+  onDelete,
+}: {
+  budget: BudgetRow;
+  onEdit: (b: BudgetRow) => void;
+  onDelete: (b: BudgetRow) => void;
+}) {
+  const tone = toneForPct(budget.pct, budget.overBudget);
+  const pctClamped = Math.min(100, budget.pct);
+  return (
+    <div className={`rounded-2xl border bg-card p-5 shadow-sm ring-1 ${budget.overThreshold ? tone.ringClass : "ring-transparent"}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm font-semibold">{budget.categoryLabel}</p>
+            {budget.overThreshold && (
+              <Badge variant="destructive" className="gap-1 text-[10px]">
+                <AlertTriangle className="h-3 w-3" /> {budget.overBudget ? "Over" : `${budget.pct}%`}
+              </Badge>
+            )}
+            {!budget.enabled && (
+              <Badge variant="secondary" className="text-[10px]">Disabled</Badge>
+            )}
+          </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            Spent <span className="font-medium text-foreground">
+              <AnimatedNumber value={budget.spentKobo} format={naira} duration={600} />
+            </span> of {naira(budget.monthlyLimitKobo)} this month
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onEdit(budget)} aria-label="Edit budget">
+            <Target className="h-3.5 w-3.5" />
+          </Button>
+          <Button size="icon" variant="ghost" className="h-7 w-7 text-muted-foreground hover:text-red-600" onClick={() => onDelete(budget)} aria-label="Delete budget">
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <div className="flex items-center justify-between text-xs">
+          <span className={tone.textClass}>{budget.pct}% used</span>
+          <span className="text-muted-foreground">
+            {budget.overBudget ? (
+              <>Over by <span className="font-medium text-red-600 dark:text-red-400">{naira(budget.spentKobo - budget.monthlyLimitKobo)}</span></>
+            ) : (
+              <><span className="font-medium">{naira(budget.remainingKobo)}</span> left</>
+            )}
+          </span>
+        </div>
+        <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-muted">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${tone.barClass}`}
+            style={{ width: `${Math.max(0, Math.min(100, pctClamped))}%` }}
+          />
+        </div>
+        <p className="mt-1 text-[10px] text-muted-foreground">
+          Alert at {budget.alertThreshold}% · resets monthly
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function BudgetsSection() {
+  const [budgets, setBudgets] = React.useState<BudgetRow[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [editing, setEditing] = React.useState<BudgetRow | null>(null);
+  const [category, setCategory] = React.useState<string>("TOTAL");
+  const [limitInput, setLimitInput] = React.useState<string>("");
+  const [threshold, setThreshold] = React.useState<number>(80);
+  const [saving, setSaving] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<BudgetRow | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/budgets", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setBudgets(data.budgets ?? []);
+      }
+    } catch {
+      /* swallow */
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  const existingCats = React.useMemo(() => new Set(budgets.map((b) => b.category)), [budgets]);
+
+  function openCreate() {
+    setEditing(null);
+    // Default to first category user doesn't have yet
+    const next = BUDGET_CATEGORY_OPTIONS.find((c) => !existingCats.has(c.value))?.value ?? "TOTAL";
+    setCategory(next);
+    setLimitInput("");
+    setThreshold(80);
+    setDialogOpen(true);
+  }
+
+  function openEdit(b: BudgetRow) {
+    setEditing(b);
+    setCategory(b.category);
+    setLimitInput(String((b.monthlyLimitKobo / 100).toFixed(2)));
+    setThreshold(b.alertThreshold);
+    setDialogOpen(true);
+  }
+
+  async function save() {
+    const limitKobo = parseKobo(limitInput);
+    if (limitKobo < 1000) {
+      toast.error("Monthly limit must be at least ₦10");
+      return;
+    }
+    if (threshold < 10 || threshold > 100) {
+      toast.error("Alert threshold must be between 10% and 100%");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/budgets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category,
+          monthlyLimitKobo: limitKobo,
+          alertThreshold: threshold,
+          enabled: true,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json?.error ?? "Failed to save budget");
+        return;
+      }
+      toast.success(editing ? "Budget updated" : "Budget created");
+      setDialogOpen(false);
+      load();
+    } catch {
+      toast.error("Network error. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/budgets/${deleteTarget.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.error(j?.error ?? "Failed to delete budget");
+        return;
+      }
+      toast.success("Budget deleted");
+      setDeleteTarget(null);
+      load();
+    } catch {
+      toast.error("Network error. Try again.");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  const totalSpent = budgets.reduce((sum, b) => sum + (b.category === "TOTAL" ? b.spentKobo : 0), 0);
+  const totalLimit = budgets.find((b) => b.category === "TOTAL")?.monthlyLimitKobo ?? 0;
+
+  return (
+    <Card className="p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <PiggyBank className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Spending budgets</p>
+            <p className="text-xs text-muted-foreground">
+              Track monthly spend against the limits you set.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="ghost" onClick={load} className="gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" /> Refresh
+          </Button>
+          <Button size="sm" onClick={openCreate} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Set budget
+          </Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[0, 1].map((i) => (
+            <div key={i} className="h-32 animate-pulse rounded-2xl bg-muted/60" />
+          ))}
+        </div>
+      ) : budgets.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-10 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Target className="h-6 w-6" />
+          </div>
+          <p className="mt-3 font-medium">No budgets yet</p>
+          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+            Set a monthly spending cap per category and we&apos;ll alert you when you cross the threshold.
+          </p>
+          <Button size="sm" className="mt-4 gap-1.5" onClick={openCreate}>
+            <Plus className="h-4 w-4" /> Set your first budget
+          </Button>
+        </div>
+      ) : (
+        <>
+          {/* Summary banner */}
+          {totalLimit > 0 && (
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-muted/40 p-3">
+              <span className="text-xs text-muted-foreground">Total spent this month</span>
+              <span className="text-sm font-semibold tabular-nums">
+                <AnimatedNumber value={totalSpent} format={naira} duration={600} />
+                <span className="text-muted-foreground"> / {naira(totalLimit)}</span>
+              </span>
+            </div>
+          )}
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {budgets.map((b) => (
+              <BudgetRowCard key={b.id} budget={b} onEdit={openEdit} onDelete={setDeleteTarget} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Create / edit dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditing(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Target className="h-4 w-4 text-primary" />
+              {editing ? "Edit budget" : "Set a budget"}
+            </DialogTitle>
+            <DialogDescription>
+              Choose a category, monthly limit, and the alert threshold.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="budget-cat">Category</Label>
+              <Select
+                value={category}
+                onValueChange={(v) => setCategory(v)}
+                disabled={!!editing}
+              >
+                <SelectTrigger id="budget-cat" className="w-full">
+                  <SelectValue placeholder="Select a category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {BUDGET_CATEGORY_OPTIONS.map((opt) => (
+                    <SelectItem
+                      key={opt.value}
+                      value={opt.value}
+                      disabled={!editing && existingCats.has(opt.value)}
+                    >
+                      <div className="flex flex-col">
+                        <span>{opt.label}</span>
+                        <span className="text-[10px] text-muted-foreground">{opt.hint}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="budget-limit">Monthly limit (₦)</Label>
+              <Input
+                id="budget-limit"
+                inputMode="decimal"
+                placeholder="e.g. 50000"
+                value={limitInput}
+                onChange={(e) => setLimitInput(e.target.value)}
+              />
+              {parseKobo(limitInput) > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  = <span className="font-medium text-foreground">{naira(parseKobo(limitInput))}</span>
+                </p>
+              )}
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: "₦10K", v: "10000" },
+                  { label: "₦50K", v: "50000" },
+                  { label: "₦100K", v: "100000" },
+                  { label: "₦500K", v: "500000" },
+                ].map((chip) => (
+                  <button
+                    key={chip.label}
+                    type="button"
+                    onClick={() => setLimitInput(chip.v)}
+                    className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                  >
+                    {chip.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="budget-threshold">Alert threshold</Label>
+                <span className="text-sm font-semibold text-primary tabular-nums">{threshold}%</span>
+              </div>
+              <Slider
+                id="budget-threshold"
+                value={[threshold]}
+                min={10}
+                max={100}
+                step={5}
+                onValueChange={(v) => setThreshold(v[0] ?? 80)}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                We&apos;ll flag the budget when usage crosses this percentage.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="ghost">Cancel</Button>
+            </DialogClose>
+            <Button onClick={save} disabled={saving} className="gap-1.5">
+              {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {editing ? "Save changes" : "Create budget"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation */}
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500" /> Delete budget?
+            </DialogTitle>
+            <DialogDescription>
+              This removes the <span className="font-medium text-foreground">{deleteTarget?.categoryLabel}</span> budget. You can always set a new one later.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="ghost">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={confirmDelete} disabled={deleting} className="gap-1.5">
+              {deleting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Delete budget
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

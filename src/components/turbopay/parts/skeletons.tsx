@@ -5,10 +5,15 @@ import { Card } from "@/components/ui/card";
 
 /**
  * Skeleton primitives for Turbopay views.
- * - Use `tp-sheen` (the brand shimmer sweep defined in globals.css) on the
- *   container plus `animate-pulse` on the inner placeholder bars to create a
- *   layered shimmer + pulse loading effect that matches the emerald+amber brand.
- * - Every skeleton is `aria-hidden` so screen readers skip the placeholder.
+ *
+ * Uses the `tp-shimmer` brand sweep (defined in globals.css) for the
+ * placeholder blocks. `tp-sheen` provides the layered overlay sweep on the
+ * wallet card skeleton. Every skeleton is `aria-hidden` so screen readers
+ * skip the placeholder.
+ *
+ * Note: previously these used `animate-pulse` on each bar. We now use the
+ * `tp-shimmer` class on each bar for a single, polished brand-aligned effect
+ * (gradient sweep across the bar rather than a global fade).
  */
 
 const sheenWrap = "tp-sheen relative overflow-hidden";
@@ -22,38 +27,38 @@ export function BalanceCardSkeleton({ className = "" }: { className?: string }) 
     >
       <div className="flex items-start justify-between">
         <div className="space-y-2">
-          <div className="h-3 w-24 animate-pulse rounded-full bg-white/25" />
-          <div className="h-7 w-40 animate-pulse rounded-full bg-white/35" />
+          <div className="tp-shimmer h-3 w-24 rounded-full" />
+          <div className="tp-shimmer h-7 w-40 rounded-full opacity-90" />
         </div>
-        <div className="h-8 w-8 animate-pulse rounded-full bg-white/25" />
+        <div className="tp-shimmer h-8 w-8 rounded-full" />
       </div>
 
       <div className="mt-6 flex items-center justify-between">
         <div className="space-y-1.5">
-          <div className="h-2.5 w-20 animate-pulse rounded-full bg-white/20" />
-          <div className="h-4 w-36 animate-pulse rounded-full bg-white/30" />
+          <div className="tp-shimmer h-2.5 w-20 rounded-full opacity-80" />
+          <div className="tp-shimmer h-4 w-36 rounded-full" />
         </div>
-        <div className="h-5 w-12 animate-pulse rounded-full bg-white/20" />
+        <div className="tp-shimmer h-5 w-12 rounded-full opacity-80" />
       </div>
 
       <div className="mt-5 flex gap-2">
-        <div className="h-7 w-24 animate-pulse rounded-full bg-white/25" />
-        <div className="h-7 w-24 animate-pulse rounded-full bg-white/15" />
+        <div className="tp-shimmer h-7 w-24 rounded-full" />
+        <div className="tp-shimmer h-7 w-24 rounded-full opacity-70" />
       </div>
     </div>
   );
 }
 
-/** Matches the StatCard (Card p-4 with label, icon tile, value, hint). */
+/** Matches the StatCard (Card p-5 with label, icon tile, value, hint). */
 export function StatCardSkeleton({ className = "" }: { className?: string }) {
   return (
-    <Card aria-hidden className={`${sheenWrap} p-4 ${className}`}>
+    <Card aria-hidden className={`${sheenWrap} p-5 ${className}`}>
       <div className="flex items-center justify-between">
-        <div className="h-3 w-20 animate-pulse rounded-full bg-muted" />
-        <div className="h-8 w-8 animate-pulse rounded-lg bg-muted" />
+        <div className="tp-shimmer h-3 w-20 rounded-full" />
+        <div className="tp-shimmer h-9 w-9 rounded-lg" />
       </div>
-      <div className="mt-2 h-6 w-24 animate-pulse rounded-full bg-muted" />
-      <div className="mt-1 h-2.5 w-16 animate-pulse rounded-full bg-muted/70" />
+      <div className="tp-shimmer mt-3 h-6 w-24 rounded-full" />
+      <div className="tp-shimmer mt-1 h-2.5 w-16 rounded-full opacity-80" />
     </Card>
   );
 }
@@ -65,14 +70,14 @@ export function TransactionItemSkeleton({ className = "" }: { className?: string
       aria-hidden
       className={`flex items-center gap-3 rounded-xl px-2 py-2.5 ${className}`}
     >
-      <div className="h-10 w-10 shrink-0 animate-pulse rounded-full bg-muted" />
+      <div className="tp-shimmer h-10 w-10 shrink-0 rounded-full" />
       <div className="flex-1 space-y-1.5">
-        <div className="h-3.5 w-3/4 animate-pulse rounded-full bg-muted" />
-        <div className="h-2.5 w-1/2 animate-pulse rounded-full bg-muted/70" />
+        <div className="tp-shimmer h-3.5 w-3/4 rounded-full" />
+        <div className="tp-shimmer h-2.5 w-1/2 rounded-full opacity-80" />
       </div>
       <div className="space-y-1.5 text-right">
-        <div className="ml-auto h-3.5 w-16 animate-pulse rounded-full bg-muted" />
-        <div className="ml-auto h-2.5 w-12 animate-pulse rounded-full bg-muted/70" />
+        <div className="tp-shimmer ml-auto h-3.5 w-16 rounded-full" />
+        <div className="tp-shimmer ml-auto h-2.5 w-12 rounded-full opacity-80" />
       </div>
     </div>
   );
@@ -91,7 +96,7 @@ export function TableRowSkeleton({
       {Array.from({ length: cells }).map((_, i) => (
         <td key={i} className="px-4 py-3">
           <div
-            className="h-4 animate-pulse rounded-full bg-muted"
+            className="tp-shimmer h-4 rounded-full"
             style={{ maxWidth: `${100 - i * 8}%` }}
           />
         </td>

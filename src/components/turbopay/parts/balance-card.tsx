@@ -4,6 +4,7 @@ import * as React from "react";
 import { Card } from "@/components/ui/card";
 import { naira } from "@/lib/money";
 import { Logo } from "../logo";
+import { AnimatedNumber } from "./animated-number";
 import { Eye, EyeOff, Copy, Check, Plus, ArrowUpRight } from "lucide-react";
 
 export function BalanceCard({
@@ -31,13 +32,21 @@ export function BalanceCard({
     setTimeout(() => setCopied(false), 1500);
   }
   return (
-    <div className="tp-wallet-card relative aspect-[1.7/1] w-full max-w-md rounded-3xl p-5 text-white tp-sheen sm:p-6">
+    <div className="tp-wallet-card tp-float relative aspect-[1.7/1] w-full max-w-md rounded-3xl p-5 text-white tp-sheen sm:p-6">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs opacity-80">Available balance</p>
           <div className="mt-1.5 flex items-center gap-2">
             <p className="text-2xl font-bold tabular-nums sm:text-3xl">
-              {hideBalance ? "₦ ••••••" : naira(balanceKobo)}
+              {hideBalance ? (
+                "₦ ••••••"
+              ) : (
+                <AnimatedNumber
+                  value={balanceKobo}
+                  duration={700}
+                  format={naira}
+                />
+              )}
             </p>
             <button onClick={onToggleHide} className="opacity-70 hover:opacity-100">
               {hideBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -74,6 +83,10 @@ export function BalanceCard({
           <ArrowUpRight className="h-3.5 w-3.5" /> Transfer
         </button>
       </div>
+
+      <p className="mt-4 text-[10px] font-medium opacity-50">
+        Powered by Turbopay MFB · CBN-licensed partner
+      </p>
     </div>
   );
 }

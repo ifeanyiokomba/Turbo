@@ -217,16 +217,46 @@ export default function DashboardView() {
 
         {/* Right column */}
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-            <StatCard label="Money in (14d)" value={naira(data?.stats.moneyIn ?? 0)} icon={ArrowDownLeft} tone="success" />
-            <StatCard label="Money out (14d)" value={naira(data?.stats.moneyOut ?? 0)} icon={ArrowUpRight} tone="warning" />
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-2">
+            <StatCard
+              label="Money in (14d)"
+              value={naira(data?.stats.moneyIn ?? 0)}
+              icon={ArrowDownLeft}
+              tone="success"
+              animated
+              numericValue={data?.stats.moneyIn ?? 0}
+              format={naira}
+            />
+            <StatCard
+              label="Money out (14d)"
+              value={naira(data?.stats.moneyOut ?? 0)}
+              icon={ArrowUpRight}
+              tone="warning"
+              animated
+              numericValue={data?.stats.moneyOut ?? 0}
+              format={naira}
+            />
+            <StatCard
+              label="Net flow"
+              value={naira(data?.stats.netFlow ?? 0)}
+              icon={Activity}
+              tone="default"
+              animated
+              numericValue={data?.stats.netFlow ?? 0}
+              format={naira}
+              hint={`${data?.stats.txCount ?? 0} successful`}
+            />
+            <StatCard
+              label="Transactions"
+              value={String(data?.stats.txCount ?? 0)}
+              icon={ArrowLeftRight}
+              tone="success"
+              animated
+              numericValue={data?.stats.txCount ?? 0}
+              format={(n) => Math.round(n).toLocaleString()}
+              hint="Last 14 days"
+            />
           </div>
-          <StatCard
-            label="Net flow"
-            value={naira(data?.stats.netFlow ?? 0)}
-            icon={Activity}
-            hint={`${data?.stats.txCount ?? 0} successful transactions`}
-          />
 
           {/* Quick analytics link */}
           <Card className="group cursor-pointer p-4 transition-all hover:-translate-y-0.5 hover:shadow-md" onClick={() => setView("analytics")}>
