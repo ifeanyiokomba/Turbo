@@ -20,7 +20,7 @@
 import { db } from "@/lib/db";
 import { json, handleError, audit } from "@/lib/api";
 import { getProviderWebhookSecret } from "@/lib/turbocore/webhooks/credentials";
-import { verifyProviderSignature } from "@/lib/turbocore/webhooks/verify";
+import { verifyWebhookHeaders } from "@/lib/turbocore/webhooks/verify-signature";
 import { extractPayload } from "@/lib/turbocore/webhooks/extract";
 import { confirmOrReverseTransaction } from "@/lib/turbocore/recovery";
 
@@ -34,9 +34,9 @@ export async function POST(req: Request, ctx: { params: Promise<{ provider: stri
     // Read raw body — needed for signature verification (must be byte-exact).
     const rawBody = await req.text();
 
-    // Verify signature.
+    // Verify signature via the unified per-provider verifier.
     const secret = await getProviderWebhookSecret(provider);
-    const verifyResult = verifyProviderSignature(provider, rawBody, req.headers, secret);
+    const verifyResult = verifyWebhookHeaders(provider, rawBody, req.headers, secret);
 
     // Extract normalized fields from the payload.
     const extracted = extractPayload(provider, rawBody);

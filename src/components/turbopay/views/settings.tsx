@@ -48,6 +48,11 @@ import {
   Megaphone,
   ShieldAlert,
   CalendarClock,
+  Download,
+  Trash2,
+  FileJson,
+  AlertTriangle,
+  Database,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -117,6 +122,15 @@ export default function SettingsView() {
   const [savingPwd, setSavingPwd] = React.useState(false);
 
   const [signingOut, setSigningOut] = React.useState(false);
+
+  // Data & Privacy: NDPR export + account deletion
+  const [exporting, setExporting] = React.useState(false);
+  const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [deleteStep, setDeleteStep] = React.useState<1 | 2 | 3>(1);
+  const [deletePwd, setDeletePwd] = React.useState("");
+  const [deleteConfirm, setDeleteConfirm] = React.useState("");
+  const [showDeletePwd, setShowDeletePwd] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
 
   // Communication preferences
   const [commPrefs, setCommPrefs] = React.useState<CommPrefs | null>(null);
@@ -361,6 +375,89 @@ export default function SettingsView() {
     logoutClient();
     toast.success("Signed out");
     router.refresh();
+  }
+
+  // ===== NDPR data export =====
+  async function handleExportData() {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/settings/export-data", { cache: "no-store" });
+      if (res.status === 401) {
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast.error(body.error ?? "Failed to export data");
+        return;
+      }
+      const blob = await res.blob();
+      // Filename from Content-Disposition if present.
+      const cd = res.headers.get("content-disposition") ?? "";
+      const match = cd.match(/filename="?([^";]+)"?/i);
+      const filename = match?.[1] ?? `turbopay-data-export-${Date.now()}.json`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success("Your data export is downloading");
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  // ===== Account deletion (right-to-erasure) =====
+  function openDeleteDialog() {
+    setDeleteStep(1);
+    setDeletePwd("");
+    setDeleteConfirm("");
+    setShowDeletePwd(false);
+    setDeleteOpen(true);
+  }
+
+  async function handleDeleteAccount() {
+    if (deletePwd.length < 1) {
+      toast.error("Enter your password");
+      return;
+    }
+    if (deleteConfirm.trim() !== "DELETE MY ACCOUNT") {
+      toast.error('Type "DELETE MY ACCOUNT" exactly');
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/settings/delete-account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          password: deletePwd,
+          confirmText: deleteConfirm.trim(),
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(body.error ?? "Failed to delete account");
+        return;
+      }
+      toast.success("Account deleted", {
+        description: "Your personal data has been anonymized.",
+      });
+      setDeleteOpen(false);
+      // Server already destroyed the session; clear local state.
+      logoutClient();
+      // Hard navigate to landing (forces auth gate to re-render).
+      window.location.href = "/";
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   if (loading) {
@@ -686,6 +783,208 @@ export default function SettingsView() {
           </Card>
         </div>
       </div>
+
+      {/* Data & Privacy (NDPR / GDPR) */}
+      <Card className="p-5 sm:p-6 border-red-500/20">
+        <div className="mb-4 flex items-center gap-2">
+          <Database className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-semibold">Data &amp; Privacy</h2>
+        </div>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Under the Nigeria Data Protection Regulation (NDPR) and GDPR, you have the right
+          to access your data and to request erasure of your personal information.
+        </p>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {/* Download my data */}
+          <div className="flex flex-col gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <FileJson className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Download my data</p>
+                <p className="text-xs text-muted-foreground">
+                  Export everything we hold about you as a JSON file. Credentials and full
+                  card numbers are excluded; BVN/NIN are masked.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              className="w-full gap-1.5 border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+              onClick={handleExportData}
+              disabled={exporting}
+            >
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {exporting ? "Generating…" : "Download my data"}
+            </Button>
+          </div>
+
+          {/* Delete account */}
+          <div className="flex flex-col gap-3 rounded-xl border border-red-500/30 bg-red-500/5 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-red-600 dark:text-red-400">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-red-700 dark:text-red-400">Delete account</p>
+                <p className="text-xs text-muted-foreground">
+                  Permanently anonymize your personal data. Transaction records are retained
+                  for regulatory compliance.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              className="w-full gap-1.5 border-red-500/40 text-red-600 hover:bg-red-500/10 hover:text-red-700 dark:text-red-400"
+              onClick={openDeleteDialog}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete account
+            </Button>
+          </div>
+        </div>
+      </Card>
+
+      {/* Delete account confirmation dialog */}
+      <Dialog open={deleteOpen} onOpenChange={(o) => !o && setDeleteOpen(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-700 dark:text-red-400">
+              <AlertTriangle className="h-5 w-5" />
+              Delete account
+            </DialogTitle>
+            <DialogDescription>
+              This action is irreversible. Your personal data will be anonymized. Transaction
+              records are retained for regulatory compliance.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Stepper */}
+          <div className="mb-2 flex items-center justify-center gap-1.5">
+            {[1, 2, 3].map((s) => (
+              <span
+                key={s}
+                className={`h-1.5 w-8 rounded-full transition-colors ${
+                  deleteStep >= s ? "bg-red-500" : "bg-muted"
+                }`}
+              />
+            ))}
+          </div>
+
+          {deleteStep === 1 && (
+            <div className="space-y-3 py-1">
+              <div className="rounded-lg bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+                <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />
+                Step 1 of 3 — confirm your password.
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="deletePwd">Your password</Label>
+                <div className="relative">
+                  <Input
+                    id="deletePwd"
+                    type={showDeletePwd ? "text" : "password"}
+                    value={deletePwd}
+                    onChange={(e) => setDeletePwd(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowDeletePwd((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+                  >
+                    {showDeletePwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteOpen(false)} disabled={deleting}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => setDeleteStep(2)}
+                  disabled={deletePwd.length < 1}
+                  className="gap-1.5 bg-red-600 hover:bg-red-700"
+                >
+                  Continue
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {deleteStep === 2 && (
+            <div className="space-y-3 py-1">
+              <div className="rounded-lg bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+                <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />
+                Step 2 of 3 — type the confirmation phrase exactly.
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="deleteConfirm">
+                  Type <span className="font-mono font-semibold text-red-700 dark:text-red-400">DELETE MY ACCOUNT</span>
+                </Label>
+                <Input
+                  id="deleteConfirm"
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  placeholder="DELETE MY ACCOUNT"
+                  autoComplete="off"
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteStep(1)} disabled={deleting}>
+                  Back
+                </Button>
+                <Button
+                  onClick={() => setDeleteStep(3)}
+                  disabled={deleteConfirm.trim() !== "DELETE MY ACCOUNT"}
+                  className="gap-1.5 bg-red-600 hover:bg-red-700"
+                >
+                  Continue
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {deleteStep === 3 && (
+            <div className="space-y-3 py-1">
+              <div className="rounded-lg bg-red-500/10 p-3 text-xs text-red-800 dark:text-red-300">
+                <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />
+                Step 3 of 3 — final confirmation. Once you click below, your account will be
+                closed immediately and your personal data anonymized.
+              </div>
+              <ul className="space-y-1 text-xs text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground" />
+                  Your name, email, phone, BVN, NIN, avatar and bio will be wiped.
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground" />
+                  All sessions will be revoked and your wallet frozen.
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground" />
+                  Transaction, ledger, and audit records are retained for AML/CBN compliance.
+                </li>
+              </ul>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDeleteStep(2)} disabled={deleting}>
+                  Back
+                </Button>
+                <Button
+                  onClick={handleDeleteAccount}
+                  disabled={deleting}
+                  className="gap-1.5 bg-red-600 hover:bg-red-700"
+                >
+                  {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  Delete my account permanently
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* PIN dialog */}
       <Dialog open={pinOpen !== null} onOpenChange={(o) => !o && setPinOpen(null)}>
