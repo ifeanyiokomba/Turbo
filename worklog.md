@@ -776,3 +776,24 @@ Files created:
 Files modified:
 - `src/components/turbopay/app-shell.tsx` (Link2/Zap imports, isMiniPay/getMiniPayAddress/useAutoConnect, MINIPAY_NAV_ITEMS, lazy registry + VIEW_TITLES + VALID_VIEW_KEYS, MiniPay detection effect, default-view effect, header MiniPay badge, conditional Financial-group nav injection via useMemo)
 Lint: 0 errors, 0 warnings
+
+---
+Task ID: MP-FINAL
+Agent: main (orchestrator) + 3 parallel subagents (MP-API, MP-UI, SKIP-A) + research agent
+Task: Integrate MiniPay into Turbopay for seamless Celo stablecoin transactions + implement skipped functionality
+
+Work Log:
+- Research: comprehensive MiniPay documentation research (27 raw files in /research/). MiniPay = self-custodial Celo L2 stablecoin wallet, 15M+ wallets, Opera-backed. Mini Apps = HTTPS web apps, MiniPay injects window.ethereum with isMiniPay===true, auto-connect required. Chains: Celo mainnet 42220, Sepolia 11142220. Tokens: USDm (18d), USDC (6d), USDT (6d), NGNm (18d). No manifest required. Detection: window.ethereum.isMiniPay === true. Libraries: wagmi, viem@2.x, @celo/abis (ethers.js forbidden).
+- Foundation: installed wagmi+viem+@celo/abis, added 4 Prisma models (CeloWallet, OnChainTransaction, CeloBridgeEvent, CeloTokenConfig), built lib/minipay.ts (detection, token addresses, helpers, deeplinks, seed), lib/wagmi.ts (config + publicClient + serverWalletClient), hooks/use-auto-connect.ts (useSyncExternalStore-based), Providers wrapper (WagmiProvider + QueryClientProvider), store updates (minipayMode, celoAddress, 3 new ViewKeys), CELO_DEPOSIT/WITHDRAW/PAYMENT constants.
+- Task MP-API: 11 /api/celo/* routes — tokens, wallet (GET+POST), balance, balances, deposit/initiate, deposit/confirm (CRITICAL: re-verifies onchain receipt via viem decodeFunctionData, checks from===user + to===treasury + amount===declared, atomic creditWallet + OnChainTransaction + Transaction + CeloBridgeEvent, idempotent on hash), withdraw (PIN-verified, auto-reverse on failure, sandbox mode), transactions (paginated), transactions/[id], price (USD/NGN from FxRateSnapshot), bridge-events.
+- Task MP-UI: MiniPay detection in app-shell (useAutoConnect + isMiniPay check + setCeloAddress), 3 new views (minipay-wallet with gradient balance card + token grid + Receive QR + Send cUSD via wagmi + Add cash deeplink + Bridge CTA, onchain-history with filters + tx list, celo-bridge with deposit/withdraw flows), address-pill component (truncated + copy + explorer link), MiniPay badge in header, conditional nav items.
+- Task SKIP-A: NDPR data export (29 tables, sensitive data masked, downloadable JSON, Content-Disposition), account deletion (password + typed confirmation + anonymize user + revoke sessions + freeze wallet, keeps tx records for compliance), large-transaction step-up OTP (6-digit code for tx > 50% of KYC tier limit, integrated into PinDialog), unified webhook signature verification (per-provider: paystack HMAC-SHA512, flutterwave plain-equal, monnify HMAC-SHA512, mpesa base64, default HMAC-SHA256, all timingSafeEqual).
+- Bug fix: CeloTokenConfig had @unique on symbol (prevented same symbol on mainnet+testnet) — removed, kept @@unique([symbol, chainId]).
+- Verified: Celo tokens API 200 (5 tokens), wallet 200, price 200, transactions 200, NDPR export 200, step-up 200. Login works, 0 runtime errors.
+
+Stage Summary:
+- 73 Prisma models, 132 API routes, 34 views, 16 provider adapters, 14 admin tabs
+- MiniPay integration complete: detect → auto-connect → cUSD wallet → deposit/withdraw bridge → onchain history
+- Skipped functionality implemented: NDPR data export, account deletion, large-tx step-up OTP, webhook signature verification
+- Lint: 0 errors, 0 warnings
+- Dev server running on :3000, all verified
