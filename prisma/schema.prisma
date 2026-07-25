@@ -847,3 +847,108 @@ model CronLock {
   lockedUntil   DateTime?
   acquiredAt    DateTime @default(now())
 }
+
+// ===== Disputes, Vouchers, Statements, Preferences (round 2) =====
+
+model Dispute {
+  id            String   @id @default(cuid())
+  userId        String
+  transactionId String?
+  subject       String
+  category      String   @default("TRANSACTION") // TRANSACTION | BILL | TRANSFER | CARD | AIRTIME | OTHER
+  priority      String   @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
+  status        String   @default("OPEN") // OPEN | UNDER_REVIEW | EVIDENCE_REQUIRED | RESOLVED_FAVOUR_USER | RESOLVED_FAVOUR_PLATFORM | CLOSED | ESCALATED
+  description   String
+  resolution    String?
+  assignedTo    String?
+  messages      DisputeMessage[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  resolvedAt    DateTime?
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+model DisputeMessage {
+  id            String   @id @default(cuid())
+  disputeId     String
+  dispute       Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  senderId      String
+  senderRole    String   @default("USER") // USER | ADMIN
+  message       String
+  attachmentsJSON String @default("[]")
+  createdAt     DateTime @default(now())
+  @@index([disputeId, createdAt])
+}
+
+model Voucher {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  type          String   @default("CASHBACK") // CASHBACK | DISCOUNT | FEE_WAIVER | PERCENT_OFF | FLAT_OFF
+  valueKobo     Int      @default(0) // flat amount for CASHBACK/FLAT_OFF
+  percentOff    Int      @default(0) // for PERCENT_OFF
+  description   String
+  minAmountKobo Int      @default(0)
+  maxRedemptions Int     @default(0) // 0 = unlimited
+  redemptionsCount Int   @default(0)
+  perUserLimit  Int      @default(1)
+  validFrom     DateTime @default(now())
+  validUntil    DateTime?
+  status        String   @default("ACTIVE") // ACTIVE | EXPIRED | DISABLED
+  createdById   String?
+  createdAt     DateTime @default(now())
+  redemptions   VoucherRedemption[]
+}
+
+model VoucherRedemption {
+  id            String   @id @default(cuid())
+  voucherId     String
+  voucher       Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  userId        String
+  transactionId String?
+  valueAppliedKobo Int
+  status        String   @default("SUCCESS") // SUCCESS | FAILED
+  createdAt     DateTime @default(now())
+  @@unique([voucherId, userId])
+  @@index([userId])
+}
+
+model StatementRequest {
+  id            String   @id @default(cuid())
+  userId        String
+  periodStart   DateTime
+  periodEnd     DateTime
+  format        String   @default("PDF") // PDF | CSV
+  status        String   @default("PENDING") // PENDING | READY | FAILED
+  filePath      String?
+  createdAt     DateTime @default(now())
+  @@index([userId, createdAt])
+}
+
+model CommunicationPreference {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  emailEnabled  Boolean  @default(true)
+  smsEnabled    Boolean  @default(true)
+  pushEnabled   Boolean  @default(true)
+  whatsappEnabled Boolean @default(false)
+  transactionAlerts Boolean @default(true)
+  securityAlerts Boolean @default(true)
+  marketingAlerts Boolean @default(false)
+  weeklySummary Boolean @default(true)
+  updatedAt     DateTime @updatedAt
+}
+
+model TeamMember {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  fullName      String
+  role          String   @default("SUPPORT") // ADMIN | COMPLIANCE | SUPPORT | FINANCE
+  status        String   @default("PENDING") // PENDING | ACTIVE | DEACTIVATED
+  invitedById   String
+  invitedAt     DateTime @default(now())
+  activatedAt   DateTime?
+  deactivatedAt DateTime?
+  lastLoginAt   DateTime?
+  @@index([status])
+}

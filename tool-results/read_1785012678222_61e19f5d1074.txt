@@ -1,0 +1,955 @@
+     1→// Turbopay — Prisma schema (SQLite adaptation)
+     2→// Money stored as Integer kobo (1 NGN = 100 kobo).
+     3→// SQLite has no native enums => use String + app-level validation constants.
+     4→
+     5→generator client {
+     6→  provider = "prisma-client-js"
+     7→}
+     8→
+     9→datasource db {
+    10→  provider = "sqlite"
+    11→  url      = env("DATABASE_URL")
+    12→}
+    13→
+    14→model User {
+    15→  id                 String   @id @default(cuid())
+    16→  fullName           String
+    17→  username           String   @unique
+    18→  email              String?  @unique
+    19→  phone              String?  @unique
+    20→  country            String   @default("NG")
+    21→  passwordHash       String
+    22→  transactionPinHash String?
+    23→  pinSetAt           DateTime?
+    24→  pinFailCount       Int      @default(0)
+    25→  pinLockedUntil     DateTime?
+    26→  loginFailCount     Int      @default(0)
+    27→  loginLockedUntil   DateTime?
+    28→  kycTier            Int      @default(1) // 1 | 2 | 3
+    29→  kycStatus          String   @default("UNVERIFIED") // UNVERIFIED | PENDING | VERIFIED
+    30→  bvn                String?
+    31→  nin                String?
+    32→  status             String   @default("ACTIVE") // ACTIVE | FROZEN | SUSPENDED | CLOSED
+    33→  emailVerified      Boolean  @default(false)
+    34→  phoneVerified      Boolean  @default(false)
+    35→  avatarUrl          String?
+    36→  bio                String?
+    37→  role               String   @default("USER") // USER | ADMIN
+    38→  createdAt          DateTime @default(now())
+    39→  updatedAt          DateTime @updatedAt
+    40→
+    41→  sessions           Session[]
+    42→  wallet             Wallet?
+    43→  transactions       Transaction[]
+    44→  ledgerEntries      LedgerEntry[]
+    45→  virtualAccounts    VirtualAccount[]
+    46→  virtualCards       VirtualCard[]
+    47→  beneficiaries      Beneficiary[]
+    48→  billPayments       BillPayment[]
+    49→  airtimePurchases   AirtimeDataPurchase[]
+    50→  savingsTx          SavingsTransaction[]
+    51→  investments        UserInvestment[]
+    52→  kycVerifications   KycVerification[]
+    53→  auditLogs          AuditLog[]
+    54→  amlFlags           AmlFlag[]
+    55→  notifications      InAppNotification[]
+    56→  supportTickets     SupportTicket[]
+    57→}
+    58→
+    59→model Session {
+    60→  id              String   @id @default(cuid())
+    61→  userId          String
+    62→  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    63→  tokenHash       String   @unique
+    64→  expiresAt       DateTime
+    65→  userAgent       String?
+    66→  ip              String?
+    67→  createdAt       DateTime @default(now())
+    68→  revokedAt       DateTime?
+    69→
+    70→  @@index([userId])
+    71→}
+    72→
+    73→model Wallet {
+    74→  id           String   @id @default(cuid())
+    75→  userId       String   @unique
+    76→  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    77→  balanceKobo  Int      @default(0)
+    78→  currency     String   @default("NGN")
+    79→  status       String   @default("ACTIVE") // ACTIVE | FROZEN
+    80→  version      Int      @default(0) // optimistic concurrency
+    81→  createdAt    DateTime @default(now())
+    82→  updatedAt    DateTime @updatedAt
+    83→
+    84→  ledgerEntries LedgerEntry[]
+    85→  transactions  Transaction[]
+    86→}
+    87→
+    88→model LedgerEntry {
+    89→  id              String   @id @default(cuid())
+    90→  walletId        String
+    91→  wallet          Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+    92→  userId          String
+    93→  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    94→  entryType       String // DEBIT | CREDIT
+    95→  amountKobo      Int
+    96→  currency        String   @default("NGN")
+    97→  refType         String // FUNDING | TRANSFER | AIRTIME | DATA | BILL | REVERSAL | FEE | CARD_FUND | CARD_WITHDRAW | REWARD | REFERRAL | SAVINGS | INVESTMENT
+    98→  refId           String?
+    99→  pairId          String?
+   100→  balanceAfterKobo Int
+   101→  description     String
+   102→  createdAt       DateTime @default(now())
+   103→
+   104→  @@index([walletId])
+   105→  @@index([userId, createdAt])
+   106→  @@index([refType, refId])
+   107→}
+   108→
+   109→model Transaction {
+   110→  id              String   @id @default(cuid())
+   111→  userId          String
+   112→  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   113→  walletId        String?
+   114→  wallet          Wallet?  @relation(fields: [walletId], references: [id])
+   115→  reference       String   @unique
+   116→  type            String // FUNDING | TRANSFER | AIRTIME | DATA | BILL | CARD_FUND | CARD_WITHDRAW | REWARD | REFERRAL | SAVINGS_DEPOSIT | SAVINGS_WITHDRAW | INVESTMENT
+   117→  direction       String // CREDIT | DEBIT
+   118→  amountKobo      Int
+   119→  feeKobo         Int      @default(0)
+   120→  status          String   @default("PENDING") // PENDING | SUCCESS | FAILED | REVERSED
+   121→  state           String   @default("INITIATED") // INITIATED | PIN_VERIFIED | SETTLED | REVERSED
+   122→  counterpartyName String?
+   123→  counterpartyAccount String?
+   124→  counterpartyBank   String?
+   125→  description     String?
+   126→  provider        String?
+   127→  providerRef     String?
+   128→  reversalOfId    String?
+   129→  metadata        String? // JSON string
+   130→  createdAt       DateTime @default(now())
+   131→  updatedAt       DateTime @updatedAt
+   132→
+   133→  @@index([userId, createdAt])
+   134→  @@index([type])
+   135→  @@index([status])
+   136→}
+   137→
+   138→model VirtualAccount {
+   139→  id            String   @id @default(cuid())
+   140→  userId        String   @unique
+   141→  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   142→  accountNumber String   @unique
+   143→  accountName   String
+   144→  bankName      String   @default("Turbopay MFB")
+   145→  bankCode      String   @default("000")
+   146→  provider      String   @default("turbopay")
+   147→  status        String   @default("ACTIVE")
+   148→  createdAt     DateTime @default(now())
+   149→}
+   150→
+   151→model Beneficiary {
+   152→  id            String   @id @default(cuid())
+   153→  userId        String
+   154→  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   155→  name          String
+   156→  accountNumber String
+   157→  bankName      String
+   158→  bankCode      String?
+   159→  type          String   @default("BANK") // BANK | TURBOPAY
+   160→  isFavorite    Boolean  @default(false)
+   161→  lastUsedAt    DateTime?
+   162→  createdAt     DateTime @default(now())
+   163→
+   164→  @@index([userId])
+   165→}
+   166→
+   167→model BillPayment {
+   168→  id            String   @id @default(cuid())
+   169→  userId        String
+   170→  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   171→  category      String // ELECTRICITY | INTERNET | CABLE | WATER | EDUCATION | INSURANCE | GOVERNMENT | BETTING
+   172→  billerName    String
+   173→  billerCode    String
+   174→  customerRef   String
+   175→  amountKobo    Int
+   176→  status        String   @default("SUCCESS")
+   177→  reference     String   @unique
+   178→  token         String? // electricity token
+   179→  createdAt     DateTime @default(now())
+   180→
+   181→  @@index([userId, createdAt])
+   182→  @@index([category])
+   183→}
+   184→
+   185→model AirtimeDataPurchase {
+   186→  id            String   @id @default(cuid())
+   187→  userId        String
+   188→  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   189→  type          String // AIRTIME | DATA
+   190→  network       String // MTN | GLO | AIRTEL | NMOBILE
+   191→  phone         String
+   192→  amountKobo    Int
+   193→  planName      String?
+   194→  status        String   @default("SUCCESS")
+   195→  reference     String   @unique
+   196→  createdAt     DateTime @default(now())
+   197→
+   198→  @@index([userId, createdAt])
+   199→}
+   200→
+   201→model VirtualCard {
+   202→  id            String   @id @default(cuid())
+   203→  userId        String
+   204→  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   205→  panMasked     String // last4 stored as "•••• 4242"
+   206→  last4         String
+   207→  panEnc        String // AES-encrypted full PAN (demo key)
+   208→  cvvEnc        String
+   209→  expiry        String // MM/YY
+   210→  cardholder    String
+   211→  brand         String   @default("VISA") // VISA | MASTERCARD
+   212→  balanceKobo   Int      @default(0)
+   213→  status        String   @default("ACTIVE") // ACTIVE | FROZEN | TERMINATED
+   214→  spendingLimitKobo Int @default(500000)
+   215→  createdAt     DateTime @default(now())
+   216→  updatedAt     DateTime @updatedAt
+   217→
+   218→  transactions  VirtualCardTransaction[]
+   219→
+   220→  @@index([userId])
+   221→}
+   222→
+   223→model VirtualCardTransaction {
+   224→  id            String   @id @default(cuid())
+   225→  cardId        String
+   226→  card          VirtualCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+   227→  userId        String
+   228→  type          String // FUND | WITHDRAW | PAYMENT
+   229→  amountKobo    Int
+   230→  description   String
+   231→  status        String   @default("SUCCESS")
+   232→  reference     String   @unique
+   233→  createdAt     DateTime @default(now())
+   234→
+   235→  @@index([cardId, createdAt])
+   236→}
+   237→
+   238→model SavingsProduct {
+   239→  id            String   @id @default(cuid())
+   240→  name          String
+   241→  type          String // FLEXIBLE | LOCKED | TARGET | GOAL
+   242→  interestBps   Int // basis points per annum
+   243→  minAmountKobo Int      @default(1000)
+   244→  lockDays      Int      @default(0)
+   245→  description   String?
+   246→  createdAt      DateTime @default(now())
+   247→  transactions  SavingsTransaction[]
+   248→}
+   249→
+   250→model SavingsTransaction {
+   251→  id            String   @id @default(cuid())
+   252→  userId        String
+   253→  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   254→  productId     String
+   255→  product       SavingsProduct @relation(fields: [productId], references: [id])
+   256→  type          String // DEPOSIT | WITHDRAW | INTEREST
+   257→  amountKobo    Int
+   258→  balanceAfterKobo Int
+   259→  status        String   @default("SUCCESS")
+   260→  reference     String   @unique
+   261→  createdAt     DateTime @default(now())
+   262→
+   263→  @@index([userId, createdAt])
+   264→}
+   265→
+   266→model InvestmentProduct {
+   267→  id            String   @id @default(cuid())
+   268→  name          String
+   269→  type          String // FIXED_INCOME | MUTUAL_FUND | TBILL | BOND
+   270→  riskLevel     String   @default("LOW") // LOW | MEDIUM | HIGH
+   271→  minAmountKobo Int
+   272→  maxAmountKobo Int
+   273→  expectedReturnBps Int
+   274→  durationLabel String // "30 days", "6 months"
+   275→  provider      String
+   276→  createdAt      DateTime @default(now())
+   277→  investments    UserInvestment[]
+   278→}
+   279→
+   280→model UserInvestment {
+   281→  id            String   @id @default(cuid())
+   282→  userId        String
+   283→  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   284→  productId     String
+   285→  product       InvestmentProduct @relation(fields: [productId], references: [id])
+   286→  principalKobo Int
+   287→  currentValueKobo Int
+   288→  status        String   @default("ACTIVE") // ACTIVE | MATURED | LIQUIDATED
+   289→  maturityAt    DateTime
+   290→  createdAt     DateTime @default(now())
+   291→
+   292→  @@index([userId])
+   293→}
+   294→
+   295→model KycVerification {
+   296→  id            String   @id @default(cuid())
+   297→  userId        String
+   298→  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   299→  tier          Int // 2 | 3
+   300→  status        String   @default("PENDING")
+   301→  provider      String   @default("turbopay")
+   302→  nin           String?
+   303→  bvn           String?
+   304→  payload       String? // JSON audit
+   305→  verifiedAt    DateTime?
+   306→  createdAt     DateTime @default(now())
+   307→
+   308→  @@index([userId])
+   309→}
+   310→
+   311→model AuditLog {
+   312→  id            String   @id @default(cuid())
+   313→  userId        String?
+   314→  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+   315→  action        String
+   316→  category      String // AUTH | WALLET | TRANSFER | BILL | KYC | AML | ADMIN
+   317→  severity      String   @default("INFO") // INFO | WARN | ERROR | CRITICAL
+   318→  ip            String?
+   319→  userAgent     String?
+   320→  metadata      String? // JSON
+   321→  createdAt     DateTime @default(now())
+   322→
+   323→  @@index([userId, createdAt])
+   324→  @@index([category])
+   325→}
+   326→
+   327→model AmlFlag {
+   328→  id            String   @id @default(cuid())
+   329→  userId        String
+   330→  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   331→  rule          String // VELOCITY | LARGE_AMOUNT | RAPID_TRANSFER
+   332→  severity      String   @default("MEDIUM") // LOW | MEDIUM | HIGH
+   333→  description   String
+   334→  metadata      String?
+   335→  resolved      Boolean  @default(false)
+   336→  resolvedAt    DateTime?
+   337→  createdAt     DateTime @default(now())
+   338→
+   339→  @@index([userId, createdAt])
+   340→}
+   341→
+   342→model IdempotencyRecord {
+   343→  id            String   @id @default(cuid())
+   344→  key           String   @unique
+   345→  userId        String?
+   346→  endpoint      String
+   347→  requestBody   String?
+   348→  responseBody  String?
+   349→  status        Int
+   350→  completedAt   DateTime?
+   351→  createdAt     DateTime @default(now())
+   352→}
+   353→
+   354→model InAppNotification {
+   355→  id            String   @id @default(cuid())
+   356→  userId        String
+   357→  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   358→  type          String // TRANSACTION | SECURITY | KYC | REWARD | SYSTEM
+   359→  title         String
+   360→  body          String
+   361→  priority      String   @default("NORMAL") // LOW | NORMAL | HIGH
+   362→  read          Boolean  @default(false)
+   363→  actionUrl     String?
+   364→  createdAt     DateTime @default(now())
+   365→
+   366→  @@index([userId, createdAt])
+   367→}
+   368→
+   369→model SupportTicket {
+   370→  id            String   @id @default(cuid())
+   371→  userId        String
+   372→  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+   373→  subject       String
+   374→  category      String
+   375→  priority      String   @default("NORMAL")
+   376→  status        String   @default("OPEN") // OPEN | IN_PROGRESS | RESOLVED | CLOSED
+   377→  message       String
+   378→  createdAt     DateTime @default(now())
+   379→  updatedAt     DateTime @updatedAt
+   380→
+   381→  @@index([userId])
+   382→}
+   383→
+   384→model KycTierLimit {
+   385→  id            Int      @id
+   386→  tier          Int      @unique
+   387→  label         String
+   388→  singleTxLimitKobo  Int
+   389→  dailyLimitKobo     Int
+   390→  maxBalanceKobo     Int
+   391→}
+   392→
+   393→// ===== TurboCore Provider Platform Layer (31 new models) =====
+   394→// All money in minor units (kobo/cents) as Int. SQLite has no enums => String + app constants.
+   395→
+   396→// --- Provider system ---
+   397→model ProviderConfig {
+   398→  code          String   @id // "paystack" | "flutterwave" | "monnify" | "mpesa" | "wise" | ...
+   399→  displayName   String
+   400→  sandbox       Boolean  @default(true)
+   401→  enabled       Boolean  @default(true)
+   402→  weightsJSON   String   @default("{}") // routing weights: {capability:0.4,health:0.3,cost:0.2,settle:0.1}
+   403→  defaultPriority Int    @default(50)
+   404→  website       String?
+   405→  logoUrl       String?
+   406→  createdAt     DateTime @default(now())
+   407→  updatedAt     DateTime @updatedAt
+   408→}
+   409→
+   410→model ProviderCredentialVersion {
+   411→  id            String   @id @default(cuid())
+   412→  providerCode  String
+   413→  version       Int
+   414→  secretsEnc    String // AES-256-GCM encrypted JSON of secrets
+   415→  activatedAt   DateTime @default(now())
+   416→  rotatedAt     DateTime?
+   417→  rotatedBy     String?
+   418→  active        Boolean  @default(true)
+   419→  @@unique([providerCode, version])
+   420→  @@index([providerCode, active])
+   421→}
+   422→
+   423→model ProviderRoute {
+   424→  id            String   @id @default(cuid())
+   425→  contract      String // ContractName
+   426→  providerCode  String
+   427→  country       String // ISO alpha-2 or "ALL"
+   428→  currency      String // ISO 4217 or "ALL"
+   429→  priority      Int      @default(50)
+   430→  weight        Int      @default(100)
+   431→  canaryPercent Int      @default(100)
+   432→  enabled       Boolean  @default(true)
+   433→  createdAt     DateTime @default(now())
+   434→  updatedAt     DateTime @updatedAt
+   435→  @@index([contract, country, currency, enabled])
+   436→}
+   437→
+   438→model ProviderHealthCheck {
+   439→  id            String   @id @default(cuid())
+   440→  providerCode  String
+   441→  ok            Boolean
+   442→  latencyMs     Int
+   443→  errorCode     String?
+   444→  healthScore   Int // 0-100 EMA
+   445→  sampledAt     DateTime @default(now())
+   446→  @@index([providerCode, sampledAt])
+   447→}
+   448→
+   449→model ProviderCapability {
+   450→  id            String   @id @default(cuid())
+   451→  providerCode  String
+   452→  contract      String
+   453→  country       String
+   454→  currency      String
+   455→  service       String? // e.g. "BILL:ELECTRICITY" | "MOBILE_MONEY:MPESA"
+   456→  direction     String // INBOUND | OUTBOUND
+   457→  minAmountMinor Int
+   458→  maxAmountMinor Int
+   459→  feeBps        Int      @default(0)
+   460→  feeFixedMinor Int      @default(0)
+   461→  settleHours   Int      @default(0)
+   462→  enabled       Boolean  @default(true)
+   463→  @@index([contract, country, currency, enabled])
+   464→  @@index([providerCode])
+   465→}
+   466→
+   467→model PaymentRoutingDecision {
+   468→  id            String   @id @default(cuid())
+   469→  transactionId String?
+   470→  contract      String
+   471→  providerCode  String
+   472→  chosenProvider String
+   473→  reason        String // scored | fallback | preferred | only_viable
+   474→  scoresJSON    String
+   475→  alternativesJSON String
+   476→  requestId     String
+   477→  createdAt     DateTime @default(now())
+   478→  @@index([transactionId])
+   479→  @@index([createdAt])
+   480→}
+   481→
+   482→model PaymentFlowLog {
+   483→  id            String   @id @default(cuid())
+   484→  transactionId String?
+   485→  step          String // HOLD_DEBIT | PROVIDER_CALLED | CONFIRMED | AUTO_REVERSED
+   486→  status        String
+   487→  providerCode  String?
+   488→  payloadJSON   String?
+   489→  latencyMs     Int?
+   490→  at            DateTime @default(now())
+   491→  @@index([transactionId, at])
+   492→}
+   493→
+   494→// --- Webhooks & events ---
+   495→model WebhookEvent {
+   496→  id            String   @id @default(cuid())
+   497→  providerCode  String
+   498→  eventId       String   @unique
+   499→  eventType     String
+   500→  payloadJSON   String
+   501→  signatureValid Boolean @default(false)
+   502→  processedAt   DateTime?
+   503→  transactionId String?
+   504→  createdAt     DateTime @default(now())
+   505→  @@index([providerCode, createdAt])
+   506→}
+   507→
+   508→model WebhookEndpoint {
+   509→  id            String   @id @default(cuid())
+   510→  merchantId    String
+   511→  url           String
+   512→  secretHash    String
+   513→  eventsJSON    String   @default("[]")
+   514→  enabled       Boolean  @default(true)
+   515→  lastFailedAt  DateTime?
+   516→  consecutiveFailures Int @default(0)
+   517→  createdAt     DateTime @default(now())
+   518→  updatedAt     DateTime @updatedAt
+   519→  @@index([merchantId])
+   520→}
+   521→
+   522→model OutboxEvent {
+   523→  id            String   @id @default(cuid())
+   524→  aggregateType String // TRANSACTION | USER | WALLET
+   525→  aggregateId   String
+   526→  type          String // PAYMENT_SETTLED | PAYMENT_REVERSED | PAYMENT_PENDING | FX_CONVERTED ...
+   527→  payloadJSON   String
+   528→  headersJSON   String   @default("{}")
+   529→  status        String   @default("PENDING") // PENDING | PUBLISHED | FAILED
+   530→  attempts      Int      @default(0)
+   531→  nextRetryAt   DateTime @default(now())
+   532→  publishedAt   DateTime?
+   533→  createdAt     DateTime @default(now())
+   534→  @@index([status, nextRetryAt])
+   535→  @@index([aggregateType, aggregateId])
+   536→}
+   537→
+   538→model AsyncTask {
+   539→  id            String   @id @default(cuid())
+   540→  type          String // retry_provider_call | scheduled_payment | webhook_dispatch
+   541→  payloadJSON   String
+   542→  status        String   @default("PENDING") // PENDING | RUNNING | DONE | FAILED
+   543→  attempts      Int      @default(0)
+   544→  maxAttempts   Int      @default(3)
+   545→  nextRetryAt   DateTime @default(now())
+   546→  lockedBy      String?
+   547→  lockedUntil   DateTime?
+   548→  completedAt   DateTime?
+   549→  createdAt     DateTime @default(now())
+   550→  @@index([status, nextRetryAt])
+   551→}
+   552→
+   553→// --- Georouting & multi-currency ---
+   554→model CountryConfig {
+   555→  code          String   @id // NG | KE | GH | ZA | GB | US ...
+   556→  name          String
+   557→  currency      String // NGN | KES | GHS | ZAR | USD ...
+   558→  dialCode      String
+   559→  flagEmoji     String
+   560→  locale        String   @default("en") // en | sw | fr | pt | ar
+   561→  rtl           Boolean  @default(false)
+   562→  paymentMethodsJSON String @default("[]") // ["CARD","BANK_TRANSFER","USSD","MOBILE_MONEY","VIRTUAL_ACCOUNT"]
+   563→  billerCatalogKey String? // ng_baxi | ke_kplc
+   564→  kycRequirementsJSON String @default("{}")
+   565→  providersPreferredJSON String @default("{}")
+   566→  taxRateBps    Int      @default(0)
+   567→  regulatoryNotes String?
+   568→  enabled       Boolean  @default(true)
+   569→  createdAt     DateTime @default(now())
+   570→  updatedAt     DateTime @updatedAt
+   571→}
+   572→
+   573→model CurrencyWallet {
+   574→  id            String   @id @default(cuid())
+   575→  userId        String
+   576→  currency      String // NGN | USD | EUR | GBP | KES | GHS | ZAR ...
+   577→  balanceMinor  Int      @default(0)
+   578→  status        String   @default("ACTIVE") // ACTIVE | FROZEN
+   579→  version       Int      @default(0)
+   580→  createdAt     DateTime @default(now())
+   581→  updatedAt     DateTime @updatedAt
+   582→  @@unique([userId, currency])
+   583→  @@index([userId])
+   584→}
+   585→
+   586→model CurrencyLedgerEntry {
+   587→  id            String   @id @default(cuid())
+   588→  currencyWalletId String
+   589→  userId        String
+   590→  entryType     String // DEBIT | CREDIT
+   591→  amountMinor   Int
+   592→  currency      String
+   593→  refType       String
+   594→  refId         String?
+   595→  pairId        String?
+   596→  balanceAfterMinor Int
+   597→  description   String
+   598→  createdAt     DateTime @default(now())
+   599→  @@index([currencyWalletId])
+   600→  @@index([userId, createdAt])
+   601→}
+   602→
+   603→model FxRateSnapshot {
+   604→  id            String   @id @default(cuid())
+   605→  base          String
+   606→  quote         String
+   607→  rate          Float
+   608→  source        String // paystack | flutterwave | wise | open-market
+   609→  fetchedAt     DateTime @default(now())
+   610→  expiresAt     DateTime
+   611→  @@index([base, quote, fetchedAt])
+   612→}
+   613→
+   614→model FxConfig {
+   615→  id            String   @id @default(cuid())
+   616→  base          String
+   617→  quote         String
+   618→  spreadBps     Int      @default(150)
+   619→  markupBps     Int      @default(50)
+   620→  feeFixedMinor Int      @default(0)
+   621→  feeBps        Int      @default(0)
+   622→  updatedAt     DateTime @updatedAt
+   623→  @@unique([base, quote])
+   624→}
+   625→
+   626→// --- Merchant & payment links ---
+   627→model Merchant {
+   628→  id            String   @id @default(cuid())
+   629→  name          String
+   630→  email         String   @unique
+   631→  apiKeyPrefix  String
+   632→  webhookSecretHash String
+   633→  status        String   @default("ACTIVE") // ACTIVE | SUSPENDED | CLOSED
+   634→  businessName  String?
+   635→  country       String   @default("NG")
+   636→  createdAt     DateTime @default(now())
+   637→  updatedAt     DateTime @updatedAt
+   638→}
+   639→
+   640→model MerchantApiKey {
+   641→  id            String   @id @default(cuid())
+   642→  merchantId    String
+   643→  keyHash       String   @unique
+   644→  prefix        String
+   645→  scopesJSON    String   @default("[]")
+   646→  lastUsedAt    DateTime?
+   647→  revokedAt     DateTime?
+   648→  createdAt     DateTime @default(now())
+   649→  @@index([merchantId])
+   650→}
+   651→
+   652→model PaymentLink {
+   653→  id            String   @id @default(cuid())
+   654→  merchantId    String
+   655→  slug          String   @unique
+   656→  title         String
+   657→  amountMinor   Int?
+   658→  currency      String   @default("NGN")
+   659→  maxUses       Int      @default(0) // 0 = unlimited
+   660→  usesCount     Int      @default(0)
+   661→  expiresAt     DateTime?
+   662→  status        String   @default("ACTIVE") // ACTIVE | DISABLED | EXPIRED
+   663→  metadataJSON  String   @default("{}")
+   664→  createdAt     DateTime @default(now())
+   665→  @@index([merchantId])
+   666→}
+   667→
+   668→model PaymentLinkPayment {
+   669→  id            String   @id @default(cuid())
+   670→  paymentLinkId String
+   671→  transactionId String?
+   672→  amountMinor   Int
+   673→  currency      String
+   674→  payerEmail    String?
+   675→  payerName     String?
+   676→  status        String   @default("PENDING") // PENDING | SUCCESS | FAILED
+   677→  reference     String   @unique
+   678→  createdAt     DateTime @default(now())
+   679→  @@index([paymentLinkId])
+   680→}
+   681→
+   682→model SubscriptionPlan {
+   683→  id            String   @id @default(cuid())
+   684→  merchantId    String
+   685→  name          String
+   686→  amountMinor   Int
+   687→  currency      String
+   688→  interval      String // DAY | WEEK | MONTH | YEAR
+   689→  intervalCount Int      @default(1)
+   690→  trialDays     Int      @default(0)
+   691→  status        String   @default("ACTIVE")
+   692→  createdAt     DateTime @default(now())
+   693→  @@index([merchantId])
+   694→}
+   695→
+   696→model Subscription {
+   697→  id            String   @id @default(cuid())
+   698→  planId        String
+   699→  customerId    String // userId
+   700→  status        String   @default("ACTIVE") // ACTIVE | PAST_DUE | CANCELED | TRIALING
+   701→  currentPeriodEnd DateTime
+   702→  nextChargeAt  DateTime
+   703→  mandateId     String?
+   704→  createdAt     DateTime @default(now())
+   705→  updatedAt     DateTime @updatedAt
+   706→  @@index([customerId])
+   707→  @@index([planId])
+   708→}
+   709→
+   710→model Mandate {
+   711→  id            String   @id @default(cuid())
+   712→  userId        String
+   713→  merchantId    String
+   714→  providerRef   String?
+   715→  currency      String
+   716→  maxAmountMinor Int
+   717→  status        String   @default("ACTIVE") // ACTIVE | REVOKED
+   718→  revokedAt     DateTime?
+   719→  createdAt     DateTime @default(now())
+   720→  @@index([userId])
+   721→}
+   722→
+   723→model ScheduledPayment {
+   724→  id            String   @id @default(cuid())
+   725→  userId        String
+   726→  type          String // TRANSFER | BILL | AIRTIME | DATA
+   727→  payloadJSON   String
+   728→  frequency     String // ONCE | DAILY | WEEKLY | MONTHLY
+   729→  nextRunAt     DateTime
+   730→  status        String   @default("ACTIVE") // ACTIVE | PAUSED | DONE | FAILED
+   731→  runCount      Int      @default(0)
+   732→  failCount     Int      @default(0)
+   733→  lastRunAt     DateTime?
+   734→  createdAt     DateTime @default(now())
+   735→  @@index([userId, nextRunAt])
+   736→  @@index([status, nextRunAt])
+   737→}
+   738→
+   739→// --- Compliance ---
+   740→model SanctionsEntry {
+   741→  id            String   @id @default(cuid())
+   742→  listName      String // OFAC_SDN | UN_CONSOLIDATED | CBN_WATCHLIST
+   743→  entityType    String // INDIVIDUAL | ENTITY
+   744→  primaryName   String
+   745→  aliasesJSON   String   @default("[]")
+   746→  country       String?
+   747→  program       String?
+   748→  listedAt      DateTime?
+   749→  rawJSON       String?
+   750→  createdAt     DateTime @default(now())
+   751→  @@index([primaryName])
+   752→  @@index([listName])
+   753→}
+   754→
+   755→model ScreeningResult {
+   756→  id            String   @id @default(cuid())
+   757→  entityType    String // TRANSACTION | USER | BENEFICIARY
+   758→  entityName    String
+   759→  transactionId String?
+   760→  userId        String?
+   761→  hit           Boolean  @default(false)
+   762→  score         Float
+   763→  matchedEntryId String?
+   764→  screenedAt    DateTime @default(now())
+   765→  @@index([transactionId])
+   766→  @@index([hit, screenedAt])
+   767→}
+   768→
+   769→model ComplianceCase {
+   770→  id            String   @id @default(cuid())
+   771→  userId        String?
+   772→  transactionId String?
+   773→  type          String // AML | KYC | SANCTIONS | FRAUD
+   774→  status        String   @default("OPEN") // OPEN | IN_REVIEW | ESCALATED | CLOSED
+   775→  assignedTo    String?
+   776→  summary       String
+   777→  metadataJSON  String   @default("{}")
+   778→  createdAt     DateTime @default(now())
+   779→  closedAt      DateTime?
+   780→  @@index([status])
+   781→  @@index([userId])
+   782→}
+   783→
+   784→// --- Platform config & scale ---
+   785→model FeatureFlag {
+   786→  id            String   @id @default(cuid())
+   787→  key           String   @unique
+   788→  description   String?
+   789→  type          String   @default("BOOL") // BOOL | PERCENT | VARIANT
+   790→  valueJSON     String   @default("true")
+   791→  enabled       Boolean  @default(true)
+   792→  updatedAt     DateTime @updatedAt
+   793→  updatedBy     String?
+   794→}
+   795→
+   796→model FeatureFlagOverride {
+   797→  id            String   @id @default(cuid())
+   798→  flagKey       String
+   799→  targetType    String // USER | COUNTRY | KYC_TIER
+   800→  targetId      String
+   801→  valueJSON     String
+   802→  createdAt     DateTime @default(now())
+   803→  @@unique([flagKey, targetType, targetId])
+   804→}
+   805→
+   806→model ConfigVersion {
+   807→  id            String   @id @default(cuid())
+   808→  scope         String // PROVIDERS | FX | FEES | CAPABILITIES
+   809→  version       Int
+   810→  snapshotJSON  String
+   811→  changedBy     String?
+   812→  changedAt     DateTime @default(now())
+   813→  reason        String?
+   814→  @@index([scope, version])
+   815→}
+   816→
+   817→model Settlement {
+   818→  id            String   @id @default(cuid())
+   819→  providerCode  String
+   820→  periodStart   DateTime
+   821→  periodEnd     DateTime
+   822→  expectedMinor Int
+   823→  settledMinor  Int
+   824→  currency      String
+   825→  status        String   @default("PENDING") // PENDING | CONFIRMED | RECONCILED
+   826→  settledAt     DateTime?
+   827→  createdAt     DateTime @default(now())
+   828→  @@index([providerCode, status])
+   829→}
+   830→
+   831→model SettlementAccount {
+   832→  id            String   @id @default(cuid())
+   833→  providerCode  String
+   834→  accountName   String
+   835→  accountNumber String
+   836→  bankCode      String
+   837→  bankName      String
+   838→  currency      String
+   839→  isDefault     Boolean  @default(false)
+   840→  createdAt     DateTime @default(now())
+   841→  @@index([providerCode])
+   842→}
+   843→
+   844→model CronLock {
+   845→  key           String   @id
+   846→  lockedBy      String?
+   847→  lockedUntil   DateTime?
+   848→  acquiredAt    DateTime @default(now())
+   849→}
+   850→
+   851→// ===== Disputes, Vouchers, Statements, Preferences (round 2) =====
+   852→
+   853→model Dispute {
+   854→  id            String   @id @default(cuid())
+   855→  userId        String
+   856→  transactionId String?
+   857→  subject       String
+   858→  category      String   @default("TRANSACTION") // TRANSACTION | BILL | TRANSFER | CARD | AIRTIME | OTHER
+   859→  priority      String   @default("NORMAL") // LOW | NORMAL | HIGH | URGENT
+   860→  status        String   @default("OPEN") // OPEN | UNDER_REVIEW | EVIDENCE_REQUIRED | RESOLVED_FAVOUR_USER | RESOLVED_FAVOUR_PLATFORM | CLOSED | ESCALATED
+   861→  description   String
+   862→  resolution    String?
+   863→  assignedTo    String?
+   864→  messages      DisputeMessage[]
+   865→  createdAt     DateTime @default(now())
+   866→  updatedAt     DateTime @updatedAt
+   867→  resolvedAt    DateTime?
+   868→  @@index([userId, createdAt])
+   869→  @@index([status])
+   870→}
+   871→
+   872→model DisputeMessage {
+   873→  id            String   @id @default(cuid())
+   874→  disputeId     String
+   875→  dispute       Dispute  @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+   876→  senderId      String
+   877→  senderRole    String   @default("USER") // USER | ADMIN
+   878→  message       String
+   879→  attachmentsJSON String @default("[]")
+   880→  createdAt     DateTime @default(now())
+   881→  @@index([disputeId, createdAt])
+   882→}
+   883→
+   884→model Voucher {
+   885→  id            String   @id @default(cuid())
+   886→  code          String   @unique
+   887→  type          String   @default("CASHBACK") // CASHBACK | DISCOUNT | FEE_WAIVER | PERCENT_OFF | FLAT_OFF
+   888→  valueKobo     Int      @default(0) // flat amount for CASHBACK/FLAT_OFF
+   889→  percentOff    Int      @default(0) // for PERCENT_OFF
+   890→  description   String
+   891→  minAmountKobo Int      @default(0)
+   892→  maxRedemptions Int     @default(0) // 0 = unlimited
+   893→  redemptionsCount Int   @default(0)
+   894→  perUserLimit  Int      @default(1)
+   895→  validFrom     DateTime @default(now())
+   896→  validUntil    DateTime?
+   897→  status        String   @default("ACTIVE") // ACTIVE | EXPIRED | DISABLED
+   898→  createdById   String?
+   899→  createdAt     DateTime @default(now())
+   900→  redemptions   VoucherRedemption[]
+   901→}
+   902→
+   903→model VoucherRedemption {
+   904→  id            String   @id @default(cuid())
+   905→  voucherId     String
+   906→  voucher       Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+   907→  userId        String
+   908→  transactionId String?
+   909→  valueAppliedKobo Int
+   910→  status        String   @default("SUCCESS") // SUCCESS | FAILED
+   911→  createdAt     DateTime @default(now())
+   912→  @@unique([voucherId, userId])
+   913→  @@index([userId])
+   914→}
+   915→
+   916→model StatementRequest {
+   917→  id            String   @id @default(cuid())
+   918→  userId        String
+   919→  periodStart   DateTime
+   920→  periodEnd     DateTime
+   921→  format        String   @default("PDF") // PDF | CSV
+   922→  status        String   @default("PENDING") // PENDING | READY | FAILED
+   923→  filePath      String?
+   924→  createdAt     DateTime @default(now())
+   925→  @@index([userId, createdAt])
+   926→}
+   927→
+   928→model CommunicationPreference {
+   929→  id            String   @id @default(cuid())
+   930→  userId        String   @unique
+   931→  emailEnabled  Boolean  @default(true)
+   932→  smsEnabled    Boolean  @default(true)
+   933→  pushEnabled   Boolean  @default(true)
+   934→  whatsappEnabled Boolean @default(false)
+   935→  transactionAlerts Boolean @default(true)
+   936→  securityAlerts Boolean @default(true)
+   937→  marketingAlerts Boolean @default(false)
+   938→  weeklySummary Boolean @default(true)
+   939→  updatedAt     DateTime @updatedAt
+   940→}
+   941→
+   942→model TeamMember {
+   943→  id            String   @id @default(cuid())
+   944→  email         String   @unique
+   945→  fullName      String
+   946→  role          String   @default("SUPPORT") // ADMIN | COMPLIANCE | SUPPORT | FINANCE
+   947→  status        String   @default("PENDING") // PENDING | ACTIVE | DEACTIVATED
+   948→  invitedById   String
+   949→  invitedAt     DateTime @default(now())
+   950→  activatedAt   DateTime?
+   951→  deactivatedAt DateTime?
+   952→  lastLoginAt   DateTime?
+   953→  @@index([status])
+   954→}
+   955→

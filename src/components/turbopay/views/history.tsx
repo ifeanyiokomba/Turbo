@@ -4,6 +4,7 @@ import * as React from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -11,7 +12,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageHeader, EmptyState } from "../parts/layout";
 import { TransactionItem } from "../parts/transaction-item";
 import { downloadReceipt } from "../parts/receipt-pdf";
@@ -22,6 +31,8 @@ import {
   History as HistoryIcon,
   X,
   FileDown,
+  FileText,
+  Calendar,
 } from "lucide-react";
 import { naira, formatDate } from "@/lib/money";
 import { toast } from "sonner";
@@ -98,6 +109,14 @@ export default function HistoryView() {
   const [active, setActive] = React.useState<Tx | null>(null);
   const [exporting, setExporting] = React.useState(false);
 
+  // Statement dialog state
+  const [stmtOpen, setStmtOpen] = React.useState(false);
+  const [stmtPeriod, setStmtPeriod] = React.useState<"30" | "90" | "custom">("30");
+  const [stmtFormat, setStmtFormat] = React.useState<"PDF" | "CSV">("PDF");
+  const [stmtStart, setStmtStart] = React.useState("");
+  const [stmtEnd, setStmtEnd] = React.useState("");
+  const [generating, setGenerating] = React.useState(false);
+
   // Debounce search input
   React.useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -149,6 +168,74 @@ export default function HistoryView() {
   function handleLoadMore() {
     setLoadingMore(true);
     loadPage(page + 1, false);
+  }
+
+  function openStatementDialog() {
+    // Default the custom range to "last 30 days"
+    const today = new Date();
+    const start = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    setStmtStart(start.toISOString().slice(0, 10));
+    setStmtEnd(today.toISOString().slice(0, 10));
+    setStmtPeriod("30");
+    setStmtFormat("PDF");
+    setStmtOpen(true);
+  }
+
+  // Keep the custom date range in sync with the chip presets
+  React.useEffect(() => {
+    if (stmtPeriod === "custom") return;
+    const today = new Date();
+    const days = stmtPeriod === "30" ? 30 : 90;
+    const start = new Date(today.getTime() - days * 24 * 60 * 60 * 1000);
+    setStmtStart(start.toISOString().slice(0, 10));
+    setStmtEnd(today.toISOString().slice(0, 10));
+  }, [stmtPeriod]);
+
+  async function generateStatement() {
+    if (!stmtStart || !stmtEnd) {
+      toast.error("Please pick a start and end date");
+      return;
+    }
+    const start = new Date(stmtStart);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(stmtEnd);
+    end.setHours(23, 59, 59, 999);
+    if (start >= end) {
+      toast.error("Start date must be before end date");
+      return;
+    }
+    setGenerating(true);
+    try {
+      const res = await fetch("/api/statements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          periodStart: start.toISOString(),
+          periodEnd: end.toISOString(),
+          format: stmtFormat,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to generate statement");
+        return;
+      }
+      toast.success(
+        `Statement ready — ${data.statement.transactionCount ?? 0} transactions`,
+      );
+      setStmtOpen(false);
+      // Auto-download
+      const a = document.createElement("a");
+      a.href = data.statement.downloadUrl;
+      a.download = "";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to generate statement");
+    } finally {
+      setGenerating(false);
+    }
   }
 
   async function handleExport() {
@@ -241,11 +328,17 @@ export default function HistoryView() {
         title="Transactions"
         subtitle="Browse, search and export your money movements."
         actions={
-          <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExport} disabled={exporting}>
-            {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            <span className="hidden sm:inline">Export CSV</span>
-            <span className="sm:hidden">Export</span>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={openStatementDialog}>
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Statement</span>
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExport} disabled={exporting}>
+              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              <span className="hidden sm:inline">Export CSV</span>
+              <span className="sm:hidden">Export</span>
+            </Button>
+          </div>
         }
       />
 
@@ -350,6 +443,117 @@ export default function HistoryView() {
 
       {/* Detail dialog */}
       <TxDetailDialog tx={active} onClose={() => setActive(null)} />
+
+      {/* Statement generation dialog */}
+      <Dialog open={stmtOpen} onOpenChange={(o) => !generating && setStmtOpen(o)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Download statement
+            </DialogTitle>
+            <DialogDescription>
+              Generate a branded account statement for the selected period.
+              You can choose PDF (formatted) or CSV (spreadsheet).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-1">
+            {/* Period chips */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Period</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { v: "30", l: "Last 30 days" },
+                  { v: "90", l: "Last 90 days" },
+                  { v: "custom", l: "Custom" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setStmtPeriod(opt.v)}
+                    className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors ${
+                      stmtPeriod === opt.v
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:bg-muted/50"
+                    }`}
+                  >
+                    {opt.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom date range */}
+            {stmtPeriod === "custom" && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="stmtStart" className="text-xs font-medium text-muted-foreground">
+                    Start date
+                  </Label>
+                  <div className="relative">
+                    <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="stmtStart"
+                      type="date"
+                      value={stmtStart}
+                      onChange={(e) => setStmtStart(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="stmtEnd" className="text-xs font-medium text-muted-foreground">
+                    End date
+                  </Label>
+                  <div className="relative">
+                    <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="stmtEnd"
+                      type="date"
+                      value={stmtEnd}
+                      onChange={(e) => setStmtEnd(e.target.value)}
+                      className="pl-9"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Format */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Format</Label>
+              <Select
+                value={stmtFormat}
+                onValueChange={(v: "PDF" | "CSV") => setStmtFormat(v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PDF">PDF (formatted)</SelectItem>
+                  <SelectItem value="CSV">CSV (spreadsheet)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
+              The statement includes your account info, all transactions in the period,
+              running balances, and a summary of money in / out / net change.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStmtOpen(false)} disabled={generating}>
+              Cancel
+            </Button>
+            <Button onClick={generateStatement} disabled={generating} className="gap-1.5">
+              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+              Generate &amp; download
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

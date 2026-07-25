@@ -26,7 +26,9 @@ export type ViewKey =
   | "mobile-money"
   | "payment-links"
   | "scheduled-payments"
-  | "analytics";
+  | "analytics"
+  | "disputes"
+  | "vouchers";
 
 export interface AppUser {
   id: string;

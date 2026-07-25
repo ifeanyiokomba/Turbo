@@ -13,6 +13,15 @@ import { PinDialogProvider } from "./parts/pin-dialog";
 import { CountrySwitcher } from "./parts/country-switcher";
 import { ViewTransition } from "./view-transition";
 import AiSupport from "./ai-support";
+import { useSessionTimeout } from "./parts/use-session-timeout";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   LayoutDashboard,
   Wallet,
@@ -43,6 +52,10 @@ import {
   Plane,
   Link as LinkIcon,
   CalendarClock,
+  Clock,
+  AlertTriangle,
+  Scale,
+  Ticket,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
@@ -75,6 +88,8 @@ const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any
       { key: "kyc", label: "KYC & Limits", icon: ShieldCheck },
       { key: "beneficiaries", label: "Beneficiaries", icon: Users },
       { key: "rewards", label: "Rewards", icon: Gift },
+      { key: "vouchers", label: "Vouchers", icon: Ticket },
+      { key: "disputes", label: "Disputes", icon: Scale },
       { key: "security", label: "Security", icon: ShieldCheck },
       { key: "settings", label: "Settings", icon: Settings },
       { key: "support", label: "Help & Support", icon: LifeBuoy },
@@ -125,6 +140,8 @@ const Views: Record<ViewKey, React.LazyExoticComponent<React.ComponentType>> = {
   "payment-links": React.lazy(() => import("./views/payment-links")),
   "scheduled-payments": React.lazy(() => import("./views/scheduled-payments")),
   analytics: React.lazy(() => import("./views/analytics")),
+  disputes: React.lazy(() => import("./views/disputes")),
+  vouchers: React.lazy(() => import("./views/vouchers")),
 };
 
 const VIEW_TITLES: Record<ViewKey, string> = {
@@ -151,6 +168,8 @@ const VIEW_TITLES: Record<ViewKey, string> = {
   "payment-links": "Payment Links",
   "scheduled-payments": "Scheduled Payments",
   analytics: "Analytics",
+  disputes: "Disputes",
+  vouchers: "Vouchers",
 };
 
 export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.getState>["user"]> }) {
@@ -202,6 +221,25 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
     toast.success("Signed out");
     router.refresh();
   }
+
+  // Session timeout — auto-logout after 15 min inactivity (2-min warning).
+  const handleTimeout = React.useCallback(async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {}
+    useApp.getState().logoutClient();
+    toast.info("You've been signed out due to inactivity", {
+      description: "Please log in again to continue.",
+    });
+    router.refresh();
+  }, [router]);
+
+  const session = useSessionTimeout({
+    inactivityMs: 15 * 60 * 1000,
+    warningMs: 2 * 60 * 1000,
+    onTimeout: handleTimeout,
+    enabled: true,
+  });
 
   const CurrentView = Views[view];
   const initials = user.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
@@ -425,6 +463,121 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
         </div>
       </div>
       <AiSupport />
+
+      {/* Session timeout warning dialog */}
+      <SessionTimeoutDialog
+        open={session.warning}
+        secondsLeft={session.secondsLeft}
+        onStay={session.staySignedIn}
+        onSignOut={session.signOutNow}
+      />
     </PinDialogProvider>
+  );
+}
+
+// ============== Session Timeout Dialog ==============
+
+function SessionTimeoutDialog({
+  open,
+  secondsLeft,
+  onStay,
+  onSignOut,
+}: {
+  open: boolean;
+  secondsLeft: number;
+  onStay: () => void;
+  onSignOut: () => void;
+}) {
+  const minutes = Math.floor(secondsLeft / 60);
+  const seconds = secondsLeft % 60;
+  const timeLabel = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+
+  // Countdown ring (SVG) — fraction of the 2-minute window remaining.
+  const totalSeconds = 120;
+  const fraction = Math.max(0, Math.min(1, secondsLeft / totalSeconds));
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference * (1 - fraction);
+
+  // Amber/red transition when < 30s left
+  const urgent = secondsLeft <= 30;
+
+  return (
+    <Dialog open={open}>
+      <DialogContent className="max-w-sm gap-0 p-0" onPointerDownOutside={(e) => e.preventDefault()}>
+        {/* Amber header band */}
+        <div
+          className={`flex flex-col items-center gap-3 rounded-t-lg px-6 pb-5 pt-7 text-center ${
+            urgent
+              ? "bg-gradient-to-b from-red-500/15 to-transparent"
+              : "bg-gradient-to-b from-amber-500/15 to-transparent"
+          }`}
+        >
+          <div className="relative flex h-20 w-20 items-center justify-center">
+            <svg className="h-20 w-20 -rotate-90" viewBox="0 0 96 96">
+              <circle
+                cx="48"
+                cy="48"
+                r={radius}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="6"
+                className="text-muted/30"
+              />
+              <circle
+                cx="48"
+                cy="48"
+                r={radius}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={dashOffset}
+                className={urgent ? "text-red-500" : "text-amber-500"}
+                style={{ transition: "stroke-dashoffset 1s linear" }}
+              />
+            </svg>
+            <div className="absolute flex flex-col items-center">
+              {urgent ? (
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+              ) : (
+                <Clock className="h-5 w-5 text-amber-500" />
+              )}
+              <span
+                className={`mt-0.5 font-mono text-base font-bold tabular-nums ${
+                  urgent ? "text-red-600 dark:text-red-400" : "text-amber-600 dark:text-amber-400"
+                }`}
+              >
+                {timeLabel}
+              </span>
+            </div>
+          </div>
+
+          <DialogHeader className="space-y-1.5 p-0">
+            <DialogTitle className="text-base">
+              Your session is about to expire
+            </DialogTitle>
+            <DialogDescription>
+              You&apos;ve been inactive for a while. For your security, we&apos;ll sign you out
+              automatically when the timer runs out.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
+
+        <div className="space-y-2 px-6 py-4">
+          <Button onClick={onStay} className="w-full gap-1.5">
+            <ShieldCheck className="h-4 w-4" /> Stay signed in
+          </Button>
+          <Button
+            variant="outline"
+            onClick={onSignOut}
+            className="w-full gap-1.5 border-red-500/30 text-red-600 hover:bg-red-500/10 hover:text-red-700 dark:text-red-400"
+          >
+            <LogOut className="h-4 w-4" /> Sign out now
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

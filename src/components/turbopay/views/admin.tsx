@@ -52,6 +52,7 @@ import WebhooksTab from "./admin/webhooks-tab";
 import ComplianceTab from "./admin/compliance-tab";
 import FeatureFlagsTab from "./admin/feature-flags-tab";
 import ConfigHistoryTab from "./admin/config-history-tab";
+import TeamTab from "./admin/team-tab";
 
 interface AdminStats {
   users: number;
@@ -485,6 +486,7 @@ export default function AdminView() {
           <TabsTrigger value="compliance" className="flex-1 min-w-[110px] gap-1"><ShieldAlert className="h-3.5 w-3.5" />Compliance</TabsTrigger>
           <TabsTrigger value="flags" className="flex-1 min-w-[100px] gap-1"><Flag className="h-3.5 w-3.5" />Flags</TabsTrigger>
           <TabsTrigger value="history" className="flex-1 min-w-[100px] gap-1"><History className="h-3.5 w-3.5" />Config History</TabsTrigger>
+          <TabsTrigger value="team" className="flex-1 min-w-[100px] gap-1"><Users className="h-3.5 w-3.5" />Team</TabsTrigger>
         </TabsList>
 
         {/* Overview */}
@@ -1131,6 +1133,11 @@ export default function AdminView() {
         {/* Config History */}
         <TabsContent value="history" className="mt-5">
           <ConfigHistoryTab />
+        </TabsContent>
+
+        {/* Team management */}
+        <TabsContent value="team" className="mt-5">
+          <TeamTab />
         </TabsContent>
       </Tabs>
     </div>

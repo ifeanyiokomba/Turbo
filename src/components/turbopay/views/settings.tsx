@@ -22,6 +22,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Switch } from "@/components/ui/switch";
 import {
   User as UserIcon,
   Mail,
@@ -40,6 +41,13 @@ import {
   ShieldCheck,
   Sparkles,
   AtSign,
+  Bell,
+  MessageCircle,
+  Smartphone,
+  Send,
+  Megaphone,
+  ShieldAlert,
+  CalendarClock,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -54,6 +62,18 @@ interface ProfileData {
     avatarUrl: string | null;
     hasPin: boolean;
   };
+}
+
+interface CommPrefs {
+  emailEnabled: boolean;
+  smsEnabled: boolean;
+  pushEnabled: boolean;
+  whatsappEnabled: boolean;
+  transactionAlerts: boolean;
+  securityAlerts: boolean;
+  marketingAlerts: boolean;
+  weeklySummary: boolean;
+  updatedAt: string;
 }
 
 function initials(name: string): string {
@@ -97,6 +117,68 @@ export default function SettingsView() {
   const [savingPwd, setSavingPwd] = React.useState(false);
 
   const [signingOut, setSigningOut] = React.useState(false);
+
+  // Communication preferences
+  const [commPrefs, setCommPrefs] = React.useState<CommPrefs | null>(null);
+  const [loadingPrefs, setLoadingPrefs] = React.useState(false);
+  const [savingPrefs, setSavingPrefs] = React.useState(false);
+  const [prefsDirty, setPrefsDirty] = React.useState(false);
+
+  const loadPrefs = React.useCallback(async () => {
+    setLoadingPrefs(true);
+    try {
+      const res = await fetch("/api/settings/preferences", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      setCommPrefs(data.preferences);
+      setPrefsDirty(false);
+    } catch {
+    } finally {
+      setLoadingPrefs(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    loadPrefs();
+  }, [loadPrefs]);
+
+  function togglePref<K extends keyof CommPrefs>(key: K, value: boolean) {
+    setCommPrefs((prev) => (prev ? { ...prev, [key]: value } : prev));
+    setPrefsDirty(true);
+  }
+
+  async function savePrefs() {
+    if (!commPrefs) return;
+    setSavingPrefs(true);
+    try {
+      const res = await fetch("/api/settings/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          emailEnabled: commPrefs.emailEnabled,
+          smsEnabled: commPrefs.smsEnabled,
+          pushEnabled: commPrefs.pushEnabled,
+          whatsappEnabled: commPrefs.whatsappEnabled,
+          transactionAlerts: commPrefs.transactionAlerts,
+          securityAlerts: commPrefs.securityAlerts,
+          marketingAlerts: commPrefs.marketingAlerts,
+          weeklySummary: commPrefs.weeklySummary,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to save preferences");
+        return;
+      }
+      setCommPrefs(data.preferences);
+      setPrefsDirty(false);
+      toast.success("Communication preferences saved");
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setSavingPrefs(false);
+    }
+  }
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -416,6 +498,114 @@ export default function SettingsView() {
               })}
             </div>
           </Card>
+
+          {/* Communication preferences */}
+          <Card className="p-5 sm:p-6">
+            <div className="mb-1 flex items-center gap-2">
+              <Bell className="h-5 w-5 text-primary" />
+              <h2 className="text-base font-semibold">Communication preferences</h2>
+            </div>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Choose how and when you want to hear from us.
+            </p>
+
+            {loadingPrefs ? (
+              <div className="space-y-3">
+                {[0, 1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-10 rounded-lg" />
+                ))}
+              </div>
+            ) : commPrefs ? (
+              <>
+                {/* Channels */}
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Channels
+                </p>
+                <div className="mb-4 space-y-1">
+                  <PrefRow
+                    icon={Mail}
+                    label="Email"
+                    description="Receipts, statements and important account emails."
+                    checked={commPrefs.emailEnabled}
+                    onChange={(v) => togglePref("emailEnabled", v)}
+                  />
+                  <PrefRow
+                    icon={Smartphone}
+                    label="SMS"
+                    description="One-time passwords and critical security alerts."
+                    checked={commPrefs.smsEnabled}
+                    onChange={(v) => togglePref("smsEnabled", v)}
+                  />
+                  <PrefRow
+                    icon={Bell}
+                    label="Push notifications"
+                    description="Real-time alerts in the Turbopay app."
+                    checked={commPrefs.pushEnabled}
+                    onChange={(v) => togglePref("pushEnabled", v)}
+                  />
+                  <PrefRow
+                    icon={MessageCircle}
+                    label="WhatsApp"
+                    description="Notifications via WhatsApp (where supported)."
+                    checked={commPrefs.whatsappEnabled}
+                    onChange={(v) => togglePref("whatsappEnabled", v)}
+                  />
+                </div>
+
+                {/* Categories */}
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Categories
+                </p>
+                <div className="space-y-1">
+                  <PrefRow
+                    icon={Send}
+                    label="Transaction alerts"
+                    description="Money in, money out, and large transactions."
+                    checked={commPrefs.transactionAlerts}
+                    onChange={(v) => togglePref("transactionAlerts", v)}
+                  />
+                  <PrefRow
+                    icon={ShieldAlert}
+                    label="Security alerts"
+                    description="New device logins, PIN changes, and suspicious activity."
+                    checked={commPrefs.securityAlerts}
+                    onChange={(v) => togglePref("securityAlerts", v)}
+                  />
+                  <PrefRow
+                    icon={CalendarClock}
+                    label="Weekly summary"
+                    description="A digest of your spending and balances every Monday."
+                    checked={commPrefs.weeklySummary}
+                    onChange={(v) => togglePref("weeklySummary", v)}
+                  />
+                  <PrefRow
+                    icon={Megaphone}
+                    label="Marketing & offers"
+                    description="Product updates, rewards, and promotions."
+                    checked={commPrefs.marketingAlerts}
+                    onChange={(v) => togglePref("marketingAlerts", v)}
+                  />
+                </div>
+
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <p className="text-xs text-muted-foreground">
+                    {prefsDirty ? "You have unsaved changes." : `Last updated ${new Date(commPrefs.updatedAt).toLocaleDateString("en-NG")}`}
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={savePrefs}
+                    disabled={savingPrefs || !prefsDirty}
+                    className="gap-1.5"
+                  >
+                    {savingPrefs ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Save preferences
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Could not load preferences.</p>
+            )}
+          </Card>
         </div>
 
         {/* Right col: security actions */}
@@ -648,5 +838,41 @@ export default function SettingsView() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+// ============== Communication preference row ==============
+
+function PrefRow({
+  icon: Icon,
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  description: string;
+  checked: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <label
+      htmlFor={`pref-${label}`}
+      className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/40"
+    >
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="h-4.5 w-4.5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">{label}</p>
+        <p className="truncate text-xs text-muted-foreground">{description}</p>
+      </div>
+      <Switch
+        id={`pref-${label}`}
+        checked={checked}
+        onCheckedChange={onChange}
+      />
+    </label>
   );
 }
