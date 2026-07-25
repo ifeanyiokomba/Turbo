@@ -38,6 +38,7 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
             <Wordmark size={20} />
           </div>
           <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex">
+            <a href="#providers" className="transition-colors hover:text-foreground">Providers</a>
             <a href="#features" className="transition-colors hover:text-foreground">Features</a>
             <a href="#how" className="transition-colors hover:text-foreground">How it works</a>
             <a href="#security" className="transition-colors hover:text-foreground">Security</a>
@@ -132,6 +133,35 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Provider network */}
+      <section id="providers" className="border-t bg-background py-14">
+        <div className="mx-auto max-w-6xl px-4">
+          <p className="mb-2 text-center text-sm font-medium text-muted-foreground">
+            Powered by Nigeria's leading payment networks — synchronized, health-checked, always routed to the fastest & cheapest path
+          </p>
+          <div className="mb-7 mt-4 flex flex-wrap items-center justify-center gap-3">
+            <ProviderChip name="Remita" tag="RRR · Govt" featured />
+            <ProviderChip name="Quickteller" tag="Interswitch" featured />
+            <ProviderChip name="Paystack" tag="Cards · Transfer" />
+            <ProviderChip name="Flutterwave" tag="Cards · Borderless" />
+            <ProviderChip name="Monnify" tag="Virtual accounts" />
+            <ProviderChip name="Baxi" tag="Bills · Airtime" />
+            <ProviderChip name="M-Pesa" tag="Kenya MoMo" />
+            <ProviderChip name="MTN MoMo" tag="UG · GH · RW" />
+            <ProviderChip name="Airtel Money" tag="UG · TZ · KE" />
+            <ProviderChip name="Smartcash" tag="Nigeria PSB" />
+            <ProviderChip name="Wise" tag="International" />
+            <ProviderChip name="Stripe" tag="Cards · Issuing" />
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary" /> Auto-routed by success rate</span>
+            <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary" /> Circuit-breaker protected</span>
+            <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary" /> Lowest-fee first</span>
+            <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary" /> 12+ providers, 1 unified API</span>
           </div>
         </div>
       </section>
@@ -317,6 +347,31 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
           </span>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function ProviderChip({ name, tag, featured = false }: { name: string; tag: string; featured?: boolean }) {
+  return (
+    <div
+      className={`group flex items-center gap-2.5 rounded-xl border px-4 py-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md ${
+        featured ? "border-primary/40 bg-primary/5" : "border-border bg-card"
+      }`}
+    >
+      <div
+        className={`flex h-8 w-8 items-center justify-center rounded-lg text-xs font-bold ${
+          featured ? "tp-emerald-grad text-white" : "bg-muted text-muted-foreground"
+        }`}
+      >
+        {name.slice(0, 2).toUpperCase()}
+      </div>
+      <div className="leading-tight">
+        <p className={`text-sm font-semibold ${featured ? "text-foreground" : "text-foreground"}`}>{name}</p>
+        <p className="text-[10px] text-muted-foreground">{tag}</p>
+      </div>
+      {featured && (
+        <Badge variant="secondary" className="ml-1 bg-primary/15 text-primary text-[9px]">★</Badge>
+      )}
     </div>
   );
 }

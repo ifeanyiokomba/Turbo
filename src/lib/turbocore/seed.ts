@@ -18,6 +18,8 @@ export async function seedTurboCore(): Promise<void> {
     { code: "quickteller", displayName: "Quickteller", sandbox: false, enabled: true, priority: 65 },
     { code: "mpesa", displayName: "M-Pesa", sandbox: false, enabled: true, priority: 90 },
     { code: "mtn_momo", displayName: "MTN MoMo", sandbox: false, enabled: true, priority: 80 },
+    { code: "airtel_money", displayName: "Airtel Money", sandbox: false, enabled: true, priority: 78 },
+    { code: "smartcash", displayName: "Smartcash PSB (Nigeria)", sandbox: false, enabled: true, priority: 82 },
     { code: "wise", displayName: "Wise", sandbox: false, enabled: true, priority: 85 },
     { code: "stripe", displayName: "Stripe", sandbox: false, enabled: true, priority: 85 },
     { code: "dojah", displayName: "Dojah KYC", sandbox: false, enabled: true, priority: 75 },
@@ -59,6 +61,24 @@ export async function seedTurboCore(): Promise<void> {
     // M-Pesa — KE mobile money
     { providerCode: "mpesa", contract: "MOBILE_MONEY", country: "KE", currency: "KES", direction: "INBOUND", minAmountMinor: 1000, maxAmountMinor: 500000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
     { providerCode: "mpesa", contract: "MOBILE_MONEY", country: "KE", currency: "KES", direction: "OUTBOUND", minAmountMinor: 1000, maxAmountMinor: 500000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    // MTN MoMo — UG/GH/RW/CI/ZM/CM mobile money
+    { providerCode: "mtn_momo", contract: "MOBILE_MONEY", country: "UG", currency: "UGX", direction: "INBOUND", minAmountMinor: 500, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "mtn_momo", contract: "MOBILE_MONEY", country: "UG", currency: "UGX", direction: "OUTBOUND", minAmountMinor: 500, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "mtn_momo", contract: "MOBILE_MONEY", country: "GH", currency: "GHS", direction: "INBOUND", minAmountMinor: 100, maxAmountMinor: 2000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "mtn_momo", contract: "MOBILE_MONEY", country: "GH", currency: "GHS", direction: "OUTBOUND", minAmountMinor: 100, maxAmountMinor: 2000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "mtn_momo", contract: "MOBILE_MONEY", country: "RW", currency: "RWF", direction: "INBOUND", minAmountMinor: 100, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "mtn_momo", contract: "MOBILE_MONEY", country: "CI", currency: "XOF", direction: "INBOUND", minAmountMinor: 100, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "mtn_momo", contract: "MOBILE_MONEY", country: "ZM", currency: "ZMW", direction: "INBOUND", minAmountMinor: 100, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "mtn_momo", contract: "MOBILE_MONEY", country: "CM", currency: "XAF", direction: "INBOUND", minAmountMinor: 100, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    // Airtel Money — UG/TZ/KE/RW/NG/IN mobile money
+    { providerCode: "airtel_money", contract: "MOBILE_MONEY", country: "UG", currency: "UGX", direction: "INBOUND", minAmountMinor: 500, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "airtel_money", contract: "MOBILE_MONEY", country: "UG", currency: "UGX", direction: "OUTBOUND", minAmountMinor: 500, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "airtel_money", contract: "MOBILE_MONEY", country: "TZ", currency: "TZS", direction: "INBOUND", minAmountMinor: 500, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "airtel_money", contract: "MOBILE_MONEY", country: "KE", currency: "KES", direction: "INBOUND", minAmountMinor: 1000, maxAmountMinor: 500000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "airtel_money", contract: "MOBILE_MONEY", country: "RW", currency: "RWF", direction: "INBOUND", minAmountMinor: 100, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    // Smartcash PSB — Nigeria mobile money (Airtel Nigeria)
+    { providerCode: "smartcash", contract: "MOBILE_MONEY", country: "NG", currency: "NGN", direction: "INBOUND", minAmountMinor: 1000, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "smartcash", contract: "MOBILE_MONEY", country: "NG", currency: "NGN", direction: "OUTBOUND", minAmountMinor: 1000, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
     // Wise — international
     { providerCode: "wise", contract: "INTERNATIONAL_TRANSFER", country: "NG", currency: "USD", direction: "OUTBOUND", minAmountMinor: 100, maxAmountMinor: 500000, feeBps: 80, feeFixedMinor: 0, settleHours: 48 },
     { providerCode: "wise", contract: "EXCHANGE_RATE", country: "ALL", currency: "ALL", direction: "INBOUND", minAmountMinor: 0, maxAmountMinor: 0, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },

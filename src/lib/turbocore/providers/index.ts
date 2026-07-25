@@ -55,6 +55,21 @@ const REAL_PROVIDERS: { code: string; file: string; contracts: { name: ContractN
     contracts: [{ name: ContractName.MOBILE_MONEY, exportName: "mpesaProvider" }],
   },
   {
+    code: "mtn_momo",
+    file: "./mtn-momo.adapter",
+    contracts: [{ name: ContractName.MOBILE_MONEY, exportName: "mtnMomoProvider" }],
+  },
+  {
+    code: "airtel_money",
+    file: "./airtel-money.adapter",
+    contracts: [{ name: ContractName.MOBILE_MONEY, exportName: "airtelMoneyProvider" }],
+  },
+  {
+    code: "smartcash",
+    file: "./smartcash.adapter",
+    contracts: [{ name: ContractName.MOBILE_MONEY, exportName: "smartcashProvider" }],
+  },
+  {
     code: "baxi",
     file: "./baxi.adapter",
     contracts: [
