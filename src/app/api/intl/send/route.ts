@@ -13,7 +13,8 @@ import { orchestratePayment } from "@/lib/turbocore/orchestrator";
 import { route } from "@/lib/turbocore/routing-engine";
 import { registry } from "@/lib/turbocore/registry";
 import { debitCurrencyWallet, creditCurrencyWallet } from "@/lib/turbocore/fx/convert";
-import type { IInternationalTransferProvider, InternationalBeneficiary } from "@/lib/turbocore/contracts";
+import type { IInternationalTransferProvider } from "@/lib/turbocore/contracts";
+import type { InternationalBeneficiary } from "@/lib/turbocore/result";
 import { generateReference } from "@/lib/money";
 import { ContractName } from "@/lib/turbocore/result";
 

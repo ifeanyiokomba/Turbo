@@ -352,7 +352,13 @@ export const paystackBankTransfer: IBankTransferProvider = {
     // Real implementation: hit /transfer/disable-on-failure or mark as failed.
     // For now we delegate to the mock refund path since Paystack has no public
     // direct reversal endpoint — callers should issue a refund instead.
-    return paystackCardPayment.refund({ providerRef: req.providerRef, reason: req.reason });
+    const refundResult = await paystackCardPayment.refund({ providerRef: req.providerRef, reason: req.reason });
+    if (!refundResult.ok) return refundResult;
+    return ok(
+      { reversalRef: refundResult.data.refundRef, status: refundResult.data.status },
+      refundResult.providerRequestId,
+      refundResult.latencyMs,
+    );
   },
 };
 

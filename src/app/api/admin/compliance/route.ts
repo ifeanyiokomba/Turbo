@@ -20,14 +20,10 @@ export async function GET(req: Request) {
         where: statusParam ? { status: statusParam } : { status: { not: "CLOSED" } },
         orderBy: { createdAt: "desc" },
         take: 100,
-        include: {
-          user: { select: { fullName: true, username: true, email: true } },
-        },
       }),
       db.screeningResult.findMany({
         orderBy: { screenedAt: "desc" },
         take: 50,
-        include: { user: { select: { fullName: true, username: true } } },
       }),
       db.sanctionsEntry.count(),
       db.sanctionsEntry.groupBy({
@@ -37,43 +33,58 @@ export async function GET(req: Request) {
       db.amlFlag.findMany({
         orderBy: { createdAt: "desc" },
         take: 20,
-        include: { user: { select: { fullName: true, username: true } } },
+        include: {
+          user: { select: { fullName: true, username: true } },
+        },
       }),
     ]);
 
+    // ComplianceCase and ScreeningResult have no Prisma relation to User — fetch user
+    // metadata separately and join in JS so the UI can show names alongside IDs.
+    const userIds = new Set<string>();
+    for (const c of cases) if (c.userId) userIds.add(c.userId);
+    for (const s of screenings) if (s.userId) userIds.add(s.userId);
+    const users = await db.user.findMany({
+      where: { id: { in: Array.from(userIds) } },
+      select: { id: true, fullName: true, username: true, email: true },
+    });
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
     return json({
-      cases: cases.map((c) => ({
-        id: c.id,
-        type: c.type,
-        status: c.status,
-        assignedTo: c.assignedTo,
-        summary: c.summary,
-        metadataJSON: c.metadataJSON,
-        createdAt: c.createdAt,
-        closedAt: c.closedAt,
-        userId: c.userId,
-        transactionId: c.transactionId,
-        user: c.user
-          ? {
-              fullName: c.user.fullName,
-              username: c.user.username,
-              email: c.user.email,
-            }
-          : null,
-      })),
-      screenings: screenings.map((s) => ({
-        id: s.id,
-        entityType: s.entityType,
-        entityName: s.entityName,
-        hit: s.hit,
-        score: s.score,
-        matchedEntryId: s.matchedEntryId,
-        transactionId: s.transactionId,
-        userId: s.userId,
-        screenedAt: s.screenedAt,
-        userName: s.user?.fullName ?? null,
-        userUsername: s.user?.username ?? null,
-      })),
+      cases: cases.map((c) => {
+        const u = c.userId ? userMap.get(c.userId) : null;
+        return {
+          id: c.id,
+          type: c.type,
+          status: c.status,
+          assignedTo: c.assignedTo,
+          summary: c.summary,
+          metadataJSON: c.metadataJSON,
+          createdAt: c.createdAt,
+          closedAt: c.closedAt,
+          userId: c.userId,
+          transactionId: c.transactionId,
+          user: u
+            ? { fullName: u.fullName, username: u.username, email: u.email }
+            : null,
+        };
+      }),
+      screenings: screenings.map((s) => {
+        const u = s.userId ? userMap.get(s.userId) : null;
+        return {
+          id: s.id,
+          entityType: s.entityType,
+          entityName: s.entityName,
+          hit: s.hit,
+          score: s.score,
+          matchedEntryId: s.matchedEntryId,
+          transactionId: s.transactionId,
+          userId: s.userId,
+          screenedAt: s.screenedAt,
+          userName: u?.fullName ?? null,
+          userUsername: u?.username ?? null,
+        };
+      }),
       sanctionsCount,
       sanctionsByList: sanctionsByList.map((s) => ({ listName: s.listName, count: s._count._all })),
       amlFlags: amlFlags.map((f) => ({

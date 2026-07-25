@@ -53,7 +53,7 @@ export const baxiBillPayment: IBillPaymentProvider = {
       mockWarnOnce(CODE);
       const cats = Object.keys(BILLERS);
       const billers = req.category ? BILLERS[req.category] ?? [] : cats.flatMap((c) => BILLERS[c] ?? []);
-      return ok(billers.map((b) => ({ ...b, country: req.country })), "mock", 20);
+      return ok(billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })), "mock", 20);
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Baxi secretKey missing", { providerCode: CODE });
@@ -79,7 +79,7 @@ export const baxiBillPayment: IBillPaymentProvider = {
       if (!out.length) {
         const cats = Object.keys(BILLERS);
         const billers = req.category ? BILLERS[req.category] ?? [] : cats.flatMap((c) => BILLERS[c] ?? []);
-        return ok(billers.map((b) => ({ ...b, country: req.country })), "baxi-fallback", 0);
+        return ok(billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })), "baxi-fallback", 0);
       }
       return ok(out, "baxi-billers", 0);
     } catch (e) {
@@ -88,7 +88,7 @@ export const baxiBillPayment: IBillPaymentProvider = {
       const cats = Object.keys(BILLERS);
       const billers = req.category ? BILLERS[req.category] ?? [] : cats.flatMap((c) => BILLERS[c] ?? []);
       void msg;
-      return ok(billers.map((b) => ({ ...b, country: req.country })), "baxi-fallback", 0);
+      return ok(billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })), "baxi-fallback", 0);
     }
   },
 
@@ -243,7 +243,7 @@ export const baxiAirtime: IAirtimeProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok((DATA_PLANS[req.network] ?? []).map((p) => ({ ...p, network: req.network })), "mock", 12);
+      return ok((DATA_PLANS[req.network] ?? []).map((p) => ({ id: p.id, name: p.name, amountMinor: p.amountKobo, validity: p.validity, network: req.network })), "mock", 12);
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Baxi secretKey missing", { providerCode: CODE });
@@ -263,11 +263,11 @@ export const baxiAirtime: IAirtimeProvider = {
           validity: p.validity ?? "",
           network: req.network,
         }));
-      return ok(out.length ? out : (DATA_PLANS[req.network] ?? []).map((p) => ({ ...p, network: req.network })), "baxi-plans", 0);
+      return ok(out.length ? out : (DATA_PLANS[req.network] ?? []).map((p) => ({ id: p.id, name: p.name, amountMinor: p.amountKobo, validity: p.validity, network: req.network })), "baxi-plans", 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi listDataPlans failed";
       void msg;
-      return ok((DATA_PLANS[req.network] ?? []).map((p) => ({ ...p, network: req.network })), "baxi-fallback", 0);
+      return ok((DATA_PLANS[req.network] ?? []).map((p) => ({ id: p.id, name: p.name, amountMinor: p.amountKobo, validity: p.validity, network: req.network })), "baxi-fallback", 0);
     }
   },
 

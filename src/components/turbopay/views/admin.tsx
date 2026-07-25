@@ -35,9 +35,23 @@ import {
   PiggyBank,
   ScrollText,
   Download,
+  Server,
+  GitBranch,
+  Webhook,
+  Flag,
+  History,
+  Database,
+  Settings2,
 } from "lucide-react";
 import { naira, nairaCompact, formatDate, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
+import ProvidersTab from "./admin/providers-tab";
+import CapabilitiesTab from "./admin/capabilities-tab";
+import RoutingTab from "./admin/routing-tab";
+import WebhooksTab from "./admin/webhooks-tab";
+import ComplianceTab from "./admin/compliance-tab";
+import FeatureFlagsTab from "./admin/feature-flags-tab";
+import ConfigHistoryTab from "./admin/config-history-tab";
 
 interface AdminStats {
   users: number;
@@ -457,13 +471,20 @@ export default function AdminView() {
       />
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="flex w-full max-w-3xl overflow-x-auto scrollbar-thin">
+        <TabsList className="flex w-full max-w-4xl overflow-x-auto scrollbar-thin">
           <TabsTrigger value="overview" className="flex-1 min-w-[100px]">Overview</TabsTrigger>
           <TabsTrigger value="customers" className="flex-1 min-w-[100px]">Customers</TabsTrigger>
           <TabsTrigger value="transactions" className="flex-1 min-w-[100px]">Transactions</TabsTrigger>
           <TabsTrigger value="savings" className="flex-1 min-w-[100px]">Savings</TabsTrigger>
           <TabsTrigger value="aml" className="flex-1 min-w-[100px]">AML</TabsTrigger>
           <TabsTrigger value="audit" className="flex-1 min-w-[100px]">Audit Log</TabsTrigger>
+          <TabsTrigger value="providers" className="flex-1 min-w-[100px] gap-1"><Server className="h-3.5 w-3.5" />Providers</TabsTrigger>
+          <TabsTrigger value="capabilities" className="flex-1 min-w-[110px] gap-1"><Settings2 className="h-3.5 w-3.5" />Capabilities</TabsTrigger>
+          <TabsTrigger value="routing" className="flex-1 min-w-[100px] gap-1"><GitBranch className="h-3.5 w-3.5" />Routing</TabsTrigger>
+          <TabsTrigger value="webhooks" className="flex-1 min-w-[100px] gap-1"><Webhook className="h-3.5 w-3.5" />Webhooks</TabsTrigger>
+          <TabsTrigger value="compliance" className="flex-1 min-w-[110px] gap-1"><ShieldAlert className="h-3.5 w-3.5" />Compliance</TabsTrigger>
+          <TabsTrigger value="flags" className="flex-1 min-w-[100px] gap-1"><Flag className="h-3.5 w-3.5" />Flags</TabsTrigger>
+          <TabsTrigger value="history" className="flex-1 min-w-[100px] gap-1"><History className="h-3.5 w-3.5" />Config History</TabsTrigger>
         </TabsList>
 
         {/* Overview */}
@@ -1075,6 +1096,41 @@ export default function AdminView() {
               />
             )}
           </Card>
+        </TabsContent>
+
+        {/* Providers */}
+        <TabsContent value="providers" className="mt-5">
+          <ProvidersTab />
+        </TabsContent>
+
+        {/* Capabilities */}
+        <TabsContent value="capabilities" className="mt-5">
+          <CapabilitiesTab />
+        </TabsContent>
+
+        {/* Routing */}
+        <TabsContent value="routing" className="mt-5">
+          <RoutingTab />
+        </TabsContent>
+
+        {/* Webhooks */}
+        <TabsContent value="webhooks" className="mt-5">
+          <WebhooksTab />
+        </TabsContent>
+
+        {/* Compliance (TurboCore) */}
+        <TabsContent value="compliance" className="mt-5">
+          <ComplianceTab />
+        </TabsContent>
+
+        {/* Feature Flags */}
+        <TabsContent value="flags" className="mt-5">
+          <FeatureFlagsTab />
+        </TabsContent>
+
+        {/* Config History */}
+        <TabsContent value="history" className="mt-5">
+          <ConfigHistoryTab />
         </TabsContent>
       </Tabs>
     </div>

@@ -480,7 +480,7 @@ export const flutterwaveMobileMoney: IMobileMoneyProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ balanceMinor: 0, currency: req.currency ?? "NGN" }, "mock", 50);
+      return ok({ balanceMinor: 0, currency: "NGN" }, "mock", 50);
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
@@ -490,7 +490,7 @@ export const flutterwaveMobileMoney: IMobileMoneyProvider = {
       );
       const data = (body as { data?: { available_balance?: number; currency?: string } }).data;
       const bal = typeof data?.available_balance === "number" ? Math.round(data.available_balance * 100) : 0;
-      return ok({ balanceMinor: bal, currency: data?.currency ?? req.currency ?? "NGN" }, "fw-bal", 0);
+      return ok({ balanceMinor: bal, currency: data?.currency ?? "NGN" }, "fw-bal", 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave getBalance failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -560,7 +560,7 @@ export const flutterwaveMobileMoney: IMobileMoneyProvider = {
             account_number: req.phone,
             amount: req.amountMinor / 100,
             currency: req.currency,
-            narration: req.narration ?? "Turbopay mobile money payout",
+            narration: "Turbopay mobile money payout",
             reference: req.reference,
           }),
         },

@@ -53,7 +53,7 @@ async function getAccessToken(creds: { secrets: Record<string, string>; sandbox:
     const data = (body as { responseBody?: { accessToken?: string; expiresIn?: number } }).responseBody;
     if (!data?.accessToken) return null;
     const token = data.accessToken;
-    const expiresAt = Date.now() + (data.expiresAt ?? 25 * 60) * 1000;
+    const expiresAt = Date.now() + (data.expiresIn ?? 25 * 60) * 1000;
     tokenCache[slot] = { token, expiresAt };
     return token;
   } catch {

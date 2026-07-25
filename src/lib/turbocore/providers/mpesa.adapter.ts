@@ -101,7 +101,7 @@ export const mpesaProvider: IMobileMoneyProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ balanceMinor: 0, currency: req.currency ?? "KES" }, "mock", 50);
+      return ok({ balanceMinor: 0, currency: "KES" }, "mock", 50);
     }
     const token = await getAccessToken(creds);
     if (!token) return fail("AUTH_FAILED", "M-Pesa token retrieval failed", { providerCode: CODE });
@@ -134,7 +134,7 @@ export const mpesaProvider: IMobileMoneyProvider = {
       const conversationId = (body as { ConversationID?: string; ResponseCode?: string }).ConversationID ?? "mpesa-bal";
       // Balance is delivered async via callback; surface 0 with the conversation
       // id so the caller can correlate.
-      return ok({ balanceMinor: 0, currency: req.currency ?? "KES" }, conversationId, 0);
+      return ok({ balanceMinor: 0, currency: "KES" }, conversationId, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "M-Pesa getBalance failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -227,7 +227,7 @@ export const mpesaProvider: IMobileMoneyProvider = {
             Amount: Math.round(req.amountMinor / 100),
             PartyA: shortCode,
             PartyB: req.phone,
-            Remarks: req.narration ?? "Turbopay B2C payout",
+            Remarks: "Turbopay B2C payout",
             QueueTimeOutURL: `${callbackUrl}/timeout`,
             ResultURL: `${callbackUrl}/result`,
             Occasion: req.reference.slice(0, 32),

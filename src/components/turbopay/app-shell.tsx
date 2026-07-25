@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PinDialogProvider } from "./parts/pin-dialog";
+import { CountrySwitcher } from "./parts/country-switcher";
 import { ViewTransition } from "./view-transition";
 import AiSupport from "./ai-support";
 import {
@@ -82,7 +83,7 @@ const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any
 // Countries where Mobile Money is supported (matches CountryConfig.paymentMethods includes "MOBILE_MONEY")
 const MOBILE_MONEY_COUNTRIES = new Set(["KE", "GH", "UG", "TZ", "RW"]);
 
-const ADMIN_NAV: { group: string; items: { key: ViewKey; label: string; icon: any }[] }[] = [
+const ADMIN_NAV: { group: string; items: { key: ViewKey; label: string; icon: any; cond?: (user: { country: string }) => boolean }[] }[] = [
   {
     group: "Overview",
     items: [{ key: "admin", label: "Admin Console", icon: UserCog }],
@@ -278,6 +279,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
             </div>
             <h2 className="hidden text-lg font-semibold sm:block">{VIEW_TITLES[view]}</h2>
             <div className="ml-auto flex items-center gap-1.5">
+              <CountrySwitcher />
               <Button size="sm" className="gap-1.5" onClick={() => setView("wallet")}>
                 <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Fund wallet</span>
               </Button>
