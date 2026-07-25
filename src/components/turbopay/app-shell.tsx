@@ -54,6 +54,7 @@ import {
   Globe,
   Plane,
   Link as LinkIcon,
+  Link2,
   CalendarClock,
   Clock,
   AlertTriangle,
@@ -70,11 +71,14 @@ import {
   Search,
   Store,
   Repeat,
+  Zap,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { timeAgo } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { isMiniPay, getMiniPayAddress } from "@/lib/minipay";
+import { useAutoConnect } from "@/hooks/use-auto-connect";
 
 const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any; cond?: (user: { country: string }) => boolean }[] }[] = [
   {
@@ -168,6 +172,9 @@ const Views: Record<ViewKey, React.LazyExoticComponent<React.ComponentType>> = {
   marketplace: React.lazy(() => import("./views/marketplace")),
   subscriptions: React.lazy(() => import("./views/subscriptions")),
   "wallet-insights": React.lazy(() => import("./views/wallet-insights")),
+  "minipay-wallet": React.lazy(() => import("./views/minipay-wallet")),
+  "onchain-history": React.lazy(() => import("./views/onchain-history")),
+  "celo-bridge": React.lazy(() => import("./views/celo-bridge")),
 };
 
 const VIEW_TITLES: Record<ViewKey, string> = {
@@ -201,6 +208,9 @@ const VIEW_TITLES: Record<ViewKey, string> = {
   marketplace: "Marketplace",
   subscriptions: "Subscriptions",
   "wallet-insights": "Wallet Insights",
+  "minipay-wallet": "MiniPay Wallet",
+  "onchain-history": "On-Chain History",
+  "celo-bridge": "cUSD Bridge",
 };
 
 // Set of valid view keys — used to resolve notification actionUrl → setView.
@@ -210,7 +220,15 @@ const VALID_VIEW_KEYS = new Set<string>([
   "rewards", "support", "admin", "multi-currency", "intl-transfers", "mobile-money",
   "payment-links", "scheduled-payments", "analytics", "disputes", "vouchers", "help-center",
   "achievements", "marketplace", "subscriptions", "wallet-insights",
+  "minipay-wallet", "onchain-history", "celo-bridge",
 ]);
+
+// MiniPay-only nav items — appended to the Financial group when minipayMode is true.
+const MINIPAY_NAV_ITEMS: { key: ViewKey; label: string; icon: any; cond?: (user: { country: string }) => boolean }[] = [
+  { key: "minipay-wallet", label: "MiniPay Wallet", icon: Wallet },
+  { key: "onchain-history", label: "On-Chain History", icon: Link2 },
+  { key: "celo-bridge", label: "cUSD Bridge", icon: ArrowLeftRight },
+];
 
 type NotifFilter = "all" | "unread" | "important";
 
@@ -260,7 +278,7 @@ const TONE_CLASSES: Record<string, string> = {
 
 export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.getState>["user"]> }) {
   const router = useRouter();
-  const { view, setView, sidebarOpen, setSidebarOpen } = useApp();
+  const { view, setView, sidebarOpen, setSidebarOpen, minipayMode, setMinipayMode, celoAddress, setCeloAddress } = useApp();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
@@ -269,6 +287,46 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
   const [notifications, setNotifications] = React.useState<AppNotification[]>([]);
   const [loadingNotifs, setLoadingNotifs] = React.useState(false);
   const [markingAll, setMarkingAll] = React.useState(false);
+
+  // MiniPay auto-connect — runs the wagmi injected connector on mount when
+  // inside MiniPay (MiniPay has no connect button; apps must auto-connect).
+  useAutoConnect();
+
+  // MiniPay detection — check on mount, link the address if detected.
+  React.useEffect(() => {
+    if (!isMiniPay()) return;
+    setMinipayMode(true);
+    let cancelled = false;
+    (async () => {
+      try {
+        const addr = await getMiniPayAddress();
+        if (cancelled) return;
+        if (addr) {
+          setCeloAddress(addr);
+          // Best-effort: link the address server-side so /api/celo/* routes see it.
+          try {
+            await fetch(`/api/celo/wallet?address=${encodeURIComponent(addr)}`, { cache: "no-store" });
+          } catch {
+            /* non-fatal — view will retry on its own */
+          }
+        }
+      } catch {
+        /* ignore — user can still navigate to MiniPay views manually */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [setMinipayMode, setCeloAddress]);
+
+  // Default to the MiniPay wallet view when entering MiniPay mode (one-shot).
+  const didDefaultRef = React.useRef(false);
+  React.useEffect(() => {
+    if (minipayMode && !didDefaultRef.current && (view === "dashboard" || !view)) {
+      didDefaultRef.current = true;
+      setView("minipay-wallet");
+    }
+  }, [minipayMode, view, setView]);
 
   // Command palette (Cmd+K / Ctrl+K)
   const [cmdOpen, setCmdOpen] = React.useState(false);
@@ -403,7 +461,17 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
 
   const CurrentView = Views[view];
   const initials = user.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
-  const navGroups = user.role === "ADMIN" ? [...USER_NAV, ...ADMIN_NAV] : USER_NAV;
+  // Compute nav groups — when minipayMode is on, inject the MiniPay nav items
+  // into the Financial group so they appear in the sidebar.
+  const navGroups = React.useMemo(() => {
+    const baseNav = user.role === "ADMIN" ? [...USER_NAV, ...ADMIN_NAV] : USER_NAV;
+    if (!minipayMode) return baseNav;
+    return baseNav.map((g) =>
+      g.group === "Financial"
+        ? { ...g, items: [...g.items, ...MINIPAY_NAV_ITEMS] }
+        : g,
+    );
+  }, [user.role, minipayMode]);
 
   const renderSidebarContent = (opts: { collapsed: boolean; onToggleCollapse?: () => void }) => {
     const { collapsed: c, onToggleCollapse } = opts;
@@ -524,7 +592,25 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
               <Logo size={26} />
               <Wordmark size={16} />
             </div>
-            <h2 className="hidden text-lg font-semibold sm:block">{VIEW_TITLES[view]}</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="hidden text-lg font-semibold sm:block">{VIEW_TITLES[view]}</h2>
+              {minipayMode && (
+                <span
+                  title="Running inside MiniPay"
+                  className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400"
+                >
+                  <Zap className="h-3 w-3" /> MiniPay
+                </span>
+              )}
+              {minipayMode && celoAddress && (
+                <span
+                  title={celoAddress}
+                  className="hidden font-mono text-[10px] text-muted-foreground md:inline"
+                >
+                  {celoAddress.slice(0, 6)}…{celoAddress.slice(-4)}
+                </span>
+              )}
+            </div>
             <div className="ml-auto flex items-center gap-1.5">
               {/* Command palette trigger — discoverable ⌘K hint (desktop only) */}
               <button
