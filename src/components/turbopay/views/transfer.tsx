@@ -163,6 +163,33 @@ export default function TransferView() {
     } catch {}
   }, []);
 
+  // Prefill from QR Pay "Scan" action — JSON payload {acc, name, bank}
+  React.useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("tp_prefill_qr");
+      if (!raw) return;
+      sessionStorage.removeItem("tp_prefill_qr");
+      const parsed = JSON.parse(raw) as {
+        acc: string;
+        name: string;
+        bank?: string;
+      };
+      if (!parsed?.acc || !parsed?.name) return;
+      setType("TURBOPAY");
+      setTpRecipient(parsed.acc);
+      setTpResolved({
+        name: parsed.name,
+        type: "TURBOPAY",
+        accountNumber: parsed.acc,
+        username: parsed.acc,
+      });
+      setAmountInput("");
+      setNote("");
+      setSaveBeneficiary(false);
+      toast.success(`Prefilled ${parsed.name}`);
+    } catch {}
+  }, []);
+
   function resetForm() {
     setTpRecipient("");
     setTpResolved(null);

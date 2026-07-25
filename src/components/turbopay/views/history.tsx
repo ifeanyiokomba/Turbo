@@ -14,12 +14,14 @@ import {
 } from "@/components/ui/dialog";
 import { PageHeader, EmptyState } from "../parts/layout";
 import { TransactionItem } from "../parts/transaction-item";
+import { downloadReceipt } from "../parts/receipt-pdf";
 import {
   Search,
   Download,
   Loader2,
   History as HistoryIcon,
   X,
+  FileDown,
 } from "lucide-react";
 import { naira, formatDate } from "@/lib/money";
 import { toast } from "sonner";
@@ -410,9 +412,26 @@ function TxDetailDialog({ tx, onClose }: { tx: Tx | null; onClose: () => void })
           )}
         </div>
 
-        <Button variant="outline" className="w-full" onClick={onClose}>
-          Close
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1 gap-1.5" onClick={onClose}>
+            Close
+          </Button>
+          <Button
+            className="flex-1 gap-1.5"
+            onClick={() => {
+              try {
+                downloadReceipt(tx);
+                toast.success("Receipt downloaded");
+              } catch (e) {
+                toast.error(
+                  e instanceof Error ? e.message : "Could not generate receipt",
+                );
+              }
+            }}
+          >
+            <FileDown className="h-4 w-4" /> Download receipt
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

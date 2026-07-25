@@ -5,6 +5,7 @@ import { useApp } from "../store";
 import { BalanceCard } from "../parts/balance-card";
 import { TransactionItem } from "../parts/transaction-item";
 import { StatCard, EmptyState } from "../parts/layout";
+import { BalanceCardSkeleton, StatCardSkeleton } from "../parts/skeletons";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +15,7 @@ import {
 import {
   ArrowDownLeft, ArrowUpRight, Activity, Wallet as WalletIcon, ArrowLeftRight,
   Smartphone, Receipt, CreditCard, PiggyBank, TrendingUp, Plus, ChevronRight, ShieldAlert,
+  QrCode,
 } from "lucide-react";
 import { naira, nairaCompact, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
@@ -66,11 +68,23 @@ export default function DashboardView() {
 
   if (loading) {
     return (
-      <div className="space-y-4">
-        <div className="h-32 animate-pulse rounded-3xl bg-muted" />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[0,1,2,3].map((i) => <div key={i} className="h-24 animate-pulse rounded-xl bg-muted" />)}
+      <div className="space-y-6">
+        {/* Greeting skeleton */}
+        <div className="space-y-2">
+          <div className="h-7 w-56 animate-pulse rounded-full bg-muted" />
+          <div className="h-4 w-40 animate-pulse rounded-full bg-muted/70" />
         </div>
+        <BalanceCardSkeleton />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[0, 1, 2, 3].map((i) => (
+            <StatCardSkeleton key={i} />
+          ))}
+        </div>
+        {/* Cashflow / recent placeholder */}
+        <Card className="p-5">
+          <div className="mb-4 h-4 w-32 animate-pulse rounded-full bg-muted" />
+          <div className="h-[220px] w-full animate-pulse rounded-xl bg-muted/60" />
+        </Card>
       </div>
     );
   }

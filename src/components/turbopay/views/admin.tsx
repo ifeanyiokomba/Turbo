@@ -32,6 +32,9 @@ import {
   Loader2,
   Lock,
   AlertTriangle,
+  PiggyBank,
+  ScrollText,
+  Download,
 } from "lucide-react";
 import { naira, nairaCompact, formatDate, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
@@ -76,6 +79,64 @@ interface AmlFlag {
   createdAt: string;
   userName: string | null;
   userUsername: string | null;
+}
+
+interface TopSavingsProduct {
+  id: string;
+  name: string;
+  type: string;
+  interestBps: number;
+  lockDays: number;
+  depositCount: number;
+  totalDepositsKobo: number;
+}
+
+interface TopInvestmentProduct {
+  id: string;
+  name: string;
+  type: string;
+  riskLevel: string;
+  provider: string;
+  expectedReturnBps: number;
+  holderCount: number;
+  totalValueKobo: number;
+  totalPrincipalKobo: number;
+}
+
+interface SavingsInvestmentsData {
+  savings: {
+    totalDepositsKobo: number;
+    totalInterestAccruedKobo: number;
+    totalWithdrawalsKobo: number;
+    activeSavers: number;
+  };
+  investments: {
+    totalValueKobo: number;
+    totalPrincipalKobo: number;
+    activeInvestors: number;
+  };
+  topSavingsProducts: TopSavingsProduct[];
+  topInvestmentProducts: TopInvestmentProduct[];
+}
+
+interface AuditLogRow {
+  id: string;
+  action: string;
+  category: string;
+  severity: string;
+  ip: string | null;
+  userAgent: string | null;
+  metadata: string | null;
+  createdAt: string;
+  userName: string | null;
+  userUsername: string | null;
+}
+
+interface AuditPage {
+  logs: AuditLogRow[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 interface AdminData {
@@ -153,6 +214,48 @@ const SEVERITY_TONE: Record<string, string> = {
   HIGH: "bg-red-500/10 text-red-600 dark:text-red-400",
 };
 
+// Audit log severity tones — INFO=slate, WARN=amber, ERROR=red, CRITICAL=red bold
+const AUDIT_SEVERITY_TONE: Record<string, string> = {
+  INFO: "bg-slate-500/10 text-slate-600 dark:text-slate-300",
+  WARN: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  ERROR: "bg-red-500/10 text-red-600 dark:text-red-400",
+  CRITICAL: "bg-red-500/15 text-red-700 dark:text-red-300 font-bold",
+};
+
+const RISK_TONE: Record<string, string> = {
+  LOW: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  MEDIUM: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  HIGH: "bg-red-500/10 text-red-600 dark:text-red-400",
+};
+
+// Tiny CSV export helper — escapes commas/quotes/newlines and triggers a download.
+function exportCsv(
+  filename: string,
+  headers: string[],
+  rows: (string | number | null | undefined)[][],
+) {
+  const escape = (v: string | number | null | undefined) => {
+    const s = v == null ? "" : String(v);
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+  const lines = [
+    headers.map(escape).join(","),
+    ...rows.map((r) => r.map(escape).join(",")),
+  ];
+  const blob = new Blob([lines.join("\n")], {
+    type: "text/csv;charset=utf-8;",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 const TX_TYPE_LABELS: Record<string, string> = {
   FUNDING: "Funding",
   TRANSFER: "Transfer",
@@ -188,6 +291,14 @@ export default function AdminView() {
   const [txPage, setTxPage] = React.useState(1);
   const [txType, setTxType] = React.useState("ALL");
   const [loadingTx, setLoadingTx] = React.useState(false);
+
+  // savings + investments aggregate
+  const [savingsInv, setSavingsInv] = React.useState<SavingsInvestmentsData | null>(null);
+  const [loadingSavings, setLoadingSavings] = React.useState(false);
+
+  // audit log
+  const [audit, setAudit] = React.useState<AuditPage | null>(null);
+  const [loadingAudit, setLoadingAudit] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -246,6 +357,34 @@ export default function AdminView() {
     }
   }, []);
 
+  const loadSavingsInv = React.useCallback(async () => {
+    setLoadingSavings(true);
+    try {
+      const res = await fetch("/api/admin/savings-investments", { cache: "no-store" });
+      if (!res.ok) {
+        toast.error("Failed to load savings & investments data");
+        return;
+      }
+      setSavingsInv(await res.json());
+    } finally {
+      setLoadingSavings(false);
+    }
+  }, []);
+
+  const loadAudit = React.useCallback(async () => {
+    setLoadingAudit(true);
+    try {
+      const res = await fetch("/api/admin/audit?limit=50", { cache: "no-store" });
+      if (!res.ok) {
+        toast.error("Failed to load audit log");
+        return;
+      }
+      setAudit(await res.json());
+    } finally {
+      setLoadingAudit(false);
+    }
+  }, []);
+
   // Load customers when tab activated
   React.useEffect(() => {
     if (tab === "customers" && !customers) loadCustomers(1, "");
@@ -255,6 +394,16 @@ export default function AdminView() {
   React.useEffect(() => {
     if (tab === "transactions" && !txns) loadTxns(1, "ALL");
   }, [tab, txns, loadTxns]);
+
+  // Load savings & investments when tab activated
+  React.useEffect(() => {
+    if (tab === "savings" && !savingsInv) loadSavingsInv();
+  }, [tab, savingsInv, loadSavingsInv]);
+
+  // Load audit log when tab activated
+  React.useEffect(() => {
+    if (tab === "audit" && !audit) loadAudit();
+  }, [tab, audit, loadAudit]);
 
   // Debounced customer search
   React.useEffect(() => {
@@ -308,11 +457,13 @@ export default function AdminView() {
       />
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid w-full max-w-md grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="customers">Customers</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="aml">AML</TabsTrigger>
+        <TabsList className="flex w-full max-w-3xl overflow-x-auto scrollbar-thin">
+          <TabsTrigger value="overview" className="flex-1 min-w-[100px]">Overview</TabsTrigger>
+          <TabsTrigger value="customers" className="flex-1 min-w-[100px]">Customers</TabsTrigger>
+          <TabsTrigger value="transactions" className="flex-1 min-w-[100px]">Transactions</TabsTrigger>
+          <TabsTrigger value="savings" className="flex-1 min-w-[100px]">Savings</TabsTrigger>
+          <TabsTrigger value="aml" className="flex-1 min-w-[100px]">AML</TabsTrigger>
+          <TabsTrigger value="audit" className="flex-1 min-w-[100px]">Audit Log</TabsTrigger>
         </TabsList>
 
         {/* Overview */}
@@ -357,7 +508,7 @@ export default function AdminView() {
                   </thead>
                   <tbody>
                     {data?.recentUsers?.map((u) => (
-                      <tr key={u.id} className="border-t">
+                      <tr key={u.id} className="border-t transition-colors hover:bg-muted/40">
                         <td className="py-2 pr-2">
                           <p className="font-medium">{u.fullName}</p>
                           <p className="text-xs text-muted-foreground">@{u.username}</p>
@@ -396,7 +547,7 @@ export default function AdminView() {
                   </thead>
                   <tbody>
                     {data?.recentTransactions?.map((t) => (
-                      <tr key={t.id} className="border-t">
+                      <tr key={t.id} className="border-t transition-colors hover:bg-muted/40">
                         <td className="py-2 pr-2">
                           <p className="truncate font-mono text-xs">{t.reference}</p>
                           <p className="text-xs text-muted-foreground">{TX_TYPE_LABELS[t.type] ?? t.type}</p>
@@ -456,14 +607,45 @@ export default function AdminView() {
         {/* Customers */}
         <TabsContent value="customers" className="mt-5 space-y-4">
           <Card className="p-4">
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={custSearch}
-                onChange={(e) => setCustSearch(e.target.value)}
-                placeholder="Search by name, username, email, or phone..."
-                className="pl-9"
-              />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={custSearch}
+                  onChange={(e) => setCustSearch(e.target.value)}
+                  placeholder="Search by name, username, email, or phone..."
+                  className="pl-9"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={!customers || customers.users.length === 0}
+                onClick={() => {
+                  if (!customers) return;
+                  exportCsv(
+                    `turbopay-customers-${new Date().toISOString().slice(0, 10)}.csv`,
+                    ["Name", "Username", "Email", "Phone", "Country", "Role", "KYC Tier", "KYC Status", "Status", "Balance (NGN)", "Joined"],
+                    customers.users.map((u) => [
+                      u.fullName,
+                      u.username,
+                      u.email ?? "",
+                      u.phone ?? "",
+                      u.country,
+                      u.role,
+                      u.kycTier,
+                      u.kycStatus,
+                      u.status,
+                      u.wallet ? (u.wallet.balanceKobo / 100).toFixed(2) : "0.00",
+                      new Date(u.createdAt).toISOString(),
+                    ]),
+                  );
+                  toast.success("Customers exported to CSV");
+                }}
+              >
+                <Download className="h-4 w-4" /> Export CSV
+              </Button>
             </div>
           </Card>
           <Card className="p-5">
@@ -487,7 +669,7 @@ export default function AdminView() {
                     </thead>
                     <tbody>
                       {customers.users.map((u) => (
-                        <tr key={u.id} className="border-t">
+                        <tr key={u.id} className="border-t transition-colors hover:bg-muted/40">
                           <td className="py-2 pr-2">
                             <p className="font-medium">{u.fullName}</p>
                             <p className="text-xs text-muted-foreground">@{u.username}</p>
@@ -557,7 +739,7 @@ export default function AdminView() {
         {/* Transactions */}
         <TabsContent value="transactions" className="mt-5 space-y-4">
           <Card className="p-4">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs text-muted-foreground">Filter:</span>
               <Select value={txType} onValueChange={(v) => { setTxType(v); setTxPage(1); loadTxns(1, v); }}>
                 <SelectTrigger className="h-8 w-40">
@@ -570,6 +752,36 @@ export default function AdminView() {
                   ))}
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-auto gap-1.5"
+                disabled={!txns || txns.transactions.length === 0}
+                onClick={() => {
+                  if (!txns) return;
+                  exportCsv(
+                    `turbopay-transactions-${new Date().toISOString().slice(0, 10)}.csv`,
+                    ["Reference", "User", "Username", "Type", "Direction", "Amount (NGN)", "Fee (NGN)", "Status", "State", "Counterparty", "Description", "Date"],
+                    txns.transactions.map((t) => [
+                      t.reference,
+                      t.userName ?? "",
+                      t.userUsername ?? "",
+                      t.type,
+                      t.direction,
+                      (t.amountKobo / 100).toFixed(2),
+                      (t.feeKobo / 100).toFixed(2),
+                      t.status,
+                      t.state,
+                      t.counterpartyName ?? "",
+                      t.description ?? "",
+                      new Date(t.createdAt).toISOString(),
+                    ]),
+                  );
+                  toast.success("Transactions exported to CSV");
+                }}
+              >
+                <Download className="h-4 w-4" /> Export CSV
+              </Button>
             </div>
           </Card>
           <Card className="p-5">
@@ -593,7 +805,7 @@ export default function AdminView() {
                     </thead>
                     <tbody>
                       {txns.transactions.map((t) => (
-                        <tr key={t.id} className="border-t">
+                        <tr key={t.id} className="border-t transition-colors hover:bg-muted/40">
                           <td className="py-2 pr-2">
                             <p className="truncate font-mono text-xs">{t.reference}</p>
                           </td>
@@ -653,6 +865,114 @@ export default function AdminView() {
           </Card>
         </TabsContent>
 
+        {/* Savings & Investments */}
+        <TabsContent value="savings" className="mt-5 space-y-5">
+          {loadingSavings && !savingsInv ? (
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                {[0,1,2,3,4].map((i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+              </div>
+              <Skeleton className="h-72 rounded-2xl" />
+            </div>
+          ) : savingsInv ? (
+            <>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <StatCard label="Savings deposits" value={nairaCompact(savingsInv.savings.totalDepositsKobo)} icon={PiggyBank} tone="success" />
+                <StatCard label="Interest accrued" value={nairaCompact(savingsInv.savings.totalInterestAccruedKobo)} icon={TrendingUp} tone="success" hint={`${savingsInv.savings.activeSavers} active savers`} />
+                <StatCard label="Savings withdrawn" value={nairaCompact(savingsInv.savings.totalWithdrawalsKobo)} icon={ArrowLeftRight} tone="default" />
+                <StatCard label="Investments value" value={nairaCompact(savingsInv.investments.totalValueKobo)} icon={TrendingUp} tone="success" />
+                <StatCard label="Active investors" value={String(savingsInv.investments.activeInvestors)} icon={Users} tone="default" hint={`${nairaCompact(savingsInv.investments.totalPrincipalKobo)} principal`} />
+              </div>
+
+              <div className="grid gap-5 lg:grid-cols-2">
+                <Card className="p-5">
+                  <div className="mb-3 flex items-center gap-2">
+                    <PiggyBank className="h-5 w-5 text-primary" />
+                    <h2 className="text-sm font-semibold">Top savings products</h2>
+                    <span className="ml-auto text-xs text-muted-foreground">by deposit volume</span>
+                  </div>
+                  {savingsInv.topSavingsProducts.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-xs text-muted-foreground">
+                            <th className="pb-2 pr-2 font-medium">Product</th>
+                            <th className="pb-2 pr-2 font-medium">Rate</th>
+                            <th className="pb-2 pr-2 font-medium">Deposits</th>
+                            <th className="pb-2 font-medium">Volume</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {savingsInv.topSavingsProducts.map((p) => (
+                            <tr key={p.id} className="border-t transition-colors hover:bg-muted/40">
+                              <td className="py-2 pr-2">
+                                <p className="font-medium">{p.name}</p>
+                                <p className="text-xs text-muted-foreground">{p.type}</p>
+                              </td>
+                              <td className="py-2 pr-2 text-xs">
+                                <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                  {(p.interestBps / 100).toFixed(1)}%
+                                </Badge>
+                              </td>
+                              <td className="py-2 pr-2 text-xs tabular-nums">{p.depositCount}</td>
+                              <td className="py-2 text-xs tabular-nums">{naira(p.totalDepositsKobo)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <EmptyState icon={PiggyBank} title="No savings activity yet" description="Deposits will show up here once customers start saving." />
+                  )}
+                </Card>
+
+                <Card className="p-5">
+                  <div className="mb-3 flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    <h2 className="text-sm font-semibold">Top investment products</h2>
+                    <span className="ml-auto text-xs text-muted-foreground">by holders</span>
+                  </div>
+                  {savingsInv.topInvestmentProducts.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-xs text-muted-foreground">
+                            <th className="pb-2 pr-2 font-medium">Product</th>
+                            <th className="pb-2 pr-2 font-medium">Risk</th>
+                            <th className="pb-2 pr-2 font-medium">Holders</th>
+                            <th className="pb-2 font-medium">Value</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {savingsInv.topInvestmentProducts.map((p) => (
+                            <tr key={p.id} className="border-t transition-colors hover:bg-muted/40">
+                              <td className="py-2 pr-2">
+                                <p className="font-medium">{p.name}</p>
+                                <p className="text-xs text-muted-foreground">{p.provider} · {p.type}</p>
+                              </td>
+                              <td className="py-2 pr-2 text-xs">
+                                <Badge variant="secondary" className={`text-[10px] ${RISK_TONE[p.riskLevel] ?? ""}`}>
+                                  {p.riskLevel}
+                                </Badge>
+                              </td>
+                              <td className="py-2 pr-2 text-xs tabular-nums">{p.holderCount}</td>
+                              <td className="py-2 text-xs tabular-nums">{naira(p.totalValueKobo)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <EmptyState icon={TrendingUp} title="No investments yet" description="Active holdings will appear here once users invest." />
+                  )}
+                </Card>
+              </div>
+            </>
+          ) : (
+            <EmptyState icon={PiggyBank} title="No savings data available" />
+          )}
+        </TabsContent>
+
         {/* AML */}
         <TabsContent value="aml" className="mt-5">
           <Card className="p-5">
@@ -690,6 +1010,68 @@ export default function AdminView() {
                 icon={ShieldAlert}
                 title="No unresolved AML flags"
                 description="All clear — no suspicious activity pending review."
+              />
+            )}
+          </Card>
+        </TabsContent>
+        {/* Audit Log */}
+        <TabsContent value="audit" className="mt-5 space-y-4">
+          <Card className="p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <ScrollText className="h-5 w-5 text-primary" />
+              <h2 className="text-base font-semibold">Audit log</h2>
+              <Badge variant="secondary" className="ml-auto">
+                {audit?.total ?? 0} total
+              </Badge>
+            </div>
+            {loadingAudit && !audit ? (
+              <div className="space-y-2">
+                {[0,1,2,3,4,5].map((i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+              </div>
+            ) : audit && audit.logs.length > 0 ? (
+              <div className="max-h-[32rem] overflow-y-auto scrollbar-thin">
+                <table className="w-full text-sm">
+                  <thead className="sticky top-0 z-10 bg-card">
+                    <tr className="text-left text-xs text-muted-foreground">
+                      <th className="pb-2 pr-2 font-medium">Action</th>
+                      <th className="pb-2 pr-2 font-medium">Category</th>
+                      <th className="pb-2 pr-2 font-medium">Severity</th>
+                      <th className="pb-2 pr-2 font-medium">User</th>
+                      <th className="pb-2 pr-2 font-medium">IP</th>
+                      <th className="pb-2 font-medium">When</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {audit.logs.map((l) => (
+                      <tr key={l.id} className="border-t transition-colors hover:bg-muted/40">
+                        <td className="py-2 pr-2">
+                          <p className="font-medium font-mono text-xs">{l.action}</p>
+                          {l.metadata && (
+                            <p className="mt-0.5 max-w-[18rem] truncate text-[11px] text-muted-foreground">{l.metadata}</p>
+                          )}
+                        </td>
+                        <td className="py-2 pr-2 text-xs">{l.category}</td>
+                        <td className="py-2 pr-2">
+                          <Badge variant="secondary" className={`text-[10px] ${AUDIT_SEVERITY_TONE[l.severity] ?? "bg-muted text-muted-foreground"}`}>
+                            {l.severity}
+                          </Badge>
+                        </td>
+                        <td className="py-2 pr-2 text-xs">
+                          {l.userName ?? "—"}
+                          {l.userUsername && <span className="text-muted-foreground"> · @{l.userUsername}</span>}
+                        </td>
+                        <td className="py-2 pr-2 text-xs text-muted-foreground font-mono">{l.ip ?? "—"}</td>
+                        <td className="py-2 text-xs text-muted-foreground">{formatDate(l.createdAt, true)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <EmptyState
+                icon={ScrollText}
+                title="No audit entries"
+                description="System events will appear here as users interact with the platform."
               />
             )}
           </Card>

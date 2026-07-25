@@ -15,6 +15,7 @@ export type ViewKey =
   | "investments"
   | "kyc"
   | "beneficiaries"
+  | "qr"
   | "settings"
   | "security"
   | "rewards"

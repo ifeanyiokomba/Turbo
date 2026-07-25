@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PinDialogProvider } from "./parts/pin-dialog";
+import { ViewTransition } from "./view-transition";
 import AiSupport from "./ai-support";
 import {
   LayoutDashboard,
@@ -35,6 +36,7 @@ import {
   Gift,
   UserCog,
   Plus,
+  QrCode,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
@@ -46,6 +48,7 @@ const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any
       { key: "dashboard", label: "Home", icon: LayoutDashboard },
       { key: "wallet", label: "Wallet", icon: Wallet },
       { key: "transfer", label: "Transfer", icon: ArrowLeftRight },
+      { key: "qr", label: "QR Pay", icon: QrCode },
       { key: "airtime", label: "Airtime & Data", icon: Smartphone },
       { key: "bills", label: "Pay Bills", icon: Receipt },
       { key: "cards", label: "Virtual Cards", icon: CreditCard },
@@ -87,6 +90,7 @@ const Views: Record<ViewKey, React.LazyExoticComponent<React.ComponentType>> = {
   dashboard: React.lazy(() => import("./views/dashboard")),
   wallet: React.lazy(() => import("./views/wallet")),
   transfer: React.lazy(() => import("./views/transfer")),
+  qr: React.lazy(() => import("./views/qr")),
   airtime: React.lazy(() => import("./views/airtime")),
   bills: React.lazy(() => import("./views/bills")),
   history: React.lazy(() => import("./views/history")),
@@ -106,6 +110,7 @@ const VIEW_TITLES: Record<ViewKey, string> = {
   dashboard: "Dashboard",
   wallet: "Wallet",
   transfer: "Transfer",
+  qr: "QR Pay",
   airtime: "Airtime & Data",
   bills: "Pay Bills",
   history: "Transactions",
@@ -140,9 +145,27 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
     } catch {}
   }, []);
 
+  // Initial load + 30s polling for the unread badge
   React.useEffect(() => {
     loadNotifs();
+    const id = setInterval(loadNotifs, 30_000);
+    return () => clearInterval(id);
   }, [loadNotifs]);
+
+  // When the panel is opened, mark all as read after a 1s delay
+  // so the user actually sees the unread items first.
+  React.useEffect(() => {
+    if (!notifOpen) return;
+    if (unread === 0) return;
+    const id = setTimeout(async () => {
+      try {
+        await fetch("/api/notifications", { method: "PATCH" });
+        setUnread(0);
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      } catch {}
+    }, 1_000);
+    return () => clearTimeout(id);
+  }, [notifOpen, unread]);
 
   async function handleLogout() {
     try {
@@ -241,8 +264,8 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
               >
                 <Bell className="h-4.5 w-4.5" />
                 {unread > 0 && (
-                  <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                    {unread}
+                  <span className="tp-pulse-dot absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-[0_0_8px_1px_oklch(0.62_0.22_25/0.7)]">
+                    {unread > 9 ? "9+" : unread}
                   </span>
                 )}
               </button>
@@ -313,33 +336,59 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
 
           {/* Main content */}
           <main className="flex-1 px-4 py-6 pb-24 lg:pb-6">
-            <div className="mx-auto max-w-6xl tp-fade-rise" key={view}>
-              <React.Suspense
-                fallback={
-                  <div className="flex h-64 items-center justify-center">
-                    <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
-                  </div>
-                }
-              >
-                <CurrentView />
-              </React.Suspense>
-            </div>
+            <ViewTransition viewKey={view}>
+              <div className="mx-auto max-w-6xl">
+                <React.Suspense
+                  fallback={
+                    <div className="flex h-64 items-center justify-center">
+                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+                    </div>
+                  }
+                >
+                  <CurrentView />
+                </React.Suspense>
+              </div>
+            </ViewTransition>
           </main>
 
           {/* Bottom nav (mobile) */}
-          <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t bg-background/95 tp-glass lg:hidden">
+          <nav
+            aria-label="Primary navigation"
+            className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t bg-background/95 tp-glass lg:hidden"
+          >
             {BOTTOM_NAV.map((item) => {
               const active = view === item.key;
               return (
                 <button
                   key={item.key}
                   onClick={() => setView(item.key)}
-                  className={`flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors ${
+                  aria-current={active ? "page" : undefined}
+                  className={`relative flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-all duration-200 active:scale-95 ${
                     active ? "text-primary" : "text-muted-foreground"
                   }`}
                 >
-                  <item.icon className="h-5 w-5" />
-                  {item.label}
+                  {/* Active top-border indicator (2px emerald line) */}
+                  <span
+                    aria-hidden
+                    className={`absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary transition-opacity duration-200 ${
+                      active ? "opacity-100" : "opacity-0"
+                    }`}
+                  />
+                  <item.icon
+                    className={`h-5 w-5 transition-transform duration-200 ${
+                      active ? "scale-[1.15]" : "scale-100"
+                    }`}
+                  />
+                  <span>{item.label}</span>
+                  {/* Emerald glow dot under the label (active only) */}
+                  <span
+                    aria-hidden
+                    className={`absolute bottom-1 h-1.5 w-1.5 rounded-full bg-primary transition-all duration-200 ${
+                      active
+                        ? "scale-100 opacity-100 shadow-[0_0_8px_1px_oklch(0.72_0.14_162/0.7)]"
+                        : "scale-0 opacity-0"
+                    }`}
+                  />
                 </button>
               );
             })}

@@ -4,12 +4,12 @@ import * as React from "react";
 import { useApp } from "../store";
 import { BalanceCard } from "../parts/balance-card";
 import { PageHeader, EmptyState } from "../parts/layout";
+import { BalanceCardSkeleton, TransactionItemSkeleton } from "../parts/skeletons";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -226,7 +226,7 @@ export default function WalletView() {
         {/* Left column */}
         <div className="space-y-6 lg:col-span-2">
           {loading ? (
-            <Skeleton className="aspect-[1.7/1] w-full max-w-md rounded-3xl" />
+            <BalanceCardSkeleton />
           ) : data?.wallet ? (
             <BalanceCard
               balanceKobo={data.wallet.balanceKobo}
@@ -280,9 +280,9 @@ export default function WalletView() {
               </button>
             </div>
             {loading ? (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {[0, 1, 2, 3, 4].map((i) => (
-                  <Skeleton key={i} className="h-12 w-full rounded-xl" />
+                  <TransactionItemSkeleton key={i} />
                 ))}
               </div>
             ) : recent.length > 0 ? (
