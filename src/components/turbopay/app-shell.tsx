@@ -37,11 +37,15 @@ import {
   UserCog,
   Plus,
   QrCode,
+  Globe,
+  Plane,
+  Link as LinkIcon,
+  CalendarClock,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
-const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any }[] }[] = [
+const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any; cond?: (user: { country: string }) => boolean }[] }[] = [
   {
     group: "Financial",
     items: [
@@ -51,9 +55,14 @@ const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any
       { key: "qr", label: "QR Pay", icon: QrCode },
       { key: "airtime", label: "Airtime & Data", icon: Smartphone },
       { key: "bills", label: "Pay Bills", icon: Receipt },
+      { key: "multi-currency", label: "Multi-Currency", icon: Globe },
+      { key: "intl-transfers", label: "International", icon: Plane },
+      { key: "mobile-money", label: "Mobile Money", icon: Smartphone, cond: (u) => MOBILE_MONEY_COUNTRIES.has(u.country) },
+      { key: "payment-links", label: "Payment Links", icon: LinkIcon },
       { key: "cards", label: "Virtual Cards", icon: CreditCard },
       { key: "savings", label: "Savings", icon: PiggyBank },
       { key: "investments", label: "Investments", icon: TrendingUp },
+      { key: "scheduled-payments", label: "Scheduled", icon: CalendarClock },
       { key: "history", label: "Transactions", icon: History },
     ],
   },
@@ -69,6 +78,9 @@ const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any
     ],
   },
 ];
+
+// Countries where Mobile Money is supported (matches CountryConfig.paymentMethods includes "MOBILE_MONEY")
+const MOBILE_MONEY_COUNTRIES = new Set(["KE", "GH", "UG", "TZ", "RW"]);
 
 const ADMIN_NAV: { group: string; items: { key: ViewKey; label: string; icon: any }[] }[] = [
   {
@@ -104,6 +116,11 @@ const Views: Record<ViewKey, React.LazyExoticComponent<React.ComponentType>> = {
   rewards: React.lazy(() => import("./views/rewards")),
   support: React.lazy(() => import("./views/support")),
   admin: React.lazy(() => import("./views/admin")),
+  "multi-currency": React.lazy(() => import("./views/multi-currency")),
+  "intl-transfers": React.lazy(() => import("./views/intl-transfers")),
+  "mobile-money": React.lazy(() => import("./views/mobile-money")),
+  "payment-links": React.lazy(() => import("./views/payment-links")),
+  "scheduled-payments": React.lazy(() => import("./views/scheduled-payments")),
 };
 
 const VIEW_TITLES: Record<ViewKey, string> = {
@@ -124,6 +141,11 @@ const VIEW_TITLES: Record<ViewKey, string> = {
   rewards: "Rewards",
   support: "Help & Support",
   admin: "Admin Console",
+  "multi-currency": "Multi-Currency Wallets",
+  "intl-transfers": "International Transfers",
+  "mobile-money": "Mobile Money",
+  "payment-links": "Payment Links",
+  "scheduled-payments": "Scheduled Payments",
 };
 
 export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.getState>["user"]> }) {
@@ -192,6 +214,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
             <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{group.group}</p>
             <div className="space-y-0.5">
               {group.items.map((item) => {
+                if (item.cond && !item.cond(user)) return null;
                 const active = view === item.key;
                 return (
                   <button

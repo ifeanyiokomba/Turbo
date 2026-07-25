@@ -20,7 +20,12 @@ export type ViewKey =
   | "security"
   | "rewards"
   | "support"
-  | "admin";
+  | "admin"
+  | "multi-currency"
+  | "intl-transfers"
+  | "mobile-money"
+  | "payment-links"
+  | "scheduled-payments";
 
 export interface AppUser {
   id: string;

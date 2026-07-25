@@ -1,5 +1,44 @@
 // Turbopay money utilities — all amounts in kobo (1 NGN = 100 kobo)
 
+// Generic currency formatter — works for any ISO 4217 currency code (NGN/USD/EUR/GBP/KES/GHS/ZAR/CAD/AUD).
+// Falls back to NGN if an unknown currency is passed.
+const CURRENCY_LOCALE: Record<string, string> = {
+  NGN: "en-NG",
+  USD: "en-US",
+  EUR: "en-IE",
+  GBP: "en-GB",
+  KES: "sw-KE",
+  GHS: "en-GH",
+  ZAR: "en-ZA",
+  CAD: "en-CA",
+  AUD: "en-AU",
+};
+
+export function formatMoney(minor: number, currency = "NGN"): string {
+  const locale = CURRENCY_LOCALE[currency] ?? "en-NG";
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(minor / 100);
+  } catch {
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: "NGN",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(minor / 100);
+  }
+}
+
+export function currencySymbol(currency = "NGN"): string {
+  const sample = formatMoney(0, currency);
+  const sym = sample.replace(/[\d.,\s\u00A0]/g, "");
+  return sym || currency;
+}
+
 export function naira(kobo: number): string {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
