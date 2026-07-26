@@ -1152,3 +1152,53 @@ Stage Summary:
 - Created: `src/lib/turbocore/feature-flags.ts`, `src/app/api/admin/feature-flags/toggle/route.ts`, `src/app/api/capabilities/geo/route.ts`.
 - Modified: `src/app/api/transfer/resolve/route.ts`, `src/components/turbopay/views/transfer.tsx`, `src/lib/turbocore/routing-engine.ts`, `src/lib/turbocore/seed.ts`, `src/lib/turbocore/geo/country-config.ts`.
 - No schema changes (FeatureFlag / FeatureFlagOverride / CountryConfig models already exist). No `db:push` run.
+
+---
+Task ID: PUNCH-1
+Agent: full-stack-developer (RBAC system)
+Task: Complete RBAC — 10 roles with full permission mappings, requirePermission guard, applied to admin routes
+
+Work Log:
+- Read worklog + foundation files (api.ts, db.ts, session.ts, schema.prisma, admin.tsx, existing admin routes) to map the existing `requireAdmin()`/`requireUser()`/`getSession()` foundation and confirm the DB `User.role` column is a free-form String (no enum, so new role literals don't need a schema migration).
+- Created `src/lib/turbocore/rbac/permissions.ts` — 60 granular permissions (USERS_*, TX_*, PROVIDERS_*, ROUTING_*, CAPABILITIES_*, COMPLIANCE_*, AML_*, SANCTIONS_*, STR_*, KYC_*, FINANCE_*, FEES_*, FX_*, WEBHOOKS_*, FLAGS_*, CONFIG_*, TEAM_*, AUDIT_*, SUPPORT_*, ANALYTICS_*, MONITORING_VIEW, CARDS_*, SAVINGS_*, INVESTMENTS_*, VOUCHERS_*) as a `Permissions` const + `Permission` type. Plus `PERMISSION_CATEGORIES` (18 visual groups with labels + descriptions) and `TOTAL_PERMISSIONS` for "X of Y" UI badges.
+- Created `src/lib/turbocore/rbac/roles.ts` — 10 declared admin roles (`SUPER_ADMIN`, `ADMINISTRATOR`, `FINANCE_OFFICER`, `COMPLIANCE_OFFICER`, `SUPPORT_OFFICER`, `OPERATIONS_OFFICER`, `RISK_OFFICER`, `DEVELOPER`, `AUDITOR`, `READONLY_ANALYST`) with `ROLE_PERMISSIONS` mapping (EVERY role resolves to a non-empty list — fixes the doc's "5 of 10 roles have no permission mapping" gap). `SUPER_ADMIN` = all permissions; `ADMINISTRATOR` = all except `CONFIG_ROLLBACK`; each specialist role gets the granular set per the spec. Plus `ROLE_META` (label/description/tone/admin flag) for the UI and `ALL_ROLES` ordered list.
+- Created `src/lib/turbocore/rbac/index.ts` — runtime guard functions:
+  - `hasPermission(role, perm)` — pure check, treats legacy "ADMIN" role as implicit full grant (backward compat) and resolves new roles via ROLE_PERMISSIONS.
+  - `hasAnyPermission(role, perms)` — OR over a list.
+  - `getUserPermissions(role)` — full grant for a role (legacy ADMIN returns all permissions).
+  - `requirePermission(perm)` — async guard: gets session via `getSession()`, throws ServiceError(401) if no session, ServiceError(403, ACCOUNT_INACTIVE) if user is FROZEN/SUSPENDED/CLOSED, ServiceError(403, INSUFFICIENT_PERMISSIONS) if the role lacks the permission. Returns the User row.
+  - `requireAnyPermission(perms)` — same but OR over a list.
+  - Re-exports `Permissions`, `Roles`, `ROLE_PERMISSIONS`, etc. for a single import point.
+- Applied RBAC to 12 admin API routes (replaced `requireAdmin()` with the specific `requirePermission(Permissions.XXX)` check; left `requireAdmin()` itself untouched in lib/api.ts for backward compat):
+  - `admin/route.ts` GET → MONITORING_VIEW
+  - `admin/transactions/route.ts` GET → TX_VIEW_ALL
+  - `admin/audit/route.ts` GET → AUDIT_VIEW
+  - `admin/capabilities/route.ts` GET → CAPABILITIES_VIEW, POST → CAPABILITIES_MANAGE
+  - `admin/config-history/route.ts` GET → CONFIG_VIEW, POST → CONFIG_ROLLBACK (defense-in-depth: snapshots and rollbacks both gated)
+  - `admin/health/route.ts` GET → PROVIDERS_HEALTH
+  - `admin/providers/route.ts` GET → PROVIDERS_VIEW, POST → PROVIDERS_MANAGE
+  - `admin/credentials/route.ts` GET+POST → PROVIDERS_CREDENTIALS (only SUPER_ADMIN by default — most sensitive)
+  - `admin/compliance/route.ts` GET → COMPLIANCE_VIEW
+  - `admin/feature-flags/route.ts` GET → FLAGS_VIEW, POST → FLAGS_MANAGE
+  - `admin/team/route.ts` GET → TEAM_VIEW, POST → TEAM_INVITE
+  - `admin/vouchers/route.ts` GET → VOUCHERS_VIEW, POST → VOUCHERS_MANAGE
+- Created `src/components/turbopay/views/admin/roles-tab.tsx` — premium "Roles & Permissions" explorer:
+  - Hero "Your role" card with emerald gradient + amber radial accent, showing the current user's role badge (with Crown icon for SUPER_ADMIN), description, and "X of Y effective permissions" with a gradient progress bar.
+  - Role picker grid (5-column on xl, 3 on lg, 2 on sm, 1 on mobile) — each card shows role label, colored badge, description (2-line clamp), "X of Y" count + percentage, gradient mini-bar (amber→red for SUPER_ADMIN, emerald→amber for others), "You" pill if it's the current user's role, and an active border highlight on the selected role.
+  - Search box (filters by role name/label/description/permission string) with reset button.
+  - Selected-role detail panel: header with role icon + label + key badge + "Your role" pill + granted count + "Copy role key" button (clipboard with toast). Body is the permission grid grouped by all 18 categories — each category header shows label, description, and a granted-count badge (green if all, amber if partial, muted if none). Each permission is a card with green CheckCircle2 (granted) or muted XCircle (not granted), the permission string in monospace, and a Tooltip with the human-readable grant state.
+  - Footer legend with Granted/Not granted/Super Admin key.
+- Modified `src/components/turbopay/views/admin.tsx`:
+  - Imported `RolesTab` from `./admin/roles-tab`.
+  - Added `ShieldCheck` to the lucide-react import list.
+  - Added 15th TabsTrigger `value="roles"` ("Roles") with ShieldCheck icon.
+  - Added matching TabsContent rendering `<RolesTab />`.
+- Ran `bun run lint` on my files — 0 errors, 0 warnings. (Pre-existing error in `src/app/api/webhooks/airtel-money/route.ts` and pre-existing warning in `src/components/turbopay/views/transfer.tsx` are NOT my files — left untouched.)
+- Ran `npx tsc --noEmit` on my files — 0 errors. (Pre-existing errors in `lib/ledger.ts`, `lib/minipay.ts`, `lib/turbocore/compliance/screen.ts`, `lib/turbocore/orchestrator.ts`, `lib/turbocore/providers/paga.adapter.ts`, `views/settings.tsx`, `views/transfer.tsx`, `app-shell.tsx` are NOT my files.)
+
+Stage Summary:
+- Created: `src/lib/turbocore/rbac/permissions.ts` (60 perms + 18 categories + TOTAL_PERMISSIONS), `src/lib/turbocore/rbac/roles.ts` (10 roles + ROLE_PERMISSIONS + ROLE_META + ALL_ROLES), `src/lib/turbocore/rbac/index.ts` (hasPermission/hasAnyPermission/getUserPermissions/requirePermission/requireAnyPermission + re-exports), `src/components/turbopay/views/admin/roles-tab.tsx` (RBAC explorer UI).
+- Modified (RBAC applied): `src/app/api/admin/route.ts`, `src/app/api/admin/transactions/route.ts`, `src/app/api/admin/audit/route.ts`, `src/app/api/admin/capabilities/route.ts`, `src/app/api/admin/config-history/route.ts`, `src/app/api/admin/health/route.ts`, `src/app/api/admin/providers/route.ts`, `src/app/api/admin/credentials/route.ts`, `src/app/api/admin/compliance/route.ts`, `src/app/api/admin/feature-flags/route.ts`, `src/app/api/admin/team/route.ts`, `src/app/api/admin/vouchers/route.ts`.
+- Modified (UI wiring): `src/components/turbopay/views/admin.tsx` (15th tab "Roles").
+- No schema changes (User.role is a free-form String — new role literals are app-level). No `db:push` run. No test files created.
+- Lint: 0 errors, 0 warnings in my files. tsc: 0 errors in my files.
