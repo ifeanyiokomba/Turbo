@@ -9,14 +9,16 @@
 //        (providerCode, contract, country, currency, direction, service) tuple.
 
 import { db } from "@/lib/db";
-import { json, handleError, requireAdmin, audit, getClientIp } from "@/lib/api";
+import { json, handleError, audit, getClientIp } from "@/lib/api";
+import { requirePermission } from "@/lib/turbocore/rbac";
+import { Permissions } from "@/lib/turbocore/rbac/permissions";
 import { invalidateCapabilityCache } from "@/lib/turbocore/routing-engine";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    await requireAdmin();
+    await requirePermission(Permissions.CAPABILITIES_VIEW);
     const url = new URL(req.url);
     const where: Record<string, string> = {};
     const providerCode = url.searchParams.get("providerCode");
@@ -48,7 +50,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const user = await requireAdmin();
+    const user = await requirePermission(Permissions.CAPABILITIES_MANAGE);
     const body = await req.json().catch(() => ({}));
     const providerCode = String(body.providerCode ?? "").trim().toLowerCase();
     const contract = String(body.contract ?? "").trim().toUpperCase();

@@ -1,12 +1,14 @@
 import { db } from "@/lib/db";
-import { json, handleError, requireAdmin } from "@/lib/api";
+import { json, handleError } from "@/lib/api";
+import { requirePermission } from "@/lib/turbocore/rbac";
+import { Permissions } from "@/lib/turbocore/rbac/permissions";
 
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
 export async function GET(req: Request) {
   try {
-    await requireAdmin();
+    await requirePermission(Permissions.TX_VIEW_ALL);
     const url = new URL(req.url);
     const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") || 1);
     const limit = Math.min(

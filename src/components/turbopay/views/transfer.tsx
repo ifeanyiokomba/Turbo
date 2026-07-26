@@ -71,6 +71,7 @@ interface ResolveResult {
   accountNumber?: string;
   bankName?: string;
   username?: string;
+  source?: "paystack" | "mock";
 }
 
 interface TransferResult {
@@ -122,6 +123,12 @@ export default function TransferView() {
   const [bankAccount, setBankAccount] = React.useState("");
   const [bankResolved, setBankResolved] = React.useState<ResolveResult | null>(null);
   const [bankResolving, setBankResolving] = React.useState(false);
+  // null = idle, true = resolved OK, false = resolution failed (show "Proceed anyway" option)
+  const [bankResolveStatus, setBankResolveStatus] = React.useState<null | boolean>(null);
+  // When true, the user accepted the "Proceed anyway" prompt after a failed resolve.
+  const [bankProceedAnyway, setBankProceedAnyway] = React.useState(false);
+  // Tracks the in-flight resolve request so a stale response never overwrites a newer one.
+  const resolveSeqRef = React.useRef(0);
 
   // Shared fields
   const [amountInput, setAmountInput] = React.useState("");
@@ -248,6 +255,8 @@ export default function TransferView() {
     setBankCode("");
     setBankAccount("");
     setBankResolved(null);
+    setBankResolveStatus(null);
+    setBankProceedAnyway(false);
     setAmountInput("");
     setNote("");
     setSaveBeneficiary(true);
@@ -277,37 +286,66 @@ export default function TransferView() {
     }
   }
 
-  async function resolveBank() {
+  async function resolveBank(): Promise<boolean> {
     const acc = bankAccount.trim();
-    if (!/^\d{6,10}$/.test(acc)) {
-      toast.error("Enter a valid 10-digit account number");
-      return;
-    }
-    if (!bankCode) {
-      toast.error("Select a bank first");
-      return;
-    }
+    if (!/^\d{6,10}$/.test(acc)) return false;
+    if (!bankCode) return false;
+    const seq = ++resolveSeqRef.current;
     setBankResolving(true);
     setBankResolved(null);
+    setBankResolveStatus(null);
+    setBankProceedAnyway(false);
     try {
       const url = `/api/transfer/resolve?query=${encodeURIComponent(acc)}&bankCode=${encodeURIComponent(bankCode)}`;
       const res = await fetch(url);
-      const json = await res.json();
+      const payload = await res.json();
+      // Drop the response if a newer resolve was kicked off while we were waiting.
+      if (seq !== resolveSeqRef.current) return false;
       if (!res.ok) {
-        toast.error(json?.error ?? "Could not resolve account");
-        return;
+        setBankResolveStatus(false);
+        toast.error(payload?.error ?? "Could not verify account name");
+        return false;
       }
-      setBankResolved(json);
-      toast.success(`Resolved: ${json.name}`);
+      setBankResolved(payload);
+      setBankResolveStatus(true);
+      return true;
+    } catch {
+      if (seq !== resolveSeqRef.current) return false;
+      setBankResolveStatus(false);
+      return false;
     } finally {
-      setBankResolving(false);
+      if (seq === resolveSeqRef.current) setBankResolving(false);
     }
   }
+
+  // Debounced auto-resolve — 500ms after the user stops typing a 6–10 digit
+  // account number while a bank is selected. Cancels any in-flight resolve via
+  // the seq counter so a stale fetch can never overwrite a fresh one.
+  React.useEffect(() => {
+    const acc = bankAccount.trim();
+    if (!bankCode || !/^\d{6,10}$/.test(acc)) {
+      setBankResolved(null);
+      setBankResolveStatus(null);
+      setBankProceedAnyway(false);
+      return;
+    }
+    const t = setTimeout(() => {
+      // Fire-and-forget; resolveBank tracks its own seq guard.
+      void resolveBank();
+    }, 500);
+    return () => clearTimeout(t);
+  }, [bankAccount, bankCode, resolveBank]);
 
   function canContinue(): boolean {
     if (amountKobo <= 0) return false;
     if (type === "TURBOPAY") return !!tpResolved;
-    return !!bankResolved && !!bankCode;
+    // Bank transfer: Continue is enabled when account name is verified OR the
+    // user explicitly chose "Proceed anyway" after a failed resolution.
+    if (!bankCode || !/^\d{6,10}$/.test(bankAccount.trim())) return false;
+    if (bankResolving) return false;
+    if (bankResolveStatus === true && bankResolved) return true;
+    if (bankResolveStatus === false && bankProceedAnyway) return true;
+    return false;
   }
 
   function onContinue() {
@@ -436,7 +474,10 @@ export default function TransferView() {
         type: "BANK",
         accountNumber: b.accountNumber,
         bankName: b.bankName,
+        source: "mock",
       });
+      setBankResolveStatus(true);
+      setBankProceedAnyway(false);
     }
     setAmountInput("");
     setNote("");
@@ -463,7 +504,10 @@ export default function TransferView() {
         type: "BANK",
         accountNumber: t.accountNumber,
         bankName: t.bankName ?? "",
+        source: "mock",
       });
+      setBankResolveStatus(true);
+      setBankProceedAnyway(false);
     }
     setAmountInput(t.amountKobo ? String(t.amountKobo / 100) : "");
     setNote(t.note ?? "");
@@ -636,7 +680,7 @@ export default function TransferView() {
                 <TabsContent value="BANK" className="mt-5 space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="bank-select">Bank</Label>
-                    <Select value={bankCode} onValueChange={(v) => { setBankCode(v); setBankResolved(null); }}>
+                    <Select value={bankCode} onValueChange={(v) => { setBankCode(v); setBankResolved(null); setBankResolveStatus(null); setBankProceedAnyway(false); }}>
                       <SelectTrigger id="bank-select" className="w-full">
                         <SelectValue placeholder="Select bank" />
                       </SelectTrigger>
@@ -660,6 +704,8 @@ export default function TransferView() {
                         onChange={(e) => {
                           setBankAccount(e.target.value.replace(/[^\d]/g, ""));
                           setBankResolved(null);
+                          setBankResolveStatus(null);
+                          setBankProceedAnyway(false);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") resolveBank();
@@ -668,7 +714,7 @@ export default function TransferView() {
                       <Button
                         type="button"
                         variant="secondary"
-                        onClick={resolveBank}
+                        onClick={() => { void resolveBank(); }}
                         disabled={bankResolving || !bankCode || bankAccount.length < 6}
                         className="gap-1.5 shrink-0"
                       >
@@ -677,16 +723,59 @@ export default function TransferView() {
                         ) : (
                           <Search className="h-4 w-4" />
                         )}
-                        Resolve
+                        Re-check
                       </Button>
                     </div>
-                    {bankResolved && (
-                      <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
+                    {/* Resolving — inline spinner + hint */}
+                    {bankResolving && (
+                      <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
+                        <RefreshCw className="h-4 w-4 animate-spin text-amber-600 dark:text-amber-400" />
+                        <span className="text-sm text-muted-foreground">Verifying account name…</span>
+                      </div>
+                    )}
+                    {/* Resolved — green confirmation box */}
+                    {!bankResolving && bankResolveStatus === true && bankResolved && (
+                      <div className="flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-500/10 px-3 py-2">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         <span className="text-sm font-medium">{bankResolved.name}</span>
-                        <Badge variant="secondary" className="ml-auto">
-                          {bankResolved.bankName ?? "Bank"}
+                        <Badge
+                          variant="secondary"
+                          className="ml-auto gap-1 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                        >
+                          <ShieldCheck className="h-3 w-3" /> Verified
                         </Badge>
+                      </div>
+                    )}
+                    {/* Failed — amber warning + Proceed anyway option */}
+                    {!bankResolving && bankResolveStatus === false && (
+                      <div className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2">
+                        <div className="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
+                          <ShieldCheck className="h-4 w-4 shrink-0" />
+                          <span>Could not verify account name. Proceed with caution.</span>
+                        </div>
+                        {!bankProceedAnyway ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="h-7 w-full gap-1.5 border-amber-500/40 text-amber-800 hover:bg-amber-500/10 dark:text-amber-300"
+                            onClick={() => setBankProceedAnyway(true)}
+                          >
+                            Proceed anyway
+                          </Button>
+                        ) : (
+                          <div className="flex items-center gap-2 text-xs text-amber-800 dark:text-amber-300">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>Continuing without verification.</span>
+                            <button
+                              type="button"
+                              className="ml-auto underline-offset-2 hover:underline"
+                              onClick={() => { setBankProceedAnyway(false); void resolveBank(); }}
+                            >
+                              Retry
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

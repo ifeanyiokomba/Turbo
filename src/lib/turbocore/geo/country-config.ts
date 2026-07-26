@@ -25,7 +25,14 @@ const DEFAULT_COUNTRIES: CountryConfig[] = [
     locale: "en", rtl: false, paymentMethods: ["CARD", "BANK_TRANSFER", "USSD", "VIRTUAL_ACCOUNT"],
     billerCatalogKey: "ng_baxi",
     kycRequirements: { tier2: ["NIN"], tier3: ["BVN"] },
-    providersPreferred: { BANK_TRANSFER: ["paystack"], BILL_PAYMENT: ["baxi"], AIRTIME: ["baxi"], VIRTUAL_ACCOUNT: ["monnify"] },
+    providersPreferred: {
+      BANK_TRANSFER: ["paystack", "flutterwave"],
+      BILL_PAYMENT: ["baxi", "remita", "quickteller", "paga"],
+      AIRTIME: ["baxi", "quickteller"],
+      VIRTUAL_ACCOUNT: ["monnify", "paystack"],
+      MOBILE_MONEY: ["smartcash", "paga"],
+      KYC: ["dojah", "paystack"],
+    },
     taxRateBps: 750, regulatoryNotes: "CBN: fintechs route inbound via licensed IMTO partner",
     enabled: true,
   },
@@ -34,7 +41,7 @@ const DEFAULT_COUNTRIES: CountryConfig[] = [
     locale: "sw", rtl: false, paymentMethods: ["CARD", "MOBILE_MONEY", "BANK_TRANSFER"],
     billerCatalogKey: "ke_kplc",
     kycRequirements: { tier2: ["KRA_PIN"], tier3: ["NATIONAL_ID"] },
-    providersPreferred: { MOBILE_MONEY: ["mpesa"], BANK_TRANSFER: ["flutterwave"] },
+    providersPreferred: { MOBILE_MONEY: ["mpesa", "airtel_money"], CARD_PAYMENT: ["flutterwave"] },
     taxRateBps: 0, regulatoryNotes: "CBK: M-Pesa STK push for collections",
     enabled: true,
   },
@@ -43,7 +50,7 @@ const DEFAULT_COUNTRIES: CountryConfig[] = [
     locale: "en", rtl: false, paymentMethods: ["CARD", "MOBILE_MONEY", "BANK_TRANSFER"],
     billerCatalogKey: "gh_ecg",
     kycRequirements: { tier2: ["GHANA_CARD"], tier3: ["DVLA"] },
-    providersPreferred: { MOBILE_MONEY: ["mtn_momo"], BANK_TRANSFER: ["flutterwave"] },
+    providersPreferred: { MOBILE_MONEY: ["mtn_momo", "airtel_money"], CARD_PAYMENT: ["flutterwave"] },
     taxRateBps: 0, regulatoryNotes: "BoG: MoMo via MTN MoMo API",
     enabled: true,
   },
@@ -155,7 +162,14 @@ export async function seedCountryConfigs(): Promise<void> {
         taxRateBps: c.taxRateBps,
         regulatoryNotes: c.regulatoryNotes ?? null,
       },
-      update: {},
+      // Sync the consolidated providersPreferred list on every seed so the
+      // country-config.ts constant stays the single source of truth. Other
+      // columns are left untouched so admins can still tweak locale, tax,
+      // regulatory notes etc. without being clobbered by re-seeds.
+      update: {
+        providersPreferredJSON: JSON.stringify(c.providersPreferred),
+        paymentMethodsJSON: JSON.stringify(c.paymentMethods),
+      },
     });
   }
 }

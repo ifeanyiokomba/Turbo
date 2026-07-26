@@ -3,9 +3,29 @@
 import { db } from "@/lib/db";
 import { seedCountryConfigs } from "./geo/country-config";
 import { ContractName } from "./result";
+import { FeatureFlags, FLAG_DEFAULTS } from "./feature-flags";
 
 export async function seedTurboCore(): Promise<void> {
   await seedCountryConfigs();
+
+  // Feature flags — parked providers + their dependent composite flags. These
+  // are seeded as BOOL flags with the FLAG_DEFAULTS value so admins can flip
+  // them via the /api/admin/feature-flags endpoints without having to create
+  // the rows first.
+  const flagRows = Object.entries(FLAG_DEFAULTS).map(([key, defaultEnabled]) => ({
+    key,
+    description: describeFlag(key),
+    type: "BOOL" as const,
+    valueJSON: JSON.stringify(defaultEnabled),
+    enabled: true,
+  }));
+  for (const f of flagRows) {
+    await db.featureFlag.upsert({
+      where: { key: f.key },
+      create: { ...f, updatedBy: null },
+      update: {}, // never overwrite an admin's edited value on re-seed
+    });
+  }
 
   // Providers
   const providers = [
@@ -132,5 +152,20 @@ export async function seedTurboCore(): Promise<void> {
       create: f,
       update: {},
     });
+  }
+}
+
+function describeFlag(key: string): string {
+  switch (key) {
+    case FeatureFlags.STRIPE_ENABLED:
+      return "Stripe card payments + virtual card issuing. PARKED — was affecting build; flip on once credentials are rotated.";
+    case FeatureFlags.WISE_ENABLED:
+      return "Wise international transfers + FX rates. PARKED — paused pending compliance sign-off on corridor matrix.";
+    case FeatureFlags.INTERNATIONAL_TRANSFERS:
+      return "International transfers as a user-facing surface. Composite — also requires wise_enabled.";
+    case FeatureFlags.VIRTUAL_CARDS_STRIPE:
+      return "Stripe-issued virtual cards. Composite — also requires stripe_enabled.";
+    default:
+      return "TurboCore feature flag.";
   }
 }

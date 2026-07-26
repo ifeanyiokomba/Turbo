@@ -11,12 +11,13 @@ import { db } from "@/lib/db";
 import {
   json,
   handleError,
-  requireAdmin,
   audit,
   getClientIp,
   getUserAgent,
   ServiceError,
 } from "@/lib/api";
+import { requirePermission } from "@/lib/turbocore/rbac";
+import { Permissions } from "@/lib/turbocore/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ const TYPES = new Set([
 
 export async function GET() {
   try {
-    await requireAdmin();
+    await requirePermission(Permissions.VOUCHERS_VIEW);
     const vouchers = await db.voucher.findMany({
       orderBy: { createdAt: "desc" },
       take: 200,
@@ -66,7 +67,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const admin = await requireAdmin();
+    const admin = await requirePermission(Permissions.VOUCHERS_MANAGE);
     const body = await req.json().catch(() => ({}));
 
     const rawCode = String(body.code ?? "").trim().toUpperCase().replace(/\s+/g, "-");

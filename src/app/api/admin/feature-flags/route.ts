@@ -9,7 +9,9 @@
 //        VARIANT → "\"variantA\""
 
 import { db } from "@/lib/db";
-import { json, handleError, requireAdmin, audit, getClientIp } from "@/lib/api";
+import { json, handleError, audit, getClientIp } from "@/lib/api";
+import { requirePermission } from "@/lib/turbocore/rbac";
+import { Permissions } from "@/lib/turbocore/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +19,7 @@ const VALID_TYPES = new Set(["BOOL", "PERCENT", "VARIANT"]);
 
 export async function GET() {
   try {
-    await requireAdmin();
+    await requirePermission(Permissions.FLAGS_VIEW);
     const [flags, overrides] = await Promise.all([
       db.featureFlag.findMany({ orderBy: { key: "asc" } }),
       db.featureFlagOverride.findMany({ orderBy: { flagKey: "asc" } }),
@@ -49,7 +51,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const user = await requireAdmin();
+    const user = await requirePermission(Permissions.FLAGS_MANAGE);
     const body = await req.json().catch(() => ({}));
     const key = String(body.key ?? "").trim().toUpperCase().replace(/[^A-Z0-9_]/g, "_");
     if (!key) return json({ error: "key is required" }, 400);

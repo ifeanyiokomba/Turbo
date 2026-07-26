@@ -7,7 +7,9 @@
 //        If `snapshotJSON` is omitted, we snapshot the relevant tables live.
 
 import { db } from "@/lib/db";
-import { json, handleError, requireAdmin, audit, getClientIp } from "@/lib/api";
+import { json, handleError, audit, getClientIp } from "@/lib/api";
+import { requirePermission } from "@/lib/turbocore/rbac";
+import { Permissions } from "@/lib/turbocore/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +52,7 @@ async function captureSnapshot(scope: string): Promise<string> {
 
 export async function GET(req: Request) {
   try {
-    await requireAdmin();
+    await requirePermission(Permissions.CONFIG_VIEW);
     const url = new URL(req.url);
     const scope = url.searchParams.get("scope")?.trim().toUpperCase();
     const where: Record<string, string> = {};
@@ -79,7 +81,12 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const user = await requireAdmin();
+    // Rolling back requires CONFIG_ROLLBACK (only SUPER_ADMIN by default).
+    // Creating a new snapshot also requires CONFIG_ROLLBACK because POST is
+    // used both for snapshots and rollbacks (rollback is invoked via the
+    // /api/admin/config-history/[id]/rollback route, but we gate snapshot
+    // creation on CONFIG_ROLLBACK here too for defense in depth).
+    const user = await requirePermission(Permissions.CONFIG_ROLLBACK);
     const body = await req.json().catch(() => ({}));
     const scope = String(body.scope ?? "").trim().toUpperCase();
     if (!SCOPES.has(scope)) {

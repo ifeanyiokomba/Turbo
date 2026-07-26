@@ -7,7 +7,9 @@
 //        we update its mutable fields; otherwise we create a new row.
 
 import { db } from "@/lib/db";
-import { json, handleError, requireAdmin, audit, getClientIp } from "@/lib/api";
+import { json, handleError, audit, getClientIp } from "@/lib/api";
+import { requirePermission } from "@/lib/turbocore/rbac";
+import { Permissions } from "@/lib/turbocore/rbac/permissions";
 import { getBreakerStates, registry } from "@/lib/turbocore/registry";
 import { invalidateCapabilityCache } from "@/lib/turbocore/routing-engine";
 
@@ -15,7 +17,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await requireAdmin();
+    await requirePermission(Permissions.PROVIDERS_VIEW);
     const [configs, breakerStates, capCounts] = await Promise.all([
       db.providerConfig.findMany({ orderBy: { code: "asc" } }),
       Promise.resolve(getBreakerStates()),
@@ -57,7 +59,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const user = await requireAdmin();
+    const user = await requirePermission(Permissions.PROVIDERS_MANAGE);
     const body = await req.json().catch(() => ({}));
     const code = String(body.code ?? "").trim().toLowerCase();
     const displayName = String(body.displayName ?? "").trim();

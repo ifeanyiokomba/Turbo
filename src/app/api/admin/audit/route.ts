@@ -6,7 +6,9 @@
 // capped at 100 to keep responses reasonable.
 
 import { db } from "@/lib/db";
-import { json, handleError, requireAdmin } from "@/lib/api";
+import { json, handleError } from "@/lib/api";
+import { requirePermission } from "@/lib/turbocore/rbac";
+import { Permissions } from "@/lib/turbocore/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,7 @@ const MAX_PAGE_SIZE = 100;
 
 export async function GET(req: Request) {
   try {
-    await requireAdmin();
+    await requirePermission(Permissions.AUDIT_VIEW);
     const url = new URL(req.url);
     const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") || 1);
     const limit = Math.min(

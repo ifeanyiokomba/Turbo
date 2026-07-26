@@ -8,10 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Lock, User, Phone, AtSign, Eye, EyeOff, ArrowRight, Check, Zap, Fingerprint } from "lucide-react";
+import { Mail, Lock, User, Phone, AtSign, Eye, EyeOff, ArrowRight, Check, Zap, Fingerprint, KeyRound, ShieldCheck, RotateCcw, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "./store";
 import { startAuthentication } from "@simplewebauthn/browser";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp";
+import { Progress } from "@/components/ui/progress";
 
 const COUNTRIES = [
   { code: "NG", name: "Nigeria", dial: "+234", flag: "🇳🇬" },
@@ -164,6 +169,125 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
     }
   }
 
+  // forgot-password dialog state
+  const [forgotOpen, setForgotOpen] = React.useState(false);
+  const [forgotStep, setForgotStep] = React.useState<1 | 2>(1);
+  const [forgotIdentifier, setForgotIdentifier] = React.useState("");
+  const [forgotLoading, setForgotLoading] = React.useState(false);
+  const [resetCode, setResetCode] = React.useState("");
+  const [newPassword, setNewPassword] = React.useState("");
+  const [showNewPwd, setShowNewPwd] = React.useState(false);
+  const [resendCooldown, setResendCooldown] = React.useState(0);
+
+  // Cooldown ticker for "Resend code"
+  React.useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((s) => Math.max(0, s - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
+  function openForgot() {
+    setForgotIdentifier(identifier.trim());
+    setForgotStep(1);
+    setResetCode("");
+    setNewPassword("");
+    setShowNewPwd(false);
+    setForgotOpen(true);
+  }
+
+  async function handleSendCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!forgotIdentifier.trim()) {
+      toast.error("Enter your email, phone or username");
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier: forgotIdentifier.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Could not send reset code");
+      // Always returns success — even if account doesn't exist (security).
+      setForgotStep(2);
+      setResendCooldown(60);
+      const channelLabel =
+        data.channel === "sms" ? "SMS" : data.channel === "email" ? "email" : "console";
+      if (data.to && data.to !== "console") {
+        toast.success(`Reset code sent to ${data.to} via ${channelLabel}`);
+      } else {
+        toast.success("Reset code sent — check your email / phone");
+      }
+      if (data.channel === "console" && process.env.NODE_ENV !== "production") {
+        toast.info("Dev mode — code printed to server console");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not send reset code");
+    } finally {
+      setForgotLoading(false);
+    }
+  }
+
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!/^\d{6}$/.test(resetCode)) {
+      toast.error("Enter the 6-digit code from your email / SMS");
+      return;
+    }
+    const pwdError = validateClientPassword(newPassword);
+    if (pwdError) {
+      toast.error(pwdError);
+      return;
+    }
+    setForgotLoading(true);
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          identifier: forgotIdentifier.trim(),
+          code: resetCode,
+          newPassword,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Password reset failed");
+      toast.success("Password reset! You can now sign in with your new password.");
+      setForgotOpen(false);
+      // Pre-fill the login form so the user can immediately sign in.
+      setIdentifier(forgotIdentifier.trim());
+      setLoginPassword("");
+      setTab("login");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Password reset failed");
+    } finally {
+      setForgotLoading(false);
+    }
+  }
+
+  function validateClientPassword(p: string): string | null {
+    if (p.length < 8) return "Password must be at least 8 characters";
+    if (!/[A-Z]/.test(p)) return "Password must contain an uppercase letter";
+    if (!/[a-z]/.test(p)) return "Password must contain a lowercase letter";
+    if (!/\d/.test(p)) return "Password must contain a digit";
+    return null;
+  }
+
+  const newPwdChecks = [
+    { ok: newPassword.length >= 8, label: "8+ characters" },
+    { ok: /[A-Z]/.test(newPassword), label: "Uppercase" },
+    { ok: /[a-z]/.test(newPassword), label: "Lowercase" },
+    { ok: /\d/.test(newPassword), label: "Digit" },
+  ];
+  const newPwdScore = newPwdChecks.filter((c) => c.ok).length;
+  const newPwdStrengthPct = (newPwdScore / newPwdChecks.length) * 100;
+  const newPwdStrengthLabel =
+    newPwdScore <= 1 ? "Weak" : newPwdScore === 2 ? "Fair" : newPwdScore === 3 ? "Good" : "Strong";
+  const newPwdStrengthColor =
+    newPwdScore <= 1 ? "text-red-500" : newPwdScore === 2 ? "text-amber-500" : newPwdScore === 3 ? "text-emerald-500" : "text-emerald-600";
+
   const pwdChecks = [
     { ok: regPassword.length >= 8, label: "8+ characters" },
     { ok: /[A-Z]/.test(regPassword), label: "Uppercase" },
@@ -244,7 +368,7 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="pwd">Password</Label>
-                    <button type="button" className="text-xs text-primary hover:underline" onClick={() => toast.info("Password reset coming soon")}>
+                    <button type="button" className="text-xs text-primary hover:underline" onClick={openForgot}>
                       Forgot?
                     </button>
                   </div>
@@ -406,6 +530,198 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
           </p>
         </div>
       </div>
+
+      {/* Forgot-password dialog */}
+      <Dialog open={forgotOpen} onOpenChange={(v) => setForgotOpen(v)}>
+        <DialogContent className="max-w-md overflow-hidden p-0">
+          {/* Emerald+amber brand header */}
+          <div className="relative tp-wallet-card overflow-hidden p-6 text-white">
+            <div className="tp-grain absolute inset-0 opacity-40" />
+            <div className="relative flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
+                <KeyRound className="h-4 w-4" />
+              </span>
+              <div>
+                <DialogTitle className="text-base font-semibold leading-tight">
+                  {forgotStep === 1 ? "Reset your password" : "Verify it's you"}
+                </DialogTitle>
+                <DialogDescription className="mt-0.5 text-xs text-white/80">
+                  {forgotStep === 1
+                    ? "We'll send a 6-digit code to your email or phone."
+                    : "Enter the code we sent + your new password."}
+                </DialogDescription>
+              </div>
+            </div>
+            {/* Step indicator */}
+            <div className="relative mt-4 flex items-center gap-2">
+              <div className={`h-1.5 flex-1 rounded-full ${forgotStep >= 1 ? "bg-amber-300" : "bg-white/30"}`} />
+              <div className={`h-1.5 flex-1 rounded-full ${forgotStep >= 2 ? "bg-amber-300" : "bg-white/30"}`} />
+            </div>
+            <p className="relative mt-2 text-[11px] text-white/70">Step {forgotStep} of 2</p>
+          </div>
+
+          <div className="p-6">
+            {forgotStep === 1 ? (
+              <form onSubmit={handleSendCode} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="forgot-identifier">Email, phone or username</Label>
+                  <div className="relative">
+                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="forgot-identifier"
+                      value={forgotIdentifier}
+                      onChange={(e) => setForgotIdentifier(e.target.value)}
+                      placeholder="you@example.com"
+                      className="pl-9"
+                      autoFocus
+                      autoComplete="username"
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    If an account exists, we'll send a one-time code that expires in 10 minutes.
+                  </p>
+                </div>
+                <Button type="submit" className="w-full gap-1.5" disabled={forgotLoading}>
+                  {forgotLoading ? (
+                    "Sending code..."
+                  ) : (
+                    <>
+                      Send reset code <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setForgotOpen(false)}
+                  className="flex w-full items-center justify-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <ArrowLeft className="h-3 w-3" /> Back to sign in
+                </button>
+              </form>
+            ) : (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-code">6-digit code</Label>
+                  <div className="flex justify-center py-1">
+                    <InputOTP
+                      id="reset-code"
+                      maxLength={6}
+                      value={resetCode}
+                      onChange={(v) => setResetCode(v)}
+                      autoFocus
+                    >
+                      <InputOTPGroup>
+                        <InputOTPSlot index={0} className="h-11 w-11 text-base" />
+                        <InputOTPSlot index={1} className="h-11 w-11 text-base" />
+                        <InputOTPSlot index={2} className="h-11 w-11 text-base" />
+                      </InputOTPGroup>
+                      <InputOTPSeparator />
+                      <InputOTPGroup>
+                        <InputOTPSlot index={3} className="h-11 w-11 text-base" />
+                        <InputOTPSlot index={4} className="h-11 w-11 text-base" />
+                        <InputOTPSlot index={5} className="h-11 w-11 text-base" />
+                      </InputOTPGroup>
+                    </InputOTP>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] text-muted-foreground">
+                      Code expires in 10 minutes.
+                    </p>
+                    {resendCooldown > 0 ? (
+                      <span className="text-[11px] text-muted-foreground">
+                        Resend in {resendCooldown}s
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSendCode}
+                        disabled={forgotLoading}
+                        className="text-[11px] text-primary hover:underline disabled:opacity-50"
+                      >
+                        Resend code
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="new-pwd">New password</Label>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      id="new-pwd"
+                      type={showNewPwd ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Create a strong password"
+                      className="pl-9 pr-9"
+                      autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPwd((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showNewPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {newPassword && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center gap-2">
+                        <Progress value={newPwdStrengthPct} className="h-1.5 flex-1" />
+                        <span className={`text-[11px] font-medium ${newPwdStrengthColor}`}>
+                          {newPwdStrengthLabel}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {newPwdChecks.map((c) => (
+                          <span
+                            key={c.label}
+                            className={`flex items-center gap-1 text-[11px] ${
+                              c.ok ? "text-primary" : "text-muted-foreground"
+                            }`}
+                          >
+                            <span
+                              className={`flex h-3.5 w-3.5 items-center justify-center rounded-full ${
+                                c.ok ? "bg-primary/20" : "bg-muted"
+                              }`}
+                            >
+                              {c.ok && <Check className="h-2.5 w-2.5" />}
+                            </span>
+                            {c.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Button type="submit" className="w-full gap-1.5" disabled={forgotLoading}>
+                  {forgotLoading ? (
+                    "Resetting..."
+                  ) : (
+                    <>
+                      <ShieldCheck className="h-4 w-4" /> Reset password
+                    </>
+                  )}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setForgotStep(1)}
+                  className="flex w-full items-center justify-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <RotateCcw className="h-3 w-3" /> Use a different identifier
+                </button>
+              </form>
+            )}
+          </div>
+          <DialogFooter className="px-6 pb-4 pt-0 sm:justify-center">
+            <p className="text-center text-[11px] text-muted-foreground">
+              For your security, all active sessions will be signed out after reset.
+            </p>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

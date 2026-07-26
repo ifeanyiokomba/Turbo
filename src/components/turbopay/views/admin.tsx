@@ -51,6 +51,7 @@ import {
   Bell,
   Inbox,
   CircuitBoard,
+  ShieldCheck,
 } from "lucide-react";
 import { naira, nairaCompact, formatDate, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
@@ -66,6 +67,7 @@ import ComplianceTab from "./admin/compliance-tab";
 import FeatureFlagsTab from "./admin/feature-flags-tab";
 import ConfigHistoryTab from "./admin/config-history-tab";
 import TeamTab from "./admin/team-tab";
+import RolesTab from "./admin/roles-tab";
 
 interface AdminStats {
   users: number;
@@ -500,6 +502,7 @@ export default function AdminView() {
           <TabsTrigger value="flags" className="flex-1 min-w-[100px] gap-1"><Flag className="h-3.5 w-3.5" />Flags</TabsTrigger>
           <TabsTrigger value="history" className="flex-1 min-w-[100px] gap-1"><History className="h-3.5 w-3.5" />Config History</TabsTrigger>
           <TabsTrigger value="team" className="flex-1 min-w-[100px] gap-1"><Users className="h-3.5 w-3.5" />Team</TabsTrigger>
+          <TabsTrigger value="roles" className="flex-1 min-w-[120px] gap-1"><ShieldCheck className="h-3.5 w-3.5" />Roles</TabsTrigger>
         </TabsList>
 
         {/* Overview */}
@@ -1154,6 +1157,11 @@ export default function AdminView() {
         {/* Team management */}
         <TabsContent value="team" className="mt-5">
           <TeamTab />
+        </TabsContent>
+
+        {/* Roles & Permissions (RBAC explorer) */}
+        <TabsContent value="roles" className="mt-5">
+          <RolesTab />
         </TabsContent>
       </Tabs>
     </div>

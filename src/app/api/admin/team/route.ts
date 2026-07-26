@@ -4,12 +4,13 @@ import {
   json,
   errorJson,
   handleError,
-  requireAdmin,
   audit,
   getClientIp,
   getUserAgent,
   ServiceError,
 } from "@/lib/api";
+import { requirePermission } from "@/lib/turbocore/rbac";
+import { Permissions } from "@/lib/turbocore/rbac/permissions";
 import { z } from "zod";
 
 // Allowed team roles (mirrors schema comment)
@@ -42,7 +43,7 @@ function publicMember(m: {
 // GET /api/admin/team — list all team members (newest invite first).
 export async function GET() {
   try {
-    const admin = await requireAdmin();
+    const admin = await requirePermission(Permissions.TEAM_VIEW);
     const members = await db.teamMember.findMany({
       orderBy: { invitedAt: "desc" },
     });
@@ -67,7 +68,7 @@ const postSchema = z.object({
 // POST /api/admin/team — invite (create) a new team member with status=PENDING.
 export async function POST(req: NextRequest) {
   try {
-    const admin = await requireAdmin();
+    const admin = await requirePermission(Permissions.TEAM_INVITE);
     const body = await req.json().catch(() => ({}));
     const parsed = postSchema.safeParse(body);
     if (!parsed.success) {

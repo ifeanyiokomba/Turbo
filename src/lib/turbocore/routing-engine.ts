@@ -9,6 +9,7 @@
 import { db } from "@/lib/db";
 import { registry, getBreakerStates } from "./registry";
 import { getCountryConfig } from "./geo/country-config";
+import { isFeatureEnabled, FeatureFlags } from "./feature-flags";
 import type { ContractName } from "./result";
 
 export interface RouteRequest {
@@ -111,6 +112,18 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
   const healthStats = await loadHealthStats();
   const breakers = getBreakerStates();
 
+  // Feature flags — parked providers (stripe / wise) are filtered out before
+  // capability scoring so they can never be selected unless an admin has
+  // explicitly flipped the flag. The lookup is cached (5-min TTL) so this is
+  // cheap enough to run on every route() call.
+  const [stripeEnabled, wiseEnabled] = await Promise.all([
+    isFeatureEnabled(FeatureFlags.STRIPE_ENABLED, req.userId),
+    isFeatureEnabled(FeatureFlags.WISE_ENABLED, req.userId),
+  ]);
+  const parkedProviders = new Set<string>();
+  if (!stripeEnabled) parkedProviders.add("stripe");
+  if (!wiseEnabled) parkedProviders.add("wise");
+
   // Geo context — load the country config so we can boost preferred providers.
   const countryConfig = await getCountryConfig(req.country).catch(() => null);
   const preferredForContract: string[] =
@@ -125,7 +138,9 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
       (!c.service || !req.service || c.service === req.service) &&
       c.direction === req.direction &&
       req.amountMinor >= c.minAmountMinor &&
-      (c.maxAmountMinor === 0 || req.amountMinor <= c.maxAmountMinor),
+      (c.maxAmountMinor === 0 || req.amountMinor <= c.maxAmountMinor) &&
+      // Parked-provider gate — drop capabilities whose provider is feature-flagged off.
+      !parkedProviders.has(c.providerCode),
   );
 
   if (viable.length === 0) {
