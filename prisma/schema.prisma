@@ -1151,3 +1151,30 @@ model CeloTokenConfig {
   @@unique([symbol, chainId])
   @@index([chainId, isActive])
 }
+
+// ===== Passkeys (WebAuthn) + MFA =====
+
+model Passkey {
+  id            String   @id @default(cuid())
+  userId        String
+  credentialId  String   @unique // base64url
+  publicKey     String   // base64
+  counter       Int      @default(0)
+  deviceName    String?
+  deviceType    String   @default("unknown") // platform | cross-platform
+  transports    String   @default("[]") // JSON array
+  createdAt     DateTime @default(now())
+  lastUsedAt    DateTime?
+  @@index([userId])
+}
+
+model MfaSecret {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  secretEnc     String   // AES-256-GCM encrypted TOTP secret
+  enabled       Boolean  @default(false)
+  backupCodesHash String @default("[]") // JSON array of hashed codes
+  enabledAt     DateTime?
+  createdAt     DateTime @default(now())
+  @@index([userId])
+}
