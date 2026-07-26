@@ -396,7 +396,7 @@ export default function QrView() {
     try {
       const pinCode = await pin.request({
         title: "Authorize QR payment",
-        subtitle: `Pay ${naira(amountKobo)} to ${resolved.recipient.name}`,
+        description: `Pay ${naira(amountKobo)} to ${resolved.recipient.name}`,
       });
       if (!pinCode) {
         setPaying(false);

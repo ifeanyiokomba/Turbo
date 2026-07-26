@@ -7,6 +7,7 @@ import {
 } from "@/lib/api";
 import { TxDirection, TxStatus } from "@/lib/constants";
 import { naira } from "@/lib/money";
+import type { Merchant } from "@prisma/client";
 
 /**
  * GET /api/merchant/dashboard
@@ -23,7 +24,7 @@ export async function GET() {
 
     // Lazily ensure a Merchant record exists (linked by email if present).
     // This is purely informational — the merchantId used elsewhere is user.id.
-    let merchant = null;
+    let merchant: Merchant | null = null;
     if (user.email) {
       merchant = await db.merchant.findUnique({
         where: { email: user.email },

@@ -8,6 +8,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Table,
   TableBody,
@@ -34,9 +40,24 @@ import {
   ShieldCheck,
   Wallet,
   ChevronRight,
+  ChevronDown,
+  Facebook,
+  Send,
+  Crown,
+  Medal,
+  Award,
+  Target,
+  CheckCircle2,
+  Circle,
+  ArrowRight,
+  Zap,
 } from "lucide-react";
 import { naira, nairaCompact, formatDate, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
+
+/* ------------------------------------------------------------------ */
+/* Types                                                               */
+/* ------------------------------------------------------------------ */
 
 interface RewardTx {
   id: string;
@@ -60,6 +81,44 @@ interface ReferredUser {
   reference: string;
 }
 
+interface TierInfo {
+  key: "bronze" | "silver" | "gold" | "platinum";
+  label: string;
+  badge: string;
+  accent: string;
+  perks: string[];
+  min: number;
+  max: number | null;
+}
+
+interface TierPayload {
+  current: TierInfo;
+  next: TierInfo | null;
+  progress: number;
+  referralsToNextTier: number;
+}
+
+interface LeaderboardEntry {
+  rank: number;
+  userId: string;
+  name: string;
+  referrals: number;
+  earned: number;
+  isCurrentUser: boolean;
+}
+
+interface Campaign {
+  id: string;
+  title: string;
+  description: string;
+  rewardKobo: number;
+  endsIn: string;
+  endsAt: string | null;
+  progress: number;
+  goalCount: number;
+  currentCount: number;
+}
+
 interface RewardsData {
   referralCode: string;
   shareLink: string;
@@ -74,13 +133,11 @@ interface RewardsData {
   };
   referredUsers: ReferredUser[];
   recentRewards: RewardTx[];
-  campaigns: Array<{
-    id: string;
-    title: string;
-    description: string;
-    rewardKobo: number;
-    endsIn: string;
-  }>;
+  campaigns: Campaign[];
+  referralTier: TierPayload;
+  tierProgress: number;
+  leaderboard: LeaderboardEntry[];
+  userRank: number | null;
 }
 
 const STATUS_TONE: Record<string, string> = {
@@ -98,6 +155,8 @@ export default function RewardsView() {
   const [loading, setLoading] = React.useState(true);
   const [copiedCode, setCopiedCode] = React.useState(false);
   const [copiedLink, setCopiedLink] = React.useState(false);
+  const [claiming, setClaiming] = React.useState(false);
+  const [explainerOpen, setExplainerOpen] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -149,6 +208,19 @@ export default function RewardsView() {
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
   }
 
+  function shareFacebook() {
+    if (!data) return;
+    const url = encodeURIComponent(data.shareLink);
+    const quote = encodeURIComponent(`Join me on Turbopay — use my code ${data.referralCode} and we both earn!`);
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${quote}`, "_blank", "noopener,noreferrer");
+  }
+
+  function shareTelegram() {
+    if (!data) return;
+    const text = encodeURIComponent(`Join me on Turbopay — use my code ${data.referralCode} and we both earn ${nairaCompact(data.bonusAmountKobo)}! ${data.shareLink}`);
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(data.shareLink)}&text=${text}`, "_blank", "noopener,noreferrer");
+  }
+
   function shareNative() {
     if (!data) return;
     const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
@@ -162,6 +234,30 @@ export default function RewardsView() {
       });
     } else {
       copyLink();
+    }
+  }
+
+  async function claimRewards() {
+    setClaiming(true);
+    try {
+      const res = await fetch("/api/rewards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "claim" }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json?.error ?? "Could not claim rewards");
+        return;
+      }
+      if (json.claimed > 0) {
+        toast.success(json.message ?? `Claimed ${naira(json.amountKobo)}`);
+        load();
+      } else {
+        toast.info(json.message ?? "No rewards to claim right now");
+      }
+    } finally {
+      setClaiming(false);
     }
   }
 
@@ -183,6 +279,11 @@ export default function RewardsView() {
 
   const firstName = user?.fullName.split(" ")[0] ?? "there";
   const bonusNaira = data?.bonusAmountKobo ?? 50_000;
+  const tier = data?.referralTier;
+  const totalReferrals = data?.stats.totalReferrals ?? 0;
+  const leaderboard = data?.leaderboard ?? [];
+  const userRank = data?.userRank;
+  const campaigns = data?.campaigns ?? [];
 
   return (
     <div className="space-y-5">
@@ -190,9 +291,21 @@ export default function RewardsView() {
         title="Rewards"
         subtitle="Refer friends, earn bonuses, and track rewards"
         actions={
-          <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
-            <RefreshCw className="h-4 w-4" /> Refresh
-          </Button>
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={claimRewards}
+              disabled={claiming}
+              className="gap-1.5"
+            >
+              {claiming ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
+              Claim rewards
+            </Button>
+            <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
+              <RefreshCw className="h-4 w-4" /> Refresh
+            </Button>
+          </>
         }
       />
 
@@ -215,7 +328,6 @@ export default function RewardsView() {
 
         <div className="relative z-10 mt-5 grid gap-4 lg:grid-cols-[1fr_auto]">
           <div className="space-y-3">
-            {/* Referral code */}
             <div>
               <p className="mb-1.5 text-xs text-white/80">Your referral code</p>
               <div className="flex items-center gap-2 rounded-xl bg-white/15 px-4 py-3 backdrop-blur">
@@ -232,7 +344,6 @@ export default function RewardsView() {
               </div>
             </div>
 
-            {/* Share link */}
             <div>
               <p className="mb-1.5 text-xs text-white/80">Share link</p>
               <div className="flex items-center gap-2">
@@ -252,7 +363,6 @@ export default function RewardsView() {
               </div>
             </div>
 
-            {/* Share buttons */}
             <div className="flex flex-wrap gap-2 pt-1">
               <Button size="sm" variant="secondary" onClick={shareWhatsApp} className="gap-1.5 bg-white text-emerald-700 hover:bg-white/90">
                 <MessageCircle className="h-4 w-4" /> WhatsApp
@@ -260,13 +370,18 @@ export default function RewardsView() {
               <Button size="sm" variant="secondary" onClick={shareTwitter} className="gap-1.5 bg-white text-emerald-700 hover:bg-white/90">
                 <Twitter className="h-4 w-4" /> Twitter
               </Button>
+              <Button size="sm" variant="secondary" onClick={shareFacebook} className="gap-1.5 bg-white text-emerald-700 hover:bg-white/90">
+                <Facebook className="h-4 w-4" /> Facebook
+              </Button>
+              <Button size="sm" variant="secondary" onClick={shareTelegram} className="gap-1.5 bg-white text-emerald-700 hover:bg-white/90">
+                <Send className="h-4 w-4" /> Telegram
+              </Button>
               <Button size="sm" variant="secondary" onClick={shareNative} className="gap-1.5 bg-white/10 text-white hover:bg-white/20">
                 <Share2 className="h-4 w-4" /> More
               </Button>
             </div>
           </div>
 
-          {/* QR code */}
           <div className="flex flex-col items-center gap-2 rounded-2xl bg-white/15 p-4 backdrop-blur lg:w-44">
             <div className="rounded-xl bg-white p-3">
               {data?.shareLink && (
@@ -283,6 +398,86 @@ export default function RewardsView() {
           </div>
         </div>
       </Card>
+
+      {/* ============ Tier card ============ */}
+      {tier && (
+        <Card className="overflow-hidden p-0">
+          <div className={`bg-gradient-to-r ${tier.current.accent} p-5 sm:p-6 text-white`}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex items-center gap-4">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-3xl">
+                  {tier.current.badge}
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-white/80">
+                    Current tier
+                  </p>
+                  <p className="text-2xl font-bold">{tier.current.label}</p>
+                  <p className="text-xs text-white/85">
+                    {totalReferrals} {totalReferrals === 1 ? "referral" : "referrals"} ·{" "}
+                    {tier.current.min}
+                    {tier.current.max ? `–${tier.current.max}` : "+"} tier
+                  </p>
+                </div>
+              </div>
+              {tier.next && (
+                <Badge className="bg-white/20 text-white">
+                  <Crown className="mr-1 h-3 w-3" /> Next: {tier.next.label} {tier.next.badge}
+                </Badge>
+              )}
+            </div>
+
+            {tier.next ? (
+              <div className="mt-5">
+                <div className="flex items-center justify-between text-xs text-white/85">
+                  <span>{tier.current.label}</span>
+                  <span>
+                    {tier.referralsToNextTier} more {tier.referralsToNextTier === 1 ? "referral" : "referrals"} to {tier.next.label}
+                  </span>
+                </div>
+                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/20">
+                  <div
+                    className="h-full rounded-full bg-white transition-all duration-500"
+                    style={{ width: `${tier.progress}%` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="mt-5 flex items-center gap-2 rounded-xl bg-white/15 p-3 text-sm">
+                <Sparkles className="h-4 w-4" />
+                You&apos;ve reached the highest tier — Platinum. You&apos;re a Turbopay legend!
+              </div>
+            )}
+          </div>
+
+          <div className="p-5 sm:p-6">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {tier.current.label} perks
+            </p>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {tier.current.perks.map((perk) => (
+                <div
+                  key={perk}
+                  className="flex items-start gap-2 rounded-xl border p-3 text-sm"
+                >
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                  <span>{perk}</span>
+                </div>
+              ))}
+            </div>
+            {tier.next && (
+              <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+                <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <p className="text-xs text-amber-700 dark:text-amber-300">
+                  <span className="font-semibold">{tier.next.label} tier</span> unlocks:{" "}
+                  {tier.next.perks.slice(0, 3).join(" · ")}
+                  {tier.next.perks.length > 3 && "…"}
+                </p>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       {/* ============ Stats row ============ */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -316,32 +511,177 @@ export default function RewardsView() {
         />
       </div>
 
-      {/* ============ How it works ============ */}
-      <Card className="p-5 sm:p-6">
-        <div className="mb-5 flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <h2 className="text-base font-semibold">How it works</h2>
+      {/* ============ How referrals work (expandable funnel) ============ */}
+      <Collapsible open={explainerOpen} onOpenChange={setExplainerOpen}>
+        <Card className="p-5 sm:p-6">
+          <CollapsibleTrigger asChild>
+            <button className="flex w-full items-center justify-between gap-3 text-left">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                <h2 className="text-base font-semibold">How referrals work</h2>
+              </div>
+              <ChevronDown
+                className={`h-5 w-5 text-muted-foreground transition-transform ${
+                  explainerOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="mt-6 grid gap-3 sm:grid-cols-5">
+              <FunnelStep
+                n={1}
+                icon={Share2}
+                label="Invite"
+                description="Share your code via WhatsApp, X, Facebook, or Telegram."
+                tone="emerald"
+              />
+              <FunnelArrow />
+              <FunnelStep
+                n={2}
+                icon={UserPlus}
+                label="Sign up"
+                description="Friend creates a Turbopay account using your code."
+                tone="emerald"
+              />
+              <FunnelArrow />
+              <FunnelStep
+                n={3}
+                icon={ShieldCheck}
+                label="Verify KYC"
+                description="They complete KYC verification (Tier 2+)."
+                tone="amber"
+              />
+            </div>
+            <div className="mt-3 grid gap-3 sm:grid-cols-5">
+              <FunnelStep
+                n={4}
+                icon={Zap}
+                label="First transaction"
+                description="Friend makes their first wallet transaction."
+                tone="amber"
+              />
+              <FunnelArrow />
+              <FunnelStep
+                n={5}
+                icon={Gift}
+                label="You both get rewarded"
+                description={`You both receive ${naira(bonusNaira)} instantly.`}
+                tone="emerald"
+                highlight
+              />
+            </div>
+
+            <div className="mt-5 rounded-xl border bg-muted/30 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Reward tiers
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                The more friends you refer, the higher your tier — and the bigger your per-referral
+                bonus. Reach <span className="font-semibold text-foreground">Platinum</span> for ₦1,500
+                per referral and dedicated account management.
+              </p>
+            </div>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* ============ Leaderboard ============ */}
+      <Card className="overflow-hidden p-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b p-5 sm:p-6">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-5 w-5 text-amber-500" />
+            <h2 className="text-base font-semibold">Leaderboard</h2>
+            <Badge variant="secondary" className="text-[10px]">This month</Badge>
+          </div>
+          {userRank && (
+            <Badge variant="outline" className="gap-1">
+              <Medal className="h-3 w-3" /> Your rank: #{userRank}
+            </Badge>
+          )}
         </div>
-        <div className="grid gap-5 sm:grid-cols-3">
-          <HowItWorksStep
-            n={1}
-            icon={Share2}
-            title="Share your code"
-            description="Send your referral link or code to friends via WhatsApp, X, or any channel."
-          />
-          <HowItWorksStep
-            n={2}
-            icon={UserPlus}
-            title="Friend signs up & verifies"
-            description="They create a Turbopay account and complete KYC verification."
-          />
-          <HowItWorksStep
-            n={3}
-            icon={Gift}
-            title={`You both get ${naira(bonusNaira)}`}
-            description={`Once verified, ${naira(bonusNaira)} is credited to both your wallets instantly.`}
-          />
-        </div>
+        {leaderboard.length > 0 ? (
+          <>
+            <div className="hidden overflow-x-auto sm:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-16">Rank</TableHead>
+                    <TableHead>Referrer</TableHead>
+                    <TableHead className="text-right">Referrals</TableHead>
+                    <TableHead className="text-right">Earned</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {leaderboard.map((entry) => (
+                    <TableRow
+                      key={entry.userId}
+                      className={entry.isCurrentUser ? "bg-emerald-500/5" : ""}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {entry.rank <= 3 ? (
+                            <span className="text-base">
+                              {entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}
+                            </span>
+                          ) : (
+                            <span className="font-mono text-sm text-muted-foreground">
+                              #{entry.rank}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold uppercase text-emerald-600 dark:text-emerald-400">
+                            {entry.name.slice(0, 2)}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">{entry.name}</p>
+                            {entry.isCurrentUser && (
+                              <p className="text-[10px] text-emerald-600 dark:text-emerald-400">You</p>
+                            )}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right text-sm font-semibold tabular-nums">
+                        {entry.referrals}
+                      </TableCell>
+                      <TableCell className="text-right text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                        {nairaCompact(entry.earned)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="divide-y sm:hidden">
+              {leaderboard.map((entry) => (
+                <div key={entry.userId} className={`flex items-center gap-3 p-4 ${entry.isCurrentUser ? "bg-emerald-500/5" : ""}`}>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-bold">
+                    {entry.rank <= 3
+                      ? (entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉")
+                      : `#${entry.rank}`}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{entry.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {entry.referrals} referrals · {nairaCompact(entry.earned)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="p-6">
+            <EmptyState
+              icon={Trophy}
+              title="No leaderboard yet"
+              description="Be the first to refer a friend this month!"
+            />
+          </div>
+        )}
       </Card>
 
       {/* ============ Referral history table ============ */}
@@ -359,7 +699,6 @@ export default function RewardsView() {
         </div>
         {data?.referredUsers && data.referredUsers.length > 0 ? (
           <>
-            {/* Desktop table */}
             <div className="hidden overflow-x-auto sm:block">
               <Table>
                 <TableHeader>
@@ -401,7 +740,6 @@ export default function RewardsView() {
               </Table>
             </div>
 
-            {/* Mobile cards */}
             <div className="divide-y sm:hidden">
               {data.referredUsers.map((u) => (
                 <div key={u.id} className="flex items-center gap-3 p-4">
@@ -444,6 +782,56 @@ export default function RewardsView() {
           </div>
         )}
       </Card>
+
+      {/* ============ Active campaigns with progress ============ */}
+      {campaigns.length > 0 && (
+        <Card className="p-5 sm:p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Target className="h-5 w-5 text-primary" />
+            <h2 className="text-base font-semibold">Active campaigns</h2>
+            <Badge variant="secondary" className="text-[10px]">{campaigns.length}</Badge>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {campaigns.map((c) => (
+              <div
+                key={c.id}
+                className="group rounded-xl border p-4 transition-colors hover:border-primary/30"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium">{c.title}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{c.description}</p>
+                  </div>
+                  {c.rewardKobo > 0 ? (
+                    <Badge variant="secondary" className="shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                      +{nairaCompact(c.rewardKobo)}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="shrink-0">{c.endsIn}</Badge>
+                  )}
+                </div>
+                <div className="mt-3">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>{c.currentCount.toLocaleString()} joined</span>
+                    <span>{Math.round(c.progress * 100)}% of {c.goalCount.toLocaleString()}</span>
+                  </div>
+                  <Progress className="mt-1 h-1.5" value={c.progress * 100} />
+                </div>
+                {c.rewardKobo > 0 && (
+                  <p className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+                    <Award className="h-3.5 w-3.5" />
+                    Reward: <span className="font-medium text-foreground">{naira(c.rewardKobo)}</span>
+                    <span className="ml-auto flex items-center gap-1">
+                      <Circle className="h-2 w-2 fill-amber-500 text-amber-500" />
+                      Ends in <span className="font-medium text-foreground">{c.endsIn}</span>
+                    </span>
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {/* ============ Recent referral rewards ============ */}
       <Card className="p-5 sm:p-6">
@@ -499,45 +887,11 @@ export default function RewardsView() {
           />
         )}
       </Card>
-
-      {/* ============ Active campaigns (kept) ============ */}
-      {data?.campaigns && data.campaigns.length > 0 && (
-        <Card className="p-5 sm:p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <h2 className="text-base font-semibold">Active campaigns</h2>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {data.campaigns.map((c) => (
-              <div key={c.id} className="group rounded-xl border p-4 transition-colors hover:border-primary/30">
-                <div className="flex items-center justify-between">
-                  <p className="font-medium">{c.title}</p>
-                  {c.rewardKobo > 0 ? (
-                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                      +{nairaCompact(c.rewardKobo)}
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline">{c.endsIn}</Badge>
-                  )}
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">{c.description}</p>
-                {c.rewardKobo > 0 && (
-                  <p className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
-                    Ends in
-                    <span className="font-medium text-foreground">{c.endsIn}</span>
-                    <ChevronRight className="ml-auto h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
     </div>
   );
 }
 
-// ============ Sub-components ============
+/* ============ Sub-components ============ */
 
 function StatTile({
   label,
@@ -570,29 +924,47 @@ function StatTile({
   );
 }
 
-function HowItWorksStep({
+function FunnelStep({
   n,
   icon: Icon,
-  title,
+  label,
   description,
+  tone,
+  highlight = false,
 }: {
   n: number;
   icon: React.ComponentType<{ className?: string }>;
-  title: string;
+  label: string;
   description: string;
+  tone: "emerald" | "amber";
+  highlight?: boolean;
 }) {
+  const bg =
+    tone === "emerald"
+      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+      : "bg-amber-500/15 text-amber-600 dark:text-amber-400";
   return (
-    <div className="relative">
-      <div className="flex items-center gap-3">
-        <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-          <Icon className="h-5 w-5" />
-          <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-sm">
-            {n}
-          </span>
-        </div>
-        <p className="font-medium">{title}</p>
+    <div
+      className={`relative rounded-xl border p-4 text-center ${
+        highlight ? "border-emerald-500/40 bg-emerald-500/5 ring-2 ring-emerald-500/20" : ""
+      }`}
+    >
+      <div className={`mx-auto flex h-10 w-10 items-center justify-center rounded-xl ${bg}`}>
+        <Icon className="h-5 w-5" />
       </div>
-      <p className="mt-3 text-sm text-muted-foreground">{description}</p>
+      <span className="absolute -left-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-sm">
+        {n}
+      </span>
+      <p className="mt-2 text-sm font-semibold">{label}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+function FunnelArrow() {
+  return (
+    <div className="hidden items-center justify-center sm:flex">
+      <ArrowRight className="h-5 w-5 text-muted-foreground/50" />
     </div>
   );
 }

@@ -48,6 +48,7 @@ model User {
   billPayments       BillPayment[]
   airtimePurchases   AirtimeDataPurchase[]
   savingsTx          SavingsTransaction[]
+  autoSaveRules      AutoSaveRule[]
   investments        UserInvestment[]
   kycVerifications   KycVerification[]
   auditLogs          AuditLog[]
