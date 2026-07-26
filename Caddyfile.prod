@@ -1,0 +1,54 @@
+# =============================================================================
+# Turbopay — Production Caddyfile (TLS termination + reverse proxy)
+# =============================================================================
+# This is the PRODUCTION Caddyfile. The repo also contains a `Caddyfile` which
+# is the sandbox/dev gateway config (port :81 + XTransformPort routing) — do
+# not overwrite it. For production deployments, use this file:
+#
+#   caddy run --config Caddyfile.prod
+#   # or, in Docker:
+#   #   docker run -v $(pwd)/Caddyfile.prod:/etc/caddy/Caddyfile \
+#   #     -e DOMAIN=turbopay.example.com -p 80:80 -p 443:443 caddy:2
+#
+# Set DOMAIN env var to your production hostname (e.g. turbopay.example.com).
+# Caddy will automatically provision a Let's Encrypt certificate.
+#
+# When deploying with docker-compose, add a caddy service that mounts this
+# file and joins the same network as the `turbopay` service.
+# =============================================================================
+
+{$DOMAIN} {
+	# Reverse proxy to the turbopay service (Next.js standalone on :3000)
+	reverse_proxy turbopay:3000 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+
+	# Gzip compression
+	encode gzip
+
+	# Security headers
+	header {
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		# Cache static assets aggressively (Next.js hashes filenames)
+		/Cached/*
+	}
+
+	# Long-cache Next.js static assets
+	@static path /_next/static/*
+	header @static Cache-Control "public, max-age=31536000, immutable"
+
+	# Never cache API responses or HTML
+	@api path /api/*
+	header @api Cache-Control "no-store"
+
+	# Health check passthrough (no caching)
+	@health path /api/health
+	header @health Cache-Control "no-store"
+}

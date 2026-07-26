@@ -1,0 +1,85 @@
+# =============================================================================
+# Turbopay — Docker Compose (production-like stack)
+# =============================================================================
+# Services:
+#   - turbopay  : Next.js standalone app (Bun runtime)
+#   - postgres  : PostgreSQL 16 (production database)
+#   - redis     : Redis 7 (rate limiting / caching — optional)
+#
+# IMPORTANT — Prisma datasource:
+#   The committed prisma/schema.prisma uses `provider = "sqlite"` for local dev.
+#   For production with PostgreSQL you must:
+#     1. Switch the datasource provider to "postgresql"
+#        (or maintain a separate schema.prisma for prod).
+#     2. Set DATABASE_URL to the postgres connection string below.
+#     3. Run `bunx prisma migrate deploy` (or `prisma db push`) against the
+#        postgres instance to create tables.
+#   The schema itself (models / fields / types) is provider-agnostic — only
+#   the `provider` line + connection URL change.
+# =============================================================================
+
+services:
+  turbopay:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: turbopay-app
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      # Override DATABASE_URL to point at the postgres service (prod-like).
+      # The .env file may carry the SQLite dev URL; this takes precedence.
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-turbopay}:${POSTGRES_PASSWORD:-turbopay}@postgres:5432/${POSTGRES_DB:-turbopay}?schema=public
+      - REDIS_URL=redis://redis:6379
+      - NODE_ENV=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - default
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: turbopay-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-turbopay}
+      POSTGRES_USER: ${POSTGRES_USER:-turbopay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-turbopay}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-turbopay} -d ${POSTGRES_DB:-turbopay}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - default
+
+  redis:
+    image: redis:7-alpine
+    container_name: turbopay-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - default
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  default:
+    driver: bridge
