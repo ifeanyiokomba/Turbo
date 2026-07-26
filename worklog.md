@@ -1242,3 +1242,23 @@ Files created:
 Files modified:
 - src/components/turbopay/auth-screen.tsx (replaced no-op "Forgot?" link with 2-step Dialog using InputOTP + Progress + emerald/amber brand header)
 Lint: 0 errors, 0 warnings
+
+---
+Task ID: PUNCH-FINAL
+Agent: main (orchestrator) + 3 parallel subagents (PUNCH-1, PUNCH-2, PUNCH-3)
+Task: Implement TurboPay master architecture punch list — near-term items
+
+Work Log:
+- Assessed current state against the master architecture document's Section 12 punch list.
+- Fixed server 500: turbopay.adapter.ts had wrong import paths (../../result → ../result, ../../contracts → ../contracts) and generatePan imported from @/lib/auth instead of @/lib/money.
+- Task PUNCH-1 (RBAC): Built complete RBAC system — 60 granular permissions across 18 categories, 10 roles with FULL permission mappings (fixes "5 of 10 unmapped" gap), requirePermission() async guard (uses getSession, throws 403), requireAnyPermission(). Applied to 12 admin API routes (replaced generic requireAdmin with specific permission checks). Added "Roles & Permissions" admin tab (15th) with role picker, permission grid grouped by category, green/muted indicators.
+- Task PUNCH-2 (Webhooks + Forgot password): Built 4 dedicated mobile money webhook handlers (/api/webhooks/mpesa, /mtn-momo, /airtel-money, /paga) — each follows 6-step pattern (read body → verify signature → idempotent WebhookEvent insert → find Transaction by providerRef → confirmOrReverseTransaction → audit), always returns 200. Built forgot-password email flow (POST /api/auth/forgot-password generates 6-digit code, sends via Resend → Termii → console dev fallback, never reveals account existence, rate-limited 3/hr). Reset-password route (POST /api/auth/reset-password verifies code, updates password, revokes all sessions). 2-step forgot-password dialog in auth screen with InputOTP + password strength.
+- Task PUNCH-3 (Resolve + Flags + Geo): Paystack account-name resolution in transfer (debounced 500ms auto-resolve, green "✓ Verified" box, amber warning on failure, Continue gated on resolution). Stripe/Wise feature flags (feature-flags.ts with isFeatureEnabled + 5-min cache + per-user override, routing-engine skips parked providers, seed defaults all false, toggle API). Geo-routing consolidation (CountryConfig.providersPreferred as single source of truth, expanded to 6 contracts per country, seedCountryConfigs syncs on re-seed, /api/capabilities/geo endpoint).
+- Verified: Health 200, Transfer resolve 200, Feature flags 200, Geo 200, Security audit 200 (9 checks), Forgot password 200, login works, 0 runtime errors.
+
+Stage Summary:
+- 76 Prisma models, 171 API routes, 35 views, 17 provider adapters, 15 admin tabs
+- Punch list items completed: RBAC (10 roles mapped), mobile money webhooks (4 handlers), forgot-password email, Paystack account resolve, Stripe/Wise feature flags (parked), geo-routing consolidation
+- Remaining from punch list: Smart Cash (blocked on external portal access), confirm Stripe/Wise park (done via feature flags), Nigeria routing to Smart Cash (depends on Smart Cash)
+- Lint: 0 errors, 0 warnings
+- Dev server running on :3000, all verified
