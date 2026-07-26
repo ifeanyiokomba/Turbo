@@ -862,3 +862,95 @@ Stage Summary:
   * `src/app/api/admin/failover-stats/route.ts`
   * `src/components/turbopay/views/admin/provider-health-widgets.tsx` (HealthSparkline + FailoverStatsCard)
 - Lint: `bun run lint` exits 0. 0 errors, 0 warnings on all P9-A files.
+
+---
+Task ID: P9-B
+Agent: full-stack-developer (Merchant + QR + Links + Referral)
+Task: Merchant dashboard + API keys, dynamic QR payments, payment link analytics, referral tiers + leaderboard
+
+Work Log:
+- Read worklog + foundation files (api.ts, db.ts, money.ts, ledger.ts, auth.ts, constants.ts, store.tsx, app-shell.tsx, qr.tsx, payment-links.tsx, rewards.tsx, marketplace.tsx, existing payment-links + rewards API routes, prisma schema — Merchant, MerchantApiKey, PaymentLink, PaymentLinkPayment, Transaction, MarketplaceMerchant).
+- Built merchant dashboard + API keys:
+  * `/api/merchant/dashboard` GET — lazily upserts Merchant row (linked by email), returns 30d total sales, tx count, active links, settlement balance, 14-day daily sales trend, top customers (counterpartyName aggregation), recent links. Uses user.id as merchantId (consumer-as-merchant pattern).
+  * `/api/merchant/api-keys` GET (list masked) + POST (generate tp_live_<32hex>, scrypt-hash, return full key once) + `/[id]` DELETE (revoke).
+  * `views/merchant-dashboard.tsx` — merchant identity banner (emerald gradient), 4 StatTiles, 14-day AreaChart (emerald fill, nairaCompact Y axis), top customers, recent links summary, API keys management with create dialog + show-once key dialog + revoke.
+  * Registered merchant-dashboard ViewKey + Crown nav item in store.tsx + app-shell.tsx.
+- Built dynamic QR payments:
+  * `/api/qr/generate` POST {amountKobo?, note?} → 10-min TTL base64url token + turbopay://pay?t=... envelope.
+  * `/api/qr/resolve` POST {token} → recipient + amount + note + reference (validates expiry + self-pay + recipient existence).
+  * `/api/qr/pay` POST {token, pin, amountKobo?} — PIN-verified atomic transferBetweenWallets + creates Transaction rows for both sides with provider="turbopay-qr" + providerRef=qrReference.
+  * `/api/qr/history` GET — user's QR payments (sent + received) where provider="turbopay-qr".
+  * `views/qr.tsx` rewritten as 3-tab interface: Receive (persistent payment-card QR + dynamic generator with countdown expiry), Scan (camera via getUserMedia + jsQR + file upload fallback + manual token paste + resolved payment review → PinDialog → /api/qr/pay), History (sent + received QR payments list).
+  * Installed jsqr@1.4.0 for QR decoding.
+- Enhanced payment links:
+  * Extended `/api/payment-links/route.ts` GET (?analytics=true — joins PaymentLinkPayment aggregates for views/attempts/success/conversion/totalCollected) + POST (description, successUrl, cancelUrl, themeColor, logoUrl, allowCustomAmount — stored in metadataJSON alongside views:0 counter).
+  * Created `/api/payment-links/[id]/analytics` GET (single-link deep analytics + customization + recentPayments[10]).
+  * Created `/api/payment-links/[id]/view` POST (increments metadataJSON.views; optional auth).
+  * `views/payment-links.tsx` rewritten: aggregate analytics row, per-link card with inline analytics, create dialog with Details + Customize tabs (theme picker, logo URL, success/cancel URLs, live preview), analytics dialog with Progress conversion bar, embed dialog with copyable HTML snippet, bulk-create dialog with row form + CSV paste mode.
+- Enhanced referral program:
+  * Extended `/api/rewards/route.ts` GET (referralTier with current/next/perks/accent/badge, leaderboard top-10 this month aggregated from REFERRAL txns + demo fallback, userRank, 4 active campaigns with progress). Added POST {action:"claim"} — finds unclaimed 7d SUCCESS REFERRAL txns (excluding those with existing provider="referral-claim" REWARD txn), credits wallet via creditWallet atomically + creates REWARD txn with provider="referral-claim" + providerRef + metadata.claimedReferences.
+  * Tier definitions: Bronze (0-5, ₦500/referral), Silver (6-20, ₦750), Gold (21-50, ₦1,000), Platinum (51+, ₦1,500). Each has perks list + accent gradient + badge emoji.
+  * `views/rewards.tsx` rewritten: hero card with expanded social share (WhatsApp/Twitter/Facebook/Telegram/More), tier card with gradient header + progress bar + perks grid + next-tier teaser, How-referrals-work Collapsible with 5-step visual funnel (Invite→Sign up→Verify KYC→First transaction→Rewarded), leaderboard (desktop table + mobile cards with rank medals + current-user highlight), active campaigns grid with progress bars, "Claim rewards" button.
+- Stash mishap recovery: parallel `git stash` (intended to verify pre-existing lint state) accidentally captured my view/route edits; another agent's stash drop ate the stash reference. Restored via `git stash apply ef35ffc...` for tracked files, then re-wrote the 5 overwritten files (qr.tsx, payment-links.tsx, rewards.tsx, payment-links/route.ts, rewards/route.ts) from cached content. Re-applied store.tsx + app-shell.tsx MultiEdits.
+- Ran `bun run lint` — 0 errors, 0 warnings (after removing one unused eslint-disable directive in payment-links.tsx LinkPreviewCard).
+- Wrote `agent-ctx/P9-B-full-stack-developer.md` work record.
+
+Stage Summary:
+- Files created (10):
+  * src/app/api/merchant/dashboard/route.ts
+  * src/app/api/merchant/api-keys/route.ts
+  * src/app/api/merchant/api-keys/[id]/route.ts
+  * src/app/api/qr/generate/route.ts
+  * src/app/api/qr/resolve/route.ts
+  * src/app/api/qr/pay/route.ts
+  * src/app/api/qr/history/route.ts
+  * src/app/api/payment-links/[id]/analytics/route.ts
+  * src/app/api/payment-links/[id]/view/route.ts
+  * src/components/turbopay/views/merchant-dashboard.tsx
+- Files modified (7):
+  * src/app/api/payment-links/route.ts (extended POST + GET ?analytics=true)
+  * src/app/api/rewards/route.ts (extended GET + added POST claim)
+  * src/components/turbopay/views/qr.tsx (3-tab receive/scan/history + dynamic QR + camera scanner + payment-card design)
+  * src/components/turbopay/views/payment-links.tsx (customization + preview + analytics + bulk + embed)
+  * src/components/turbopay/views/rewards.tsx (tiers + leaderboard + campaigns + funnel + share-to-social)
+  * src/components/turbopay/store.tsx (added "merchant-dashboard" ViewKey)
+  * src/components/turbopay/app-shell.tsx (Crown nav item + lazy registry + VIEW_TITLES + VALID_VIEW_KEYS)
+- Package added: jsqr@1.4.0
+- Lint: 0 errors, 0 warnings
+
+---
+Task ID: P9-C
+Agent: full-stack-developer (Analytics + Monitoring + Savings + Cross-border)
+Task: Financial health score, admin real-time monitoring, auto-save rules + challenges, cross-border corridor explorer
+
+Work Log:
+- Read worklog + foundation files (lib/api.ts, lib/db.ts, lib/money.ts, store.tsx, analytics.tsx, admin.tsx, savings.tsx, intl-transfers.tsx, schema.prisma) + existing analytics/admin/savings/intl routes to confirm patterns (kobo money, requireUser/requireAdmin/audit helpers, shadcn/ui, recharts, sonner toasts, emerald+amber brand).
+- Added `AutoSaveRule` Prisma model (id, userId, type, amountKobo, productId, enabled, totalSavedKobo, lastRunAt, createdAt, @@index([userId, enabled])) with relations to User + SavingsProduct. Ran `bun run db:push`. (Schema was reverted by parallel agent P9-A mid-task; re-applied + re-pushed.)
+- Created `src/app/api/analytics/advanced/route.ts` GET ?period=30d|90d|1y — returns cash flow statement (income/expense/net/by-category), spending velocity (avg daily, WoW, MoM), financial health score (0-100) with 4 weighted factors (savings rate 30pts, spending stability 25pts via coefficient-of-variation of daily spend, emergency fund 25pts via 3-month expense coverage, bill consistency 20pts via distinct bill-payment days), predictions (projected month-end balance via prorated daily flow, projected savings, burn rate days when net daily flow negative), top 5 merchants by volume, category trends MoM (up/down/flat with change %), day-of-month spending pattern (1-31), peer comparison vs curated Turbopay benchmarks (₦185K avg monthly spend, 11% avg savings rate).
+- Created `src/app/api/admin/monitoring/route.ts` GET (admin) — 16 parallel aggregates: tx today count/success/failed, today's volume + fees + largest, distinct active users 24h via groupBy, pending/failed outbox, stuck tx (PENDING > 1h), pending cron tasks, unresolved AML, open compliance cases, failed webhook endpoints (consecutiveFailures > 0), last 10 transactions for live feed, failed tx in last 24h for error breakdown. Plus per-provider health (success rate, avg latency, circuit state from registry.getBreakerStates).
+- Created `src/app/api/savings/auto-rules/route.ts` — GET list user's rules with product join; POST create with per-type validation (ROUND_UP unit must be ₦1/₦5/₦10; PERCENTAGE 1-50%; FIXED ≥₦10). Cap 20 rules per user. Audits AUTO_SAVE_RULE_CREATED.
+- Created `src/app/api/savings/auto-rules/[id]/route.ts` — PATCH {enabled} toggle (ownership-checked), DELETE rule. Audits ENABLED/DISABLED/DELETED.
+- Created `src/app/api/intl/corridors/route.ts` GET ?base=NGN — 5 curated corridors (NGN→USD/KES/GHS/ZAR/GBP) with rate (overlaid from latest FxRateSnapshot if available), feeBps, feeFixedKobo, estimatedDeliveryHours, provider (wise/flutterwave), min/max amount, supportsBank, supportsMobileWallet, targetFlag, targetName.
+- Modified `src/components/turbopay/views/analytics.tsx` — added `AdvancedAnalyticsSection` component rendered at the top (after PageHeader, before BudgetsSection). Period selector (30d/90d/1y pill toggle) refetches `/api/analytics/advanced?period=`. 3-column top row: (1) Financial Health Score card with circular SVG progress ring (0-100, color-graded), letter grade A-E badge, 4 contributing factor bars with detail text; (2) 30-day forecast card with projected month-end balance, projected income/savings, burn-rate warning when net daily flow negative; (3) Peer comparison card with 4 metrics (monthly spend, airtime, bills, savings rate) showing you-vs-peer bars and diff %. Then Category trends grid (9 cards with up/down/flat arrows + MoM %), Day-of-month heat strip (31 bars with intensity colors + hover tooltip), Top 5 merchants list + Spending velocity summary card.
+- Modified `src/components/turbopay/views/admin.tsx` — added `MonitoringDashboard` component rendered at top of Overview tab. Header with auto-refresh Switch (15s interval when on) + manual refresh button + animated pulse indicator. 6 KPI cards (Today's volume, Success rate with tone color, Active users 24h, Avg processing time, Fees collected, Open alerts). 3-column row: Live transactions feed (last 10, scrollable, status-colored icons, auto-refreshing); Provider health summary (mini cards with circuit-breaker dot, success rate, latency, health score); Error breakdown (top 10 errors as horizontal bars, color-graded). 2-column row: Queue health (4 cards: pending outbox, stuck tx, pending cron, failed webhooks) + Largest transaction today card.
+- Modified `src/components/turbopay/views/savings.tsx` — added 3 new sections between Savings Goals and Products grid: (1) `AutoSaveRulesSection` — fetches `/api/savings/auto-rules`, renders rules as cards with type icon, Switch toggle (optimistic update + rollback), delete button, total saved + last run; create dialog with type selector (ROUND_UP with ₦1/₦5/₦10 chips; PERCENTAGE with 1-50 slider; FIXED with input + frequency select), target product picker, preview text. Summary banner shows total auto-saved + active/total + last run time. (2) `SavingsChallengesSection` — 3 mock challenges (30-Day Starter ₦500/day, 90-Day Builder ₦1000/day, ₦10K in 100 Days) with progress ring, daily target, total target, participants, completion rate, avg member saved, join/leave button. (3) `InterestProjectionSection` — interactive calculator with 3 sliders (monthly contribution ₦10-₦500K, annual rate 0-25%, duration 1-10 years) + 4 quick chips; computes FV via ordinary annuity with monthly compounding; shows total value, contributions vs interest split bar.
+- Modified `src/components/turbopay/views/intl-transfers.tsx` — added 4th "Corridors" tab. `CorridorExplorer` renders grid of 5 corridor cards (flag, NGN→X rate, delivery time, fee breakdown, Bank/Wallet badges, click to select). `Recipient gets calculator` with NGN amount slider + 4 chips, bank-vs-wallet toggle (disabled if unsupported), min/max/provider/delivery info panel, recipient amount card showing breakdown (you send, FX rate, variable fee, fixed fee, delivery method). `RateAlertCard` with currency pair select + target rate input + set alert button; list of alerts with trigger status (would-trigger check). Added `trackingTx` state + `TransferTrackingDialog` component — opens when clicking a history row, shows summary (amount, recipient, bank/wallet, provider) + 5-stage timeline (INITIATED → PIN_VERIFIED → PROVIDER_CALLED → IN_TRANSIT → DELIVERED) with progress icons + failed/in-progress states. Made history rows clickable buttons.
+- Ran `bun run lint` — exit 0 (0 errors, 0 warnings in my files). Ran `npx tsc --noEmit` — 0 errors in my files (only pre-existing errors in other agents' files remain).
+- Committed in 4 checkpoints: (1) analytics + admin views + schema + 4 new API routes; (2) savings view; (3) intl-transfers view; (4) re-add User.autoSaveRules relation (reverted by parallel agent).
+- Wrote `agent-ctx/P9-C-full-stack-developer.md` work record.
+
+Stage Summary:
+Files created (5):
+- `src/app/api/analytics/advanced/route.ts` (GET — financial health score + cash flow + predictions + trends + peer comparison)
+- `src/app/api/admin/monitoring/route.ts` (GET — real-time platform KPIs + provider health + error breakdown + queue health + live feed)
+- `src/app/api/savings/auto-rules/route.ts` (GET list + POST create with per-type validation)
+- `src/app/api/savings/auto-rules/[id]/route.ts` (PATCH toggle + DELETE)
+- `src/app/api/intl/corridors/route.ts` (GET — 5 supported corridors with live rates + fees + delivery)
+Files modified (5):
+- `prisma/schema.prisma` (added AutoSaveRule model + User.autoSaveRules + SavingsProduct.autoSaveRules relations)
+- `src/components/turbopay/views/analytics.tsx` (AdvancedAnalyticsSection: health score ring + period selector + predictions + peer comparison + category trends + day-of-month heat strip + top merchants + velocity)
+- `src/components/turbopay/views/admin.tsx` (MonitoringDashboard: 6 KPIs + live tx feed + provider health + error breakdown + queue health + auto-refresh toggle)
+- `src/components/turbopay/views/savings.tsx` (AutoSaveRulesSection + SavingsChallengesSection + InterestProjectionSection)
+- `src/components/turbopay/views/intl-transfers.tsx` (4th Corridors tab with CorridorExplorer + Recipient-gets calculator + RateAlertCard + TransferTrackingDialog)
+Database: ran `bun run db:push` to create the AutoSaveRule table.
+Lint: `bun run lint` exits 0. tsc: 0 errors in my files.
