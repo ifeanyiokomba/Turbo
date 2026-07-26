@@ -8,6 +8,7 @@ import { audit } from "@/lib/api";
 import { verifyPin } from "@/lib/auth";
 import { generateReference } from "@/lib/money";
 import { route, persistDecision } from "./routing-engine";
+import type { RoutingDecision } from "./routing-engine";
 import { registry } from "./registry";
 import type { ContractName, ProviderResult } from "./result";
 
@@ -130,21 +131,20 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
     }
   }
 
-  // 6. Provider call
-  const adapter = await registry.resolve(req.contract, decision.providerCode);
+  // 6. Provider call — attempts the primary, then automatically fails over to
+  //    decision.alternatives if the primary returns a retryable error.
+  //    Up to MAX_ATTEMPTS total provider calls (1 primary + 2 failovers).
   const providerRef = generateReference("PRV");
-  await db.paymentFlowLog.create({ data: { transactionId: tx.id, step: "PROVIDER_CALLED", status: "PENDING", providerCode: decision.providerCode } });
-  const result = await req.providerCall(adapter, providerRef);
-  await db.paymentFlowLog.create({
-    data: {
-      transactionId: tx.id,
-      step: "PROVIDER_RESPONSE",
-      status: result.ok ? "SUCCESS" : "FAILED",
-      providerCode: decision.providerCode,
-      latencyMs: result.ok ? result.latencyMs : 0,
-      payloadJSON: JSON.stringify(result.ok ? result.data : result.error),
-    },
-  });
+  const { result, providerCode: actualProviderCode, failovers } = await tryWithFailover(req, decision, tx.id, providerRef);
+
+  // If a failover happened, mutate the tx row so the audit trail reflects the
+  // provider that actually handled the call.
+  if (actualProviderCode !== decision.providerCode) {
+    await db.transaction.update({
+      where: { id: tx.id },
+      data: { provider: actualProviderCode },
+    });
+  }
 
   // 7. Confirm or auto-reverse
   if (result.ok && (result.data.status === "SUCCESS" || result.data.status === "PENDING")) {
@@ -153,6 +153,7 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       where: { id: tx.id },
       data: {
         providerRef: realProviderRef,
+        provider: actualProviderCode,
         status: result.data.status === "SUCCESS" ? "SUCCESS" : "PENDING",
         state: result.data.status === "SUCCESS" ? "SETTLED" : "INITIATED",
       },
@@ -175,7 +176,12 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
         aggregateType: "TRANSACTION",
         aggregateId: tx.id,
         type: result.data.status === "SUCCESS" ? "PAYMENT_SETTLED" : "PAYMENT_PENDING",
-        payloadJSON: JSON.stringify({ reference: tx.reference, amountMinor: req.amountMinor, provider: decision.providerCode }),
+        payloadJSON: JSON.stringify({
+          reference: tx.reference,
+          amountMinor: req.amountMinor,
+          provider: actualProviderCode,
+          failovers,
+        }),
       },
     });
 
@@ -185,7 +191,16 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       } catch {}
     }
 
-    await audit({ userId: req.userId, action: `${req.contract}_SUCCESS`, category: "WALLET", metadata: { reference: tx.reference, provider: decision.providerCode } });
+    await audit({
+      userId: req.userId,
+      action: `${req.contract}_SUCCESS`,
+      category: "WALLET",
+      metadata: {
+        reference: tx.reference,
+        provider: actualProviderCode,
+        failovers: failovers.length,
+      },
+    });
 
     // Finalize idempotency
     const wallet = await db.wallet.findUnique({ where: { userId: req.userId } });
@@ -197,7 +212,7 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
     return { ok: true, transaction: tx, newBalanceMinor: wallet?.balanceKobo, providerRef: realProviderRef };
   }
 
-  // AUTO-REVERSE
+  // AUTO-REVERSE — all attempts (primary + failovers) failed.
   if (holdDebitId) {
     try {
       await creditWallet({
@@ -210,17 +225,40 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       });
     } catch {}
   }
-  await db.transaction.update({ where: { id: tx.id }, data: { status: "REVERSED", state: "REVERSED" } });
-  await db.paymentFlowLog.create({ data: { transactionId: tx.id, step: "AUTO_REVERSED", status: "FAILED", payloadJSON: JSON.stringify(result.ok ? result.data : result.error) } });
+  await db.transaction.update({ where: { id: tx.id }, data: { status: "REVERSED", state: "REVERSED", provider: actualProviderCode } });
+  await db.paymentFlowLog.create({
+    data: {
+      transactionId: tx.id,
+      step: "AUTO_REVERSED",
+      status: "FAILED",
+      providerCode: actualProviderCode,
+      payloadJSON: JSON.stringify({ result: result.ok ? result.data : result.error, failovers }),
+    },
+  });
   await db.outboxEvent.create({
     data: {
       aggregateType: "TRANSACTION",
       aggregateId: tx.id,
       type: "PAYMENT_REVERSED",
-      payloadJSON: JSON.stringify({ reference: tx.reference, reason: result.ok ? result.data : result.error }),
+      payloadJSON: JSON.stringify({
+        reference: tx.reference,
+        reason: result.ok ? result.data : result.error,
+        failovers,
+      }),
     },
   });
-  await audit({ userId: req.userId, action: `${req.contract}_REVERSED`, category: "WALLET", severity: "WARN", metadata: { reference: tx.reference, error: result.ok ? result.data : result.error } });
+  await audit({
+    userId: req.userId,
+    action: `${req.contract}_REVERSED`,
+    category: "WALLET",
+    severity: "WARN",
+    metadata: {
+      reference: tx.reference,
+      provider: actualProviderCode,
+      error: result.ok ? result.data : result.error,
+      failovers: failovers.length,
+    },
+  });
 
   const wallet = await db.wallet.findUnique({ where: { userId: req.userId } });
   await db.idempotencyRecord.update({
@@ -234,6 +272,109 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
     newBalanceMinor: wallet?.balanceKobo,
     error: { code: result.ok ? result.data.status : result.error.code, message: result.ok ? "Provider returned failure" : result.error.message },
   };
+}
+
+// tryWithFailover — calls req.providerCall against the primary provider, then walks
+// decision.alternatives in order if the result is a retryable failure. Up to
+// MAX_ATTEMPTS total provider calls (1 primary + 2 failovers = 3 calls). Non-retryable
+// errors and successes short-circuit immediately.
+//
+// Every failover is recorded in PaymentFlowLog with step="FAILOVER" and a payload
+// {from, to, reason} so the admin dashboard can reconstruct the chain.
+const MAX_FAILOVER_ATTEMPTS = 2; // 2 failover attempts on top of the primary call.
+
+interface FailoverEvent {
+  from: string;
+  to: string;
+  reason: string;
+  at: string;
+}
+
+async function tryWithFailover(
+  req: OrchestrateRequest,
+  decision: RoutingDecision,
+  txId: string,
+  providerRef: string,
+): Promise<{ result: ProviderResult<any>; providerCode: string; failovers: FailoverEvent[] }> {
+  const chain = [decision.providerCode, ...decision.alternatives].slice(0, 1 + MAX_FAILOVER_ATTEMPTS);
+  const failovers: FailoverEvent[] = [];
+  let lastResult: ProviderResult<any> = { ok: false, error: { code: "UNKNOWN", message: "No provider attempted", retryable: false } };
+  let lastProviderCode = decision.providerCode;
+
+  for (let i = 0; i < chain.length; i++) {
+    const providerCode = chain[i];
+
+    // Record a FAILOVER log entry when we are NOT on the primary attempt.
+    if (i > 0) {
+      const reason = !lastResult.ok ? lastResult.error.code : "UNKNOWN";
+      failovers.push({ from: lastProviderCode, to: providerCode, reason, at: new Date().toISOString() });
+      await db.paymentFlowLog.create({
+        data: {
+          transactionId: txId,
+          step: "FAILOVER",
+          status: providerCode,
+          providerCode,
+          payloadJSON: JSON.stringify({ from: lastProviderCode, to: providerCode, reason }),
+        },
+      });
+    }
+
+    // Resolve adapter (the proxy tracks health + breaker state).
+    const adapter = await registry.resolve(req.contract, providerCode).catch(() => null);
+    if (!adapter) {
+      lastResult = {
+        ok: false,
+        error: {
+          code: "PROVIDER_DOWN",
+          message: `${providerCode} adapter not registered`,
+          retryable: true,
+        },
+      };
+      lastProviderCode = providerCode;
+      continue;
+    }
+
+    await db.paymentFlowLog.create({
+      data: { transactionId: txId, step: "PROVIDER_CALLED", status: "PENDING", providerCode },
+    });
+
+    let result: ProviderResult<any>;
+    try {
+      result = await req.providerCall(adapter, providerRef);
+    } catch (e: any) {
+      // Defensive: providerCall should never throw (adapters return ProviderResult),
+      // but if it does we treat it as a retryable UPSTREAM_ERROR.
+      result = {
+        ok: false,
+        error: {
+          code: "UPSTREAM_ERROR",
+          message: e?.message ?? "Provider call threw",
+          retryable: true,
+        },
+      };
+    }
+
+    await db.paymentFlowLog.create({
+      data: {
+        transactionId: txId,
+        step: "PROVIDER_RESPONSE",
+        status: result.ok ? "SUCCESS" : "FAILED",
+        providerCode,
+        latencyMs: result.ok ? result.latencyMs : 0,
+        payloadJSON: JSON.stringify(result.ok ? result.data : result.error),
+      },
+    });
+
+    lastResult = result;
+    lastProviderCode = providerCode;
+
+    // Short-circuit on success or non-retryable failure.
+    if (result.ok || !result.error.retryable) {
+      return { result, providerCode, failovers };
+    }
+  }
+
+  return { result: lastResult, providerCode: lastProviderCode, failovers };
 }
 
 function hashKey(req: OrchestrateRequest): string {

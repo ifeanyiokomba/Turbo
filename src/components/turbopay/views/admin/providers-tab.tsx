@@ -1,10 +1,18 @@
 "use client";
 
-// Admin tab — Providers
-// Lists every ProviderConfig with live health score, circuit breaker state, and
-// capability count. Supports: add provider dialog, inline enable/disable toggle,
-// per-row "rotate credentials" dialog (new AES-256-GCM version), and a "details"
-// dialog showing the provider's capabilities + routes.
+// Admin tab — Providers (enhanced for Task P9-A)
+// Lists every ProviderConfig with:
+//   - live health dot (green/amber/red based on healthScore)
+//   - circuit breaker state badge (CLOSED/HALF_OPEN/OPEN)
+//   - success rate % + avg latency + last 10 health samples sparkline
+//   - "Test provider" button — pings the adapter via listBanks/listBillers and records
+//     the result as a ProviderHealthCheck sample.
+//   - "Force circuit reset" button — admin ops escape hatch to clear breaker state.
+//   - failover stats card: total failovers in last 24h, top providers failed over,
+//     top reasons, and success-rate-after-failover.
+//
+// Per-provider health samples are fetched lazily on first view (collapsible row) or
+// via the per-provider actions.
 
 import * as React from "react";
 import { Card } from "@/components/ui/card";
@@ -20,12 +28,14 @@ import {
 } from "@/components/ui/dialog";
 import {
   Server, Plus, KeyRound, RefreshCw, Loader2, Download, Eye, Activity,
+  Zap, RotateCcw, TrendingUp, Clock, ChevronRight, ChevronDown, AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/money";
 import {
-  exportCsv, CIRCUIT_TONE, HealthBar, ALL_CONTRACTS,
+  exportCsv, CIRCUIT_TONE, HealthBar, healthTone, ALL_CONTRACTS,
 } from "./shared";
+import { HealthSparkline, FailoverStatsCard } from "./provider-health-widgets";
 
 interface ProviderRow {
   id: string;
@@ -74,9 +84,36 @@ interface RouteRow {
   enabled: boolean;
 }
 
+interface HealthSample {
+  id: string;
+  ok: boolean;
+  latencyMs: number;
+  errorCode: string | null;
+  healthScore: number;
+  sampledAt: string;
+}
+
+interface ProviderHealthDetail {
+  providerCode: string;
+  exists: boolean;
+  healthScore: number;
+  healthUpdatedAt: string;
+  circuit: { state: string; failures: number; successes: number };
+  successRate: number;
+  avgLatencyMs: number;
+  totalSamples: number;
+  failureBreakdown: Record<string, number>;
+  samples: HealthSample[];
+}
+
 export default function ProvidersTab() {
   const [providers, setProviders] = React.useState<ProviderRow[] | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [expandedRow, setExpandedRow] = React.useState<string | null>(null);
+  const [healthByProvider, setHealthByProvider] = React.useState<Record<string, ProviderHealthDetail | null>>({});
+  const [healthLoading, setHealthLoading] = React.useState<Record<string, boolean>>({});
+  const [testingCode, setTestingCode] = React.useState<string | null>(null);
+  const [resettingCode, setResettingCode] = React.useState<string | null>(null);
 
   // Add provider dialog
   const [addOpen, setAddOpen] = React.useState(false);
@@ -108,8 +145,28 @@ export default function ProvidersTab() {
 
   React.useEffect(() => { load(); }, [load]);
 
+  async function loadHealth(code: string) {
+    setHealthLoading((cur) => ({ ...cur, [code]: true }));
+    try {
+      const res = await fetch(`/api/admin/provider-health/${encodeURIComponent(code)}`, { cache: "no-store" });
+      if (!res.ok) { toast.error("Failed to load health samples"); return; }
+      const data: ProviderHealthDetail = await res.json();
+      setHealthByProvider((cur) => ({ ...cur, [code]: data }));
+    } finally {
+      setHealthLoading((cur) => ({ ...cur, [code]: false }));
+    }
+  }
+
+  function toggleExpand(code: string) {
+    if (expandedRow === code) {
+      setExpandedRow(null);
+      return;
+    }
+    setExpandedRow(code);
+    if (!healthByProvider[code]) loadHealth(code);
+  }
+
   async function toggleEnabled(p: ProviderRow, next: boolean) {
-    // Optimistic update
     setProviders((cur) => cur?.map((x) => x.id === p.id ? { ...x, enabled: next } : x) ?? null);
     try {
       const res = await fetch(`/api/admin/providers/${p.code}`, {
@@ -120,9 +177,66 @@ export default function ProvidersTab() {
       if (!res.ok) throw new Error();
       toast.success(`${p.displayName} ${next ? "enabled" : "disabled"}`);
     } catch {
-      // Revert on failure
       setProviders((cur) => cur?.map((x) => x.id === p.id ? { ...x, enabled: !next } : x) ?? null);
       toast.error("Failed to update provider");
+    }
+  }
+
+  async function testProvider(p: ProviderRow) {
+    setTestingCode(p.code);
+    try {
+      const res = await fetch(`/api/admin/provider-health/${encodeURIComponent(p.code)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "test" }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error ?? "Failed");
+      }
+      const data = await res.json();
+      if (data.result?.ok) {
+        toast.success(`${p.displayName} test OK · ${data.result.latencyMs}ms`, {
+          description: data.contract ? `via ${data.contract}` : undefined,
+        });
+      } else {
+        toast.error(`${p.displayName} test failed · ${data.result?.errorCode ?? "UNKNOWN"}`, {
+          description: data.result?.detail ? String(data.result.detail) : undefined,
+        });
+      }
+      // Refresh health + provider list (breaker/health may have changed)
+      await Promise.all([loadHealth(p.code), load()]);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Test failed");
+    } finally {
+      setTestingCode(null);
+    }
+  }
+
+  async function forceResetCircuit(p: ProviderRow) {
+    if (!confirm(`Force-reset the circuit breaker for ${p.displayName}? This clears the in-memory breaker state immediately.`)) return;
+    setResettingCode(p.code);
+    try {
+      const res = await fetch(`/api/admin/provider-health/${encodeURIComponent(p.code)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset_circuit" }),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.error ?? "Failed");
+      }
+      const data = await res.json();
+      if (data.didReset) {
+        toast.success(`${p.displayName} circuit reset → CLOSED`);
+      } else {
+        toast.info(`${p.displayName} circuit was already CLOSED`);
+      }
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Reset failed");
+    } finally {
+      setResettingCode(null);
     }
   }
 
@@ -207,7 +321,7 @@ export default function ProvidersTab() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-semibold">Provider configs</h3>
-            <p className="text-xs text-muted-foreground">Live health score + circuit breaker state per provider.</p>
+            <p className="text-xs text-muted-foreground">Live health score + circuit breaker state per provider. Click a row to expand the health sparkline.</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => {
@@ -231,6 +345,9 @@ export default function ProvidersTab() {
         </div>
       </Card>
 
+      {/* Failover stats */}
+      <FailoverStatsCard />
+
       <Card className="p-5">
         {loading && !providers ? (
           <div className="space-y-2">
@@ -241,61 +358,198 @@ export default function ProvidersTab() {
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10">
                 <tr className="text-left text-xs text-muted-foreground">
+                  <th className="pb-2 pr-2 font-medium w-8"></th>
                   <th className="pb-2 pr-2 font-medium">Provider</th>
                   <th className="pb-2 pr-2 font-medium">Sandbox</th>
                   <th className="pb-2 pr-2 font-medium">Enabled</th>
                   <th className="pb-2 pr-2 font-medium">Health</th>
                   <th className="pb-2 pr-2 font-medium">Circuit</th>
-                  <th className="pb-2 pr-2 font-medium">Priority</th>
+                  <th className="pb-2 pr-2 font-medium">Success</th>
+                  <th className="pb-2 pr-2 font-medium">Latency</th>
                   <th className="pb-2 pr-2 font-medium">Capabilities</th>
                   <th className="pb-2 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {providers.map((p) => (
-                  <tr key={p.id} className="border-t transition-colors hover:bg-muted/40">
-                    <td className="py-2 pr-2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                          <Server className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{p.displayName}</p>
-                          <p className="text-xs text-muted-foreground font-mono">{p.code}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-2 pr-2">
-                      <Badge variant="secondary" className={`text-[10px] ${p.sandbox ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"}`}>
-                        {p.sandbox ? "Sandbox" : "Live"}
-                      </Badge>
-                    </td>
-                    <td className="py-2 pr-2">
-                      <Switch checked={p.enabled} onCheckedChange={(v) => toggleEnabled(p, v)} aria-label="Toggle provider" />
-                    </td>
-                    <td className="py-2 pr-2"><HealthBar score={p.healthScore} /></td>
-                    <td className="py-2 pr-2">
-                      <Badge variant="secondary" className={`text-[10px] ${CIRCUIT_TONE[p.circuitState] ?? "bg-muted text-muted-foreground"}`}>
-                        {p.circuitState}
-                      </Badge>
-                      {p.circuitFailures > 0 && (
-                        <span className="ml-1 text-[10px] text-muted-foreground">({p.circuitFailures}f)</span>
+                {providers.map((p) => {
+                  const tone = healthTone(p.healthScore);
+                  const expanded = expandedRow === p.code;
+                  const healthDetail = healthByProvider[p.code];
+                  const healthLoadingRow = healthLoading[p.code];
+                  return (
+                    <React.Fragment key={p.id}>
+                      <tr className="border-t transition-colors hover:bg-muted/40">
+                        <td className="py-2 pr-2 align-middle">
+                          <button
+                            type="button"
+                            onClick={() => toggleExpand(p.code)}
+                            className="flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted"
+                            aria-label={expanded ? "Collapse row" : "Expand row"}
+                          >
+                            {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                          </button>
+                        </td>
+                        <td className="py-2 pr-2">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone.bar}`}
+                              title={`Health ${p.healthScore}/100`}
+                              aria-hidden
+                            />
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                              <Server className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{p.displayName}</p>
+                              <p className="text-xs text-muted-foreground font-mono">{p.code}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-2 pr-2">
+                          <Badge variant="secondary" className={`text-[10px] ${p.sandbox ? "bg-amber-500/10 text-amber-600 dark:text-amber-400" : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"}`}>
+                            {p.sandbox ? "Sandbox" : "Live"}
+                          </Badge>
+                        </td>
+                        <td className="py-2 pr-2">
+                          <Switch checked={p.enabled} onCheckedChange={(v) => toggleEnabled(p, v)} aria-label="Toggle provider" />
+                        </td>
+                        <td className="py-2 pr-2"><HealthBar score={p.healthScore} /></td>
+                        <td className="py-2 pr-2">
+                          <Badge variant="secondary" className={`text-[10px] ${CIRCUIT_TONE[p.circuitState] ?? "bg-muted text-muted-foreground"}`}>
+                            {p.circuitState}
+                          </Badge>
+                          {p.circuitFailures > 0 && (
+                            <span className="ml-1 text-[10px] text-muted-foreground">({p.circuitFailures}f)</span>
+                          )}
+                        </td>
+                        <td className="py-2 pr-2 text-xs tabular-nums">
+                          {healthDetail ? `${healthDetail.successRate}%` : "—"}
+                        </td>
+                        <td className="py-2 pr-2 text-xs tabular-nums">
+                          {healthDetail ? `${healthDetail.avgLatencyMs}ms` : "—"}
+                        </td>
+                        <td className="py-2 pr-2 text-xs tabular-nums">{p.capabilityCount}</td>
+                        <td className="py-2 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs gap-1" onClick={() => openDetails(p)}>
+                              <Eye className="h-3.5 w-3.5" /> View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-xs gap-1"
+                              onClick={() => testProvider(p)}
+                              disabled={testingCode === p.code}
+                              title="Ping the provider via listBanks/listBillers"
+                            >
+                              {testingCode === p.code ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
+                              Test
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-xs gap-1 text-amber-700 dark:text-amber-400"
+                              onClick={() => forceResetCircuit(p)}
+                              disabled={resettingCode === p.code || p.circuitState === "CLOSED"}
+                              title="Force-clear the circuit breaker"
+                            >
+                              {resettingCode === p.code ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                              Reset
+                            </Button>
+                            <Button size="sm" variant="outline" className="h-7 px-2 text-xs gap-1" onClick={() => { setRotateTarget(p); setRotatePairs([{ key: "", value: "" }]); }}>
+                              <KeyRound className="h-3.5 w-3.5" /> Rotate
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                      {expanded && (
+                        <tr className="border-t bg-muted/20">
+                          <td colSpan={10} className="p-4">
+                            {healthLoadingRow && !healthDetail ? (
+                              <div className="space-y-2">
+                                <Skeleton className="h-24 rounded-xl" />
+                                <Skeleton className="h-16 rounded-xl" />
+                              </div>
+                            ) : healthDetail ? (
+                              <div className="grid gap-4 md:grid-cols-[1.4fr_1fr_1fr]">
+                                <div className="rounded-xl border bg-background p-3">
+                                  <div className="mb-2 flex items-center justify-between">
+                                    <h4 className="text-xs font-semibold uppercase text-muted-foreground">Last {healthDetail.samples.length} health samples</h4>
+                                    <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => loadHealth(p.code)}>
+                                      <RefreshCw className="h-3 w-3" /> Refresh
+                                    </Button>
+                                  </div>
+                                  {healthDetail.samples.length > 0 ? (
+                                    <HealthSparkline
+                                      samples={healthDetail.samples}
+                                      height={80}
+                                    />
+                                  ) : (
+                                    <div className="flex h-20 items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground">
+                                      No recent samples — click "Test" to generate one.
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="rounded-xl border bg-background p-3">
+                                  <h4 className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Health snapshot</h4>
+                                  <dl className="space-y-1.5 text-xs">
+                                    <div className="flex justify-between">
+                                      <dt className="text-muted-foreground flex items-center gap-1"><Activity className="h-3 w-3" /> Health</dt>
+                                      <dd className={`tabular-nums font-medium ${healthTone(healthDetail.healthScore).text}`}>{healthDetail.healthScore}/100</dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <dt className="text-muted-foreground flex items-center gap-1"><TrendingUp className="h-3 w-3" /> Success</dt>
+                                      <dd className="tabular-nums font-medium">{healthDetail.successRate}%</dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <dt className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> Avg latency</dt>
+                                      <dd className="tabular-nums font-medium">{healthDetail.avgLatencyMs}ms</dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <dt className="text-muted-foreground">Samples (24h)</dt>
+                                      <dd className="tabular-nums font-medium">{healthDetail.totalSamples}</dd>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <dt className="text-muted-foreground">Circuit state</dt>
+                                      <dd>
+                                        <Badge variant="secondary" className={`text-[10px] ${CIRCUIT_TONE[healthDetail.circuit.state] ?? "bg-muted text-muted-foreground"}`}>
+                                          {healthDetail.circuit.state}
+                                        </Badge>
+                                      </dd>
+                                    </div>
+                                  </dl>
+                                </div>
+                                <div className="rounded-xl border bg-background p-3">
+                                  <h4 className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Failure breakdown</h4>
+                                  {Object.keys(healthDetail.failureBreakdown).length > 0 ? (
+                                    <div className="space-y-1.5">
+                                      {Object.entries(healthDetail.failureBreakdown)
+                                        .sort((a, b) => b[1] - a[1])
+                                        .map(([code, count]) => (
+                                          <div key={code} className="flex items-center justify-between text-xs">
+                                            <Badge variant="outline" className="text-[10px] font-mono">{code}</Badge>
+                                            <span className="tabular-nums font-medium text-red-600 dark:text-red-400">{count}×</span>
+                                          </div>
+                                        ))}
+                                    </div>
+                                  ) : (
+                                    <div className="flex h-16 items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground">
+                                      <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+                                        <Activity className="h-3 w-3" /> No failures in window
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-muted-foreground">No health data available.</div>
+                            )}
+                          </td>
+                        </tr>
                       )}
-                    </td>
-                    <td className="py-2 pr-2 text-xs tabular-nums">{p.defaultPriority}</td>
-                    <td className="py-2 pr-2 text-xs tabular-nums">{p.capabilityCount}</td>
-                    <td className="py-2 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs gap-1" onClick={() => openDetails(p)}>
-                          <Eye className="h-3.5 w-3.5" /> View
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs gap-1" onClick={() => { setRotateTarget(p); setRotatePairs([{ key: "", value: "" }]); }}>
-                          <KeyRound className="h-3.5 w-3.5" /> Rotate
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>

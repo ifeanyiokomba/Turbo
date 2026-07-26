@@ -180,3 +180,19 @@ export function getBreakerStates(): Record<string, { state: string; failures: nu
   }
   return out;
 }
+
+// resetCircuitBreaker — admin ops escape hatch. Force-clears the in-memory breaker
+// state for a provider so the next call goes through regardless of recent failures.
+// Returns true if a breaker existed and was reset, false if no breaker state was
+// present (already closed / never tripped). Does NOT reset the EMA health score —
+// that decays naturally as new samples arrive.
+export function resetCircuitBreaker(providerCode: string): boolean {
+  const s = breakers.get(providerCode);
+  if (!s) return false;
+  if (s.state === "CLOSED" && s.failures === 0) return false;
+  s.state = "CLOSED";
+  s.failures = 0;
+  s.successes = 0;
+  s.openedAt = 0;
+  return true;
+}

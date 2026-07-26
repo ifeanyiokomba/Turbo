@@ -8,6 +8,7 @@
 
 import { db } from "@/lib/db";
 import { registry, getBreakerStates } from "./registry";
+import { getCountryConfig } from "./geo/country-config";
 import type { ContractName } from "./result";
 
 export interface RouteRequest {
@@ -30,6 +31,10 @@ export interface ProviderScore {
   avgLatencyMs: number; // recent avg latency
   health: number; // EMA health from registry (circuit-aware)
   circuit: "CLOSED" | "OPEN" | "HALF_OPEN";
+  preferred: boolean; // true if boosted by CountryConfig.providersPreferred
+  feeBps: number; // raw fee in basis points (transparency for UI)
+  feeFixedMinor: number; // raw flat fee in minor units
+  settleHours: number; // raw settlement hours (transparency for UI)
 }
 
 export interface RoutingDecision {
@@ -38,7 +43,13 @@ export interface RoutingDecision {
   reason: "scored" | "fallback" | "preferred" | "only_viable" | "none";
   scores: ProviderScore[];
   alternatives: string[];
+  geoAware: { country: string; currency: string }; // detected geo context for this decision
 }
+
+// Bonus added to a provider's score when it appears in CountryConfig.providersPreferred
+// for the contract being routed. Tunable — kept modest so the scoring engine can still
+// pick a healthier/cheaper alternative when the preferred provider is degraded.
+const PREFERRED_BONUS = 15;
 
 // Tunable weights — sum to 1.0. Admins can override via ProviderConfig.weightsJSON in future.
 // successRate (health) is the dominant factor, then charge, then speed, then capability match.
@@ -100,6 +111,11 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
   const healthStats = await loadHealthStats();
   const breakers = getBreakerStates();
 
+  // Geo context — load the country config so we can boost preferred providers.
+  const countryConfig = await getCountryConfig(req.country).catch(() => null);
+  const preferredForContract: string[] =
+    (countryConfig?.providersPreferred?.[req.contract] as string[] | undefined) ?? [];
+
   // 1. Capability filter — provider must support contract/country/currency/amount/direction.
   const viable = capabilities.filter(
     (c) =>
@@ -113,7 +129,14 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
   );
 
   if (viable.length === 0) {
-    return { providerCode: "", contract: req.contract, reason: "none", scores: [], alternatives: [] };
+    return {
+      providerCode: "",
+      contract: req.contract,
+      reason: "none",
+      scores: [],
+      alternatives: [],
+      geoAware: { country: req.country, currency: req.currency },
+    };
   }
 
   // 2. Score each viable provider on success-rate, charge, speed, capability.
@@ -133,12 +156,17 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
     const latencyPenalty = Math.min(30, avgLatencyMs / 200); // each 200ms costs 1 pt (cap 30)
     const speed = Math.max(0, 100 - settlePenalty - latencyPenalty);
 
+    // Geo preference bonus — boost providers listed in CountryConfig.providersPreferred for this contract.
+    const preferred = preferredForContract.includes(c.providerCode);
+    const preferredBoost = preferred ? PREFERRED_BONUS : 0;
+
     const w = DEFAULT_WEIGHTS;
     const score =
       w.successRate * successRate +
       w.charge * charge +
       w.speed * speed +
       w.capability * 100 +
+      preferredBoost +
       (req.preferredProvider === c.providerCode ? 100 : 0);
 
     return {
@@ -150,6 +178,10 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
       avgLatencyMs,
       health,
       circuit: breaker.state as "CLOSED" | "OPEN" | "HALF_OPEN",
+      preferred,
+      feeBps: c.feeBps,
+      feeFixedMinor: c.feeFixedMinor,
+      settleHours: c.settleHours,
     };
   });
 
@@ -168,6 +200,7 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
       reason: "fallback",
       scores: scored,
       alternatives: [],
+      geoAware: { country: req.country, currency: req.currency },
     };
   }
 
@@ -181,6 +214,7 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
       reason: "preferred",
       scores: pool,
       alternatives: pool.filter((s) => s.providerCode !== req.preferredProvider).slice(0, 3).map((s) => s.providerCode),
+      geoAware: { country: req.country, currency: req.currency },
     };
   }
 
@@ -191,6 +225,7 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
       reason: "only_viable",
       scores: pool,
       alternatives: [],
+      geoAware: { country: req.country, currency: req.currency },
     };
   }
 
@@ -202,11 +237,20 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
     reason: "scored",
     scores: pool,
     alternatives: pool.slice(1, 4).map((s) => s.providerCode),
+    geoAware: { country: req.country, currency: req.currency },
   };
 }
 
 export async function persistDecision(decision: RoutingDecision, requestId: string, transactionId?: string): Promise<void> {
   try {
+    // Encode the geo context (country + currency) inside alternativesJSON so the audit
+    // trail captures the geo decision even though the schema has no dedicated column.
+    // The in-memory `decision.alternatives` stays a plain string[] for callers; we only
+    // enrich the persisted JSON envelope.
+    const alternativesEnvelope = {
+      list: decision.alternatives,
+      geo: decision.geoAware,
+    };
     await db.paymentRoutingDecision.create({
       data: {
         transactionId: transactionId ?? null,
@@ -215,7 +259,7 @@ export async function persistDecision(decision: RoutingDecision, requestId: stri
         chosenProvider: decision.providerCode,
         reason: decision.reason,
         scoresJSON: JSON.stringify(decision.scores),
-        alternativesJSON: JSON.stringify(decision.alternatives),
+        alternativesJSON: JSON.stringify(alternativesEnvelope),
         requestId,
       },
     });

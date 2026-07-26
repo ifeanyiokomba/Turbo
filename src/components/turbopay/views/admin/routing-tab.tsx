@@ -1,8 +1,12 @@
 "use client";
 
-// Admin tab — Routing rules
-// Lists ProviderRoute rows. Inline-edit priority/weight/canaryPercent via Slider
-// + enabled Switch. Add/delete rows.
+// Admin tab — Routing rules (enhanced for Task P9-A)
+//
+// Two panels:
+//   1. Geo-routing preview — pick (country, currency, contract, direction) and see
+//      the live scored provider pool + the failover chain that the orchestrator
+//      would walk. Uses /api/capabilities/enhanced.
+//   2. ProviderRoute rules table — priority/weight/canary sliders per row, add/delete.
 
 import * as React from "react";
 import { Card } from "@/components/ui/card";
@@ -20,10 +24,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Plus, RefreshCw, Loader2, Download, Trash2, GitBranch,
+  Plus, RefreshCw, Loader2, Download, Trash2, GitBranch, Globe, ArrowRight, Star,
 } from "lucide-react";
 import { toast } from "sonner";
-import { exportCsv, ALL_CONTRACTS, COMMON_COUNTRIES, COMMON_CURRENCIES } from "./shared";
+import { exportCsv, ALL_CONTRACTS, COMMON_COUNTRIES, COMMON_CURRENCIES, healthTone, CIRCUIT_TONE } from "./shared";
 
 interface RouteRow {
   id: string;
@@ -37,6 +41,41 @@ interface RouteRow {
   enabled: boolean;
 }
 
+interface EnhancedProvider {
+  providerCode: string;
+  score: number;
+  successRate: number;
+  avgLatencyMs: number;
+  health: number;
+  circuit: string;
+  preferred: boolean;
+  fee: { bps: number; fixedMinor: number };
+  settleHours: number;
+  inFailoverChain: boolean;
+}
+
+interface EnhancedContract {
+  contract: string;
+  available: boolean;
+  reason: string;
+  primaryProvider: string | null;
+  failoverChain: string[];
+  geo: { country: string; currency: string };
+  preferredInCountry: string[];
+  providers: EnhancedProvider[];
+}
+
+interface EnhancedResponse {
+  country: string;
+  currency: string;
+  direction: string;
+  amountMinor: number;
+  countryName: string;
+  flagEmoji: string;
+  contracts: EnhancedContract[];
+  generatedAt: string;
+}
+
 export default function RoutingTab() {
   const [routes, setRoutes] = React.useState<RouteRow[] | null>(null);
   const [loading, setLoading] = React.useState(true);
@@ -47,6 +86,14 @@ export default function RoutingTab() {
     priority: 50, weight: 100, canaryPercent: 100, enabled: true,
   });
   const [adding, setAdding] = React.useState(false);
+
+  // Geo-routing preview state
+  const [geoCountry, setGeoCountry] = React.useState("NG");
+  const [geoCurrency, setGeoCurrency] = React.useState("NGN");
+  const [geoContract, setGeoContract] = React.useState("CARD_PAYMENT");
+  const [geoDirection, setGeoDirection] = React.useState<"INBOUND" | "OUTBOUND">("INBOUND");
+  const [enhanced, setEnhanced] = React.useState<EnhancedResponse | null>(null);
+  const [enhancedLoading, setEnhancedLoading] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -60,7 +107,27 @@ export default function RoutingTab() {
     }
   }, []);
 
+  const loadEnhanced = React.useCallback(async () => {
+    setEnhancedLoading(true);
+    try {
+      const params = new URLSearchParams({
+        country: geoCountry,
+        currency: geoCurrency,
+        contract: geoContract,
+        direction: geoDirection,
+        amountMinor: "100000",
+      });
+      const res = await fetch(`/api/capabilities/enhanced?${params}`, { cache: "no-store" });
+      if (!res.ok) { toast.error("Failed to load enhanced capabilities"); return; }
+      const data: EnhancedResponse = await res.json();
+      setEnhanced(data);
+    } finally {
+      setEnhancedLoading(false);
+    }
+  }, [geoCountry, geoCurrency, geoContract, geoDirection]);
+
   React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => { loadEnhanced(); }, [loadEnhanced]);
 
   async function patchRoute(id: string, patch: Partial<RouteRow>) {
     setRoutes((cur) => cur?.map((r) => r.id === id ? { ...r, ...patch } : r) ?? null);
@@ -79,7 +146,7 @@ export default function RoutingTab() {
 
   async function deleteRoute(r: RouteRow) {
     if (!confirm(`Delete route for ${r.providerCode} · ${r.contract} · ${r.country}?`)) return;
-    setRoutes((cur) => cur?.filter((x) => x.id !== r.id) ?? null);
+    setRoutes((cur) => cur?.filter((x) => x.id === r.id) ?? null);
     try {
       const res = await fetch(`/api/admin/routing/${r.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
@@ -114,8 +181,183 @@ export default function RoutingTab() {
     }
   }
 
+  const activeContract = enhanced?.contracts.find((c) => c.contract === geoContract);
+
   return (
     <div className="space-y-4">
+      {/* Geo-routing preview */}
+      <Card className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div>
+            <h3 className="text-sm font-semibold flex items-center gap-1.5">
+              <Globe className="h-4 w-4 text-primary" /> Geo-routing preview
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Live routing decision for the chosen (country, currency, contract). Shows the scored provider pool and the failover chain the orchestrator would walk.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" className="h-7 gap-1 text-xs" onClick={loadEnhanced} disabled={enhancedLoading}>
+            {enhancedLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />} Refresh
+          </Button>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4 mb-4">
+          <div>
+            <Label className="text-[10px] uppercase text-muted-foreground">Country</Label>
+            <Select value={geoCountry} onValueChange={setGeoCountry}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {COMMON_COUNTRIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-[10px] uppercase text-muted-foreground">Currency</Label>
+            <Select value={geoCurrency} onValueChange={setGeoCurrency}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {COMMON_CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-[10px] uppercase text-muted-foreground">Contract</Label>
+            <Select value={geoContract} onValueChange={setGeoContract}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ALL_CONTRACTS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-[10px] uppercase text-muted-foreground">Direction</Label>
+            <Select value={geoDirection} onValueChange={(v) => setGeoDirection(v as "INBOUND" | "OUTBOUND")}>
+              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="INBOUND">INBOUND</SelectItem>
+                <SelectItem value="OUTBOUND">OUTBOUND</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {enhancedLoading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-20 rounded-xl" />
+            <Skeleton className="h-32 rounded-xl" />
+          </div>
+        ) : !activeContract ? (
+          <div className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
+            No routing decision for this combination.
+          </div>
+        ) : !activeContract.available ? (
+          <div className="rounded-xl border border-dashed bg-muted/20 p-4 text-sm">
+            <p className="font-medium text-amber-600 dark:text-amber-400">No provider available</p>
+            <p className="text-xs text-muted-foreground mt-1">No capability row matches this (country, currency, contract, direction).</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {/* Failover chain visualization */}
+            <div className="rounded-xl border bg-muted/20 p-3">
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <h4 className="text-[10px] font-semibold uppercase text-muted-foreground">Failover chain</h4>
+                <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary">
+                  {activeContract.failoverChain.length} step{activeContract.failoverChain.length === 1 ? "" : "s"}
+                </Badge>
+                {activeContract.preferredInCountry.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px] gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <Star className="h-2.5 w-2.5" /> Preferred: {activeContract.preferredInCountry.join(", ")}
+                  </Badge>
+                )}
+              </div>
+              {activeContract.failoverChain.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  {activeContract.failoverChain.map((code, idx) => (
+                    <React.Fragment key={code + idx}>
+                      <div className="flex items-center gap-2 rounded-lg border bg-background px-3 py-2">
+                        <span className={`h-2 w-2 rounded-full ${idx === 0 ? "bg-emerald-500" : "bg-amber-500"}`} />
+                        <div>
+                          <p className="font-mono text-xs font-medium">{code}</p>
+                          <p className="text-[10px] text-muted-foreground">{idx === 0 ? "primary" : `failover #${idx}`}</p>
+                        </div>
+                      </div>
+                      {idx < activeContract.failoverChain.length - 1 && (
+                        <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No alternatives — single-provider routing.</p>
+              )}
+            </div>
+
+            {/* Provider pool table */}
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/40">
+                  <tr className="text-left">
+                    <th className="p-2 font-medium">Provider</th>
+                    <th className="p-2 font-medium">Score</th>
+                    <th className="p-2 font-medium">Health</th>
+                    <th className="p-2 font-medium">Circuit</th>
+                    <th className="p-2 font-medium">Success</th>
+                    <th className="p-2 font-medium">Latency</th>
+                    <th className="p-2 font-medium">Fee</th>
+                    <th className="p-2 font-medium">Settle</th>
+                    <th className="p-2 font-medium">Preferred</th>
+                    <th className="p-2 font-medium">In chain</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activeContract.providers.map((p) => {
+                    const tone = healthTone(p.health);
+                    return (
+                      <tr key={p.providerCode} className="border-t">
+                        <td className="p-2 font-mono">{p.providerCode}</td>
+                        <td className="p-2 tabular-nums font-semibold">{p.score}</td>
+                        <td className="p-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`h-2 w-2 rounded-full ${tone.bar}`} />
+                            <span className={`tabular-nums ${tone.text}`}>{p.health}</span>
+                          </div>
+                        </td>
+                        <td className="p-2">
+                          <Badge variant="secondary" className={`text-[10px] ${CIRCUIT_TONE[p.circuit] ?? "bg-muted text-muted-foreground"}`}>
+                            {p.circuit}
+                          </Badge>
+                        </td>
+                        <td className="p-2 tabular-nums">{p.successRate}%</td>
+                        <td className="p-2 tabular-nums">{p.avgLatencyMs}ms</td>
+                        <td className="p-2 tabular-nums">
+                          {p.fee.bps > 0 ? `${p.fee.bps}bps` : "—"}
+                          {p.fee.fixedMinor > 0 ? `+${p.fee.fixedMinor}` : ""}
+                        </td>
+                        <td className="p-2 tabular-nums">{p.settleHours}h</td>
+                        <td className="p-2">
+                          {p.preferred ? (
+                            <Badge variant="secondary" className="text-[10px] gap-1 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                              <Star className="h-2.5 w-2.5" /> Yes
+                            </Badge>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </td>
+                        <td className="p-2">
+                          {p.inFailoverChain ? (
+                            <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                              ✓
+                            </Badge>
+                          ) : <span className="text-muted-foreground">—</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </Card>
+
       <Card className="p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
