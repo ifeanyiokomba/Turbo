@@ -797,3 +797,68 @@ Stage Summary:
 - Skipped functionality implemented: NDPR data export, account deletion, large-tx step-up OTP, webhook signature verification
 - Lint: 0 errors, 0 warnings
 - Dev server running on :3000, all verified
+
+---
+Task ID: P9-A
+Agent: full-stack-developer (Provider platform enhancements)
+Task: Provider failover, geo-routing preferences, real-time health dashboard
+
+Work Log:
+- Read worklog + foundation files (routing-engine.ts, orchestrator.ts, registry.ts, geo/country-config.ts, lib/api.ts, lib/db.ts, admin.tsx, providers-tab.tsx, routing-tab.tsx, shared.tsx, prisma/schema.prisma, contracts.ts, providers/index.ts, providers/_shared.ts, result.ts) to understand scored routing, synchronized hold-confirm-reverse flow, in-memory circuit breaker, providersPreferred map per country, and the 14-tab admin shell.
+- Modified `src/lib/turbocore/routing-engine.ts`:
+  - Added `geoAware: { country, currency }` to RoutingDecision (always populated).
+  - Added `preferred`, `feeBps`, `feeFixedMinor`, `settleHours` to ProviderScore (UI transparency).
+  - `route()` loads `getCountryConfig(req.country)`, looks up `providersPreferred[contract]`, and boosts matching providers by `+15` (PREFERRED_BONUS constant).
+  - `persistDecision` encodes geo context inside alternativesJSON as `{list, geo}` envelope (in-memory `decision.alternatives` stays a plain string[] so /api/intl/quote consumer is unchanged).
+- Modified `src/lib/turbocore/orchestrator.ts`:
+  - Added `tryWithFailover(req, decision, txId, providerRef)` helper that walks `[primary, ...alternatives]` up to MAX_FAILOVER_ATTEMPTS=2 (3 total provider calls).
+  - Each non-primary attempt logs `PaymentFlowLog{step:"FAILOVER", status:toCode, providerCode:toCode, payloadJSON:{from, to, reason}}`.
+  - Short-circuits on success OR non-retryable errors; only retryable failures (PROVIDER_DOWN/PROVIDER_TIMEOUT/RATE_LIMITED/UPSTREAM_ERROR) advance to the next alternative.
+  - Defensive: providerCall throws are wrapped as retryable UPSTREAM_ERROR; adapter-not-registered becomes retryable PROVIDER_DOWN.
+  - If actualProviderCode differs from decision.providerCode, mutates tx.provider + tx.providerRef to reflect the real handler.
+  - Outbox events + audit logs now include `failovers: failovers.length` for observability; AUTO_REVERSED payload now includes the full failover chain.
+- Modified `src/lib/turbocore/registry.ts` (minimal additive — needed to fulfill spec):
+  - Added exported `resetCircuitBreaker(providerCode): boolean` — force-clears the private `breakers` Map entry back to CLOSED/0 failures/0 successes. Does NOT touch the EMA health score (that decays naturally). Returns true if a non-trivial reset happened, false if the breaker was already CLOSED.
+- Created `src/app/api/capabilities/enhanced/route.ts`:
+  - GET ?country=&currency=&contract=&direction=&amountMinor= returns a richer per-contract capability response showing, for each contract: available providers (sorted by score), each with health/success/latency/fee/settle/preferred/in-chain flags, the failover chain (primary + alternatives), the preferred list for the country, and the geo context. Falls back to the opposite direction if the requested one has no viable providers.
+- Created `src/app/api/admin/provider-health/[providerCode]/route.ts`:
+  - GET: single-provider deep dive — current health score, circuit state (state/failures), last 50 ProviderHealthCheck samples for sparkline, success rate, avg latency, total sample count, failure breakdown by errorCode. Audits ADMIN_PROVIDER_HEALTH_VIEWED.
+  - POST {action:"reset_circuit"}: calls `resetCircuitBreaker()` and returns the new breaker state. Audits ADMIN_CIRCUIT_RESET (WARN).
+  - POST {action:"test"}: resolves the adapter for any registered contract (preferred order: BANK_TRANSFER.listBanks → BILL_PAYMENT.listBillers → VIRTUAL_ACCOUNT.listSupportedBanks → AIRTIME.listNetworks → fallback listBanks/listBillers), invokes it, writes a ProviderHealthCheck sample, returns the result + new health score + circuit state. The proxy wrapper already updated EMA + breaker; this just persists the sample to DB for the sparkline. Audits ADMIN_PROVIDER_TEST (INFO on success, WARN on failure).
+- Created `src/app/api/admin/failover-stats/route.ts`:
+  - GET ?window=24h|7d aggregates PaymentFlowLog where step="FAILOVER" in the window. Parses payloadJSON {from, to, reason} envelopes. Returns: totalFailovers, uniqueTxns, byToProvider, byFromProvider, byReason, successRateAfterFailover (joins to Transaction.status — fraction of affected txns that ended up SUCCESS), reversedAfterFailover, topFailoverChains (top 8 from→to·reason triples). Audits ADMIN_FAILOVER_STATS_VIEWED.
+- Modified `src/components/turbopay/views/admin/providers-tab.tsx`:
+  - Live health dot (emerald/amber/red based on healthScore) in the provider cell.
+  - Success rate % + avg latency columns (lazy-loaded from /api/admin/provider-health/[code] on first row expand).
+  - Expandable row (chevron button) reveals: sparkline of last 50 samples (Recharts area chart), health snapshot card (health/success/latency/samples/circuit), failure breakdown card (per-error-code counts).
+  - "Test" button per provider — POSTs {action:"test"} to /api/admin/provider-health/[code], shows toast with latency or errorCode, refreshes both health detail and provider list.
+  - "Reset" button per provider — confirm dialog → POSTs {action:"reset_circuit"}, toasts result, refreshes provider list. Disabled when circuit is already CLOSED.
+  - FailoverStatsCard at the top of the tab — 24h/7d toggle, total failovers + unique txns, success-rate-after-failover (tone-colored), top providers failed over to (badges), top reasons (with AlertTriangle icon), most common failover chains (from→to with ArrowRight icon).
+- Created `src/components/turbopay/views/admin/provider-health-widgets.tsx`:
+  - `HealthSparkline` — Recharts AreaChart of latencyMs over the sample window. Line color flips emerald→red based on the latest sample's ok flag. 2000ms SLO reference line. Hover tooltip shows time + latency + errorCode.
+  - `FailoverStatsCard` — 24h/7d toggleable stats card with stat tiles, top reasons, top chains.
+  - `StatTile` — small KPI tile with tone-based text color (emerald/amber/red).
+- Modified `src/components/turbopay/views/admin/routing-tab.tsx`:
+  - New "Geo-routing preview" card at the top: 4-select control (country/currency/contract/direction) → fetches /api/capabilities/enhanced on every change.
+  - Failover chain visualization: primary (emerald dot) → failover #1 (amber dot) → failover #2 (amber dot) with ArrowRight separators and a "Preferred: …" badge.
+  - Provider pool table: score / health dot / circuit badge / success % / latency / fee / settle / preferred flag / in-chain flag.
+  - Retained the original ProviderRoute rules table below the preview.
+- Ran `bun run lint` — 0 errors, 0 warnings.
+- Ran `bunx tsc --noEmit` — 0 errors in any of my P9-A files. (One pre-existing pattern error in orchestrator.ts:382 `hash("sha256")` is from the original `hashKey` function I did NOT modify — same Bun-vs-Node crypto type quirk documented by previous agents R3-A/R8-A/MP-API in worklog. Lint passes.)
+- Resolved a stash mishap mid-task: an earlier `git stash` to verify pre-existing lint state captured my changes; subsequent `git stash pop` failed due to a tsconfig.tsbuildinfo conflict, leaving my modifications in stash@{2}. Restored my 5 modified files via `git checkout stash@{2} -- <files>` and dropped all 3 stashes. Verified the restored content matches my edits via grep (resetCircuitBreaker, geoAware, PREFERRED_BONUS, tryWithFailover all present).
+- Wrote `agent-ctx/P9-A-full-stack-developer.md` work record.
+- Committed all changes: `git commit -m "Enhance provider platform: failover, geo-routing preferences, real-time health dashboard with sparklines + circuit reset (Task P9-A)"` (commit 73ef438, 9 files, +1587/-82).
+
+Stage Summary:
+- Files modified (5):
+  * `src/lib/turbocore/routing-engine.ts` — geoAware field, PREFERRED_BONUS +15, persistDecision embeds geo envelope.
+  * `src/lib/turbocore/orchestrator.ts` — tryWithFailover helper, FAILOVER log, tx.provider mutation, failover-aware audit/outbox.
+  * `src/lib/turbocore/registry.ts` — added `resetCircuitBreaker(providerCode)` export (additive).
+  * `src/components/turbopay/views/admin/providers-tab.tsx` — health dots, circuit badges, sparkline drawer, Test/Reset buttons, FailoverStatsCard.
+  * `src/components/turbopay/views/admin/routing-tab.tsx` — geo-routing preview card with failover chain + provider pool table.
+- Files created (4):
+  * `src/app/api/capabilities/enhanced/route.ts`
+  * `src/app/api/admin/provider-health/[providerCode]/route.ts`
+  * `src/app/api/admin/failover-stats/route.ts`
+  * `src/components/turbopay/views/admin/provider-health-widgets.tsx` (HealthSparkline + FailoverStatsCard)
+- Lint: `bun run lint` exits 0. 0 errors, 0 warnings on all P9-A files.
