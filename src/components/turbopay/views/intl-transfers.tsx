@@ -1202,19 +1202,20 @@ const TRACKING_STAGES = [
 
 function TransferTrackingDialog({ tx, onClose }: { tx: IntlTx | null; onClose: () => void }) {
   if (!tx) return null;
+  const currentTx = tx;
 
   // Determine the furthest stage reached based on status + state.
   function stageIndex(): number {
-    if (tx.status === "SUCCESS") return 4; // DELIVERED
-    if (tx.status === "FAILED") return 2; // stopped at PROVIDER_CALLED
-    if (tx.state === "INITIATED") return 0;
-    if (tx.state === "PIN_VERIFIED") return 1;
-    if (tx.state === "SETTLED") return 4;
+    if (currentTx.status === "SUCCESS") return 4; // DELIVERED
+    if (currentTx.status === "FAILED") return 2; // stopped at PROVIDER_CALLED
+    if (currentTx.state === "INITIATED") return 0;
+    if (currentTx.state === "PIN_VERIFIED") return 1;
+    if (currentTx.state === "SETTLED") return 4;
     return 1;
   }
 
   const currentIdx = stageIndex();
-  const failed = tx.status === "FAILED";
+  const failed = currentTx.status === "FAILED";
 
   return (
     <Dialog open={!!tx} onOpenChange={(o) => !o && onClose()}>
