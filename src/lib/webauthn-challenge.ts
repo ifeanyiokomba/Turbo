@@ -66,10 +66,3 @@ export function consumeChallenge(token: string): Entry | null {
   store.delete(token);
   return entry;
 }
-
-import { randomBytes } from "crypto";
-
-function randomToken(): string {
-  // 32 hex chars (16 random bytes)
-  return randomBytes(16).toString("hex");
-}

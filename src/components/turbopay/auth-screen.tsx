@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Lock, User, Phone, AtSign, Eye, EyeOff, ArrowRight, Check, Zap } from "lucide-react";
+import { Mail, Lock, User, Phone, AtSign, Eye, EyeOff, ArrowRight, Check, Zap, Fingerprint } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "./store";
+import { startAuthentication } from "@simplewebauthn/browser";
 
 const COUNTRIES = [
   { code: "NG", name: "Nigeria", dial: "+234", flag: "🇳🇬" },
@@ -26,6 +27,17 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
   const { setUser } = useApp();
   const [tab, setTab] = React.useState<"login" | "register">("login");
   const [loading, setLoading] = React.useState(false);
+  const [passkeyLoading, setPasskeyLoading] = React.useState(false);
+  const [webAuthnSupported, setWebAuthnSupported] = React.useState(false);
+
+  // Detect WebAuthn support on the client (avoid SSR window access)
+  React.useEffect(() => {
+    setWebAuthnSupported(
+      typeof window !== "undefined" &&
+        typeof window.PublicKeyCredential !== "undefined" &&
+        typeof navigator !== "undefined",
+    );
+  }, []);
 
   // login fields
   const [identifier, setIdentifier] = React.useState("");
@@ -93,6 +105,62 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
       toast.error(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handlePasskeyLogin() {
+    setPasskeyLoading(true);
+    try {
+      // Optional: send identifier if present, to scope allowed credentials
+      const username = identifier.trim() || undefined;
+
+      const optsRes = await fetch("/api/auth/passkey/authenticate/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username }),
+      });
+      const optsBody = await optsRes.json().catch(() => null);
+      if (!optsRes.ok || !optsBody?.options) {
+        throw new Error(optsBody?.error ?? "Could not start passkey login");
+      }
+
+      // If the user gave us an identifier and that account has no passkey,
+      // the server returns an empty allowed list — surface that as an error.
+      if (username && optsRes.status === 404) {
+        throw new Error(optsBody?.error ?? "No passkey registered for this account");
+      }
+
+      let credential;
+      try {
+        credential = await startAuthentication({ optionsJSON: optsBody.options });
+      } catch (err: any) {
+        if (err?.name === "NotAllowedError") {
+          toast.info("Passkey prompt was cancelled");
+          return;
+        }
+        throw err;
+      }
+
+      const verifyRes = await fetch("/api/auth/passkey/authenticate/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          credential,
+          challengeToken: optsBody.challengeToken,
+          username,
+        }),
+      });
+      const verifyBody = await verifyRes.json().catch(() => null);
+      if (!verifyRes.ok) {
+        throw new Error(verifyBody?.error ?? "Passkey verification failed");
+      }
+      setUser(verifyBody.user);
+      toast.success(`Welcome back, ${verifyBody.user.fullName.split(" ")[0]}!`);
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Passkey sign-in failed");
+    } finally {
+      setPasskeyLoading(false);
     }
   }
 
@@ -199,6 +267,25 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                 <Button type="submit" className="w-full gap-1.5" disabled={loading}>
                   {loading ? "Signing in..." : <>Sign in <ArrowRight className="h-4 w-4" /></>}
                 </Button>
+
+                {webAuthnSupported && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-1.5"
+                    onClick={handlePasskeyLogin}
+                    disabled={passkeyLoading}
+                  >
+                    {passkeyLoading ? (
+                      <>Verifying…</>
+                    ) : (
+                      <>
+                        <Fingerprint className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                        Sign in with Passkey
+                      </>
+                    )}
+                  </Button>
+                )}
               </form>
             </TabsContent>
 

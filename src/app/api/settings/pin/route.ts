@@ -10,6 +10,7 @@ import {
   getUserAgent,
   ServiceError,
 } from "@/lib/api";
+import { rateLimitMiddleware } from "@/lib/rate-limit-helpers";
 import { hashPin, isWeakPin, verifyPin } from "@/lib/auth";
 import { z } from "zod";
 
@@ -39,6 +40,8 @@ const setSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
+    const limited = await rateLimitMiddleware(req, "pin", user.id);
+    if (limited) return limited;
     const fresh = await db.user.findUnique({ where: { id: user.id } });
     if (!fresh) return errorJson("User not found", 404);
     if (fresh.transactionPinHash) {
@@ -86,6 +89,8 @@ const changeSchema = z.object({
 export async function PUT(req: NextRequest) {
   try {
     const user = await requireUser();
+    const limited = await rateLimitMiddleware(req, "pin", user.id);
+    if (limited) return limited;
     const fresh = await db.user.findUnique({ where: { id: user.id } });
     if (!fresh) return errorJson("User not found", 404);
     if (!fresh.transactionPinHash) {

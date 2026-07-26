@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { hashPassword, validatePassword, generateReferralCode } from "@/lib/auth";
 import { createSession } from "@/lib/session";
 import { json, errorJson, handleError, audit, getClientIp, getUserAgent } from "@/lib/api";
+import { rateLimitMiddleware } from "@/lib/rate-limit-helpers";
 import { ensureSeed } from "@/lib/seed";
 import { generateAccountNumber, generateReference } from "@/lib/money";
 import { z } from "zod";
@@ -21,6 +22,8 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   try {
     await ensureSeed();
+    const limited = await rateLimitMiddleware(req, "register");
+    if (limited) return limited;
     const body = await req.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) return errorJson(parsed.error.issues[0].message, 422);

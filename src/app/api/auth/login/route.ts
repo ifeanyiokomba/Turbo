@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth";
 import { createSession } from "@/lib/session";
 import { json, errorJson, handleError, audit, getClientIp, getUserAgent } from "@/lib/api";
+import { rateLimitMiddleware } from "@/lib/rate-limit-helpers";
 import { ensureSeed } from "@/lib/seed";
 import { z } from "zod";
 
@@ -33,6 +34,8 @@ export async function POST(req: NextRequest) {
   try {
     await ensureSeed();
     const body = await req.json();
+    const limited = await rateLimitMiddleware(req, "login", body?.identifier);
+    if (limited) return limited;
     const parsed = schema.safeParse(body);
     if (!parsed.success) return errorJson("Invalid credentials", 400);
     const { identifier, password } = parsed.data;

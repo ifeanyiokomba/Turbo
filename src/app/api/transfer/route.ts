@@ -9,6 +9,7 @@ import {
   getUserAgent,
   ServiceError,
 } from "@/lib/api";
+import { rateLimitMiddleware } from "@/lib/rate-limit-helpers";
 import {
   creditWallet,
   debitWallet,
@@ -64,6 +65,8 @@ async function resolveTurbopayUser(query: string) {
 export async function POST(req: Request) {
   try {
     const user = await requireUser();
+    const limited = await rateLimitMiddleware(req, "transfer", user.id);
+    if (limited) return limited;
     const body = (await req.json().catch(() => ({}))) as TransferBody;
 
     const type: TransferType = body.type === "BANK" ? "BANK" : "TURBOPAY";

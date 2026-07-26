@@ -9,6 +9,7 @@ import {
   getUserAgent,
   ServiceError,
 } from "@/lib/api";
+import { rateLimitMiddleware } from "@/lib/rate-limit-helpers";
 import { debitWallet, LedgerError } from "@/lib/ledger";
 import { RefType, TxDirection, TxState, TxStatus, TxType, BILL_CATEGORIES } from "@/lib/constants";
 import { generateReference } from "@/lib/money";
@@ -43,6 +44,8 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const user = await requireUser();
+    const limited = await rateLimitMiddleware(req, "bills", user.id);
+    if (limited) return limited;
     const body = await req.json().catch(() => ({}));
 
     const category = String(body?.category ?? "").toUpperCase();

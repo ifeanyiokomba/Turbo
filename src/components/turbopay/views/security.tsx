@@ -7,6 +7,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,6 +21,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   ShieldCheck,
   Shield,
@@ -37,7 +49,17 @@ import {
   Clock,
   AlertTriangle,
   Fingerprint,
+  Plus,
+  Copy,
+  ScanFace,
+  Eye,
+  EyeOff,
+  Download,
+  Key,
+  ArrowRight,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { startRegistration } from "@simplewebauthn/browser";
 import { timeAgo, formatDate } from "@/lib/money";
 import { toast } from "sonner";
 
@@ -70,6 +92,20 @@ interface SecurityData {
   sessions: SessionInfo[];
   events: AuditEvent[];
   checklist: Checklist;
+}
+
+interface PasskeyInfo {
+  id: string;
+  deviceName: string | null;
+  deviceType: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+interface MfaStatus {
+  enabled: boolean;
+  enabledAt: string | null;
+  hasBackupCodes: boolean;
 }
 
 function parseUA(ua: string | null | undefined): { device: string; browser: string } {
@@ -116,14 +152,644 @@ function actionIcon(action: string): React.ReactNode {
   if (a.includes("LOGOUT") || a.includes("REVOK")) return <LogOut className="h-4 w-4" />;
   if (a.includes("PIN")) return <KeyRound className="h-4 w-4" />;
   if (a.includes("PASSWORD")) return <Lock className="h-4 w-4" />;
+  if (a.includes("PASSKEY")) return <Fingerprint className="h-4 w-4" />;
+  if (a.includes("MFA")) return <ShieldCheck className="h-4 w-4" />;
   if (a.includes("KYC")) return <ShieldCheck className="h-4 w-4" />;
   if (a.includes("AML")) return <ShieldAlert className="h-4 w-4" />;
   return <Clock className="h-4 w-4" />;
 }
 
+// === Passkeys subsection ===
+
+function PasskeysSection({ onChange }: { onChange?: () => void }) {
+  const [list, setList] = React.useState<PasskeyInfo[] | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [adding, setAdding] = React.useState(false);
+  const [deleteTarget, setDeleteTarget] = React.useState<PasskeyInfo | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
+  const [webAuthnSupported, setWebAuthnSupported] = React.useState(false);
+
+  React.useEffect(() => {
+    setWebAuthnSupported(
+      typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined",
+    );
+  }, []);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/passkey/list", { cache: "no-store" });
+      if (!res.ok) {
+        toast.error("Failed to load passkeys");
+        return;
+      }
+      const data = await res.json();
+      setList(data.passkeys ?? []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  async function addPasskey() {
+    if (!webAuthnSupported) {
+      toast.error("Your browser doesn't support passkeys");
+      return;
+    }
+    setAdding(true);
+    try {
+      const optsRes = await fetch("/api/auth/passkey/register/options", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const optsBody = await optsRes.json().catch(() => null);
+      if (!optsRes.ok || !optsBody?.options) {
+        throw new Error(optsBody?.error ?? "Could not start passkey registration");
+      }
+      let credential;
+      try {
+        credential = await startRegistration({ optionsJSON: optsBody.options });
+      } catch (err: any) {
+        if (err?.name === "NotAllowedError") {
+          toast.info("Passkey prompt was cancelled");
+          return;
+        }
+        throw err;
+      }
+      const deviceName =
+        /iPhone|iPad/.test(navigator.userAgent)
+          ? "iPhone / iPad"
+          : /Android/.test(navigator.userAgent)
+          ? "Android device"
+          : /Mac/.test(navigator.userAgent)
+          ? "Mac"
+          : /Windows/.test(navigator.userAgent)
+          ? "Windows PC"
+          : "This device";
+
+      const verifyRes = await fetch("/api/auth/passkey/register/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential, deviceName, challengeToken: optsBody.challengeToken }),
+      });
+      const verifyBody = await verifyRes.json().catch(() => null);
+      if (!verifyRes.ok) {
+        throw new Error(verifyBody?.error ?? "Passkey verification failed");
+      }
+      toast.success("Passkey added");
+      await load();
+      onChange?.();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not add passkey");
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/auth/passkey/${deleteTarget.id}`, { method: "DELETE" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(body.error ?? "Failed to delete passkey");
+        return;
+      }
+      toast.success("Passkey removed");
+      setDeleteTarget(null);
+      await load();
+      onChange?.();
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <Card className="p-5 sm:p-6">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Fingerprint className="h-5 w-5 text-primary" />
+          <div>
+            <h2 className="text-base font-semibold">Passkeys</h2>
+            <p className="text-xs text-muted-foreground">Sign in with Face ID, Touch ID, or a security key.</p>
+          </div>
+        </div>
+        <Button size="sm" className="gap-1.5" onClick={addPasskey} disabled={adding || !webAuthnSupported}>
+          {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          Add
+        </Button>
+      </div>
+
+      {!webAuthnSupported ? (
+        <EmptyState
+          icon={ScanFace}
+          title="Passkeys aren't supported"
+          description="Use a recent version of Chrome, Safari, or Edge to register a passkey."
+        />
+      ) : loading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-16 rounded-xl" />
+          <Skeleton className="h-16 rounded-xl" />
+        </div>
+      ) : list && list.length > 0 ? (
+        <ul className="space-y-2">
+          {list.map((p) => (
+            <li
+              key={p.id}
+              className="flex items-center gap-3 rounded-xl border p-3"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <Fingerprint className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{p.deviceName ?? "Passkey"}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {p.deviceType === "singleDevice" ? "This device only" : "Synced across devices"} ·{" "}
+                  {p.lastUsedAt ? `used ${timeAgo(p.lastUsedAt)}` : `added ${timeAgo(p.createdAt)}`}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 w-8 p-0 text-muted-foreground hover:bg-red-500/10 hover:text-red-600"
+                onClick={() => setDeleteTarget(p)}
+                aria-label="Delete passkey"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState
+          icon={ScanFace}
+          title="No passkeys yet"
+          description="Add a passkey to sign in instantly with biometrics — no password needed."
+          action={
+            <Button size="sm" variant="outline" className="mt-2 gap-1.5" onClick={addPasskey} disabled={adding}>
+              {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              Add your first passkey
+            </Button>
+          }
+        />
+      )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this passkey?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget ? (
+                <>
+                  The passkey <span className="font-medium">{deleteTarget.deviceName ?? "Passkey"}</span> will no longer
+                  work for sign-in. You can always add it again later.
+                </>
+              ) : (
+                "This passkey will be removed."
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              disabled={deleting}
+              className="gap-1.5 bg-red-600 hover:bg-red-700"
+            >
+              {deleting && <Loader2 className="h-4 w-4 animate-spin" />}
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  );
+}
+
+// === MFA subsection ===
+
+type MfaStep = "qr" | "verify" | "backup";
+
+function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () => void }) {
+  const [setupOpen, setSetupOpen] = React.useState(false);
+  const [step, setStep] = React.useState<MfaStep>("qr");
+  const [uri, setUri] = React.useState("");
+  const [secret, setSecret] = React.useState("");
+  const [token, setToken] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [backupCodes, setBackupCodes] = React.useState<string[] | null>(null);
+  const [savedCodes, setSavedCodes] = React.useState(false);
+
+  // Disable flow
+  const [disableOpen, setDisableOpen] = React.useState(false);
+  const [disablePwd, setDisablePwd] = React.useState("");
+  const [disableShow, setDisableShow] = React.useState(false);
+  const [disabling, setDisabling] = React.useState(false);
+
+  // View backup codes flow
+  const [viewOpen, setViewOpen] = React.useState(false);
+  const [viewPwd, setViewPwd] = React.useState("");
+  const [viewShow, setViewShow] = React.useState(false);
+  const [viewing, setViewing] = React.useState(false);
+  const [viewedCodes, setViewedCodes] = React.useState<string[] | null>(null);
+
+  async function startSetup() {
+    setSetupOpen(true);
+    setStep("qr");
+    setToken("");
+    setBackupCodes(null);
+    setSavedCodes(false);
+    setBusy(true);
+    try {
+      const res = await fetch("/api/auth/mfa/setup", { method: "POST" });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.error ?? "Could not start MFA setup");
+      setUri(body.uri);
+      setSecret(body.secret);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "MFA setup failed");
+      setSetupOpen(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function verifyToken() {
+    if (!/^\d{6}$/.test(token)) {
+      toast.error("Enter the 6-digit code");
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await fetch("/api/auth/mfa/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.error ?? "Verification failed");
+      setBackupCodes(body.backupCodes ?? []);
+      setStep("backup");
+      toast.success("Two-factor authentication enabled");
+      onChanged();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Verification failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function confirmDisable() {
+    if (!disablePwd) {
+      toast.error("Enter your password");
+      return;
+    }
+    setDisabling(true);
+    try {
+      const res = await fetch("/api/auth/mfa/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: disablePwd }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.error ?? "Could not disable 2FA");
+      toast.success("Two-factor authentication disabled");
+      setDisableOpen(false);
+      setDisablePwd("");
+      onChanged();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not disable 2FA");
+    } finally {
+      setDisabling(false);
+    }
+  }
+
+  async function fetchBackupCodes() {
+    if (!viewPwd) {
+      toast.error("Enter your password");
+      return;
+    }
+    setViewing(true);
+    try {
+      const res = await fetch("/api/auth/mfa/regenerate-codes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: viewPwd }),
+      });
+      const body = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(body?.error ?? "Could not view backup codes");
+      setViewedCodes(body.backupCodes ?? []);
+      toast.success("New backup codes generated");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not view backup codes");
+    } finally {
+      setViewing(false);
+    }
+  }
+
+  function downloadBackupCodes(codes: string[]) {
+    const text =
+      "Turbopay — Two-Factor Authentication Backup Codes\n" +
+      "Keep these safe. Each code can be used once if you lose access to your authenticator.\n\n" +
+      codes.map((c, i) => `${i + 1}. ${c}`).join("\n") +
+      "\n\nGenerated: " +
+      new Date().toLocaleString();
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "turbopay-backup-codes.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function copyAll(codes: string[]) {
+    navigator.clipboard.writeText(codes.join("\n")).then(
+      () => toast.success("Codes copied"),
+      () => toast.error("Copy failed"),
+    );
+  }
+
+  const enabled = !!mfa?.enabled;
+
+  return (
+    <Card className="p-5 sm:p-6">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-primary" />
+          <div>
+            <h2 className="text-base font-semibold">Two-Factor Authentication</h2>
+            <p className="text-xs text-muted-foreground">Add a one-time code from your authenticator app.</p>
+          </div>
+        </div>
+        {enabled ? (
+          <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="h-3 w-3" /> Enabled
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="text-amber-600 dark:text-amber-400">Off</Badge>
+        )}
+      </div>
+
+      {enabled ? (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Your account is protected with an authenticator app
+            {mfa?.enabledAt ? ` since ${formatDate(mfa.enabledAt)}` : ""}.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { setViewOpen(true); setViewPwd(""); setViewedCodes(null); }}>
+              <Key className="h-4 w-4" /> View backup codes
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-red-600 hover:bg-red-500/10 hover:text-red-700" onClick={() => { setDisableOpen(true); setDisablePwd(""); }}>
+              <Lock className="h-4 w-4" /> Disable 2FA
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Add an extra layer of security. After enabling, you&apos;ll enter a code from an authenticator app
+            (like Google Authenticator or Authy) each time you sign in.
+          </p>
+          <Button size="sm" className="gap-1.5" onClick={startSetup} disabled={busy}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+            Enable 2FA
+          </Button>
+        </div>
+      )}
+
+      {/* === Setup wizard dialog === */}
+      <Dialog open={setupOpen} onOpenChange={(o) => !o && setSetupOpen(o)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              {step === "qr" ? "Scan QR code" : step === "verify" ? "Enter verification code" : "Save your backup codes"}
+            </DialogTitle>
+            <DialogDescription>
+              {step === "qr"
+                ? "Scan with Google Authenticator, Authy, or any TOTP app."
+                : step === "verify"
+                ? "Enter the 6-digit code shown in your authenticator app."
+                : "Save these one-time codes somewhere safe. You can use them if you lose your device."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {step === "qr" && (
+            <div className="space-y-4">
+              {uri ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="rounded-2xl border bg-white p-4">
+                    <QRCodeSVG value={uri} size={200} level="M" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">Can&apos;t scan? Enter this code manually:</p>
+                  <code className="rounded-md bg-muted px-3 py-1.5 text-center text-xs tracking-wider break-all">
+                    {secret}
+                  </code>
+                </div>
+              ) : (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              )}
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setSetupOpen(false)} disabled={busy}>
+                  Cancel
+                </Button>
+                <Button onClick={() => setStep("verify")} className="gap-1.5" disabled={!uri || busy}>
+                  Next <ArrowRight className="h-4 w-4" />
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {step === "verify" && (
+            <div className="space-y-4">
+              <div className="flex flex-col items-center gap-3">
+                <InputOTP maxLength={6} value={token} onChange={setToken} disabled={busy}>
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+                <p className="text-xs text-muted-foreground">Code refreshes every 30 seconds.</p>
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setStep("qr")} disabled={busy}>
+                  Back
+                </Button>
+                <Button onClick={verifyToken} className="gap-1.5" disabled={busy || token.length !== 6}>
+                  {busy && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Verify & enable
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+
+          {step === "backup" && backupCodes && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+                <AlertTriangle className="mb-1 inline h-4 w-4" /> These codes are shown only once.
+                Save them somewhere safe — you&apos;ll need them if you lose your authenticator device.
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {backupCodes.map((c) => (
+                  <code key={c} className="rounded-md bg-muted px-2 py-2 text-center text-sm tracking-wider font-mono">
+                    {c}
+                  </code>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => copyAll(backupCodes)}>
+                  <Copy className="h-3.5 w-3.5" /> Copy all
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => downloadBackupCodes(backupCodes)}>
+                  <Download className="h-3.5 w-3.5" /> Download .txt
+                </Button>
+              </div>
+              <label className="flex items-start gap-2 text-sm">
+                <Checkbox checked={savedCodes} onCheckedChange={(v) => setSavedCodes(v === true)} className="mt-0.5" />
+                <span className="text-muted-foreground">I&apos;ve saved these codes somewhere safe.</span>
+              </label>
+              <DialogFooter>
+                <Button onClick={() => setSetupOpen(false)} disabled={!savedCodes} className="gap-1.5">
+                  <CheckCircle2 className="h-4 w-4" /> Done
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* === Disable dialog === */}
+      <Dialog open={disableOpen} onOpenChange={(o) => !o && setDisableOpen(o)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5" /> Disable 2FA?
+            </DialogTitle>
+            <DialogDescription>
+              For your security, please enter your password to confirm. Backup codes will be cleared.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="disable-pwd">Password</Label>
+            <div className="relative">
+              <Input
+                id="disable-pwd"
+                type={disableShow ? "text" : "password"}
+                value={disablePwd}
+                onChange={(e) => setDisablePwd(e.target.value)}
+                placeholder="••••••••"
+                onKeyDown={(e) => e.key === "Enter" && confirmDisable()}
+              />
+              <button
+                type="button"
+                onClick={() => setDisableShow((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label="Toggle password visibility"
+              >
+                {disableShow ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDisableOpen(false)} disabled={disabling}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmDisable} disabled={disabling} className="gap-1.5">
+              {disabling && <Loader2 className="h-4 w-4 animate-spin" />}
+              Disable 2FA
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* === View backup codes dialog === */}
+      <Dialog open={viewOpen} onOpenChange={(o) => !o && setViewOpen(o)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="h-5 w-5" /> View backup codes
+            </DialogTitle>
+            <DialogDescription>
+              Enter your password to generate a fresh set of backup codes. The previous codes will be invalidated.
+            </DialogDescription>
+          </DialogHeader>
+          {!viewedCodes ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="view-pwd">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="view-pwd"
+                    type={viewShow ? "text" : "password"}
+                    value={viewPwd}
+                    onChange={(e) => setViewPwd(e.target.value)}
+                    placeholder="••••••••"
+                    onKeyDown={(e) => e.key === "Enter" && fetchBackupCodes()}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setViewShow((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Toggle password visibility"
+                  >
+                    {viewShow ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <DialogFooter className="gap-2">
+                <Button variant="outline" onClick={() => setViewOpen(false)} disabled={viewing}>
+                  Cancel
+                </Button>
+                <Button onClick={fetchBackupCodes} disabled={viewing} className="gap-1.5">
+                  {viewing && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Show codes
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                {viewedCodes.map((c) => (
+                  <code key={c} className="rounded-md bg-muted px-2 py-2 text-center text-sm tracking-wider font-mono">
+                    {c}
+                  </code>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => copyAll(viewedCodes)}>
+                  <Copy className="h-3.5 w-3.5" /> Copy all
+                </Button>
+                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => downloadBackupCodes(viewedCodes)}>
+                  <Download className="h-3.5 w-3.5" /> Download .txt
+                </Button>
+              </div>
+              <DialogFooter>
+                <Button onClick={() => setViewOpen(false)}>Done</Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
 export default function SecurityView() {
   const { setView } = useApp();
   const [data, setData] = React.useState<SecurityData | null>(null);
+  const [mfa, setMfa] = React.useState<MfaStatus | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [revokeTarget, setRevokeTarget] = React.useState<SessionInfo | null>(null);
   const [revoking, setRevoking] = React.useState(false);
@@ -131,16 +797,16 @@ export default function SecurityView() {
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/security", { cache: "no-store" });
-      if (res.status === 401) {
+      const [secRes, mfaRes] = await Promise.all([
+        fetch("/api/security", { cache: "no-store" }),
+        fetch("/api/auth/mfa/status", { cache: "no-store" }),
+      ]);
+      if (secRes.status === 401) {
         toast.error("Session expired. Please log in again.");
         return;
       }
-      if (!res.ok) {
-        toast.error("Failed to load security info.");
-        return;
-      }
-      setData(await res.json());
+      if (secRes.ok) setData(await secRes.json());
+      if (mfaRes.ok) setMfa(await mfaRes.json());
     } finally {
       setLoading(false);
     }
@@ -178,6 +844,8 @@ export default function SecurityView() {
           <div className="lg:col-span-2 space-y-5">
             <Skeleton className="h-44 rounded-2xl" />
             <Skeleton className="h-64 rounded-2xl" />
+            <Skeleton className="h-48 rounded-2xl" />
+            <Skeleton className="h-48 rounded-2xl" />
             <Skeleton className="h-64 rounded-2xl" />
           </div>
           <div className="space-y-5">
@@ -192,9 +860,10 @@ export default function SecurityView() {
   // Risk score (simple)
   const cl = data?.checklist ?? { hasPin: false, emailVerified: false, kycVerified: false };
   let score = 0;
-  if (cl.hasPin) score += 35;
-  if (cl.emailVerified) score += 25;
-  if (cl.kycVerified) score += 40;
+  if (cl.hasPin) score += 30;
+  if (cl.emailVerified) score += 20;
+  if (cl.kycVerified) score += 30;
+  if (mfa?.enabled) score += 20;
   const riskLabel = score >= 80 ? "Low risk" : score >= 50 ? "Medium risk" : "High risk";
   const riskTone =
     score >= 80
@@ -209,6 +878,7 @@ export default function SecurityView() {
     desc: string;
     icon: React.ComponentType<{ className?: string }>;
     cta?: { view: ViewKey; label: string };
+    mfaEnable?: boolean;
   }[] = [
     {
       label: "Transaction PIN",
@@ -232,10 +902,11 @@ export default function SecurityView() {
       cta: cl.kycVerified ? undefined : { view: "kyc", label: "Verify KYC" },
     },
     {
-      label: "Multi-factor authentication",
-      done: false,
-      desc: "Coming soon — add an extra layer of security",
+      label: "Two-factor authentication",
+      done: !!mfa?.enabled,
+      desc: mfa?.enabled ? "Authenticator app enabled" : "Add a one-time code as a second factor",
       icon: Fingerprint,
+      mfaEnable: !mfa?.enabled,
     },
   ];
 
@@ -268,7 +939,7 @@ export default function SecurityView() {
                 </Badge>
               </div>
               <p className="max-w-xs text-xs text-muted-foreground">
-                Based on PIN, email verification, and KYC status. Complete more items to lower your risk.
+                Based on PIN, email verification, KYC status, and 2FA. Complete more items to lower your risk.
               </p>
             </div>
             <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-muted">
@@ -299,17 +970,25 @@ export default function SecurityView() {
                     <Button size="sm" variant="outline" onClick={() => setView(it.cta!.view)}>
                       {it.cta.label}
                     </Button>
-                  ) : it.label === "Multi-factor authentication" ? (
-                    <Badge variant="outline" className="text-amber-600 dark:text-amber-400">Coming soon</Badge>
-                  ) : (
+                  ) : it.done ? (
                     <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="h-3 w-3" /> Done
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-amber-600 dark:text-amber-400">
+                      Action needed
                     </Badge>
                   )}
                 </div>
               ))}
             </div>
           </Card>
+
+          {/* Passkeys */}
+          <PasskeysSection onChange={load} />
+
+          {/* MFA */}
+          <MfaSection mfa={mfa} onChanged={load} />
 
           {/* Recent security events */}
           <Card className="p-5 sm:p-6">
@@ -429,6 +1108,10 @@ export default function SecurityView() {
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
                 Review active sessions and revoke unfamiliar devices.
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                Add a passkey for passwordless sign-in.
               </li>
               <li className="flex items-start gap-2">
                 <XCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
