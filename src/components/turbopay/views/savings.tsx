@@ -30,9 +30,26 @@ import {
   TrendingUp,
   Check,
   Clock,
+  Zap,
+  Repeat,
+  Percent,
+  Trophy,
+  Calendar,
+  Calculator,
+  Trash2,
+  CircleDot,
 } from "lucide-react";
 import { naira, parseKobo, formatDate, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 
 interface SavingsProduct {
   id: string;
@@ -238,6 +255,15 @@ export default function SavingsView() {
 
       {/* Savings Goals */}
       <SavingsGoalsSection />
+
+      {/* Auto-save rules */}
+      <AutoSaveRulesSection products={data?.products ?? []} />
+
+      {/* Savings challenges */}
+      <SavingsChallengesSection totalSaved={data?.totalSaved ?? 0} />
+
+      {/* Interest projection */}
+      <InterestProjectionSection />
 
       {/* Products grid */}
       <div>
@@ -801,5 +827,655 @@ function CreateGoalDialog({ onClose, onCreate }: { onClose: () => void; onCreate
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* ================================================================== */
+/* Auto-save rules — round-up, percentage, fixed schedule              */
+/* ================================================================== */
+
+interface AutoSaveRule {
+  id: string;
+  type: string; // ROUND_UP | PERCENTAGE | FIXED
+  amountKobo: number;
+  productId: string;
+  productName: string;
+  productInterestBps: number;
+  enabled: boolean;
+  totalSavedKobo: number;
+  lastRunAt: string | null;
+  createdAt: string;
+}
+
+const RULE_TYPE_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; tone: string }> = {
+  ROUND_UP: { label: "Round-up", icon: CircleDot, tone: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" },
+  PERCENTAGE: { label: "Percentage", icon: Percent, tone: "bg-amber-500/15 text-amber-600 dark:text-amber-400" },
+  FIXED: { label: "Fixed schedule", icon: Repeat, tone: "bg-violet-500/15 text-violet-600 dark:text-violet-400" },
+};
+
+function AutoSaveRulesSection({ products }: { products: { id: string; name: string; interestBps: number }[] }) {
+  const [rules, setRules] = React.useState<AutoSaveRule[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [showCreate, setShowCreate] = React.useState(false);
+
+  const [type, setType] = React.useState<"ROUND_UP" | "PERCENTAGE" | "FIXED">("ROUND_UP");
+  const [productId, setProductId] = React.useState<string>("");
+  const [amountInput, setAmountInput] = React.useState<string>("");
+  const [frequency, setFrequency] = React.useState<"DAILY" | "WEEKLY" | "MONTHLY">("DAILY");
+  const [saving, setSaving] = React.useState(false);
+
+  const load = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/savings/auto-rules", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setRules(data.rules ?? []);
+      }
+    } catch {
+      /* swallow */
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => { load(); }, [load]);
+
+  React.useEffect(() => {
+    if (products.length > 0 && !productId) setProductId(products[0].id);
+  }, [products, productId]);
+
+  async function createRule() {
+    if (!productId) {
+      toast.error("Pick a savings product");
+      return;
+    }
+    const amountKobo = parseKobo(amountInput);
+    if (amountKobo <= 0) {
+      toast.error("Enter a valid amount");
+      return;
+    }
+    if (type === "ROUND_UP" && ![100, 500, 1000].includes(amountKobo)) {
+      toast.error("Round-up unit must be ₦1 (100), ₦5 (500) or ₦10 (1000)");
+      return;
+    }
+    if (type === "PERCENTAGE" && (amountKobo < 1 || amountKobo > 50)) {
+      toast.error("Percentage must be between 1% and 50%");
+      return;
+    }
+    if (type === "FIXED" && amountKobo < 1000) {
+      toast.error("Fixed amount must be at least ₦10");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/savings/auto-rules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, amountKobo, productId, frequency }),
+      });
+      const j = await res.json();
+      if (!res.ok) {
+        toast.error(j?.error ?? "Failed to create rule");
+        return;
+      }
+      toast.success("Auto-save rule created");
+      setShowCreate(false);
+      setAmountInput("");
+      load();
+    } catch {
+      toast.error("Network error. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleRule(rule: AutoSaveRule, enabled: boolean) {
+    setRules((arr) => arr.map((r) => r.id === rule.id ? { ...r, enabled } : r));
+    try {
+      const res = await fetch(`/api/savings/auto-rules/${rule.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      if (!res.ok) {
+        setRules((arr) => arr.map((r) => r.id === rule.id ? { ...r, enabled: !enabled } : r));
+        toast.error("Failed to update rule");
+        return;
+      }
+      toast.success(enabled ? "Rule enabled" : "Rule paused");
+    } catch {
+      setRules((arr) => arr.map((r) => r.id === rule.id ? { ...r, enabled: !enabled } : r));
+      toast.error("Network error");
+    }
+  }
+
+  async function deleteRule(rule: AutoSaveRule) {
+    const prev = rules;
+    setRules((arr) => arr.filter((r) => r.id !== rule.id));
+    try {
+      const res = await fetch(`/api/savings/auto-rules/${rule.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        setRules(prev);
+        toast.error("Failed to delete rule");
+        return;
+      }
+      toast.success("Rule deleted");
+    } catch {
+      setRules(prev);
+      toast.error("Network error");
+    }
+  }
+
+  const totalSavedAll = rules.reduce((s, r) => s + r.totalSavedKobo, 0);
+  const activeCount = rules.filter((r) => r.enabled).length;
+
+  return (
+    <Card className="p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Zap className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Auto-save rules</p>
+            <p className="text-xs text-muted-foreground">
+              Automatically sweep spare change or a fixed amount into savings.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="ghost" onClick={load} className="gap-1.5">
+            <RefreshCw className={loading ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} /> Refresh
+          </Button>
+          <Button size="sm" onClick={() => setShowCreate(true)} className="gap-1.5">
+            <Plus className="h-4 w-4" /> New rule
+          </Button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[0, 1].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+        </div>
+      ) : rules.length === 0 ? (
+        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-8 text-center">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Zap className="h-5 w-5" />
+          </div>
+          <p className="mt-3 font-medium">No auto-save rules yet</p>
+          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
+            Round up transactions, save a percentage of deposits, or stash a fixed amount on a schedule.
+          </p>
+          <Button size="sm" className="mt-4 gap-1.5" onClick={() => setShowCreate(true)}>
+            <Plus className="h-4 w-4" /> Create your first rule
+          </Button>
+        </div>
+      ) : (
+        <>
+          <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl bg-muted/40 p-3 sm:grid-cols-3">
+            <div>
+              <p className="text-[10px] text-muted-foreground">Total auto-saved</p>
+              <p className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{naira(totalSavedAll)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground">Active rules</p>
+              <p className="text-sm font-bold tabular-nums">{activeCount}/{rules.length}</p>
+            </div>
+            <div className="hidden sm:block">
+              <p className="text-[10px] text-muted-foreground">Last run</p>
+              <p className="text-sm font-medium">
+                {rules.find((r) => r.lastRunAt)?.lastRunAt ? timeAgo(rules.find((r) => r.lastRunAt)!.lastRunAt!) : "—"}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {rules.map((r) => {
+              const meta = RULE_TYPE_META[r.type] ?? RULE_TYPE_META.FIXED;
+              const Icon = meta.icon;
+              const amountLabel =
+                r.type === "ROUND_UP"
+                  ? `Round to ₦${(r.amountKobo / 100).toFixed(0)}`
+                  : r.type === "PERCENTAGE"
+                  ? `${r.amountKobo}% of deposits`
+                  : `${naira(r.amountKobo)} per run`;
+              return (
+                <div key={r.id} className={`rounded-2xl border bg-card p-4 transition-all ${r.enabled ? "" : "opacity-60"}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${meta.tone}`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold">{meta.label}</p>
+                        <p className="text-xs text-muted-foreground">{r.productName}</p>
+                      </div>
+                    </div>
+                    <Switch checked={r.enabled} onCheckedChange={(v) => toggleRule(r, v)} aria-label="Toggle rule" />
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-lg bg-muted/40 p-2">
+                      <p className="text-muted-foreground">Rule</p>
+                      <p className="font-semibold">{amountLabel}</p>
+                    </div>
+                    <div className="rounded-lg bg-muted/40 p-2">
+                      <p className="text-muted-foreground">Saved via this rule</p>
+                      <p className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{naira(r.totalSavedKobo)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground">
+                    <span>
+                      {r.lastRunAt ? `Last run ${timeAgo(r.lastRunAt)}` : "Never run"}
+                    </span>
+                    <button
+                      onClick={() => deleteRule(r)}
+                      className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-red-500/10 hover:text-red-600"
+                    >
+                      <Trash2 className="h-3 w-3" /> Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      <Dialog open={showCreate} onOpenChange={(o) => !saving && setShowCreate(o)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-primary" /> Create auto-save rule
+            </DialogTitle>
+            <DialogDescription>
+              Set up an automatic transfer to your savings product.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-2">
+              <Label>Rule type</Label>
+              <Select value={type} onValueChange={(v) => setType(v as "ROUND_UP" | "PERCENTAGE" | "FIXED")}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ROUND_UP">
+                    <div className="flex flex-col">
+                      <span>Round-up</span>
+                      <span className="text-[10px] text-muted-foreground">Round every transaction to the nearest ₦1/₦5/₦10</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="PERCENTAGE">
+                    <div className="flex flex-col">
+                      <span>Percentage of deposits</span>
+                      <span className="text-[10px] text-muted-foreground">Save X% of every incoming deposit</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="FIXED">
+                    <div className="flex flex-col">
+                      <span>Fixed amount on schedule</span>
+                      <span className="text-[10px] text-muted-foreground">Save a fixed amount daily/weekly/monthly</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>
+                {type === "ROUND_UP" ? "Round-up unit" : type === "PERCENTAGE" ? "Percentage (%)" : "Amount per run (₦)"}
+              </Label>
+              {type === "ROUND_UP" ? (
+                <div className="flex gap-2">
+                  {[100, 500, 1000].map((u) => (
+                    <button
+                      key={u}
+                      type="button"
+                      onClick={() => setAmountInput(String(u))}
+                      className={`flex-1 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+                        amountInput === String(u) ? "border-primary bg-primary/5 text-primary" : "hover:bg-muted/40"
+                      }`}
+                    >
+                      ₦{u / 100}
+                    </button>
+                  ))}
+                </div>
+              ) : type === "PERCENTAGE" ? (
+                <>
+                  <Slider value={[parseKobo(amountInput) || 5]} min={1} max={50} step={1}
+                    onValueChange={(v) => setAmountInput(String(v[0] ?? 5))} />
+                  <p className="text-center text-sm font-semibold text-primary">{parseKobo(amountInput) || 5}%</p>
+                </>
+              ) : (
+                <Input
+                  inputMode="numeric"
+                  placeholder="1000"
+                  value={amountInput}
+                  onChange={(e) => setAmountInput(e.target.value)}
+                />
+              )}
+              {type === "FIXED" && (
+                <div className="space-y-1.5">
+                  <Label>Frequency</Label>
+                  <Select value={frequency} onValueChange={(v) => setFrequency(v as "DAILY" | "WEEKLY" | "MONTHLY")}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DAILY">Daily</SelectItem>
+                      <SelectItem value="WEEKLY">Weekly</SelectItem>
+                      <SelectItem value="MONTHLY">Monthly</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Target savings product</Label>
+              <Select value={productId} onValueChange={setProductId}>
+                <SelectTrigger className="w-full"><SelectValue placeholder="Select product" /></SelectTrigger>
+                <SelectContent>
+                  {products.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name} · {(p.interestBps / 100).toFixed(1)}% p.a.
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {amountInput && parseKobo(amountInput) > 0 && (
+              <div className="rounded-xl border bg-muted/40 p-3 text-sm">
+                <p className="text-xs text-muted-foreground">Preview</p>
+                <p className="mt-0.5 font-medium">
+                  {type === "ROUND_UP" && `Every debit rounds up to ₦${(parseKobo(amountInput) / 100).toFixed(0)}; the difference goes to savings.`}
+                  {type === "PERCENTAGE" && `${parseKobo(amountInput)}% of every incoming deposit auto-saved.`}
+                  {type === "FIXED" && `${naira(parseKobo(amountInput))} moved to savings ${frequency.toLowerCase()}.`}
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowCreate(false)} disabled={saving}>Cancel</Button>
+            <Button onClick={createRule} disabled={saving} className="gap-1.5">
+              {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Create rule
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+/* ================================================================== */
+/* Savings challenges — 30-day / 90-day with community comparison      */
+/* ================================================================== */
+
+interface Challenge {
+  id: string;
+  title: string;
+  durationDays: number;
+  dailyTargetKobo: number;
+  totalTargetKobo: number;
+  participants: number;
+  avgSavedKobo: number;
+  completionRatePct: number;
+  joined: boolean;
+  progressKobo: number;
+}
+
+const CHALLENGE_SEEDS: Omit<Challenge, "joined" | "progressKobo">[] = [
+  {
+    id: "30day-starter",
+    title: "30-Day Starter",
+    durationDays: 30,
+    dailyTargetKobo: 500_00,
+    totalTargetKobo: 15_000_00,
+    participants: 8421,
+    avgSavedKobo: 12_800_00,
+    completionRatePct: 67,
+  },
+  {
+    id: "90day-builder",
+    title: "90-Day Builder",
+    durationDays: 90,
+    dailyTargetKobo: 1000_00,
+    totalTargetKobo: 90_000_00,
+    participants: 4128,
+    avgSavedKobo: 71_500_00,
+    completionRatePct: 54,
+  },
+  {
+    id: "52week-money",
+    title: "₦10K in 100 Days",
+    durationDays: 100,
+    dailyTargetKobo: 1000_00,
+    totalTargetKobo: 100_000_00,
+    participants: 2103,
+    avgSavedKobo: 64_300_00,
+    completionRatePct: 48,
+  },
+];
+
+function SavingsChallengesSection({ totalSaved }: { totalSaved: number }) {
+  const [joined, setJoined] = React.useState<Record<string, boolean>>({});
+
+  const challenges: Challenge[] = CHALLENGE_SEEDS.map((c) => ({
+    ...c,
+    joined: joined[c.id] ?? false,
+    progressKobo: joined[c.id] ? Math.min(c.totalTargetKobo, totalSaved) : 0,
+  }));
+
+  function toggleJoin(id: string) {
+    setJoined((prev) => {
+      const newState = { ...prev, [id]: !prev[id] };
+      toast.success(newState[id] ? "Challenge joined! Save daily to stay on track." : "Challenge left");
+      return newState;
+    });
+  }
+
+  return (
+    <Card className="p-5">
+      <div className="mb-4 flex items-center gap-2">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+          <Trophy className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold">Savings challenges</p>
+          <p className="text-xs text-muted-foreground">Join a community challenge and build a saving habit.</p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {challenges.map((c) => {
+          const pct = c.totalTargetKobo > 0 ? Math.min(100, Math.round((c.progressKobo / c.totalTargetKobo) * 100)) : 0;
+          const avgPct = c.totalTargetKobo > 0 ? Math.round((c.avgSavedKobo / c.totalTargetKobo) * 100) : 0;
+          return (
+            <div key={c.id} className={`rounded-2xl border bg-card p-4 transition-all ${c.joined ? "ring-1 ring-emerald-500/30" : ""}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold">{c.title}</p>
+                    {c.joined && (
+                      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 text-[9px]">
+                        Joined
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">{c.durationDays} days · {naira(c.dailyTargetKobo)}/day</p>
+                </div>
+                <Trophy className={`h-5 w-5 ${c.joined ? "text-amber-500" : "text-muted-foreground/40"}`} />
+              </div>
+
+              <div className="mt-3">
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                  <span>Target: {naira(c.totalTargetKobo)}</span>
+                  <span>{pct}%</span>
+                </div>
+                <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all duration-700"
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+                {c.joined && (
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    You: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{naira(c.progressKobo)}</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] text-muted-foreground">
+                <div className="rounded-lg bg-muted/40 p-1.5">
+                  <p className="font-semibold text-foreground">{c.participants.toLocaleString()}</p>
+                  <p>participants</p>
+                </div>
+                <div className="rounded-lg bg-muted/40 p-1.5">
+                  <p className="font-semibold text-foreground">{c.completionRatePct}%</p>
+                  <p>completion</p>
+                </div>
+              </div>
+
+              <div className="mt-2 text-[10px] text-muted-foreground">
+                Avg member saved <span className="font-semibold">{naira(c.avgSavedKobo)}</span> ({avgPct}%)
+              </div>
+
+              <Button
+                size="sm"
+                variant={c.joined ? "outline" : "default"}
+                className="mt-3 w-full gap-1.5"
+                onClick={() => toggleJoin(c.id)}
+              >
+                {c.joined ? <Check className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                {c.joined ? "Joined" : "Join challenge"}
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+/* ================================================================== */
+/* Interest projection calculator                                       */
+/* ================================================================== */
+
+function InterestProjectionSection() {
+  const [monthlyKobo, setMonthlyKobo] = React.useState<number>(20_000_00); // ₦20,000
+  const [annualRateBps, setAnnualRateBps] = React.useState<number>(1200); // 12% p.a.
+  const [years, setYears] = React.useState<number>(1);
+
+  const monthlyRate = annualRateBps / 10000 / 12;
+  const n = years * 12;
+  const fv = monthlyRate === 0
+    ? monthlyKobo * n
+    : Math.round(monthlyKobo * ((Math.pow(1 + monthlyRate, n) - 1) / monthlyRate));
+  const totalContributions = monthlyKobo * n;
+  const totalInterest = fv - totalContributions;
+
+  return (
+    <Card className="p-5">
+      <div className="mb-4 flex items-center gap-2">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Calculator className="h-5 w-5" />
+        </div>
+        <div>
+          <p className="text-sm font-semibold">Interest projection</p>
+          <p className="text-xs text-muted-foreground">See how regular saving compounds over time.</p>
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Monthly contribution</Label>
+              <span className="text-sm font-semibold text-primary tabular-nums">{naira(monthlyKobo)}</span>
+            </div>
+            <Slider
+              value={[monthlyKobo]}
+              min={1_000_00}
+              max={500_000_00}
+              step={1_000_00}
+              onValueChange={(v) => setMonthlyKobo(v[0] ?? 1_000_00)}
+            />
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { label: "₦5K", v: 5_000_00 },
+                { label: "₦20K", v: 20_000_00 },
+                { label: "₦50K", v: 50_000_00 },
+                { label: "₦100K", v: 100_000_00 },
+              ].map((chip) => (
+                <button
+                  key={chip.label}
+                  type="button"
+                  onClick={() => setMonthlyKobo(chip.v)}
+                  className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Annual interest rate</Label>
+              <span className="text-sm font-semibold text-primary tabular-nums">{(annualRateBps / 100).toFixed(1)}% p.a.</span>
+            </div>
+            <Slider
+              value={[annualRateBps]}
+              min={0}
+              max={2500}
+              step={50}
+              onValueChange={(v) => setAnnualRateBps(v[0] ?? 0)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label>Duration</Label>
+              <span className="text-sm font-semibold text-primary tabular-nums">{years} {years === 1 ? "year" : "years"}</span>
+            </div>
+            <Slider
+              value={[years]}
+              min={1}
+              max={10}
+              step={1}
+              onValueChange={(v) => setYears(v[0] ?? 1)}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col justify-center rounded-2xl bg-gradient-to-br from-emerald-500/10 to-amber-500/5 p-5">
+          <p className="text-xs text-muted-foreground">Total value after {years} {years === 1 ? "year" : "years"}</p>
+          <p className="mt-1 text-3xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+            {naira(fv)}
+          </p>
+          <div className="mt-4 space-y-1.5 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Your contributions</span>
+              <span className="font-medium tabular-nums">{naira(totalContributions)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Interest earned</span>
+              <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">+{naira(totalInterest)}</span>
+            </div>
+            <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-emerald-500"
+                style={{ width: `${totalContributions > 0 ? Math.min(100, (totalContributions / fv) * 100) : 100}%` }}
+              />
+            </div>
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              <span className="font-semibold text-foreground">{Math.round((totalContributions / Math.max(1, fv)) * 100)}%</span> contributions ·{" "}
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">{Math.round((totalInterest / Math.max(1, fv)) * 100)}%</span> interest
+            </p>
+          </div>
+          <p className="mt-4 text-[10px] text-muted-foreground">
+            Assumes monthly compounding. Actual returns depend on the savings product you choose.
+          </p>
+        </div>
+      </div>
+    </Card>
   );
 }
