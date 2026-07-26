@@ -1,7 +1,7 @@
 // TurboCore mock "turbopay" provider — implements all 11 contracts in sandbox/demo mode.
 // Used as fallback when no real provider is configured, and for development.
 
-import { ok, fail, type ProviderResult } from "../../result";
+import { ok, fail, type ProviderResult } from "../result";
 import type {
   IVirtualAccountProvider,
   ICardPaymentProvider,
@@ -14,8 +14,9 @@ import type {
   IMobileMoneyProvider,
   IExchangeRateProvider,
   IVirtualCardIssuer,
-} from "../../contracts";
-import { generateAccountNumber, generatePan, generateExpiry, encryptSecret } from "@/lib/auth";
+} from "../contracts";
+import { generateAccountNumber, generatePan, generateExpiry } from "@/lib/money";
+import { encryptSecret } from "@/lib/auth";
 import { NIGERIAN_BANKS, BILLERS, DATA_PLANS, UNIQUE_BANKS } from "@/lib/banks";
 import { NETWORKS } from "@/lib/constants";
 
