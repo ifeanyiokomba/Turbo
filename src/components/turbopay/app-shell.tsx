@@ -72,6 +72,7 @@ import {
   Store,
   Repeat,
   Zap,
+  Crown,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
@@ -96,6 +97,7 @@ const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any
       { key: "mobile-money", label: "Mobile Money", icon: Smartphone, cond: (u) => MOBILE_MONEY_COUNTRIES.has(u.country) },
       { key: "payment-links", label: "Payment Links", icon: LinkIcon },
       { key: "marketplace", label: "Marketplace", icon: Store },
+      { key: "merchant-dashboard", label: "Merchant Dashboard", icon: Crown },
       { key: "subscriptions", label: "Subscriptions", icon: Repeat },
       { key: "cards", label: "Virtual Cards", icon: CreditCard },
       { key: "savings", label: "Savings", icon: PiggyBank },
@@ -171,6 +173,7 @@ const Views: Record<ViewKey, React.LazyExoticComponent<React.ComponentType>> = {
   "help-center": React.lazy(() => import("./views/help-center")),
   achievements: React.lazy(() => import("./views/achievements")),
   marketplace: React.lazy(() => import("./views/marketplace")),
+  "merchant-dashboard": React.lazy(() => import("./views/merchant-dashboard")),
   subscriptions: React.lazy(() => import("./views/subscriptions")),
   "wallet-insights": React.lazy(() => import("./views/wallet-insights")),
   "minipay-wallet": React.lazy(() => import("./views/minipay-wallet")),
@@ -207,6 +210,7 @@ const VIEW_TITLES: Record<ViewKey, string> = {
   "help-center": "Help Center",
   achievements: "Achievements",
   marketplace: "Marketplace",
+  "merchant-dashboard": "Merchant Dashboard",
   subscriptions: "Subscriptions",
   "wallet-insights": "Wallet Insights",
   "minipay-wallet": "MiniPay Wallet",
@@ -221,7 +225,7 @@ const VALID_VIEW_KEYS = new Set<string>([
   "rewards", "support", "admin", "multi-currency", "intl-transfers", "mobile-money",
   "payment-links", "scheduled-payments", "analytics", "disputes", "vouchers", "help-center",
   "achievements", "marketplace", "subscriptions", "wallet-insights",
-  "minipay-wallet", "onchain-history", "celo-bridge",
+  "minipay-wallet", "onchain-history", "celo-bridge", "merchant-dashboard",
 ]);
 
 // MiniPay-only nav items — appended to the Financial group when minipayMode is true.

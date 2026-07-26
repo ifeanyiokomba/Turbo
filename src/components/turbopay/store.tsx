@@ -36,7 +36,8 @@ export type ViewKey =
   | "wallet-insights"
   | "minipay-wallet"
   | "onchain-history"
-  | "celo-bridge";
+  | "celo-bridge"
+  | "merchant-dashboard";
 
 export interface AppUser {
   id: string;

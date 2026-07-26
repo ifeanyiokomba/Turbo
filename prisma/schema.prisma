@@ -246,6 +246,7 @@ model SavingsProduct {
   description   String?
   createdAt      DateTime @default(now())
   transactions  SavingsTransaction[]
+  autoSaveRules AutoSaveRule[]
 }
 
 model SavingsTransaction {
@@ -262,6 +263,28 @@ model SavingsTransaction {
   createdAt     DateTime @default(now())
 
   @@index([userId, createdAt])
+}
+
+// Auto-save rule — user-configured rule that sweeps spare change or a fixed
+// amount into a savings product automatically.
+//   type       = ROUND_UP | PERCENTAGE | FIXED
+//   amountKobo = for FIXED the per-run amount; for ROUND_UP the rounding unit
+//                (100/500/1000 kobo-of-NGN = ₦1/₦5/₦10); for PERCENTAGE
+//                the percent (e.g. 5 = 5%).
+model AutoSaveRule {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           String // ROUND_UP | PERCENTAGE | FIXED
+  amountKobo     Int
+  productId      String
+  product        SavingsProduct @relation(fields: [productId], references: [id])
+  enabled        Boolean  @default(true)
+  totalSavedKobo Int      @default(0)
+  lastRunAt      DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([userId, enabled])
 }
 
 model SavingsGoal {

@@ -42,9 +42,22 @@ import {
   History,
   Database,
   Settings2,
+  Activity,
+  Gauge,
+  Zap,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Bell,
+  Inbox,
+  CircuitBoard,
 } from "lucide-react";
 import { naira, nairaCompact, formatDate, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+} from "recharts";
 import ProvidersTab from "./admin/providers-tab";
 import CapabilitiesTab from "./admin/capabilities-tab";
 import RoutingTab from "./admin/routing-tab";
@@ -491,6 +504,9 @@ export default function AdminView() {
 
         {/* Overview */}
         <TabsContent value="overview" className="mt-5 space-y-5">
+          {/* Real-time monitoring dashboard */}
+          <MonitoringDashboard />
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
             <StatCard label="Total users" value={String(data?.stats.users ?? 0)} icon={Users} tone="default" />
             <StatCard label="Transactions" value={String(data?.stats.transactions ?? 0)} icon={ArrowLeftRight} tone="default" />
@@ -1140,6 +1156,409 @@ export default function AdminView() {
           <TeamTab />
         </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+/* ================================================================== */
+/* Monitoring Dashboard — real-time KPIs, live tx feed, provider       */
+/* health, error breakdown, queue health, auto-refresh toggle           */
+/* ================================================================== */
+
+interface MonitoringData {
+  generatedAt: string;
+  system: {
+    txTodayCount: number;
+    txTodaySuccessCount: number;
+    txTodayFailedCount: number;
+    successRatePct: number;
+    avgProcessingMs: number;
+    activeUsers24h: number;
+  };
+  volume: {
+    totalTodayKobo: number;
+    feesTodayKobo: number;
+    largestTodayKobo: number;
+    largestTodayRef: string | null;
+    largestTodayUser: string | null;
+  };
+  providerHealth: {
+    code: string;
+    displayName: string;
+    enabled: boolean;
+    healthScore: number;
+    circuitState: string;
+    successRate: number;
+    avgLatencyMs: number;
+    sampleCount: number;
+  }[];
+  errorBreakdown: { label: string; count: number }[];
+  queues: {
+    pendingOutbox: number;
+    failedOutbox: number;
+    stuckTransactions: number;
+    pendingCronTasks: number;
+  };
+  alerts: {
+    unresolvedAml: number;
+    openComplianceCases: number;
+    failedWebhooks: number;
+    openAlerts: number;
+  };
+  liveFeed: {
+    id: string;
+    reference: string;
+    type: string;
+    direction: string;
+    amountKobo: number;
+    status: string;
+    createdAt: string;
+    userName: string | null;
+    userUsername: string | null;
+  }[];
+}
+
+function MonitoringDashboard() {
+  const [data, setData] = React.useState<MonitoringData | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [autoRefresh, setAutoRefresh] = React.useState(true);
+
+  const load = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/monitoring", { cache: "no-store" });
+      if (res.status === 403) return; // admin gate
+      if (res.status === 401) {
+        toast.error("Session expired. Please log in again.");
+        return;
+      }
+      if (res.ok) setData(await res.json());
+    } catch {
+      /* swallow */
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  React.useEffect(() => {
+    if (!autoRefresh) return;
+    const interval = window.setInterval(() => {
+      load();
+    }, 15_000);
+    return () => window.clearInterval(interval);
+  }, [autoRefresh, load]);
+
+  if (loading && !data) {
+    return (
+      <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+          {[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-24 rounded-2xl" />)}
+        </div>
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Skeleton className="h-72 rounded-2xl" />
+          <Skeleton className="h-72 rounded-2xl" />
+          <Skeleton className="h-72 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const successRateTone =
+    data.system.successRatePct >= 99 ? "text-emerald-600 dark:text-emerald-400"
+    : data.system.successRatePct >= 95 ? "text-amber-600 dark:text-amber-400"
+    : "text-red-600 dark:text-red-400";
+
+  const maxErrorCount = Math.max(...data.errorBreakdown.map((e) => e.count), 1);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Activity className="h-4 w-4 text-primary" />
+            {autoRefresh && (
+              <span className="absolute -right-1 -top-1 h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+            )}
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold">Real-time monitoring</h2>
+            <p className="text-[11px] text-muted-foreground">
+              Updated {timeAgo(data.generatedAt)} · {autoRefresh ? "auto-refresh every 15s" : "manual"}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <label className="flex cursor-pointer items-center gap-2 text-xs font-medium">
+            <Switch checked={autoRefresh} onCheckedChange={setAutoRefresh} aria-label="Auto-refresh" />
+            Auto-refresh
+          </label>
+          <Button size="sm" variant="ghost" onClick={load} className="gap-1.5 text-xs">
+            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Refresh now
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        <MonitoringKpi label="Today's volume" value={nairaCompact(data.volume.totalTodayKobo)} icon={TrendingUp} tone="success" hint={`${data.system.txTodayCount} tx today`} />
+        <MonitoringKpi
+          label="Success rate"
+          value={`${data.system.successRatePct.toFixed(1)}%`}
+          icon={CheckCircle2}
+          tone={data.system.successRatePct >= 99 ? "success" : data.system.successRatePct >= 95 ? "warning" : "danger"}
+          hint={`${data.system.txTodaySuccessCount}/${data.system.txTodayCount} succeeded`}
+          valueClass={successRateTone}
+        />
+        <MonitoringKpi label="Active users 24h" value={String(data.system.activeUsers24h)} icon={Users} tone="default" hint="distinct transactors" />
+        <MonitoringKpi
+          label="Avg processing"
+          value={`${data.system.avgProcessingMs}ms`}
+          icon={Clock}
+          tone={data.system.avgProcessingMs < 1500 ? "success" : "warning"}
+          hint="across providers"
+        />
+        <MonitoringKpi label="Fees collected" value={nairaCompact(data.volume.feesTodayKobo)} icon={PiggyBank} tone="success" hint="today" />
+        <MonitoringKpi
+          label="Open alerts"
+          value={String(data.alerts.openAlerts)}
+          icon={Bell}
+          tone={data.alerts.openAlerts > 0 ? "danger" : "success"}
+          hint={`${data.alerts.unresolvedAml} AML · ${data.alerts.openComplianceCases} compliance`}
+        />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="p-5 lg:col-span-1">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-amber-500" />
+              <p className="text-sm font-semibold">Live transactions</p>
+            </div>
+            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> real-time
+            </span>
+          </div>
+          <div className="max-h-96 space-y-1.5 overflow-y-auto scrollbar-thin pr-1">
+            {data.liveFeed.length > 0 ? data.liveFeed.map((t) => {
+              const isCredit = t.direction === "CREDIT";
+              return (
+                <div key={t.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-muted/40 transition-colors">
+                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                    t.status === "SUCCESS" ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    : t.status === "PENDING" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    : "bg-red-500/10 text-red-600 dark:text-red-400"
+                  }`}>
+                    {isCredit ? <CheckCircle2 className="h-3.5 w-3.5" /> : <ArrowLeftRight className="h-3.5 w-3.5" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium">
+                      {t.userName ?? "Unknown"}
+                      <span className="ml-1 text-muted-foreground">{TX_TYPE_LABELS[t.type] ?? t.type}</span>
+                    </p>
+                    <p className="truncate font-mono text-[10px] text-muted-foreground">{t.reference}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-xs font-semibold tabular-nums ${isCredit ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
+                      {isCredit ? "+" : "−"}{nairaCompact(t.amountKobo)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">{timeAgo(t.createdAt)}</p>
+                  </div>
+                </div>
+              );
+            }) : (
+              <p className="py-8 text-center text-xs text-muted-foreground">No transactions today yet.</p>
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-5 lg:col-span-1">
+          <div className="mb-3 flex items-center gap-2">
+            <Server className="h-4 w-4 text-primary" />
+            <p className="text-sm font-semibold">Provider health</p>
+            <span className="ml-auto text-[10px] text-muted-foreground">{data.providerHealth.length} providers</span>
+          </div>
+          <div className="space-y-2">
+            {data.providerHealth.length > 0 ? data.providerHealth.map((p) => {
+              const dot = p.circuitState === "OPEN"
+                ? "bg-red-500"
+                : p.circuitState === "HALF_OPEN"
+                ? "bg-amber-500"
+                : p.healthScore >= 80
+                ? "bg-emerald-500"
+                : "bg-amber-500";
+              return (
+                <div key={p.code} className="flex items-center gap-3 rounded-lg border p-2.5">
+                  <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+                    <CircuitBoard className="h-4 w-4 text-muted-foreground" />
+                    <span className={`absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-card ${dot}`} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium">{p.displayName}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {p.successRate.toFixed(1)}% · {p.avgLatencyMs}ms · {p.circuitState}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm font-bold tabular-nums ${p.healthScore >= 80 ? "text-emerald-600 dark:text-emerald-400" : p.healthScore >= 50 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"}`}>
+                      {p.healthScore}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground">/100</p>
+                  </div>
+                </div>
+              );
+            }) : (
+              <p className="py-8 text-center text-xs text-muted-foreground">No providers configured.</p>
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-5 lg:col-span-1">
+          <div className="mb-3 flex items-center gap-2">
+            <XCircle className="h-4 w-4 text-red-500" />
+            <p className="text-sm font-semibold">Top errors (24h)</p>
+            <span className="ml-auto text-[10px] text-muted-foreground">{data.system.txTodayFailedCount} failures</span>
+          </div>
+          {data.errorBreakdown.length > 0 ? (
+            <div className="space-y-2">
+              {data.errorBreakdown.map((e, i) => {
+                const pct = (e.count / maxErrorCount) * 100;
+                return (
+                  <div key={i}>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="truncate font-mono pr-2" title={e.label}>{e.label}</span>
+                      <span className="shrink-0 font-semibold tabular-nums">{e.count}</span>
+                    </div>
+                    <div className="mt-0.5 h-2 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${pct}%`,
+                          background: i === 0 ? "oklch(0.65 0.20 25)" : i === 1 ? "oklch(0.70 0.15 50)" : "oklch(0.80 0.13 75)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <CheckCircle2 className="h-8 w-8 text-emerald-500" />
+              <p className="mt-2 text-xs font-medium">No errors in the last 24h</p>
+              <p className="text-[10px] text-muted-foreground">All systems nominal.</p>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Inbox className="h-4 w-4 text-primary" />
+            <p className="text-sm font-semibold">Queue health</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <QueueCard label="Pending outbox" value={data.queues.pendingOutbox} icon={Inbox} tone={data.queues.pendingOutbox > 50 ? "warning" : "default"} hint={`${data.queues.failedOutbox} failed`} />
+            <QueueCard label="Stuck transactions" value={data.queues.stuckTransactions} icon={Clock} tone={data.queues.stuckTransactions > 0 ? "danger" : "success"} hint="PENDING > 1h" />
+            <QueueCard label="Pending cron tasks" value={data.queues.pendingCronTasks} icon={Clock} tone={data.queues.pendingCronTasks > 10 ? "warning" : "default"} hint="due now" />
+            <QueueCard label="Failed webhooks" value={data.alerts.failedWebhooks} icon={Webhook} tone={data.alerts.failedWebhooks > 0 ? "danger" : "success"} hint="endpoints failing" />
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Gauge className="h-4 w-4 text-primary" />
+            <p className="text-sm font-semibold">Largest transaction today</p>
+          </div>
+          {data.volume.largestTodayKobo > 0 ? (
+            <div className="space-y-2">
+              <p className="text-3xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                {naira(data.volume.largestTodayKobo)}
+              </p>
+              <div className="space-y-1 text-xs">
+                <p><span className="text-muted-foreground">Reference:</span> <span className="font-mono">{data.volume.largestTodayRef}</span></p>
+                <p><span className="text-muted-foreground">User:</span> {data.volume.largestTodayUser ?? "—"}</p>
+                <p><span className="text-muted-foreground">Fees collected today:</span> <span className="font-semibold tabular-nums">{naira(data.volume.feesTodayKobo)}</span></p>
+                <p><span className="text-muted-foreground">Failed today:</span> <span className="font-semibold tabular-nums">{data.system.txTodayFailedCount} tx</span></p>
+              </div>
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-muted-foreground">No transactions yet today.</p>
+          )}
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function MonitoringKpi({
+  label,
+  value,
+  icon: Icon,
+  tone,
+  hint,
+  valueClass,
+}: {
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: "default" | "success" | "warning" | "danger";
+  hint?: string;
+  valueClass?: string;
+}) {
+  const toneClass = {
+    default: "bg-muted text-muted-foreground",
+    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    danger: "bg-red-500/10 text-red-600 dark:text-red-400",
+  }[tone];
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+        <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${toneClass}`}>
+          <Icon className="h-3.5 w-3.5" />
+        </div>
+      </div>
+      <p className={`mt-2 text-xl font-bold tabular-nums ${valueClass ?? ""}`}>{value}</p>
+      {hint && <p className="mt-0.5 text-[10px] text-muted-foreground">{hint}</p>}
+    </Card>
+  );
+}
+
+function QueueCard({
+  label,
+  value,
+  icon: Icon,
+  tone,
+  hint,
+}: {
+  label: string;
+  value: number;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: "default" | "success" | "warning" | "danger";
+  hint?: string;
+}) {
+  const toneClass = {
+    default: "bg-muted text-muted-foreground",
+    success: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    danger: "bg-red-500/10 text-red-600 dark:text-red-400",
+  }[tone];
+  return (
+    <div className="rounded-xl border p-3">
+      <div className="flex items-center justify-between">
+        <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+        <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${toneClass}`}>
+          <Icon className="h-3 w-3" />
+        </div>
+      </div>
+      <p className="mt-1 text-lg font-bold tabular-nums">{value}</p>
+      {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
     </div>
   );
 }

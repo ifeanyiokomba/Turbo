@@ -44,9 +44,18 @@ import {
   Banknote,
   Smartphone,
   AlertCircle,
+  Compass,
+  Calculator,
+  Bell,
+  TrendingUp,
+  Clock,
+  Check,
+  CircleDot,
+  Loader2,
 } from "lucide-react";
-import { formatMoney, naira, timeAgo } from "@/lib/money";
+import { formatMoney, naira, nairaCompact, parseKobo, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
+import { Slider } from "@/components/ui/slider";
 
 interface CurrencyWallet {
   id: string;
@@ -179,6 +188,9 @@ export default function IntlTransfersView() {
     currency: "USD",
   });
   const [savingBen, setSavingBen] = React.useState(false);
+
+  // Tracking dialog
+  const [trackingTx, setTrackingTx] = React.useState<IntlTx | null>(null);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -766,6 +778,534 @@ export default function IntlTransfersView() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Tracking timeline dialog */}
+      <TransferTrackingDialog tx={trackingTx} onClose={() => setTrackingTx(null)} />
     </div>
+  );
+}
+
+/* ================================================================== */
+/* Corridor explorer — supported cross-border corridors                */
+/* ================================================================== */
+
+interface Corridor {
+  sourceCurrency: string;
+  targetCurrency: string;
+  rate: number;
+  rateAgeHours: number | null;
+  feeBps: number;
+  feeFixedKobo: number;
+  estimatedDeliveryHours: number;
+  provider: "wise" | "flutterwave";
+  minAmountKobo: number;
+  maxAmountKobo: number;
+  supportsBank: boolean;
+  supportsMobileWallet: boolean;
+  targetFlag: string;
+  targetName: string;
+}
+
+function CorridorExplorer() {
+  const [corridors, setCorridors] = React.useState<Corridor[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [selected, setSelected] = React.useState<Corridor | null>(null);
+  const [recipientType, setRecipientType] = React.useState<"BANK" | "WALLET">("BANK");
+
+  // Recipient-gets calculator
+  const [calcNGN, setCalcNGN] = React.useState<number>(100_000_00); // ₦100,000
+
+  const load = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/intl/corridors?base=NGN", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setCorridors(data.corridors ?? []);
+        if (!selected && (data.corridors ?? []).length > 0) {
+          setSelected(data.corridors[0]);
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [selected]);
+
+  React.useEffect(() => { load(); }, [load]);
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}
+        </div>
+        <Skeleton className="h-72 rounded-2xl" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Corridor grid */}
+      <div>
+        <div className="mb-3 flex items-center gap-2">
+          <Compass className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Supported corridors</h2>
+          <span className="text-xs text-muted-foreground">Live rates from Wise & Flutterwave</span>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {corridors.map((c) => {
+            const isSelected = selected?.targetCurrency === c.targetCurrency;
+            return (
+              <button
+                key={c.targetCurrency}
+                type="button"
+                onClick={() => { setSelected(c); setRecipientType(c.supportsBank ? "BANK" : "WALLET"); }}
+                className={`flex flex-col rounded-2xl border bg-card p-4 text-left transition-all ${
+                  isSelected ? "ring-2 ring-primary" : "hover:border-primary/40"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{c.targetFlag}</span>
+                    <div>
+                      <p className="text-sm font-semibold">{c.sourceCurrency} → {c.targetCurrency}</p>
+                      <p className="text-[10px] text-muted-foreground">{c.targetName}</p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-[9px] capitalize">{c.provider}</Badge>
+                </div>
+                <div className="mt-3 space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">1 NGN =</span>
+                    <span className="font-semibold tabular-nums">
+                      {c.rate.toLocaleString("en-NG", { maximumFractionDigits: 4 })} {c.targetCurrency}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Delivery</span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {c.estimatedDeliveryHours < 24
+                        ? `${c.estimatedDeliveryHours}h`
+                        : `${Math.ceil(c.estimatedDeliveryHours / 24)}d`}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Fee</span>
+                    <span className="font-medium tabular-nums">
+                      {(c.feeBps / 100).toFixed(2)}% + {nairaCompact(c.feeFixedKobo)}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-1.5">
+                  {c.supportsBank && (
+                    <Badge variant="secondary" className="text-[9px] gap-1">
+                      <Banknote className="h-2.5 w-2.5" /> Bank
+                    </Badge>
+                  )}
+                  {c.supportsMobileWallet && (
+                    <Badge variant="secondary" className="text-[9px] gap-1">
+                      <Smartphone className="h-2.5 w-2.5" /> Wallet
+                    </Badge>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Recipient-gets calculator */}
+      <Card className="p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Calculator className="h-4 w-4 text-primary" />
+          <div>
+            <p className="text-sm font-semibold">Recipient gets calculator</p>
+            <p className="text-xs text-muted-foreground">
+              See exactly what your recipient receives after FX spread and fees.
+            </p>
+          </div>
+        </div>
+        {selected ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>You send (NGN)</Label>
+                  <span className="text-sm font-semibold text-primary tabular-nums">{naira(calcNGN)}</span>
+                </div>
+                <Slider
+                  value={[calcNGN]}
+                  min={selected.minAmountKobo}
+                  max={Math.min(selected.maxAmountKobo, 10_000_000_00)}
+                  step={1_000_00}
+                  onValueChange={(v) => setCalcNGN(v[0] ?? selected.minAmountKobo)}
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: "₦10K", v: 10_000_00 },
+                    { label: "₦50K", v: 50_000_00 },
+                    { label: "₦100K", v: 100_000_00 },
+                    { label: "₦500K", v: 500_000_00 },
+                  ].map((chip) => (
+                    <button
+                      key={chip.label}
+                      type="button"
+                      onClick={() => setCalcNGN(chip.v)}
+                      className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Delivery method</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    disabled={!selected.supportsBank}
+                    onClick={() => setRecipientType("BANK")}
+                    className={`flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition-colors ${
+                      recipientType === "BANK" && selected.supportsBank ? "border-primary bg-primary/5 text-primary" : "hover:bg-muted/40"
+                    } ${!selected.supportsBank ? "cursor-not-allowed opacity-40" : ""}`}
+                  >
+                    <Banknote className="h-4 w-4" /> Bank account
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!selected.supportsMobileWallet}
+                    onClick={() => setRecipientType("WALLET")}
+                    className={`flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition-colors ${
+                      recipientType === "WALLET" && selected.supportsMobileWallet ? "border-primary bg-primary/5 text-primary" : "hover:bg-muted/40"
+                    } ${!selected.supportsMobileWallet ? "cursor-not-allowed opacity-40" : ""}`}
+                  >
+                    <Smartphone className="h-4 w-4" /> Mobile wallet
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5 rounded-xl bg-muted/40 p-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Min amount</span>
+                  <span className="font-medium tabular-nums">{naira(selected.minAmountKobo)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Max amount</span>
+                  <span className="font-medium tabular-nums">{naira(selected.maxAmountKobo)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Provider</span>
+                  <span className="font-medium capitalize">{selected.provider}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Est. delivery</span>
+                  <span className="font-medium">
+                    {selected.estimatedDeliveryHours < 24
+                      ? `${selected.estimatedDeliveryHours} hours`
+                      : `${Math.ceil(selected.estimatedDeliveryHours / 24)} days`}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col justify-center rounded-2xl bg-gradient-to-br from-emerald-500/10 to-amber-500/5 p-5">
+              <p className="text-xs text-muted-foreground">
+                Recipient gets ({selected.targetCurrency})
+              </p>
+              <p className="mt-1 text-3xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                {(() => {
+                  const variableFee = Math.round((calcNGN * selected.feeBps) / 10_000);
+                  const totalFee = variableFee + selected.feeFixedKobo;
+                  const netNGN = Math.max(0, calcNGN - totalFee);
+                  const recipientAmount = Math.round(netNGN * selected.rate);
+                  // Convert kobo-of-NGN to "minor of target currency" for formatMoney:
+                  // We treat the rate-multiplied value as the target's minor units (cents etc).
+                  return formatMoney(recipientAmount, selected.targetCurrency);
+                })()}
+              </p>
+              <div className="mt-4 space-y-1.5 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">You send</span>
+                  <span className="font-medium tabular-nums">{naira(calcNGN)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">FX rate</span>
+                  <span className="font-medium tabular-nums">
+                    1 NGN = {selected.rate.toLocaleString("en-NG", { maximumFractionDigits: 4 })} {selected.targetCurrency}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Variable fee</span>
+                  <span className="font-medium tabular-nums">−{nairaCompact(Math.round((calcNGN * selected.feeBps) / 10_000))}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Fixed fee</span>
+                  <span className="font-medium tabular-nums">−{nairaCompact(selected.feeFixedKobo)}</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between border-t pt-2 text-xs">
+                  <span className="text-muted-foreground">Delivery method</span>
+                  <span className="font-medium">
+                    {recipientType === "BANK" ? "🏦 Bank account" : "📱 Mobile wallet"}
+                  </span>
+                </div>
+              </div>
+              <p className="mt-4 text-[10px] text-muted-foreground">
+                Final amount may vary slightly based on the live rate at the time of transfer.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <p className="py-8 text-center text-sm text-muted-foreground">Select a corridor above.</p>
+        )}
+      </Card>
+
+      {/* Rate alert */}
+      <RateAlertCard corridors={corridors} />
+    </div>
+  );
+}
+
+/* ================================================================== */
+/* Rate alert — set a target USD/NGN rate, get notified when it hits    */
+/* ================================================================== */
+
+function RateAlertCard({ corridors }: { corridors: Corridor[] }) {
+  const [targetCurrency, setTargetCurrency] = React.useState<string>(corridors[0]?.targetCurrency ?? "USD");
+  const [targetRate, setTargetRate] = React.useState<string>("");
+  const [alerts, setAlerts] = React.useState<
+    { id: string; currency: string; targetRate: number; currentRate: number; createdAt: string; direction: "above" | "below" }[]
+  >([]);
+
+  React.useEffect(() => {
+    if (!targetCurrency && corridors.length > 0) setTargetCurrency(corridors[0].targetCurrency);
+  }, [corridors, targetCurrency]);
+
+  const currentRate = corridors.find((c) => c.targetCurrency === targetCurrency)?.rate ?? 0;
+
+  function createAlert() {
+    const rate = parseFloat(targetRate);
+    if (!Number.isFinite(rate) || rate <= 0) {
+      toast.error("Enter a valid target rate");
+      return;
+    }
+    const direction: "above" | "below" = rate > currentRate ? "above" : "below";
+    const newAlert = {
+      id: `${Date.now()}`,
+      currency: targetCurrency,
+      targetRate: rate,
+      currentRate,
+      createdAt: new Date().toISOString(),
+      direction,
+    };
+    setAlerts((prev) => [newAlert, ...prev]);
+    setTargetRate("");
+    toast.success(`Rate alert set — we'll notify you when 1 NGN ${direction} ${rate} ${targetCurrency}`);
+  }
+
+  function removeAlert(id: string) {
+    setAlerts((prev) => prev.filter((a) => a.id !== id));
+    toast.success("Rate alert removed");
+  }
+
+  return (
+    <Card className="p-5">
+      <div className="mb-4 flex items-center gap-2">
+        <Bell className="h-4 w-4 text-primary" />
+        <div>
+          <p className="text-sm font-semibold">Rate alerts</p>
+          <p className="text-xs text-muted-foreground">
+            Get notified when your target FX rate is reached.
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <div className="space-y-2">
+          <Label>Currency pair</Label>
+          <Select value={targetCurrency} onValueChange={setTargetCurrency}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {corridors.map((c) => (
+                <SelectItem key={c.targetCurrency} value={c.targetCurrency}>
+                  <span className="mr-1.5">{c.targetFlag}</span>
+                  NGN → {c.targetCurrency} ({c.rate.toLocaleString("en-NG", { maximumFractionDigits: 4 })})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Target rate (1 NGN = ?)</Label>
+          <Input
+            inputMode="decimal"
+            placeholder={currentRate > 0 ? currentRate.toFixed(4) : "0.0000"}
+            value={targetRate}
+            onChange={(e) => setTargetRate(e.target.value)}
+          />
+        </div>
+        <Button onClick={createAlert} className="gap-1.5">
+          <Plus className="h-4 w-4" /> Set alert
+        </Button>
+      </div>
+
+      {alerts.length > 0 && (
+        <div className="mt-4 space-y-2">
+          {alerts.map((a) => {
+            const wouldTrigger = a.direction === "above" ? a.currentRate >= a.targetRate : a.currentRate <= a.targetRate;
+            return (
+              <div key={a.id} className="flex items-center gap-3 rounded-xl border p-3">
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                  wouldTrigger ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                }`}>
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">
+                    Notify when 1 NGN <span className="font-bold">{a.direction}</span> {a.targetRate} {a.currency}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Current: {a.currentRate.toLocaleString("en-NG", { maximumFractionDigits: 4 })} ·{" "}
+                    {wouldTrigger
+                      ? <span className="text-emerald-600 dark:text-emerald-400 font-medium">Triggered!</span>
+                      : <span>Waiting ({timeAgo(a.createdAt)})</span>}
+                  </p>
+                </div>
+                <button
+                  onClick={() => removeAlert(a.id)}
+                  className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-red-500/10 hover:text-red-600"
+                  aria-label="Remove alert"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+/* ================================================================== */
+/* Transfer tracking timeline dialog                                    */
+/* ================================================================== */
+
+const TRACKING_STAGES = [
+  { key: "INITIATED", label: "Initiated", icon: CircleDot, description: "Transfer created" },
+  { key: "PIN_VERIFIED", label: "PIN verified", icon: Check, description: "Authorization confirmed" },
+  { key: "PROVIDER_CALLED", label: "Provider called", icon: Loader2, description: "FX provider notified" },
+  { key: "IN_TRANSIT", label: "In transit", icon: Plane, description: "Funds moving across borders" },
+  { key: "DELIVERED", label: "Delivered", icon: CheckCircle2, description: "Recipient paid" },
+] as const;
+
+function TransferTrackingDialog({ tx, onClose }: { tx: IntlTx | null; onClose: () => void }) {
+  if (!tx) return null;
+
+  // Determine the furthest stage reached based on status + state.
+  function stageIndex(): number {
+    if (tx.status === "SUCCESS") return 4; // DELIVERED
+    if (tx.status === "FAILED") return 2; // stopped at PROVIDER_CALLED
+    if (tx.state === "INITIATED") return 0;
+    if (tx.state === "PIN_VERIFIED") return 1;
+    if (tx.state === "SETTLED") return 4;
+    return 1;
+  }
+
+  const currentIdx = stageIndex();
+  const failed = tx.status === "FAILED";
+
+  return (
+    <Dialog open={!!tx} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Plane className="h-4 w-4 text-primary" /> Transfer tracking
+          </DialogTitle>
+          <DialogDescription>
+            Reference <span className="font-mono">{tx.reference}</span>
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-3 py-2">
+          {/* Summary */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-lg bg-muted/40 p-2">
+              <p className="text-muted-foreground">Amount</p>
+              <p className="font-semibold tabular-nums">{naira(tx.amountKobo)}</p>
+            </div>
+            <div className="rounded-lg bg-muted/40 p-2">
+              <p className="text-muted-foreground">Recipient</p>
+              <p className="truncate font-medium">{tx.counterpartyName ?? "—"}</p>
+            </div>
+            <div className="rounded-lg bg-muted/40 p-2">
+              <p className="text-muted-foreground">Bank / Wallet</p>
+              <p className="truncate font-medium">{tx.counterpartyBank ?? "—"}</p>
+            </div>
+            <div className="rounded-lg bg-muted/40 p-2">
+              <p className="text-muted-foreground">Provider</p>
+              <p className="truncate font-medium capitalize">{tx.provider ?? "—"}</p>
+            </div>
+          </div>
+
+          {/* Timeline */}
+          <div className="rounded-xl border p-3">
+            <p className="mb-3 text-xs font-semibold text-muted-foreground">Delivery timeline</p>
+            <ol className="relative space-y-3">
+              {TRACKING_STAGES.map((stage, idx) => {
+                const Icon = stage.icon;
+                const reached = idx <= currentIdx;
+                const isFailed = failed && idx === currentIdx;
+                const isCurrent = idx === currentIdx && !failed;
+                return (
+                  <li key={stage.key} className="flex items-start gap-3">
+                    <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                      isFailed
+                        ? "bg-red-500/15 text-red-600 dark:text-red-400"
+                        : reached
+                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                        : "bg-muted text-muted-foreground"
+                    }`}>
+                      <Icon className={`h-3.5 w-3.5 ${isCurrent ? "animate-pulse" : ""}`} />
+                    </div>
+                    <div className="flex-1 pt-0.5">
+                      <p className={`text-xs font-medium ${reached ? "" : "text-muted-foreground"}`}>
+                        {stage.label}
+                        {isCurrent && !failed && (
+                          <span className="ml-1.5 inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400">
+                            <Clock className="h-2.5 w-2.5" /> in progress
+                          </span>
+                        )}
+                        {isFailed && (
+                          <span className="ml-1.5 text-[10px] text-red-600 dark:text-red-400 font-semibold">failed</span>
+                        )}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">{stage.description}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Initiated {timeAgo(tx.createdAt)}</span>
+            <Badge
+              variant={tx.status === "SUCCESS" ? "secondary" : tx.status === "PENDING" ? "outline" : "destructive"}
+              className="text-[10px]"
+            >
+              {tx.status}
+            </Badge>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} className="gap-1.5">
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Slider } from "@/components/ui/slider";
 import {
   Select,
@@ -31,6 +32,7 @@ import {
   TrendingUp, TrendingDown, ArrowDownLeft, ArrowUpRight, Activity,
   Calendar, Clock, Users, BarChart3, Wallet, Zap, Trophy,
   Target, Plus, Trash2, AlertTriangle, RefreshCw, PiggyBank,
+  Gauge, Flame, Crown, Scale, ArrowUp, ArrowDown, Minus, Sparkles,
 } from "lucide-react";
 import { naira, nairaCompact, timeAgo, parseKobo } from "@/lib/money";
 import { PageHeader, EmptyState } from "../parts/layout";
@@ -63,6 +65,7 @@ const TYPE_LABELS: Record<string, string> = {
 export default function AnalyticsView() {
   const [data, setData] = React.useState<AnalyticsData | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [period, setPeriod] = React.useState<"30d" | "90d" | "1y">("30d");
 
   React.useEffect(() => {
     (async () => {
@@ -115,6 +118,9 @@ export default function AnalyticsView() {
           </Badge>
         }
       />
+
+      {/* Advanced analytics — Financial Health Score + Period selector + trends + peer comparison + day-of-month */}
+      <AdvancedAnalyticsSection period={period} onPeriodChange={setPeriod} />
 
       {/* Budgets section */}
       <BudgetsSection />
@@ -1092,4 +1098,498 @@ function formatHeatDate(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
   if (isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+}
+
+/* ================================================================== */
+/* Advanced analytics — Financial Health Score, period selector,      */
+/* category trends, peer comparison, day-of-month heat strip          */
+/* ================================================================== */
+
+interface AdvancedData {
+  period: string;
+  generatedAt: string;
+  cashFlow: {
+    totalIncome: number;
+    totalExpense: number;
+    netFlow: number;
+    byCategory: { category: string; label: string; income: number; expense: number; net: number }[];
+  };
+  spendingVelocity: {
+    avgDailySpend: number;
+    thisWeekSpend: number;
+    lastWeekSpend: number;
+    weekChangePct: number;
+    thisMonthSpend: number;
+    lastMonthSpend: number;
+    monthChangePct: number;
+  };
+  financialHealth: {
+    score: number;
+    letterGrade: string;
+    factors: { key: string; label: string; points: number; maxPoints: number; detail: string }[];
+  };
+  predictions: {
+    projectedMonthEndBalance: number;
+    projectedMonthlySavings: number;
+    projectedMonthIncome: number;
+    projectedMonthExpense: number;
+    burnRateDays: number | null;
+    netDailyFlow: number;
+  };
+  topMerchants: { name: string; count: number; total: number }[];
+  categoryTrends: {
+    category: string;
+    label: string;
+    thisMonthKobo: number;
+    lastMonthKobo: number;
+    changePct: number;
+    direction: "up" | "down" | "flat";
+  }[];
+  dayOfMonthSpend: { day: number; total: number }[];
+  peerComparison: {
+    monthlySpend: { you: number; peer: number; diffPct: number; label: string; better: boolean };
+    airtime: { you: number; peer: number; diffPct: number; label: string; better: boolean };
+    bills: { you: number; peer: number; diffPct: number; label: string; better: boolean };
+    savingsRate: { you: number; peer: number; diffPct: number; label: string; better: boolean };
+  };
+  currentBalanceKobo: number;
+  savingsBalanceKobo: number;
+  txCount: number;
+}
+
+const PERIOD_OPTIONS: { value: "30d" | "90d" | "1y"; label: string }[] = [
+  { value: "30d", label: "30 days" },
+  { value: "90d", label: "90 days" },
+  { value: "1y", label: "1 year" },
+];
+
+function gradeColor(grade: string): { text: string; ring: string; bg: string } {
+  switch (grade) {
+    case "A":
+      return { text: "text-emerald-600 dark:text-emerald-400", ring: "oklch(0.62 0.14 162)", bg: "bg-emerald-500/10" };
+    case "B":
+      return { text: "text-emerald-600 dark:text-emerald-400", ring: "oklch(0.65 0.12 155)", bg: "bg-emerald-500/10" };
+    case "C":
+      return { text: "text-amber-600 dark:text-amber-400", ring: "oklch(0.80 0.13 75)", bg: "bg-amber-500/10" };
+    case "D":
+      return { text: "text-amber-600 dark:text-amber-400", ring: "oklch(0.70 0.15 50)", bg: "bg-amber-500/10" };
+    default:
+      return { text: "text-red-600 dark:text-red-400", ring: "oklch(0.65 0.20 25)", bg: "bg-red-500/10" };
+  }
+}
+
+function AdvancedAnalyticsSection({
+  period,
+  onPeriodChange,
+}: {
+  period: "30d" | "90d" | "1y";
+  onPeriodChange: (p: "30d" | "90d" | "1y") => void;
+}) {
+  const [data, setData] = React.useState<AdvancedData | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    (async () => {
+      try {
+        const res = await fetch(`/api/analytics/advanced?period=${period}`, { cache: "no-store" });
+        if (res.ok && !cancelled) setData(await res.json());
+      } catch {
+        /* non-fatal */
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [period]);
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="grid gap-4 lg:grid-cols-3">
+          <Skeleton className="h-56 rounded-2xl lg:col-span-1" />
+          <Skeleton className="h-56 rounded-2xl lg:col-span-2" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Skeleton className="h-48 rounded-2xl" />
+          <Skeleton className="h-48 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  const health = data.financialHealth;
+  const grade = gradeColor(health.letterGrade);
+  const circumference = 2 * Math.PI * 56; // r=56
+  const dashOffset = circumference * (1 - Math.max(0, Math.min(100, health.score)) / 100);
+
+  // Day-of-month heat strip
+  const maxDaySpend = Math.max(...data.dayOfMonthSpend.map((d) => d.total), 1);
+  const dayColor = (total: number) => {
+    if (total <= 0) return "var(--muted)";
+    const ratio = total / maxDaySpend;
+    if (ratio > 0.75) return "oklch(0.45 0.11 162)";
+    if (ratio > 0.5) return "oklch(0.62 0.14 162)";
+    if (ratio > 0.25) return "oklch(0.78 0.10 162)";
+    return "oklch(0.92 0.04 162)";
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Period selector row */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h2 className="text-sm font-semibold">Advanced insights</h2>
+          <span className="text-xs text-muted-foreground">
+            · {data.txCount} transactions · updated {timeAgo(data.generatedAt)}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 rounded-full border bg-card p-1">
+          {PERIOD_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onPeriodChange(opt.value)}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                period === opt.value
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Top row: Financial Health Score + Predictions + Cash flow */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* Financial Health Score — circular ring + 4 factors */}
+        <Card className="p-5 lg:col-span-1">
+          <div className="mb-3 flex items-center gap-2">
+            <Gauge className="h-4 w-4 text-primary" />
+            <p className="text-sm font-semibold">Financial health score</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="relative h-32 w-32 shrink-0">
+              <svg className="h-32 w-32 -rotate-90" viewBox="0 0 128 128">
+                <circle cx="64" cy="64" r="56" fill="none" stroke="var(--muted)" strokeWidth="10" />
+                <circle
+                  cx="64" cy="64" r="56" fill="none"
+                  stroke={grade.ring}
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={dashOffset}
+                  className="transition-all duration-1000"
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={`text-3xl font-bold ${grade.text}`}>{health.score}</span>
+                <span className="text-[10px] text-muted-foreground">/ 100</span>
+                <span className={`mt-0.5 rounded-full px-2 py-0.5 text-xs font-bold ${grade.bg} ${grade.text}`}>
+                  Grade {health.letterGrade}
+                </span>
+              </div>
+            </div>
+            <div className="flex-1 space-y-2">
+              {health.factors.map((f) => {
+                const pct = Math.round((f.points / f.maxPoints) * 100);
+                return (
+                  <div key={f.key}>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-medium">{f.label}</span>
+                      <span className="text-muted-foreground tabular-nums">{f.points}/{f.maxPoints}</span>
+                    </div>
+                    <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{
+                          width: `${Math.max(0, Math.min(100, pct))}%`,
+                          background: pct >= 70 ? "oklch(0.62 0.14 162)" : pct >= 40 ? "oklch(0.80 0.13 75)" : "oklch(0.65 0.18 25)",
+                        }}
+                      />
+                    </div>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">{f.detail}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </Card>
+
+        {/* Predictions */}
+        <Card className="p-5 lg:col-span-1">
+          <div className="mb-3 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-primary" />
+            <p className="text-sm font-semibold">30-day forecast</p>
+          </div>
+          <div className="space-y-3">
+            <div className="rounded-xl bg-emerald-500/5 p-3">
+              <p className="text-xs text-muted-foreground">Projected month-end balance</p>
+              <p className="mt-0.5 text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                {naira(data.predictions.projectedMonthEndBalance)}
+              </p>
+              <p className="mt-0.5 text-[10px] text-muted-foreground">
+                Current {naira(data.currentBalanceKobo)} · net/day{" "}
+                <span className={data.predictions.netDailyFlow >= 0 ? "text-emerald-600" : "text-red-500"}>
+                  {data.predictions.netDailyFlow >= 0 ? "+" : "−"}
+                  {nairaCompact(Math.abs(data.predictions.netDailyFlow))}
+                </span>
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg bg-muted/40 p-2">
+                <p className="text-[10px] text-muted-foreground">Projected income</p>
+                <p className="text-sm font-semibold tabular-nums">{nairaCompact(data.predictions.projectedMonthIncome)}</p>
+              </div>
+              <div className="rounded-lg bg-muted/40 p-2">
+                <p className="text-[10px] text-muted-foreground">Projected savings</p>
+                <p className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                  {nairaCompact(data.predictions.projectedMonthlySavings)}
+                </p>
+              </div>
+            </div>
+            {data.predictions.burnRateDays !== null && (
+              <div className="flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/5 p-2 text-xs text-red-600 dark:text-red-400">
+                <Flame className="h-3.5 w-3.5 shrink-0" />
+                <span>
+                  At current pace, funds run out in{" "}
+                  <span className="font-bold">{data.predictions.burnRateDays} days</span>.
+                </span>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Peer comparison */}
+        <Card className="p-5 lg:col-span-1">
+          <div className="mb-3 flex items-center gap-2">
+            <Scale className="h-4 w-4 text-primary" />
+            <p className="text-sm font-semibold">You vs average Turbopay user</p>
+          </div>
+          <div className="space-y-2">
+            {[
+              data.peerComparison.monthlySpend,
+              data.peerComparison.airtime,
+              data.peerComparison.bills,
+              data.peerComparison.savingsRate,
+            ].map((m, i) => (
+              <div key={i} className="rounded-lg border p-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium">{m.label}</span>
+                  <span className={`font-semibold tabular-nums ${m.better ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+                    {m.diffPct > 0 ? "+" : ""}{m.diffPct}% vs peer
+                  </span>
+                </div>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span>You</span>
+                      <span>Peer</span>
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-1">
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{ width: `${Math.min(100, (m.you / Math.max(1, Math.max(m.you, m.peer))) * 100)}%` }}
+                        />
+                      </div>
+                      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-muted-foreground/40"
+                          style={{ width: `${Math.min(100, (m.peer / Math.max(1, Math.max(m.you, m.peer))) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-1 text-[10px] text-muted-foreground tabular-nums">
+                  You: {m.label === "Savings rate" ? `${m.you}%` : nairaCompact(m.you)} · Peer:{" "}
+                  {m.label === "Savings rate" ? `${m.peer}%` : nairaCompact(m.peer)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Category trends (MoM up/down) */}
+      <Card className="p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Activity className="h-4 w-4 text-primary" />
+          <p className="text-sm font-semibold">Category trends — month over month</p>
+          <span className="ml-auto text-xs text-muted-foreground">{data.categoryTrends.length} categories tracked</span>
+        </div>
+        {data.categoryTrends.length > 0 ? (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {data.categoryTrends.slice(0, 9).map((c) => {
+              const Icon = c.direction === "up" ? ArrowUp : c.direction === "down" ? ArrowDown : Minus;
+              const tone =
+                c.direction === "up"
+                  ? "text-red-600 dark:text-red-400 bg-red-500/10"
+                  : c.direction === "down"
+                  ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+                  : "text-muted-foreground bg-muted";
+              return (
+                <div key={c.category} className="flex items-center gap-3 rounded-xl border p-3">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${tone}`}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{c.label}</p>
+                    <p className="text-[11px] text-muted-foreground tabular-nums">
+                      {nairaCompact(c.thisMonthKobo)} this month
+                      {c.lastMonthKobo > 0 && (
+                        <> · {nairaCompact(c.lastMonthKobo)} last</>
+                      )}
+                    </p>
+                  </div>
+                  <span className={`text-xs font-semibold tabular-nums ${tone.split(" ")[0]}`}>
+                    {c.changePct > 0 ? "+" : ""}{c.changePct}%
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Not enough history to compute month-over-month trends yet.
+          </p>
+        )}
+      </Card>
+
+      {/* Day-of-month heat strip */}
+      <Card className="p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-primary" />
+          <div>
+            <p className="text-sm font-semibold">Spending by day of month</p>
+            <p className="text-xs text-muted-foreground">
+              See which days of the month you spend most — helps spot pay-cycle patterns.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-end gap-0.5 overflow-x-auto scrollbar-thin pb-1">
+          {data.dayOfMonthSpend.map((d) => (
+            <div key={d.day} className="group relative flex-1 min-w-[14px]">
+              <div
+                className="w-full rounded-t-sm transition-all hover:opacity-80"
+                style={{
+                  height: `${Math.max(4, (d.total / maxDaySpend) * 70)}px`,
+                  background: dayColor(d.total),
+                }}
+              />
+              <div className="absolute -top-7 left-1/2 z-10 -translate-x-1/2 rounded bg-popover px-1.5 py-0.5 text-[10px] opacity-0 shadow group-hover:opacity-100 whitespace-nowrap">
+                Day {d.day} · {nairaCompact(d.total)}
+              </div>
+              {(d.day === 1 || d.day % 5 === 0) && (
+                <span className="mt-1 block text-center text-[9px] text-muted-foreground">{d.day}</span>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="mt-3 flex items-center justify-end gap-1.5 text-[10px] text-muted-foreground">
+          <span>Less</span>
+          {["var(--muted)", "oklch(0.92 0.04 162)", "oklch(0.78 0.10 162)", "oklch(0.62 0.14 162)", "oklch(0.45 0.11 162)"].map((bg, i) => (
+            <span key={i} className="h-[11px] w-[11px] rounded-[2px]" style={{ background: bg }} />
+          ))}
+          <span>More</span>
+        </div>
+      </Card>
+
+      {/* Top merchants + cash flow velocity summary */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Crown className="h-4 w-4 text-amber-500" />
+            <p className="text-sm font-semibold">Top 5 merchants</p>
+          </div>
+          {data.topMerchants.length > 0 ? (
+            <div className="space-y-2">
+              {data.topMerchants.map((m, i) => {
+                const maxTotal = data.topMerchants[0].total;
+                return (
+                  <div key={m.name} className="flex items-center gap-3">
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+                      i === 0 ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                      : i === 1 ? "bg-muted text-muted-foreground"
+                      : "bg-muted/60 text-muted-foreground"
+                    }`}>
+                      {i + 1}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="truncate text-sm font-medium">{m.name}</p>
+                        <p className="text-sm font-semibold tabular-nums">{naira(m.total)}</p>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                          <div className="h-full rounded-full tp-amber-grad" style={{ width: `${(m.total / maxTotal) * 100}%` }} />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">{m.count} tx</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-muted-foreground">No merchant activity in this period</p>
+          )}
+        </Card>
+
+        <Card className="p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Zap className="h-4 w-4 text-primary" />
+            <p className="text-sm font-semibold">Spending velocity</p>
+          </div>
+          <div className="space-y-3">
+            <div className="rounded-xl bg-muted/40 p-3">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Avg daily spend</span>
+                <span className="font-bold tabular-nums">{naira(data.spendingVelocity.avgDailySpend)}</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg border p-3">
+                <p className="text-[10px] text-muted-foreground">This week</p>
+                <p className="mt-0.5 text-sm font-bold tabular-nums">{nairaCompact(data.spendingVelocity.thisWeekSpend)}</p>
+                {data.spendingVelocity.weekChangePct !== 0 && (
+                  <p className={`text-[10px] ${data.spendingVelocity.weekChangePct > 0 ? "text-red-500" : "text-emerald-500"}`}>
+                    {data.spendingVelocity.weekChangePct > 0 ? "↑" : "↓"} {Math.abs(data.spendingVelocity.weekChangePct)}% vs last week
+                  </p>
+                )}
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-[10px] text-muted-foreground">This month</p>
+                <p className="mt-0.5 text-sm font-bold tabular-nums">{nairaCompact(data.spendingVelocity.thisMonthSpend)}</p>
+                {data.spendingVelocity.monthChangePct !== 0 && (
+                  <p className={`text-[10px] ${data.spendingVelocity.monthChangePct > 0 ? "text-red-500" : "text-emerald-500"}`}>
+                    {data.spendingVelocity.monthChangePct > 0 ? "↑" : "↓"} {Math.abs(data.spendingVelocity.monthChangePct)}% vs last month
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Net cash flow ({period})</span>
+                <span className={`font-bold tabular-nums ${data.cashFlow.netFlow >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                  {data.cashFlow.netFlow >= 0 ? "+" : "−"}{nairaCompact(Math.abs(data.cashFlow.netFlow))}
+                </span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                <span>Income: {nairaCompact(data.cashFlow.totalIncome)}</span>
+                <span>Expense: {nairaCompact(data.cashFlow.totalExpense)}</span>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
 }
