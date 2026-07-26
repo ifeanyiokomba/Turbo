@@ -77,8 +77,9 @@ import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { timeAgo } from "@/lib/money";
 import { cn } from "@/lib/utils";
-import { isMiniPay, getMiniPayAddress } from "@/lib/minipay";
-import { useAutoConnect } from "@/hooks/use-auto-connect";
+// MiniPay runtime detection disabled — standalone mode. Celo foundation kept dormant.
+// import { isMiniPay, getMiniPayAddress } from "@/lib/minipay";
+// import { useAutoConnect } from "@/hooks/use-auto-connect";
 
 const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any; cond?: (user: { country: string }) => boolean }[] }[] = [
   {
@@ -278,7 +279,7 @@ const TONE_CLASSES: Record<string, string> = {
 
 export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.getState>["user"]> }) {
   const router = useRouter();
-  const { view, setView, sidebarOpen, setSidebarOpen, minipayMode, setMinipayMode, celoAddress, setCeloAddress } = useApp();
+  const { view, setView, sidebarOpen, setSidebarOpen } = useApp();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
@@ -288,45 +289,11 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
   const [loadingNotifs, setLoadingNotifs] = React.useState(false);
   const [markingAll, setMarkingAll] = React.useState(false);
 
-  // MiniPay auto-connect — runs the wagmi injected connector on mount when
-  // inside MiniPay (MiniPay has no connect button; apps must auto-connect).
-  useAutoConnect();
-
-  // MiniPay detection — check on mount, link the address if detected.
-  React.useEffect(() => {
-    if (!isMiniPay()) return;
-    setMinipayMode(true);
-    let cancelled = false;
-    (async () => {
-      try {
-        const addr = await getMiniPayAddress();
-        if (cancelled) return;
-        if (addr) {
-          setCeloAddress(addr);
-          // Best-effort: link the address server-side so /api/celo/* routes see it.
-          try {
-            await fetch(`/api/celo/wallet?address=${encodeURIComponent(addr)}`, { cache: "no-store" });
-          } catch {
-            /* non-fatal — view will retry on its own */
-          }
-        }
-      } catch {
-        /* ignore — user can still navigate to MiniPay views manually */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [setMinipayMode, setCeloAddress]);
-
-  // Default to the MiniPay wallet view when entering MiniPay mode (one-shot).
-  const didDefaultRef = React.useRef(false);
-  React.useEffect(() => {
-    if (minipayMode && !didDefaultRef.current && (view === "dashboard" || !view)) {
-      didDefaultRef.current = true;
-      setView("minipay-wallet");
-    }
-  }, [minipayMode, view, setView]);
+  // MiniPay integration is dormant (standalone mode).
+  // The Celo/wagmi foundation remains in the codebase for future blockchain features,
+  // but runtime detection is disabled — the app runs as a standalone Turbopay wallet.
+  // useAutoConnect(); // disabled — standalone mode
+  // MiniPay detection effect removed — minipayMode stays false, MiniPay nav items hidden.
 
   // Command palette (Cmd+K / Ctrl+K)
   const [cmdOpen, setCmdOpen] = React.useState(false);
@@ -461,6 +428,9 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
 
   const CurrentView = Views[view];
   const initials = user.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
+  // MiniPay nav items are dormant (standalone mode) — minipayMode is always false.
+  const minipayMode = false;
+  const celoAddress: string | null = null;
   // Compute nav groups — when minipayMode is on, inject the MiniPay nav items
   // into the Financial group so they appear in the sidebar.
   const navGroups = React.useMemo(() => {
@@ -471,7 +441,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
         ? { ...g, items: [...g.items, ...MINIPAY_NAV_ITEMS] }
         : g,
     );
-  }, [user.role, minipayMode]);
+  }, [user.role]);
 
   const renderSidebarContent = (opts: { collapsed: boolean; onToggleCollapse?: () => void }) => {
     const { collapsed: c, onToggleCollapse } = opts;

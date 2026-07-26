@@ -91,6 +91,14 @@ const REAL_PROVIDERS: { code: string; file: string; contracts: { name: ContractN
     ],
   },
   {
+    code: "paga",
+    file: "./paga.adapter",
+    contracts: [
+      { name: ContractName.MOBILE_MONEY, exportName: "pagaMobileMoney" },
+      { name: ContractName.BILL_PAYMENT, exportName: "pagaBillPayment" },
+    ],
+  },
+  {
     code: "wise",
     file: "./wise.adapter",
     contracts: [

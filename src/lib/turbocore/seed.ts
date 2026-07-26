@@ -16,6 +16,7 @@ export async function seedTurboCore(): Promise<void> {
     { code: "baxi", displayName: "Baxi (Interswitch)", sandbox: false, enabled: true, priority: 70 },
     { code: "remita", displayName: "Remita", sandbox: false, enabled: true, priority: 60 },
     { code: "quickteller", displayName: "Quickteller", sandbox: false, enabled: true, priority: 65 },
+    { code: "paga", displayName: "Paga", sandbox: false, enabled: true, priority: 72 },
     { code: "mpesa", displayName: "M-Pesa", sandbox: false, enabled: true, priority: 90 },
     { code: "mtn_momo", displayName: "MTN MoMo", sandbox: false, enabled: true, priority: 80 },
     { code: "airtel_money", displayName: "Airtel Money", sandbox: false, enabled: true, priority: 78 },
@@ -58,6 +59,10 @@ export async function seedTurboCore(): Promise<void> {
     // Quickteller — NG bills + airtime
     { providerCode: "quickteller", contract: "BILL_PAYMENT", country: "NG", currency: "NGN", direction: "OUTBOUND", minAmountMinor: 1000, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 1500, settleHours: 0 },
     { providerCode: "quickteller", contract: "AIRTIME", country: "NG", currency: "NGN", direction: "OUTBOUND", minAmountMinor: 5000, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    // Paga — NG mobile money + bills
+    { providerCode: "paga", contract: "MOBILE_MONEY", country: "NG", currency: "NGN", direction: "INBOUND", minAmountMinor: 1000, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "paga", contract: "MOBILE_MONEY", country: "NG", currency: "NGN", direction: "OUTBOUND", minAmountMinor: 1000, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
+    { providerCode: "paga", contract: "BILL_PAYMENT", country: "NG", currency: "NGN", direction: "OUTBOUND", minAmountMinor: 1000, maxAmountMinor: 5000000, feeBps: 0, feeFixedMinor: 1000, settleHours: 0 },
     // M-Pesa — KE mobile money
     { providerCode: "mpesa", contract: "MOBILE_MONEY", country: "KE", currency: "KES", direction: "INBOUND", minAmountMinor: 1000, maxAmountMinor: 500000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
     { providerCode: "mpesa", contract: "MOBILE_MONEY", country: "KE", currency: "KES", direction: "OUTBOUND", minAmountMinor: 1000, maxAmountMinor: 500000, feeBps: 0, feeFixedMinor: 0, settleHours: 0 },
