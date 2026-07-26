@@ -1109,3 +1109,24 @@ Files modified:
 - src/components/turbopay/views/security.tsx (Passkeys card + MFA card with 3-step setup wizard + disable/view-codes flows; risk score includes MFA; checklist MFA item now live)
 - src/lib/webauthn-challenge.ts (removed duplicate trailing block from earlier agent's failed edit)
 Lint: 0 errors, 0 warnings. tsc: 0 errors in SEC-1 files.
+
+---
+Task ID: SEC-FINAL
+Agent: main (orchestrator) + 3 parallel subagents (SEC-1, SEC-2, SEC-3)
+Task: Align with TurboPay spec — Passkeys, MFA, rate limiting, CORS, Sentry, Docker deployment
+
+Work Log:
+- Fixed server 500 (jsqr missing dep — installed).
+- Installed packages: @simplewebauthn/server + @simplewebauthn/browser (WebAuthn), otpauth (TOTP), @sentry/nextjs (monitoring).
+- Added 2 Prisma models: Passkey (credentialId, publicKey, counter, deviceName, transports), MfaSecret (encrypted TOTP secret, backup codes). 76 models total.
+- Task SEC-1 (Passkeys + MFA): WebAuthn passkey registration/authentication (6 APIs: register options/verify, authenticate options/verify, list, delete; @simplewebauthn/server v13 with platform authenticators; challenge store with 5-min TTL). TOTP MFA (5 APIs: setup with QR URI, verify + enable + generate backup codes, disable with password, status, regenerate codes; otpauth library + AES-256-GCM encrypted secret + scrypt-hashed backup codes). Security view enhanced with Passkeys card (list + add + delete) + MFA 3-step wizard (QR scan → verify → backup codes). Auth screen has "Sign in with Passkey" button.
+- Task SEC-2 (Rate limiting + CORS + Sentry): Sliding-window rate limiter (in-memory Map with auto-cleanup, 7 endpoint configs: login 10/min, register 5/hr, transfer/airtime/bills 20/min, pin 10/min, otp 5/5min). Applied to 7 API routes. CORS + 8 security headers in next.config.ts (X-Frame-Options DENY, X-Content-Type-Options nosniff, HSTS preload, CSP, Permissions-Policy, Referrer-Policy). OPTIONS preflight handler in middleware.ts. Sentry client/server/edge configs (DSN-gated, 10% traces, 1% session replay, 100% error replay). Security audit endpoint (9 checks: scrypt passwords, session secret, CORS, rate limiting, WebAuthn, TOTP, card encryption, cookie security, Sentry).
+- Task SEC-3 (Docker + deployment): Multi-stage Dockerfile (Bun Alpine, ~150MB, standalone, non-root user, healthcheck). docker-compose.yml (turbopay + postgres:16 + redis:7 with volumes + healthchecks). .env.example (comprehensive: DB, auth secrets, CORS, Sentry, Redis, 18 payment providers, KYC, notifications, international, treasury, WebAuthn, cron). Caddyfile.prod (TLS termination + security headers + gzip). Health endpoint GET /api/health (public, DB connectivity check, 200/503). DEPLOYMENT.md (10-section guide: dev, Docker, Vercel, env setup, SQLite→Postgres migration, security checklist, provider setup, health monitoring, Caddy, troubleshooting).
+- Verified: Health API 200 (DB connected), Passkey list 200, MFA status 200, Security audit 200 (9 checks), Security view shows "Security Center" with Passkeys + MFA/2FA sections, 0 runtime errors.
+
+Stage Summary:
+- 76 Prisma models, 163 API routes, 35 views, 17 provider adapters, 14 admin tabs
+- Security: scrypt passwords, WebAuthn passkeys, TOTP MFA with backup codes, rate limiting, CORS, security headers (HSTS/CSP/X-Frame-Options), Sentry monitoring, session timeout, AES-256-GCM card encryption, sanctions screening, AML engine, audit logging, NDPR data export, account deletion
+- Deployment: multi-stage Dockerfile (Bun Alpine), docker-compose (postgres+redis), .env.example, Caddyfile.prod, health endpoint, DEPLOYMENT.md
+- Lint: 0 errors, 0 warnings
+- Dev server running on :3000, all verified with agent-browser
