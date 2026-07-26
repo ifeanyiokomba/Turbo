@@ -1202,3 +1202,43 @@ Stage Summary:
 - Modified (UI wiring): `src/components/turbopay/views/admin.tsx` (15th tab "Roles").
 - No schema changes (User.role is a free-form String — new role literals are app-level). No `db:push` run. No test files created.
 - Lint: 0 errors, 0 warnings in my files. tsc: 0 errors in my files.
+
+---
+Task ID: PUNCH-2
+Agent: full-stack-developer (Webhooks + Forgot password)
+Task: Mobile money webhook handlers + forgot-password email flow
+
+Work Log:
+- Read worklog + foundation files (lib/api.ts requireUser/audit/json, lib/db.ts, lib/ledger.ts creditWallet, lib/session.ts, lib/auth.ts validatePassword/hashPassword/verifyPassword, lib/turbocore/webhooks/verify-signature.ts verifyWebhookHeaders, verify.ts, webhooks/credentials.ts getProviderWebhookSecret, webhooks/extract.ts, recovery.ts confirmOrReverseTransaction, the 4 mobile money adapter files, prisma/schema.prisma WebhookEvent+Transaction+OnChainTransaction, components/turbopay/auth-screen.tsx, providers/resend.adapter.ts, providers/termii.adapter.ts, lib/rate-limit.ts) to understand the existing webhook-receiver pattern, the recovery module's idempotent confirm/reverse logic, and the auth-screen's "Forgot?" no-op link.
+- Built dedicated mobile money webhook handlers (one per provider) that mirror the generic receiver's idempotent-insert + confirm-or-reverse pattern but with provider-specific body parsing:
+  - `src/app/api/webhooks/mpesa/route.ts` — STK push callback. Parses Body.stkCallback.{CheckoutRequestID, ResultCode, ResultDesc, CallbackMetadata}. eventId = CheckoutRequestID. Status = SUCCESS if ResultCode === 0 else FAILED. Verifies signature via unified verifyWebhookHeaders (no-secret mode = accept, mirrors M-Pesa's signed-URL auth model). Always returns 200. Audits MPESA_CALLBACK_RECEIVED with receipt/amount/phone metadata.
+  - `src/app/api/webhooks/mtn-momo/route.ts` — Request-to-pay callback. Parses {status, externalId, financialTransactionId, referenceId}. eventId = financialTransactionId ?? externalId ?? referenceId. Status normalisation: SUCCESSFUL→SUCCESS, FAILED/TIMEOUT→FAILED. Tries each candidate ref as providerRef lookup. No signature header (MTN auth = registered callback URL). Audits MTN_MOMO_CALLBACK_RECEIVED.
+  - `src/app/api/webhooks/airtel-money/route.ts` — Payment callback. Parses {data.id, data.status, data.transaction.{amount,id,status}, data.reference}. eventId = data.id ?? data.reference. Manual verif-hash plain-equal signature verification (constant-time). With no secret configured, accepts but flags as unverified. Audits AIRTEL_MONEY_CALLBACK_RECEIVED.
+  - `src/app/api/webhooks/paga/route.ts` — Transaction callback. Parses {transactionReference, status, amount, currency, customerPhoneNumber}. eventId = transactionReference ?? reference. Manual HMAC-SHA512 verification on X-Paga-Auth/signature header (constant-time). With no secret configured, accepts but flags as unverified. Audits PAGA_CALLBACK_RECEIVED.
+  - All 4 follow the same 6-step pattern: read raw body → verify signature → idempotent WebhookEvent insert (P2002 = duplicate, return 200) → find Transaction by providerRef → confirmOrReverseTransaction (idempotent — skips already-settled txs) → audit. Always return 200. GET/HEAD probes return 200 too.
+- Built forgot-password email flow:
+  - `src/lib/password-reset.ts` — In-memory Map<identifier, {codeHash, expiresAt, attempts, userId}>. 6-digit CSPRNG code via randomInt(0, 1e6). sha256-hashed at rest. 10-min TTL. Max 5 verification attempts. Background cleanup timer (unref'd). Exports issueCode/verifyCode/invalidate/hasLiveCode with signatures designed to map cleanly onto a future DB or Redis backend.
+  - `src/app/api/auth/forgot-password/route.ts` — POST {identifier}. Looks up user by email/phone/username. If found: generates 6-digit code, stores hashed, dispatches via Resend email → Termii SMS → console.log (dev only). If NOT found: still returns {sent:true, channel:"email"} (security — never leaks account existence). Rate limit: 3 requests/hour per identifier+IP. Audits PASSWORD_RESET_REQUESTED (with channel + masked recipient) or PASSWORD_RESET_REQUESTED_UNKNOWN. Masks email (ad••••@example.com) and phone (+234••••78). Swallows internal errors + returns generic success.
+  - `src/app/api/auth/reset-password/route.ts` — POST {identifier, code, newPassword}. Validates new password strength via validatePassword from @/lib/auth BEFORE verifying the code (so weak passwords don't burn valid codes). Finds user. Verifies 6-digit code (consumes on success; increments attempt counter on failure; drops after 5 attempts). On success: hashes new password with hashPassword (scrypt), updates user, resets login lockout, invalidates code, revokes ALL active sessions (so hijacked sessions are logged out). Audits PASSWORD_RESET_COMPLETED (WARN) or PASSWORD_RESET_FAILED (with reason). Returns {success:true} or generic "Invalid or expired reset code".
+- Modified `src/components/turbopay/auth-screen.tsx` — replaced the no-op `toast.info("Password reset coming soon")` on the "Forgot?" link with `openForgot()` opening a real 2-step Dialog:
+  - Step 1: identifier input (pre-filled from login form) → POST /api/auth/forgot-password → toast "Reset code sent to {masked recipient}" → advances to step 2.
+  - Step 2: 6-digit InputOTP (3+3 with separator, h-11 w-11 enlarged slots) + new password input with show/hide + password strength Progress bar (red→amber→emerald) + 4-chip requirement checklist (8+/Upper/Lower/Digit). 60-second "Resend code" cooldown button. "Use a different identifier" back link.
+  - Premium emerald+amber brand design: tp-wallet-card header + tp-grain texture, KeyRound icon, amber step-progress bars, "Step X of 2" indicator. ShieldCheck icon on submit. Footer note: "For your security, all active sessions will be signed out after reset."
+  - On success: closes dialog, pre-fills login form with identifier, switches to Sign in tab. Sonner toast feedback + loading states throughout.
+- Ran `bun run lint` — initially 1 error (`@typescript-eslint/no-require-imports` in airtel-money route from inline `require("crypto")`). Fixed by hoisting `timingSafeEqual` to a top-level import. Re-ran lint → **0 errors, 0 warnings**.
+- Ran `npx tsc --noEmit` on my files — all compile cleanly. Pre-existing errors in other files (lib/ledger.ts, lib/minipay.ts, lib/turbocore/compliance/screen.ts, orchestrator.ts, paga.adapter.ts, turbopay.adapter.ts) are NOT my files.
+- Wrote `agent-ctx/PUNCH-2-full-stack-developer.md` work record.
+- The PUNCH-3 agent's parallel `git add -A` race captured all my files in their commit `470c79f` (same race R2-A experienced). Created an empty commit `1b97170` with my task ID + message for git-history attribution.
+
+Stage Summary:
+Files created:
+- src/lib/password-reset.ts (in-memory reset code store, 10-min TTL, sha256-hashed, 5-attempt lockout)
+- src/app/api/auth/forgot-password/route.ts (POST issue code via Resend→Termii→console, no-existence-leak, 3/hr rate limit)
+- src/app/api/auth/reset-password/route.ts (POST verify + set new password + revoke all sessions)
+- src/app/api/webhooks/mpesa/route.ts (STK push callback, idempotent, confirm-or-reverse)
+- src/app/api/webhooks/mtn-momo/route.ts (request-to-pay callback, idempotent, confirm-or-reverse)
+- src/app/api/webhooks/airtel-money/route.ts (payment callback, verif-hash, idempotent, confirm-or-reverse)
+- src/app/api/webhooks/paga/route.ts (transaction callback, HMAC-SHA512, idempotent, confirm-or-reverse)
+Files modified:
+- src/components/turbopay/auth-screen.tsx (replaced no-op "Forgot?" link with 2-step Dialog using InputOTP + Progress + emerald/amber brand header)
+Lint: 0 errors, 0 warnings
