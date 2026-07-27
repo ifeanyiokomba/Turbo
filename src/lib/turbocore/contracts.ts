@@ -434,6 +434,7 @@ export interface ISubaccountSummary {
   percentageCharge?: number;
   settlementBank?: string;
   // Flutterwave extras
+  accountBank?: string;
   splitType?: string;
   splitValue?: number;
 }

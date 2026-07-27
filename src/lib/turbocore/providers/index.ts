@@ -90,7 +90,12 @@ const REAL_PROVIDERS: { code: string; file: string; contracts: { name: ContractN
   {
     code: "smartcash",
     file: "./smartcash.adapter",
-    contracts: [{ name: ContractName.MOBILE_MONEY, exportName: "smartcashProvider" }],
+    contracts: [
+      { name: ContractName.MOBILE_MONEY, exportName: "smartcashProvider" },
+      { name: ContractName.BANK_TRANSFER, exportName: "smartcashBankTransfer" },
+      { name: ContractName.AIRTIME, exportName: "smartcashAirtime" },
+      { name: ContractName.BILL_PAYMENT, exportName: "smartcashBillPayment" },
+    ],
   },
   {
     code: "baxi",

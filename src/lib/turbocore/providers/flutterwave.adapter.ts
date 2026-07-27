@@ -19,6 +19,7 @@
 // "encryptionKey": "FLWSECK_TEST..." }
 
 import { ok, fail } from "../result";
+import type { Biller } from "../result";
 import type {
   ICardPaymentProvider,
   IBankTransferProvider,
@@ -30,7 +31,6 @@ import type {
   IBulkTransferProvider,
   IBillPaymentProvider,
   IChargebackProvider,
-  Biller,
 } from "../contracts";
 import { requireCreds, loadCreds, http, defaultHttpError, sanitize, mockWarnOnce } from "./_shared";
 import { NIGERIAN_BANKS, UNIQUE_BANKS } from "@/lib/banks";
