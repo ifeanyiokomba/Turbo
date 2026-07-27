@@ -1337,3 +1337,911 @@ model ReconciliationRun {
   createdAt     DateTime @default(now())
   @@index([providerCode, periodStart])
 }
+
+// =========================================================================
+// CHAPTER 8: TurboCore Universal Data Platform
+// =========================================================================
+//
+// The database is divided into bounded domains. Each domain owns its tables.
+// Every financial object has a prefixed public ID (usr_, txn_, wal_, etc.).
+// Soft delete only — never DELETE financial records.
+//
+// The models below fill the gaps identified in the Chapter 8 domain catalog.
+// They complement the 85 existing models to complete the 14-domain architecture.
+
+// ===== Chapter 8: Payment Domain (normalized payment history) =====
+
+/// Refund records — linked to original transaction. Supports full + partial.
+model Refund {
+  id              String   @id @default(cuid())
+  transactionId   String
+  reference       String   @unique
+  amountMinor     Int      // refund amount in kobo
+  currency        String
+  type            String   @default("FULL") // FULL | PARTIAL
+  status          String   @default("PENDING") // PENDING | PROCESSING | COMPLETED | FAILED | REVERSED
+  providerCode    String?
+  providerRef     String?  // provider's refund reference
+  reason          String?
+  initiatedBy     String   @default("SYSTEM") // SYSTEM | USER | ADMIN | MERCHANT
+  initiatedById   String?
+  metadata        String   @default("{}") // JSON
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  processedAt     DateTime?
+  @@index([transactionId, status])
+  @@index([reference])
+  @@index([status, createdAt])
+}
+
+/// Card scheme chargeback records.
+model Chargeback {
+  id              String   @id @default(cuid())
+  transactionId   String
+  reference       String   @unique
+  chargebackRef   String?  // provider's chargeback reference
+  amountMinor     Int
+  currency        String
+  reason          String   // FRAUD | DUPLICATE | PRODUCT_NOT_RECEIVED | CREDIT_NOT_PROCESSED | OTHER
+  reasonCode      String?
+  status          String   @default("OPEN") // OPEN | UNDER_REVIEW | ACCEPTED | CONTESTED | WON | LOST | CLOSED
+  providerCode    String?
+  evidenceJSON    String   @default("[]") // JSON array of evidence docs
+  challengedAt    DateTime?
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([transactionId, status])
+  @@index([reference])
+  @@index([status, createdAt])
+}
+
+/// Per-attempt records for retried payments.
+model PaymentAttempt {
+  id              String   @id @default(cuid())
+  transactionId   String
+  attemptNumber   Int      @default(1)
+  providerCode    String
+  providerRef     String?
+  status          String   @default("PENDING") // PENDING | SUCCESS | FAILED | TIMEOUT | RETRYING
+  amountMinor     Int
+  currency        String
+  errorCode       String?
+  errorMessage    String?
+  latencyMs       Int?
+  requestPayload  String   @default("{}") // JSON — sanitized (no PAN)
+  responsePayload String   @default("{}") // JSON
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  @@index([transactionId, attemptNumber])
+  @@index([status, startedAt])
+  @@index([providerCode, startedAt])
+}
+
+/// Saved payment methods — tokenized cards, bank accounts.
+model PaymentMethod {
+  id              String   @id @default(cuid())
+  userId          String
+  type            String   // CARD | BANK_ACCOUNT | MOBILE_MONEY | USSD
+  providerToken   String   // provider's tokenized reference
+  providerCode    String
+  // Card fields (when type=CARD)
+  brand           String?  // VISA | MASTERCARD | VERVE
+  last4           String?
+  expMonth        Int?
+  expYear         Int?
+  // Bank fields (when type=BANK_ACCOUNT)
+  bankCode        String?
+  bankName        String?
+  accountNumber   String?  // masked
+  accountName     String?
+  // Mobile money fields
+  msisdn          String?  // masked
+  mmProvider      String?
+  isDefault       Boolean  @default(false)
+  status          String   @default("ACTIVE") // ACTIVE | EXPIRED | DELETED
+  deletedAt       DateTime?
+  deletedBy       String?
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([userId, type, status])
+  @@index([providerCode, providerToken])
+}
+
+// ===== Chapter 8: Capability Domain (GCR persistence layer) =====
+
+/// 22 capability groups — Collections, Disbursements, Wallets, etc.
+model CapabilityGroup {
+  id              String   @id // e.g. "collections", "disbursements"
+  name            String
+  description     String
+  domain          String   @default("PAYMENTS")
+  icon            String
+  accent          String
+  order           Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  capabilities    Capability[]
+}
+
+/// 205 capabilities — the GCR catalogue persisted.
+model Capability {
+  id              String   @id // e.g. "collections.cards"
+  name            String
+  description     String
+  groupId         String
+  group           CapabilityGroup @relation(fields: [groupId], references: [id])
+  direction       String   // INBOUND | OUTBOUND | BOTH | NEUTRAL
+  status          String   @default("STABLE") // STABLE | BETA | EXPERIMENTAL | DEPRECATED | PLANNED
+  countriesJSON   String   @default("[]") // JSON array
+  currenciesJSON  String   @default("[]")
+  requiredKycTier Int      @default(0)
+  supportsRecurring  Boolean @default(false)
+  supportsRefunds    Boolean @default(false)
+  supportsChargeback Boolean @default(false)
+  supportsPartial    Boolean @default(false)
+  supportsSplit      Boolean @default(false)
+  featuresJSON    String   @default("[]")
+  documentationJSON String  @default("{}")
+  tagsJSON        String   @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  deletedBy       String?
+  dependencies    CapabilityDependency[] @relation("FromCap")
+  dependents      CapabilityDependency[] @relation("ToCap")
+  versions        CapabilityVersion[]
+  countrySupport  CapabilityCountrySupport[]
+  providerSupport CapabilityProviderSupport[]
+  flags           CapabilityFlag[]
+  @@index([groupId, status])
+  @@index([direction, status])
+}
+
+/// Knowledge graph edges — REQUIRES / RECOMMENDS / OPTIONAL.
+model CapabilityDependency {
+  id              String   @id @default(cuid())
+  capabilityId    String
+  dependencyId    String
+  kind            String   // REQUIRES | RECOMMENDS | OPTIONAL
+  reason          String?
+  capability      Capability @relation("FromCap", fields: [capabilityId], references: [id])
+  dependency      Capability @relation("ToCap", fields: [dependencyId], references: [id])
+  createdAt       DateTime @default(now())
+  @@unique([capabilityId, dependencyId])
+  @@index([dependencyId])
+}
+
+/// Versioned capability definitions.
+model CapabilityVersion {
+  id              String   @id @default(cuid())
+  capabilityId    String
+  capability      Capability @relation(fields: [capabilityId], references: [id])
+  version         String   // "v1", "v2", "v3"
+  label           String
+  releaseNotes    String?
+  status          String   @default("STABLE")
+  isCurrent       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  @@unique([capabilityId, version])
+  @@index([capabilityId, isCurrent])
+}
+
+/// Per-country support levels (FULL / LIMITED / BETA / CONFIGURABLE / DISABLED).
+model CapabilityCountrySupport {
+  id              String   @id @default(cuid())
+  capabilityId    String
+  capability      Capability @relation(fields: [capabilityId], references: [id])
+  country         String   // ISO code
+  support         String   // FULL | LIMITED | BETA | CONFIGURABLE | DISABLED
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([capabilityId, country])
+  @@index([country, support])
+}
+
+/// Per-provider maturity per capability.
+model CapabilityProviderSupport {
+  id              String   @id @default(cuid())
+  capabilityId    String
+  capability      Capability @relation(fields: [capabilityId], references: [id])
+  providerCode    String
+  maturity        String   // NATIVE | SUPPORTED | LIMITED | BETA | PARKED | ROADMAP
+  featuresJSON    String   @default("[]")
+  version         String?
+  countriesJSON   String   @default("[]")
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([capabilityId, providerCode])
+  @@index([providerCode, maturity])
+}
+
+/// Runtime feature flags per capability/scope/target.
+model CapabilityFlag {
+  id              String   @id @default(cuid())
+  capabilityId    String
+  capability      Capability @relation(fields: [capabilityId], references: [id])
+  scope           String   // GLOBAL | COUNTRY | MERCHANT | USER_TIER | ENVIRONMENT | REGULATORY
+  target          String   // country code / merchant id / tier / env
+  enabled         Boolean  @default(true)
+  reason          String?
+  updatedBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([capabilityId, scope, target])
+  @@index([scope, target])
+}
+
+// ===== Chapter 8: Country Domain =====
+
+/// Currency definitions — code, symbol, decimals.
+model Currency {
+  code            String   @id // NGN, USD, EUR
+  name            String
+  symbol          String   // ₦, $, €
+  symbolPosition  String   @default("BEFORE") // BEFORE | AFTER
+  decimals        Int      @default(2)
+  minorUnit       String   @default("kobo") // kobo, cent, pesewa
+  countriesJSON   String   @default("[]")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// Per-country capability enablement.
+model CountryCapability {
+  id              String   @id @default(cuid())
+  country         String
+  capabilityId    String
+  enabled         Boolean  @default(true)
+  configJSON      String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([country, capabilityId])
+  @@index([country, enabled])
+}
+
+/// Preferred provider ordering per country per contract.
+model CountryProvider {
+  id              String   @id @default(cuid())
+  country         String
+  providerCode    String
+  contract        String
+  priority        Int      @default(100)
+  enabled         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([country, providerCode, contract])
+  @@index([country, contract, priority])
+}
+
+/// Per-country transaction limits by KYC tier.
+model CountryLimit {
+  id              String   @id @default(cuid())
+  country         String
+  kycTier         Int
+  dailyLimitMinor Int      @default(0)
+  monthlyLimitMinor Int    @default(0)
+  singleTransactionLimitMinor Int @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([country, kycTier])
+  @@index([country])
+}
+
+/// Per-country KYC requirements.
+model CountryKyc {
+  id              String   @id @default(cuid())
+  country         String   @unique
+  requirementsJSON String  @default("[]") // ["BVN","NIN"] etc.
+  regulatoryBody  String?  // CBN, CBK, BoG
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// Per-country tax rules.
+model CountryTax {
+  id              String   @id @default(cuid())
+  country         String   @unique
+  vatRateBps      Int      @default(0) // basis points
+  withholdingBps  Int      @default(0)
+  stampDutyMinor  Int      @default(0)
+  rulesJSON       String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// Per-country settlement rules.
+model CountrySettlement {
+  id              String   @id @default(cuid())
+  country         String   @unique
+  defaultCycle    String   @default("T_PLUS_1") // INSTANT | T_PLUS_1 | T_PLUS_2 | WEEKLY | MONTHLY
+  minSettlementMinor Int   @default(0)
+  settlementCurrency String
+  rulesJSON       String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ===== Chapter 8: Configuration Domain =====
+
+/// Global system settings (key-value).
+model SystemSetting {
+  key             String   @id
+  value           String
+  type            String   @default("STRING") // STRING | NUMBER | BOOLEAN | JSON
+  description     String?
+  updatedBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// Per-capability fee schedules.
+model FeeConfig {
+  id              String   @id @default(cuid())
+  capabilityId    String
+  country         String   @default("ALL")
+  currency        String   @default("ALL")
+  feeBps          Int      @default(0)
+  feeFixedMinor   Int      @default(0)
+  crossBorderBps  Int      @default(0)
+  minFeeMinor     Int      @default(0)
+  maxFeeMinor     Int      @default(0)
+  merchantId      String?  // null = global default
+  status          String   @default("ACTIVE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([capabilityId, country, currency, merchantId])
+  @@index([capabilityId, status])
+  @@index([country, currency])
+}
+
+/// Risk engine configuration.
+model RiskConfig {
+  id              String   @id @default(cuid())
+  ruleId          String   @unique
+  name            String
+  description     String?
+  type            String   // VELOCITY | GEO | IP | DEVICE | BEHAVIOR | FRAUD_SCORE
+  configJSON      String   @default("{}")
+  action          String   @default("ALLOW") // ALLOW | REVIEW | BLOCK
+  priority        Int      @default(100)
+  enabled         Boolean  @default(true)
+  updatedBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([type, enabled, priority])
+}
+
+// ===== Chapter 8: Risk Domain =====
+
+/// Per-entity risk scores (transaction or user).
+model RiskScore {
+  id              String   @id @default(cuid())
+  entityType      String   // TRANSACTION | USER | MERCHANT
+  entityId        String
+  score           Int      // 0-100
+  level           String   // LOW | MEDIUM | HIGH | CRITICAL
+  factorsJSON     String   @default("[]") // contributing factors
+  evaluatedAt     DateTime @default(now())
+  @@index([entityType, entityId, evaluatedAt])
+  @@index([level, evaluatedAt])
+}
+
+/// Risk engine evaluation events.
+model RiskEvent {
+  id              String   @id @default(cuid())
+  entityType      String
+  entityId        String
+  ruleId          String?
+  ruleName        String?
+  action          String   // ALLOW | REVIEW | BLOCK
+  score           Int?
+  detailsJSON     String   @default("{}")
+  createdAt       DateTime @default(now())
+  @@index([entityType, entityId, createdAt])
+  @@index([ruleId, createdAt])
+}
+
+/// Per-user velocity limits.
+model VelocityLimit {
+  id              String   @id @default(cuid())
+  userId          String
+  window          String   // HOUR | DAY | WEEK | MONTH
+  maxCount        Int      @default(0)
+  maxAmountMinor  Int      @default(0)
+  currentCount    Int      @default(0)
+  currentAmountMinor Int   @default(0)
+  windowStart     DateTime @default(now())
+  resetAt         DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([userId, window])
+  @@index([userId, windowStart])
+}
+
+/// Fraud alert records for analyst review.
+model FraudAlert {
+  id              String   @id @default(cuid())
+  userId          String?
+  transactionId   String?
+  entityType      String   // USER | TRANSACTION | DEVICE
+  entityId        String
+  severity        String   // LOW | MEDIUM | HIGH | CRITICAL
+  reason          String
+  factorsJSON     String   @default("[]")
+  status          String   @default("OPEN") // OPEN | IN_REVIEW | CONFIRMED | FALSE_POSITIVE | RESOLVED
+  assignedTo      String?
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  resolution      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([entityType, entityId])
+  @@index([status, severity, createdAt])
+}
+
+// ===== Chapter 8: FX Domain (missing tables) =====
+
+/// Locked-in FX quotes with expiry.
+model FxQuote {
+  id              String   @id @default(cuid())
+  quoteRef        String   @unique
+  base            String
+  quote           String
+  rate            Float
+  amountMinor     Int      // amount in base currency
+  convertedMinor  Int      // amount in quote currency
+  spreadBps       Int      @default(0)
+  markupBps       Int      @default(0)
+  status          String   @default("LOCKED") // LOCKED | EXPIRED | CONSUMED | CANCELLED
+  expiresAt       DateTime
+  consumedAt      DateTime?
+  userId          String?
+  merchantId      String?
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+  @@index([base, quote, status])
+  @@index([expiresAt])
+  @@index([userId, createdAt])
+}
+
+/// Executed FX conversion records.
+model FxTransaction {
+  id              String   @id @default(cuid())
+  quoteId         String?
+  base            String
+  quote           String
+  rate            Float
+  baseAmountMinor Int
+  quoteAmountMinor Int
+  feeMinor        Int      @default(0)
+  userId          String?
+  merchantId      String?
+  transactionId   String?
+  status          String   @default("COMPLETED") // PENDING | COMPLETED | REVERSED
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+  @@index([userId, createdAt])
+  @@index([transactionId])
+  @@index([base, quote, createdAt])
+}
+
+/// Tradable currency pair definitions.
+model CurrencyPair {
+  id              String   @id @default(cuid())
+  base            String
+  quote           String
+  status          String   @default("ACTIVE") // ACTIVE | DISABLED
+  minAmountMinor  Int      @default(0)
+  maxAmountMinor  Int      @default(0)
+  defaultSpreadBps Int     @default(150)
+  defaultMarkupBps Int     @default(50)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([base, quote])
+  @@index([status])
+}
+
+// ===== Chapter 8: Merchant Domain (missing tables) =====
+
+/// Per-merchant fee schedules.
+model MerchantFee {
+  id              String   @id @default(cuid())
+  merchantId      String
+  capabilityId    String
+  feeBps          Int      @default(0)
+  feeFixedMinor   Int      @default(0)
+  country         String   @default("ALL")
+  currency        String   @default("ALL")
+  status          String   @default("ACTIVE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([merchantId, capabilityId, country, currency])
+  @@index([merchantId, status])
+}
+
+/// Merchant webhook endpoint configs.
+model MerchantWebhook {
+  id              String   @id @default(cuid())
+  merchantId      String
+  url             String
+  eventsJSON      String   @default("[]") // subscribed events
+  secretHash      String   // HMAC signing secret (hashed)
+  status          String   @default("ACTIVE") // ACTIVE | DISABLED | DELETED
+  lastDeliveryAt  DateTime?
+  lastStatus      String?
+  failureCount    Int      @default(0)
+  deletedAt       DateTime?
+  deletedBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([merchantId, status])
+}
+
+/// Merchant branding — logo, colors, domain.
+model MerchantBranding {
+  id              String   @id @default(cuid())
+  merchantId      String   @unique
+  logoUrl         String?
+  primaryColor    String?  // hex
+  secondaryColor  String?
+  domain          String?
+  displayName     String?
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ===== Chapter 8: Compliance Domain (missing tables) =====
+
+/// Know-your-business verification requests.
+model KybRequest {
+  id              String   @id @default(cuid())
+  merchantId      String
+  status          String   @default("PENDING") // PENDING | IN_REVIEW | APPROVED | REJECTED
+  providerCode    String?
+  providerRef     String?
+  businessName    String
+  registrationNumber String?
+  taxId           String?
+  country         String
+  documentsJSON   String   @default("[]") // document references
+  resultJSON      String   @default("{}")
+  submittedAt     DateTime @default(now())
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  @@index([merchantId, status])
+  @@index([status, submittedAt])
+}
+
+/// Customer identity documents (encrypted references only).
+model IdentityDocument {
+  id              String   @id @default(cuid())
+  userId          String
+  type            String   // PASSPORT | DRIVERS_LICENSE | NATIONAL_ID | BVN | NIN | UTILITY_BILL
+  documentNumber  String   // encrypted
+  storageRef      String?  // R2/S3 reference (never store the file in DB)
+  status          String   @default("PENDING") // PENDING | VERIFIED | REJECTED | EXPIRED
+  verifiedAt      DateTime?
+  verifiedBy      String?
+  expiresAt       DateTime?
+  metadata        String   @default("{}")
+  deletedAt       DateTime?
+  deletedBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([userId, type, status])
+  @@index([status, createdAt])
+}
+
+/// PEP (politically-exposed-person) check results.
+model PepCheck {
+  id              String   @id @default(cuid())
+  userId          String
+  status          String   @default("CLEAR") // CLEAR | HIT | REVIEW
+  matchName       String?
+  matchPosition   String?
+  matchCountry    String?
+  matchLevel      String?  // LOW | MEDIUM | HIGH
+  providerCode    String?
+  providerRef     String?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+// ===== Chapter 8: Audit Domain (missing tables) =====
+
+/// API request logs — method, path, status, latency.
+model ApiAccessLog {
+  id              String   @id @default(cuid())
+  userId          String?
+  apiKeyId        String?
+  method          String
+  path            String
+  statusCode      Int
+  responseTimeMs  Int
+  ipAddress       String?
+  userAgent       String?
+  requestBody     String   @default("{}") // sanitized JSON
+  errorcode       String?
+  createdAt       DateTime @default(now())
+  @@index([userId, createdAt])
+  @@index([path, createdAt])
+  @@index([statusCode, createdAt])
+}
+
+/// Admin portal actions with before/after diff.
+model AdminAction {
+  id              String   @id @default(cuid())
+  adminId         String
+  action          String   // e.g. "PROVIDER_CONFIG_UPDATE"
+  entityType      String   // PROVIDER | FEATURE_FLAG | CAPABILITY etc.
+  entityId        String?
+  beforeJSON      String   @default("{}")
+  afterJSON       String   @default("{}")
+  ipAddress       String?
+  userAgent       String?
+  reason          String?
+  createdAt       DateTime @default(now())
+  @@index([adminId, createdAt])
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+}
+
+// ===== Chapter 8: Analytics Domain =====
+
+/// Daily aggregated metrics — volume, count, revenue.
+model DailyMetric {
+  id              String   @id @default(cuid())
+  date            DateTime
+  metric          String   // VOLUME | COUNT | REVENUE | SUCCESS_RATE | AVG_LATENCY
+  value           Float
+  dimension       String?  // COUNTRY | PROVIDER | CAPABILITY | MERCHANT
+  dimensionValue  String?
+  createdAt       DateTime @default(now())
+  @@unique([date, metric, dimension, dimensionValue])
+  @@index([date, metric])
+  @@index([dimension, dimensionValue, date])
+}
+
+/// Per-provider daily metrics.
+model ProviderMetric {
+  id              String   @id @default(cuid())
+  providerCode    String
+  date            DateTime
+  volumeMinor     Int      @default(0)
+  count           Int      @default(0)
+  successCount    Int      @default(0)
+  failureCount    Int      @default(0)
+  avgLatencyMs    Int      @default(0)
+  revenueMinor    Int      @default(0)
+  createdAt       DateTime @default(now())
+  @@unique([providerCode, date])
+  @@index([providerCode, date])
+}
+
+/// Per-merchant daily metrics.
+model MerchantMetric {
+  id              String   @id @default(cuid())
+  merchantId      String
+  date            DateTime
+  volumeMinor     Int      @default(0)
+  count           Int      @default(0)
+  revenueMinor    Int      @default(0)
+  refundMinor     Int      @default(0)
+  chargebackMinor Int      @default(0)
+  createdAt       DateTime @default(now())
+  @@unique([merchantId, date])
+  @@index([merchantId, date])
+}
+
+/// Per-country daily metrics.
+model CountryMetric {
+  id              String   @id @default(cuid())
+  country         String
+  date            DateTime
+  volumeMinor     Int      @default(0)
+  count           Int      @default(0)
+  activeUsers     Int      @default(0)
+  newUsers        Int      @default(0)
+  createdAt       DateTime @default(now())
+  @@unique([country, date])
+  @@index([country, date])
+}
+
+/// Revenue breakdown by source.
+model RevenueMetric {
+  id              String   @id @default(cuid())
+  date            DateTime
+  source          String   // TRANSACTION_FEE | FX_SPREAD | SUBSCRIPTION | INTEREST | SETTLEMENT_FEE
+  amountMinor     Int      @default(0)
+  country         String?
+  providerCode    String?
+  createdAt       DateTime @default(now())
+  @@unique([date, source, country, providerCode])
+  @@index([date, source])
+}
+
+// ===== Chapter 8: Event Store =====
+
+/// Universal event store — every important event.
+/// Supports replay and debugging. CQRS write model.
+model EventStore {
+  id              String   @id @default(cuid())
+  eventType       String   // PAYMENT.CREATED, PAYMENT.COMPLETED, REFUND.CREATED, KYC.APPROVED
+  aggregateType   String   // TRANSACTION | USER | MERCHANT | PROVIDER | SETTLEMENT
+  aggregateId     String
+  version         Int      @default(1) // aggregate version (for optimistic concurrency)
+  payload         String   @default("{}") // JSON — immutable event payload
+  metadata        String   @default("{}") // JSON — correlation ID, causation ID, actor
+  status          String   @default("PENDING") // PENDING | PUBLISHED | FAILED
+  publishedAt     DateTime?
+  createdAt       DateTime @default(now())
+  @@index([aggregateType, aggregateId, version])
+  @@index([eventType, createdAt])
+  @@index([status, createdAt])
+}
+
+// ===== Chapter 8: Notification Domain (missing tables) =====
+
+/// Versioned notification templates.
+model NotificationTemplate {
+  id              String   @id @default(cuid())
+  channel         String   // EMAIL | SMS | PUSH | IN_APP
+  name            String
+  subject         String?
+  body            String   // template with {{variables}}
+  variablesJSON   String   @default("[]")
+  version         Int      @default(1)
+  status          String   @default("ACTIVE") // ACTIVE | DRAFT | ARCHIVED
+  deletedAt       DateTime?
+  deletedBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([channel, name, version])
+  @@index([channel, status])
+}
+
+/// Per-message delivery logs.
+model DeliveryLog {
+  id              String   @id @default(cuid())
+  notificationId  String?
+  channel         String   // EMAIL | SMS | PUSH | IN_APP
+  recipient       String   // email/phone/device-token/userId
+  status          String   @default("PENDING") // PENDING | SENT | DELIVERED | FAILED | BOUNCED
+  providerCode    String?
+  providerRef     String?
+  attempts        Int      @default(0)
+  errorCode       String?
+  errorMessage    String?
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+  @@index([notificationId, status])
+  @@index([channel, status, createdAt])
+  @@index([recipient, createdAt])
+}
+
+// ===== Chapter 8: Provider Domain (missing tables) =====
+
+/// Provider outage/incident records.
+model ProviderIncident {
+  id              String   @id @default(cuid())
+  providerCode    String
+  status          String   @default("ACTIVE") // ACTIVE | MONITORING | RESOLVED
+  severity        String   // MINOR | MAJOR | CRITICAL
+  title           String
+  description     String?
+  affectedEndpointsJSON String @default("[]")
+  startedAt       DateTime @default(now())
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  resolution      String?
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([providerCode, status, createdAt])
+  @@index([severity, status])
+}
+
+/// Per-endpoint latency metrics.
+model ProviderLatency {
+  id              String   @id @default(cuid())
+  providerCode    String
+  endpoint        String   // e.g. /charge, /transfer
+  method          String   @default("POST")
+  p50Ms           Int      @default(0)
+  p95Ms           Int      @default(0)
+  p99Ms           Int      @default(0)
+  sampleCount     Int      @default(0)
+  errorRate       Float    @default(0)
+  measuredAt      DateTime @default(now())
+  @@index([providerCode, endpoint, measuredAt])
+}
+
+// ===== Chapter 8: Customer Domain (missing tables) =====
+
+/// Extended customer profile — DOB, occupation, nationality.
+model CustomerProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  firstName       String?
+  lastName        String?
+  middleName      String?
+  dateOfBirth     DateTime?
+  nationality     String?
+  occupation      String?
+  employer        String?
+  annualIncomeRange String?
+  sourceOfFunds   String?
+  metadata        String   @default("{}")
+  deletedAt       DateTime?
+  deletedBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([nationality])
+}
+
+/// Customer preferences — language, theme.
+model CustomerPreference {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  language        String   @default("en")
+  theme           String   @default("light") // light | dark | system
+  timezone        String   @default("Africa/Lagos")
+  currency        String   @default("NGN")
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// Physical addresses — billing, shipping, residential.
+model CustomerAddress {
+  id              String   @id @default(cuid())
+  userId          String
+  type            String   // BILLING | SHIPPING | RESIDENTIAL
+  line1           String
+  line2           String?
+  city            String
+  state           String?
+  country         String
+  postalCode      String?
+  isDefault       Boolean  @default(false)
+  verified        Boolean  @default(false)
+  deletedAt       DateTime?
+  deletedBy       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([userId, type])
+  @@index([country])
+}
+
+// ===== Chapter 8: Ledger Domain (missing table) =====
+
+/// Batched journal postings for bulk operations.
+model JournalBatch {
+  id              String   @id @default(cuid())
+  reference       String   @unique
+  description     String?
+  entryCount      Int      @default(0)
+  totalDebit      Int      @default(0)
+  totalCredit     Int      @default(0)
+  status          String   @default("PENDING") // PENDING | POSTED | REVERSED | FAILED
+  postedAt        DateTime?
+  postedBy        String?
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+  @@index([status, createdAt])
+  @@index([reference])
+}

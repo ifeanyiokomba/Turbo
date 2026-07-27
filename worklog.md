@@ -1884,3 +1884,102 @@ Stats before → after:
 - Certification tests: 239 → 268 (+29, capability-specific)
 - Countries profiled: 9 (unchanged, but all updated with new capabilities)
 - Providers mapped: 14 (unchanged, but mapping expanded to new capabilities)
+
+---
+Task ID: 7
+Agent: full-stack-developer (DB Architecture Admin UI)
+Task: Build comprehensive Database Architecture admin tab with 7 sub-tabs
+
+Work Log:
+- Read worklog + API endpoint (`/api/admin/database`) + domain-catalog source to confirm the data contract (17 domains, ~120 tables, canonical relationships, partition strategies, backup layers, DR targets, prefixed ID map).
+- Inspected existing admin tabs (compliance-tab, providers-tab) + shared.tsx to match tone maps, fetch hooks, skeleton/loading patterns, and the shadcn/ui import style.
+- Created `src/components/turbopay/views/admin/database-tab.tsx` — single `"use client"` default-export component.
+  - Typed the full API response (`DomainTable`, `DomainInfo`, `Relationship`, `PartitionStrategy`, `BackupStrategy`, `DrTargets`, `DbStats`, `DatabaseData`).
+  - `accentMap` — 17 accent colors mapped to Tailwind classes (border/bg/text/badge/ring) so the JIT compiler sees every literal class. None of the accents is indigo or blue-as-primary (violet/emerald/amber/rose/cyan/etc.).
+  - `iconMap` — maps domain `icon` strings (ShieldCheck, Users, Wallet, …) to lucide components.
+  - `SUB_TABS` config drives a state-based pill switcher (NOT the shadcn Tabs component) per the task spec.
+  - `REL_TYPE_TONE` and `CANONICAL_FLOWS` (Customer → Wallet → LedgerAccount → JournalEntry, Payment → Provider → Settlement → Reconciliation, Country → Capability → Provider) for the Relationships sub-tab.
+  - Fetch via `useCallback` + `useEffect`, `cache: "no-store"`, sonner `toast.error` on failure, Skeleton grid while loading.
+  - Sub-tabs implemented:
+    1. Overview — 4 stat cards (Domains/Tables/Partitioned/Soft Delete), Golden Rule banner with RPO/RTO/backup-layer badges, 3 Database Principles cards, Backup & DR mini summary, ID prefix showcase grid (12 sample prefixed ULIDs).
+    2. Domain Map — clickable accent-bordered cards for all 17 domains (icon, name, description, principle, existing/planned counts).
+    3. Table Catalog — searchable + domain/status/partitioned filters + 8 sortable columns (Table, Domain, Purpose, Status, Partition, Soft Del, ID, Key Indexes); emerald/amber status badges; `max-h-[36rem]` sticky-header scroll area.
+    4. Relationships — 3 visual flow cards + legend + full relationships list (`max-h-[28rem]` scroll) with `from → to` badges and type tone badges.
+    5. Index Strategy — "Why Partitioning Matters" banner, high-priority indexes table (derived from any table with keyIndexes), partitioning strategy table (monthly/daily/yearly tones + est. rows/month).
+    6. Backup & DR — RPO/RTO hero cards, DR strategy explanation, 4 backup-layer table (layer/frequency/retention/purpose).
+    7. Domain Detail — overlay reached from the Domain Map; back button, accent header, table list with status/partitioned/soft-delete badges and key indexes.
+  - Heavy computations memoized with `useMemo` (sorted domains, flattened catalog rows, filtered+sorted rows, index rows); fetch with `useCallback`.
+  - Responsive: grids collapse to single column on mobile (`sm:grid-cols-2 lg:grid-cols-3/4`); tables use `overflow-x-auto`; long lists use `max-h-*` + `overflow-y-auto`.
+  - Color system: Tailwind built-in colors only, no indigo/blue-as-primary; each domain uses its accent color for border + badge + ring.
+- Verification:
+  - `bun run lint` — 0 errors, 0 warnings.
+  - `npx tsc --noEmit 2>&1 | grep "database-tab"` — 0 errors.
+  - File length: 1492 lines (under the 1500-line cap).
+
+Stage Summary:
+- New file: `src/components/turbopay/views/admin/database-tab.tsx` (1492 lines).
+- Exports `DatabaseTab` as default — ready to be lazy-loaded into the admin view via `next/dynamic`.
+- Sub-tab switcher is state-based (not URL routing, not shadcn Tabs).
+- All data flows from `GET /api/admin/database` with `cache: "no-store"`.
+- Visually impressive: accent-colored domain cards, visual flow diagrams, tone-coded badges, sortable catalog, RPO/RTO hero cards, ID prefix showcase.
+- Lint + TypeScript checks both clean.
+
+---
+Task ID: CH8-DB
+Agent: main (Chapter 8 — TurboCore Universal Data Platform)
+Task: Build the database architecture for Chapter 8. Design around financial objects (not users), 14+ bounded domains, prefixed IDs, soft-delete only, immutable journal entries, configuration-driven behaviour, event storage, partitioning, backup/DR strategy.
+
+Work Log:
+- Read the entire Chapter 8 spec. Catalogued the 14+ domains and ~120 tables the spec defines. Compared against the existing 85 Prisma models to identify gaps.
+- Existing models covered: User, Session, Wallet, LedgerEntry, Transaction, VirtualAccount, Beneficiary, BillPayment, AirtimeDataPurchase, VirtualCard, VirtualCardTransaction, SavingsProduct, SavingsTransaction, AutoSaveRule, SavingsGoal, SavingsGoalContribution, InvestmentProduct, UserInvestment, KycVerification, AuditLog, AmlFlag, IdempotencyRecord, InAppNotification, SupportTicket, KycTierLimit, ProviderConfig, ProviderCredentialVersion, ProviderRoute, ProviderHealthCheck, ProviderCapability, PaymentRoutingDecision, PaymentFlowLog, WebhookEvent, WebhookEndpoint, OutboxEvent, AsyncTask, CountryConfig, CurrencyWallet, CurrencyLedgerEntry, FxRateSnapshot, FxConfig, Merchant, MerchantApiKey, PaymentLink, PaymentLinkPayment, SubscriptionPlan, Subscription, Mandate, ScheduledPayment, SanctionsEntry, ScreeningResult, ComplianceCase, FeatureFlag, FeatureFlagOverride, ConfigVersion, Settlement, SettlementAccount, CronLock, Dispute, DisputeMessage, Voucher, VoucherRedemption, StatementRequest, CommunicationPreference, TeamMember, SpendingBudget, UserBadge, TransferTemplate, MarketplaceMerchant, MerchantReview, CeloWallet, OnChainTransaction, CeloBridgeEvent, CeloTokenConfig, Passkey, MfaSecret, Device, OAuthAccount, RefreshToken, TransactionEvent, LedgerAccount, JournalEntry, BalanceSnapshot, AccountingPeriod, ReconciliationRun.
+- Created `src/lib/turbocore/database/ids.ts` (170 lines) — Prefixed ID generator implementing Principle 2. ULID-based (time-sortable, 26 chars, Crockford base32). 93 known entity prefixes (usr_, txn_, wal_, prv_, led_, cap_, mer_, ctry_, sett_, kyc_, pmt_, rfd_, cbk_, evt_, aud_, not_, fx_, rsk_, cfg_, etc.). Functions: generateId(prefix), getIdPrefix(id), getEntityType(id), assertIdPrefix(id, expected), isValidPrefixedId(id).
+- Created `src/lib/turbocore/database/domain-catalog.ts` (500 lines) — The architectural map of the database. 17 domains (Identity, Customers, Wallets, Ledger, Payments, Providers, Capabilities, Countries, Merchants, Compliance, Risk, FX, Notifications, Audit, Configuration, Analytics, Events). Each domain has: id, name, description, icon, accent color, order, principle, and a list of tables. Each table has: model name, table name, purpose, exists flag, key indexes, partitioned flag, soft-delete flag, ID prefix. Also includes: CANONICAL_RELATIONSHIPS (16 relationships), PARTITION_STRATEGIES (11 tables with partitioning strategy + row estimates), BACKUP_STRATEGIES (4 layers: WAL/Daily/Weekly/Monthly), DR_TARGETS (RPO ≤ 5 min, RTO ≤ 30 min).
+- Created `src/lib/turbocore/database/index.ts` — barrel export.
+- Added 50 new Prisma models to `prisma/schema.prisma` (schema grew from 85 → 135 models):
+  - Payment domain: Refund, Chargeback, PaymentAttempt, PaymentMethod
+  - Capability domain: CapabilityGroup, Capability, CapabilityDependency, CapabilityVersion, CapabilityCountrySupport, CapabilityProviderSupport, CapabilityFlag (GCR persistence layer)
+  - Country domain: Currency, CountryCapability, CountryProvider, CountryLimit, CountryKyc, CountryTax, CountrySettlement
+  - Configuration domain: SystemSetting, FeeConfig, RiskConfig
+  - Risk domain: RiskScore, RiskEvent, VelocityLimit, FraudAlert
+  - FX domain: FxQuote, FxTransaction, CurrencyPair
+  - Merchant domain: MerchantFee, MerchantWebhook, MerchantBranding
+  - Compliance domain: KybRequest, IdentityDocument, PepCheck
+  - Audit domain: ApiAccessLog, AdminAction
+  - Analytics domain: DailyMetric, ProviderMetric, MerchantMetric, CountryMetric, RevenueMetric
+  - Event Store: EventStore (universal event store for CQRS)
+  - Notification domain: NotificationTemplate, DeliveryLog
+  - Provider domain: ProviderIncident, ProviderLatency
+  - Customer domain: CustomerProfile, CustomerPreference, CustomerAddress
+  - Ledger domain: JournalBatch
+- Ran `bun run db:push` — schema pushed to SQLite successfully, Prisma Client regenerated.
+- Created `src/app/api/admin/database/route.ts` — consolidated API endpoint with dynamic imports. GET returns: domains (17), stats (132 tables, 81 existing + 51 planned), relationships (16), partitionStrategies (11), backupStrategies (4), drTargets, idPrefixes (93). Supports ?domain=X for single domain, ?stats=1 for summary only.
+- Created `src/components/turbopay/views/admin/database-tab.tsx` (1492 lines) via subagent — comprehensive admin UI with 7 sub-tabs: Overview (stat cards + Golden Rule + principles + ID prefix showcase), Domain Map (17 clickable domain cards), Table Catalog (searchable/filterable/sortable table of all 132 tables), Relationships (3 visual flow diagrams + 16 relationship list), Index Strategy (partitioning strategy + high-priority indexes), Backup & DR (RPO/RTO + 4-layer backup), Domain Detail (overlay showing tables for a selected domain).
+- Wired DatabaseTab into `src/components/turbopay/views/admin.tsx`: added lazy dynamic import (ssr:false + loading spinner), new `<TabsTrigger value="database">` with Database icon, and `<TabsContent value="database"><DatabaseTab /></TabsContent>`.
+
+Verification:
+- `bun run lint` → 0 errors, 0 warnings ✅
+- `npx tsc --noEmit` → 0 errors in any database/* or database-tab file ✅
+- `bun run db:push` → schema in sync, Prisma Client generated ✅
+- All 50 new Prisma models accessible via PrismaClient (verified with Node script: 50/50) ✅
+- /api/admin/database → 200 with full domain catalog ✅
+  - 17 domains, 132 tables (81 existing + 51 planned)
+  - 35 partitioned tables, 49 soft-delete tables
+  - 16 canonical relationships
+  - 11 partition strategies, 4 backup strategies
+  - 93 ID prefixes
+  - DR targets: RPO ≤ 5 min, RTO ≤ 30 min
+- Dev server running on port 3000 ✅
+
+Stage Summary:
+Files created (5):
+- src/lib/turbocore/database/ids.ts (170 lines — prefixed ID generator with 93 prefixes)
+- src/lib/turbocore/database/domain-catalog.ts (500 lines — 17 domains, 132 tables, relationships, partitioning, backup, DR)
+- src/lib/turbocore/database/index.ts (barrel export)
+- src/app/api/admin/database/route.ts (consolidated API with dynamic imports)
+- src/components/turbopay/views/admin/database-tab.tsx (1492 lines — 7 sub-tabs)
+
+Files modified (2):
+- prisma/schema.prisma (85 → 135 models, +50 new models across all domains)
+- src/components/turbopay/views/admin.tsx (lazy-loaded DatabaseTab + TabsTrigger + TabsContent)
+
+Database stats: 17 domains | 132 tables (81 existing + 51 planned) | 35 partitioned | 49 soft-delete | 16 relationships | 11 partition strategies | 4 backup layers | 93 ID prefixes | RPO ≤ 5 min | RTO ≤ 30 min

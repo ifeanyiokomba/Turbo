@@ -74,6 +74,15 @@ const GcrTab = dynamic(() => import("./admin/gcr-tab").then((m) => m.default), {
     </div>
   ),
 });
+// Database Architecture tab (Chapter 8) — lazy-loaded for the same reason.
+const DatabaseTab = dynamic(() => import("./admin/database-tab").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+    </div>
+  ),
+});
 
 interface AdminStats {
   users: number;
@@ -552,6 +561,10 @@ export default function AdminView() {
           <TabsTrigger value="gcr" className="min-w-[100px] flex-1 gap-1">
             <Network className="h-3.5 w-3.5" />
             GCR
+          </TabsTrigger>
+          <TabsTrigger value="database" className="min-w-[110px] flex-1 gap-1">
+            <Database className="h-3.5 w-3.5" />
+            Database
           </TabsTrigger>
         </TabsList>
 
@@ -1413,6 +1426,11 @@ export default function AdminView() {
         {/* Global Capability Registry (Chapter 7) */}
         <TabsContent value="gcr" className="mt-5">
           <GcrTab />
+        </TabsContent>
+
+        {/* Database Architecture (Chapter 8) */}
+        <TabsContent value="database" className="mt-5">
+          <DatabaseTab />
         </TabsContent>
       </Tabs>
     </div>
