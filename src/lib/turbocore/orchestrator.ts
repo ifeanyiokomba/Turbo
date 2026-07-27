@@ -20,6 +20,13 @@ import {
   assessRisk,
   resolveCountries,
 } from "./pie";
+import {
+  CorrelationContext,
+  sendToDLQ,
+  withTimeout,
+  recordObservability,
+  UPLEventTypes,
+} from "./upl";
 
 export interface OrchestrateRequest {
   userId: string;
@@ -51,6 +58,8 @@ export interface OrchestrateResult {
 
 export async function orchestratePayment(req: OrchestrateRequest): Promise<OrchestrateResult> {
   const requestId = generateReference("REQ");
+  const correlationId = CorrelationContext.generate();
+  const orchestratorStart = Date.now();
 
   // 1. Idempotency check
   const idKey = req.idempotencyKey ?? hashKey(req);
@@ -132,11 +141,29 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       provider: decision.providerCode,
       metadata: JSON.stringify({
         requestId,
+        correlationId,
         decision: { reason: decision.reason, scores: decision.scores },
       }),
     },
   });
+
+  // Publish PAYMENT.VALIDATED event
+  await publishPaymentEvent(UPLEventTypes.PAYMENT_VALIDATED, tx.id, {
+    reference: tx.reference,
+    userId: req.userId,
+    correlationId,
+  });
+
   await persistDecision(decision, requestId, tx.id);
+
+  // Publish PAYMENT.ROUTED event
+  await publishPaymentEvent(UPLEventTypes.PAYMENT_ROUTED, tx.id, {
+    reference: tx.reference,
+    provider: decision.providerCode,
+    reason: decision.reason,
+    alternatives: decision.alternatives,
+    correlationId,
+  });
 
   // Store routing explanation for audit (explainable routing)
   if (decision.scores.length > 0) {
@@ -242,6 +269,15 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
   //    decision.alternatives if the primary returns a retryable error.
   //    Up to MAX_ATTEMPTS total provider calls (1 primary + 2 failovers).
   const providerRef = generateReference("PRV");
+
+  // Publish PAYMENT.INITIATED event
+  await publishPaymentEvent(UPLEventTypes.PAYMENT_INITIATED, tx.id, {
+    reference: tx.reference,
+    provider: decision.providerCode,
+    providerRef,
+    correlationId,
+  });
+
   const {
     result,
     providerCode: actualProviderCode,
@@ -333,6 +369,17 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       data: { responseBody: JSON.stringify(tx), status: 200, completedAt: new Date() },
     });
 
+    // Record observability
+    recordObservability({
+      correlationId,
+      provider: actualProviderCode,
+      country: req.country,
+      currency: req.currency,
+      amount: req.amountMinor,
+      latencyMs: Date.now() - orchestratorStart,
+      stages: failovers.map((f: any) => ({ name: "FAILOVER", durationMs: 0, status: f.reason })),
+    });
+
     return {
       ok: true,
       transaction: tx,
@@ -342,6 +389,19 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
   }
 
   // AUTO-REVERSE — all attempts (primary + failovers) failed.
+  // Send failed event to Dead Letter Queue for retry processing
+  sendToDLQ({
+    eventType: UPLEventTypes.PAYMENT_COMPLETED,
+    aggregateType: "TRANSACTION",
+    aggregateId: tx.id,
+    payload: {
+      reference: tx.reference,
+      provider: actualProviderCode,
+      error: !result.ok ? result.error : "Unknown",
+    },
+    error: !result.ok ? (result.error?.message ?? "Unknown failure") : "Unknown failure",
+    maxAttempts: 3,
+  });
   if (holdDebitId) {
     try {
       await creditWallet({
@@ -495,7 +555,19 @@ async function tryWithFailover(
 
     let result: ProviderResult<any>;
     try {
-      result = await req.providerCall(adapter, providerRef);
+      // Wrap provider call with stage-specific timeout
+      result = (await withTimeout(
+        req.providerCall(adapter, providerRef),
+        "PROCESS",
+        30_000 // 30s timeout for provider calls
+      ).catch((e: any) => ({
+        ok: false as const,
+        error: {
+          code: "PROVIDER_TIMEOUT" as const,
+          message: e?.message ?? "Provider call timed out",
+          retryable: true,
+        },
+      }))) as ProviderResult<any>;
     } catch (e: any) {
       // Defensive: providerCall should never throw (adapters return ProviderResult),
       // but if it does we treat it as a retryable UPSTREAM_ERROR.

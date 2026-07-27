@@ -370,6 +370,9 @@ export interface CanonicalEvent {
 
 export type TurboCoreEventType =
   | "PAYMENT.CREATED"
+  | "PAYMENT.VALIDATED"
+  | "PAYMENT.ROUTED"
+  | "PAYMENT.INITIATED"
   | "PAYMENT.PENDING"
   | "PAYMENT.PROCESSING"
   | "PAYMENT.AUTHORIZED"
@@ -397,7 +400,10 @@ export type TurboCoreEventType =
   | "RISK.FLAGGED"
   | "RISK.BLOCKED"
   | "WEBHOOK.RECEIVED"
-  | "WEBHOOK.PROCESSED";
+  | "WEBHOOK.PROCESSED"
+  | "LEDGER.POSTED"
+  | "WALLET.UPDATED"
+  | "NOTIFICATION.SENT";
 
 // ===== Settlement Object =====
 
