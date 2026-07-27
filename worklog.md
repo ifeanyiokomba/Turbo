@@ -1640,3 +1640,121 @@ Stage Summary:
 - src/lib/turbocore/services/audit-service.ts (log/list/getTimeline/export)
 - src/lib/turbocore/services/analytics-service.ts (getDashboardStats/getCashflow/getSpendingByCategory/getProviderPerformance/getRevenueStats)
 - src/lib/turbocore/services/index.ts (barrel export + type re-exports)
+
+---
+Task ID: 3
+Agent: full-stack-developer (GCR Admin UI)
+Task: Build comprehensive GCR admin tab with 8 sub-tabs (Overview, Capability Tree, Resolution Engine, Country Matrix, Provider Matrix, Knowledge Graph, Feature Flags, Certification)
+
+Work Log:
+- Read /home/z/my-project/worklog.md to absorb prior agent history (MANIFESTS, SVC-SKELETON, etc.) and confirmed no prior GCR UI work existed.
+- Inspected all 9 GCR API endpoints to understand exact response shapes: GET /api/admin/gcr (overview stats + groups + provider matrix), GET /api/admin/gcr/tree (22 groups × ~200 capabilities), GET /api/admin/gcr/capabilities?id=X (single-capability detail with dependencies/providers/certifications/country-support/tests), GET /api/admin/gcr/resolve (resolution engine), GET /api/admin/gcr/country-matrix, GET /api/admin/gcr/provider-matrix, GET /api/admin/gcr/knowledge-graph (+ optional ?from=&to= BFS path finder), GET/POST/DELETE /api/admin/gcr/flags, GET/POST /api/admin/gcr/certification.
+- Cross-referenced src/lib/turbocore/gcr/types.ts for the canonical type definitions (CapabilityStatus, CapabilityDirection, ProviderCapabilityMaturity, CountryCapabilitySupport, CapabilityFlagScope, CertificationStatus, KnowledgeGraph types).
+- Studied existing admin tab patterns (capabilities-tab.tsx, shared.tsx, admin.tsx) for shadcn/ui usage, colour tone conventions, fetch+toast error handling, and layout/spacing rules.
+- Verified dev server was already running on port 3000 and all 9 GCR endpoints return 200 (dev.log shows successful responses ranging from 137ms to 1308ms).
+- Created ONE file: src/components/turbopay/views/admin/gcr-tab.tsx (default export `GcrTab`).
+- Architecture: state-based sub-tab switching (NOT shadcn Tabs to avoid bundle bloat, per task spec). Each sub-tab is its own function component within the file. All data fetched via fetch() with cache:"no-store". Heavy computations memoised with useMemo. Fetch functions wrapped in useCallback. Errors handled via sonner toast.
+- Color system: NO indigo/blue as primary — emerald leads. Remapped the group "indigo" accent to violet in the ACCENT_DOT/ACCENT_TEXT maps to comply with the no-indigo rule. Used emerald/amber/violet/cyan/rose/slate/orange/sky for the tone maps (sky is used only for SUPPORTED maturity + COUNTRY scope, never as a primary brand color).
+- Tone maps defined for: CapabilityStatus (STABLE=emerald, BETA=amber, EXPERIMENTAL=orange, DEPRECATED=rose, PLANNED=slate), ProviderCapabilityMaturity (NATIVE=emerald, SUPPORTED=sky, LIMITED=amber, BETA=cyan, PARKED=rose, ROADMAP=slate), CountryCapabilitySupport (FULL=emerald, LIMITED=amber, CONFIGURABLE=violet, DISABLED=rose, BETA=cyan), CapabilityFlagScope (GLOBAL=slate, COUNTRY=sky, MERCHANT=violet, USER_TIER=amber, ENVIRONMENT=cyan, REGULATORY=rose), CertificationStatus (CERTIFIED=emerald, IN_PROGRESS=amber, FAILED=rose, PENDING=slate), Direction (INBOUND=emerald, OUTBOUND=rose, BOTH=violet, NEUTRAL=slate).
+- Iconography: imported 33 lucide-react icons including all 22 group icons (ArrowDownToLine, ArrowUpFromLine, Wallet, ShieldCheck, ArrowLeftRight, Store, CreditCard, Smartphone, Landmark, Building2, ShieldAlert, Scale, ReceiptText, BarChart3, Code2, PiggyBank, Repeat, FileText, QrCode, Bitcoin, Coins, Bell) plus utility icons (Search, Filter, GitBranch, Flag, CheckCircle2, AlertCircle, XCircle, Clock, Loader2, RefreshCw, Plus, Trash2, ChevronDown, ChevronRight, Network, Zap, Globe2, Layers, Workflow). GROUP_ICONS lookup map with Layers fallback.
+- 8 sub-tabs implemented:
+  1. Overview: 16 stat cards (Groups, Capabilities, Stable, Beta, Experimental, Planned, Countries, Providers, Features, Dependencies, Versions, Cert Tests, Flags, Provider Entries, Deprecated, Flags Enabled) + provider-matrix-by-maturity grid + 22-group summary cards with direction breakdown (in/out/both) and feature/dep counts.
+  2. Capability Tree: search input + status filter + group filter + match counter; collapsible groups (first group auto-expanded); per-capability rows showing name + status badge + direction badge + id + description + country pills + feature count; click row → opens Dialog with full detail (metadata grid, hard-deps status, features with mandatory badges, versions with current badge, dependency graph, providers with maturity + cert status + country/feature pills + pass/mandatory counts, country support matrix, condensed documentation, certification tests list).
+  3. Resolution Engine: 5-input form (country, capability, currency, direction, KYC tier); auto-resolves on first load; result banner (emerald=resolved / rose=not resolved) with capability id + status + direction; failover chain rendered as ordered provider badges with #rank + maturity + score; candidates table with score bars; dependencies checked list with satisfied/unsatisfied icons; duration badge in ms.
+  4. Country Matrix: legend of support tones; horizontal-scroll grid with countries × capability-groups; each cell shows total count + dominant support level colour-coded; click row to expand and show all capabilities with their support level.
+  5. Provider Matrix: legend of maturity tones; horizontal-scroll grid with providers × capability-groups; each cell shows total count + dominant maturity (NATIVE > SUPPORTED > LIMITED > BETA > PARKED > ROADMAP); click row to expand and show all entries with maturity, version, countries, features.
+  6. Knowledge Graph: 6 stat cards (Nodes, Edges, REQUIRES, RECOMMENDS, OPTIONAL, Unsatisfied Deps); BFS path finder with from/to dropdowns + Find Path button + path result with step count + satisfied indicator + ordered capability badges + explanation; nodes list grouped by group (filter by group) with KGNodeRow showing label + status + prereq count + unsatisfied badge + missing-deps pills; edges list with kind-coloured badges and reason text.
+  7. Feature Flags: 4 stat cards (Total, Enabled, Disabled, Scopes) + by-scope breakdown grid (6 scopes); flags table with capability id + scope badge + target + reason + last-updated + Switch toggle (optimistic update with POST rollback on error) + delete button (with confirm); Add Flag dialog with capability dropdown + scope dropdown + target input + reason input + enabled Switch.
+  8. Certification: 5 stat cards (Total, Certified, In Progress, Failed, Pending) + legend; matrix table with providers × top-20 capabilities (by provider count); each cell colour-coded by cert status with mandatory pass count; click cell → opens Dialog with cert status + 4 metrics (Passed/Failed/Total/Mandatory) + scrollable test list with pass/fail icons; Run Certification button triggers POST and reloads.
+- Responsive design: mobile-first with sm:/md:/lg:/xl: breakpoints; horizontal-scroll wrappers (overflow-x-auto + min-w-[800px]) for the country/provider/certification matrices; sub-tab nav collapses to icons-only on small screens; grids use grid-cols-2 → md:grid-cols-4 → lg:grid-cols-6 progression.
+- Long lists use max-h-96 overflow-y-auto with pr-1 for scrollbar gutter.
+- Sticky footer not required here (this is a tab, not a top-level page) — the parent admin view handles layout.
+- First draft was 3343 lines; condensed through helper extraction (DetailSection, PillRow, DocList, MetaItem→inline, DocBlock→inline) and tighter JSX (chained ternaries, single-line badges, consolidated metadata grid) down to 1979 lines (under the 2000 line target).
+- Ran `bun run lint` — exit code 0, 0 errors, 0 warnings. Pre-commit hooks (eslint --fix, prettier --write) ran cleanly.
+- Ran `npx tsc --noEmit 2>&1 | grep "gcr-tab"` — 0 errors for the gcr-tab.tsx file. (Pre-existing tsc errors in unrelated files: examples/websocket/* missing socket.io-client, skills/image-edit/scripts/image-edit.ts, skills/stock-analysis-skill/src/analyzer.ts — all untouched by this task.)
+
+Stage Summary:
+- Created (1 file): src/components/turbopay/views/admin/gcr-tab.tsx — 1979 lines, default export `GcrTab`
+- Modified: 0 (no existing files touched — integration into admin.tsx is a separate task per spec)
+- Lint: 0 errors, 0 warnings (exit 0)
+- TypeScript: 0 errors for gcr-tab.tsx (verified via `npx tsc --noEmit 2>&1 | grep "gcr-tab"` — empty output)
+- Dev server: confirmed running on port 3000 with all 9 GCR endpoints returning 200
+- Sub-tabs: Overview (16 stat cards + provider matrix + 22 group cards), Capability Tree (searchable/filterable/collapsible with full detail dialog), Resolution Engine (5-input form + failover chain + candidates table + deps check), Country Matrix (countries × groups grid with expand), Provider Matrix (providers × groups grid with expand), Knowledge Graph (stats + BFS path finder + nodes/edges lists), Feature Flags (stats + table with toggle/delete + add dialog), Certification (stats + matrix + detail dialog with run button)
+
+---
+Task ID: CH7-GCR
+Agent: main (Chapter 7 — Global Capability Registry)
+Task: Build the Global Capability Registry (GCR) — Chapter 7 of the TurboPay Bible. TurboCore routes to Capabilities, never to providers. The GCR is the platform's capability-first knowledge layer with 22 groups, ~200 capabilities, a knowledge graph, country/provider matrices, a resolution engine, feature flags, and certification.
+
+Work Log:
+- Read worklog.md (1642 lines) to understand prior chapters: foundation (auth, money, routing-engine, orchestrator, ledger, models, geo), Chapter 5+ (UPL state machine, event bus, FLE/PIE, sync engine, routing explainability, version manager, sandbox), provider manifests (17 manifests), service skeleton (15 bounded services), DevOps (CI/CD, prettier, vitest, husky, env validation), Auth modules (JWT, device tracking, Google OAuth, business/admin login, security logs).
+- Audited existing capability infrastructure: ProviderCapability Prisma model (per-provider per-country per-contract), manifest-registry.ts (17 manifests auto-loaded), certification.ts (provider-level), feature-flags.ts (Stripe/Wise parked), contracts.ts (35 ContractName constants), capabilities-tab.tsx (existing admin tab for ProviderCapability CRUD).
+- Created the GCR core library at `src/lib/turbocore/gcr/` (9 files, 4361 lines total):
+  - `types.ts` (388 lines) — Capability, CapabilityGroup, CapabilityFeature, CapabilityVersion, CapabilityDependency, CapabilityCertification, CapabilityDocumentation, CountryCapabilityProfile, ProviderCapabilityEntry, ResolutionRequest/Result, CapabilityFlag, KnowledgeGraph, DependencyPath, GcrStats, GroupStats. Includes 6 status types (STABLE/BETA/EXPERIMENTAL/DEPRECATED/PLANNED), 5 country support levels (FULL/LIMITED/CONFIGURABLE/DISABLED/BETA), 6 provider maturity levels (NATIVE/SUPPORTED/LIMITED/BETA/PARKED/ROADMAP), 6 flag scopes (GLOBAL/COUNTRY/MERCHANT/USER_TIER/ENVIRONMENT/REGULATORY).
+  - `capability-tree.ts` (2071 lines) — The master capability catalogue. 22 capability groups (Collections, Disbursements, Wallets, Identity, FX, Merchant, Cards, Mobile Money, Virtual Accounts, Banking, Risk, Compliance, Settlement, Analytics, Developer, Treasury, Subscriptions, Invoices, QR, Crypto, Stablecoins, Notifications) with 198 capabilities total. Each capability has: id, name, description, group, direction, status, countries, currencies, requiredKycTier, 6 behavioural flags, features[], versions[], dependencies[], certification[], documentation{}, tags[]. The catalogue is static data — no DB round-trip needed.
+  - `knowledge-graph.ts` (216 lines) — Builds a directed graph from capability dependencies. BFS shortest-path finder, transitive prerequisite tree, reverse-edge lookup (dependents), hard-dependency satisfaction checker, "what gets unlocked by enabling X" analysis.
+  - `country-matrix.ts` (425 lines) — 9 country profiles (NG, KE, GH, ZA, UG, TZ, RW, GB, US) with per-capability support levels. Expands to 198 × 9 = 1,782 support entries. Each profile includes KYC requirements + regulatory notes.
+  - `provider-matrix.ts` (242 lines) — Maps the 17 existing provider manifests to GCR capabilities via a 40-entry MANIFEST_TO_GCR lookup table. Derives maturity (NATIVE for turbopay mock, PARKED for stripe/wise, SUPPORTED/LIMITED for others). Produces 98 provider × capability entries.
+  - `resolution-engine.ts` (326 lines) — The Capability Resolution Engine. Validates dependencies first (short-circuits if any REQUIRES is unsatisfied), then checks country matrix, KYC tier, direction, currency, feature flags, provider matrix, and circuit-breaker health. Scores candidates: maturity (40pts) + country support (30pts) + health (30pts). Returns ordered failover chain. Also includes explainResolution() for "why is X unavailable?" and resolveAllForCountry() for "what can this customer do?".
+  - `flags.ts` (304 lines) — In-memory capability flag store with 9 seeded regulatory/country/environment/tier flags (e.g., stablecoins DISABLED in NG awaiting SEC approval, crypto DISABLED in NG per CBN, network tokens gated in production). Resolution order: REGULATORY → MERCHANT → USER_TIER → COUNTRY → ENVIRONMENT → default-enabled.
+  - `certification.ts` (271 lines) — Capability-level certification catalog (239 tests across 198 capabilities). Per-provider × per-capability certification matrix with 35 seeded records (33 CERTIFIED, 2 IN_PROGRESS). Simulated runner based on provider maturity (NATIVE=100% pass, SUPPORTED=95%, BETA=70%, LIMITED=50%, PARKED=0%).
+  - `stats.ts` (68 lines) — Registry statistics: group counts, capability counts by status, feature/dependency/version/certification totals, country/provider/flag counts.
+  - `index.ts` (50 lines) — Barrel export.
+- Created 10 GCR API endpoints at `src/app/api/admin/gcr/` (consolidated from initial 17 to reduce Turbopack module-graph memory):
+  - `route.ts` — GET overview (stats + groups + provider matrix summary)
+  - `tree/route.ts` — GET full capability tree (22 groups → capabilities → features)
+  - `capabilities/route.ts` — GET list (filter by group/status/country/q) + GET detail (?id=X with deps + providers + certification + country support + prerequisite tree)
+  - `groups/route.ts` — GET all 22 groups with stats
+  - `knowledge-graph/route.ts` — GET graph (nodes + edges + stats) + GET dependency path (?from=X&to=Y) + GET prerequisite tree (?from=X)
+  - `country-matrix/route.ts` — GET all country profiles + GET single (?country=X) + GET capability support (?capability=X)
+  - `provider-matrix/route.ts` — GET full matrix + GET provider (?provider=X) + GET capability providers (?capability=X)
+  - `resolve/route.ts` — GET resolve (?country&capability&currency&direction&kycTier) + GET explain (?explain=1) + GET all-for-country (?all=1) + POST resolve (with merchantId)
+  - `flags/route.ts` — GET list + POST set + DELETE (?capabilityId&scope&target)
+  - `certification/route.ts` — GET matrix + POST run (?provider&capability)
+- All API routes use dynamic `import("@/lib/turbocore/gcr")` inside the handler to let Turbopack code-split the heavy GCR module into a separate chunk, preventing OOM during route compilation. Type-only imports (`import type { CapabilityFlagScope }`) are static (erased at compile time).
+- Fixed a dependency bug: `collections.cards` (and 2 other capabilities) referenced `identity.kyc` as a REQUIRES dependency, but the KYC capability lives at `compliance.kyc` (the identity group has email_verify, phone_verify, otp, national_id, passport, drivers_license, bvn, nin, tin, business_verify, aml, pep, sanctions, liveness, face_match, doc_ocr, address_verify — but NOT kyc). Changed all 3 references from `identity.kyc` → `compliance.kyc`. After fix, resolution engine returns `resolved: true` with failover chain `[turbopay, paystack, flutterwave, monnify]` and proper scoring (NATIVE=100, SUPPORTED=90).
+- Created `src/components/turbopay/views/admin/gcr-tab.tsx` (1979 lines) via subagent — a comprehensive admin UI with 8 sub-tabs: Overview (16 stat cards + 22 group summary), Capability Tree (search + filter + collapsible groups + detail dialog), Resolution Engine (interactive resolver with failover chain + scored candidates), Country Matrix (countries × groups grid), Provider Matrix (providers × groups grid), Knowledge Graph (nodes + edges + BFS path finder), Feature Flags (table + add/delete + optimistic toggle), Certification (matrix + run button + detail dialog). Uses emerald-led colour system (no indigo/blue as primary), responsive mobile-first design, lazy-loaded via `next/dynamic` with `ssr: false` to keep the admin initial bundle lean.
+- Wired GcrTab into `src/components/turbopay/views/admin.tsx`: added `Network` icon import, `next/dynamic` import, new `<TabsTrigger value="gcr">` after "Roles", and `<TabsContent value="gcr"><GcrTab /></TabsContent>` at the end. The GcrTab is lazy-loaded (dynamic import with ssr:false + loading spinner) so it only loads when an admin clicks the "GCR" tab.
+- Verification:
+  - `bun run lint` → 0 errors, 0 warnings ✅
+  - `npx tsc --noEmit` → 0 errors in any gcr/* or admin.tsx file ✅
+  - All 10 GCR API endpoints return 200 via sequential curl tests ✅
+  - Resolution engine: `collections.cards` in NG → resolved=true, failover=[turbopay, paystack, flutterwave, monnify], 4 candidates with scores 100/90/90/90 ✅
+  - Knowledge graph: 198 nodes, 35 edges (30 REQUIRES, 5 RECOMMENDS) ✅
+  - Country matrix: 9 countries profiled (NG=56 FULL, KE=43 FULL, GH=25 FULL, etc.) ✅
+  - Provider matrix: 14 providers mapped, 98 entries (71 SUPPORTED, 15 NATIVE, 12 PARKED) ✅
+  - Flags: 9 flags (6 enabled, 3 disabled) across COUNTRY/USER_TIER/ENVIRONMENT/REGULATORY scopes ✅
+  - Certification: 35 records (33 CERTIFIED, 2 IN_PROGRESS) ✅
+  - agent-browser: home page renders correctly (landing page with Turbopay logo, hero, features), login form renders correctly ✅
+  - Browser-based GCR tab verification limited by sandbox memory (3.9GB RAM — Turbopack dev server + Chromium browser + 50+ existing routes exceed available memory when compiling auth/login). The GcrTab component compiles cleanly, is lazy-loaded, and calls pre-verified API endpoints.
+
+Stage Summary:
+Files created (20):
+- src/lib/turbocore/gcr/types.ts (388 lines)
+- src/lib/turbocore/gcr/capability-tree.ts (2071 lines)
+- src/lib/turbocore/gcr/knowledge-graph.ts (216 lines)
+- src/lib/turbocore/gcr/country-matrix.ts (425 lines)
+- src/lib/turbocore/gcr/provider-matrix.ts (242 lines)
+- src/lib/turbocore/gcr/resolution-engine.ts (326 lines)
+- src/lib/turbocore/gcr/flags.ts (304 lines)
+- src/lib/turbocore/gcr/certification.ts (271 lines)
+- src/lib/turbocore/gcr/stats.ts (68 lines)
+- src/lib/turbocore/gcr/index.ts (50 lines)
+- src/app/api/admin/gcr/route.ts
+- src/app/api/admin/gcr/tree/route.ts
+- src/app/api/admin/gcr/capabilities/route.ts
+- src/app/api/admin/gcr/groups/route.ts
+- src/app/api/admin/gcr/knowledge-graph/route.ts
+- src/app/api/admin/gcr/country-matrix/route.ts
+- src/app/api/admin/gcr/provider-matrix/route.ts
+- src/app/api/admin/gcr/resolve/route.ts
+- src/app/api/admin/gcr/flags/route.ts
+- src/app/api/admin/gcr/certification/route.ts
+- src/components/turbopay/views/admin/gcr-tab.tsx (1979 lines)
+
+Files modified (1):
+- src/components/turbopay/views/admin.tsx (added dynamic GcrTab import + TabsTrigger + TabsContent + Network icon)
+
+Lint: 0 errors, 0 warnings ✅
+Typecheck: 0 errors in GCR files ✅
+GCR stats: 22 groups | 198 capabilities | 284 features | 35 dependencies | 204 versions | 239 certification tests | 9 countries | 14 providers | 9 flags | 35 certification records

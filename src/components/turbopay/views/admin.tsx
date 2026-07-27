@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import { useApp } from "../store";
 import { PageHeader, StatCard, EmptyState } from "../parts/layout";
 import { Card } from "@/components/ui/card";
@@ -47,6 +48,7 @@ import {
   Inbox,
   CircuitBoard,
   ShieldCheck,
+  Network,
 } from "lucide-react";
 import { naira, nairaCompact, formatDate, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
@@ -61,6 +63,17 @@ import FeatureFlagsTab from "./admin/feature-flags-tab";
 import ConfigHistoryTab from "./admin/config-history-tab";
 import TeamTab from "./admin/team-tab";
 import RolesTab from "./admin/roles-tab";
+// GCR tab is lazy-loaded to keep the admin initial bundle lean — the GCR
+// catalogue is large (~2000 lines) and only needed when an admin clicks the
+// "GCR" tab. dynamic() with ssr:false prevents server-side evaluation.
+const GcrTab = dynamic(() => import("./admin/gcr-tab").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+    </div>
+  ),
+});
 
 interface AdminStats {
   users: number;
@@ -535,6 +548,10 @@ export default function AdminView() {
           <TabsTrigger value="roles" className="min-w-[120px] flex-1 gap-1">
             <ShieldCheck className="h-3.5 w-3.5" />
             Roles
+          </TabsTrigger>
+          <TabsTrigger value="gcr" className="min-w-[100px] flex-1 gap-1">
+            <Network className="h-3.5 w-3.5" />
+            GCR
           </TabsTrigger>
         </TabsList>
 
@@ -1391,6 +1408,11 @@ export default function AdminView() {
         {/* Roles & Permissions (RBAC explorer) */}
         <TabsContent value="roles" className="mt-5">
           <RolesTab />
+        </TabsContent>
+
+        {/* Global Capability Registry (Chapter 7) */}
+        <TabsContent value="gcr" className="mt-5">
+          <GcrTab />
         </TabsContent>
       </Tabs>
     </div>
