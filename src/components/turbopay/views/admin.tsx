@@ -53,6 +53,7 @@ import {
   Plug,
   Cpu,
   Building2,
+  FileSpreadsheet,
 } from "lucide-react";
 import { naira, nairaCompact, formatDate, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
@@ -136,6 +137,15 @@ const MtpaTab = dynamic(() => import("./admin/mtpa-tab").then((m) => m.default),
 });
 // OMO Observability & Operations (Chapter 12) — the 5 pillars.
 const OmoTab = dynamic(() => import("./admin/omo-tab").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+    </div>
+  ),
+});
+// Bulk Payments tab — process thousands of payments in batches.
+const BulkPaymentsTab = dynamic(() => import("./admin/bulk-payments-tab").then((m) => m.default), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center py-20">
@@ -587,6 +597,10 @@ export default function AdminView() {
           </TabsTrigger>
           <TabsTrigger value="transactions" className="min-w-[100px] flex-1">
             Transactions
+          </TabsTrigger>
+          <TabsTrigger value="bulk-payments" className="min-w-[120px] flex-1 gap-1">
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            Bulk Pay
           </TabsTrigger>
           <TabsTrigger value="savings" className="min-w-[100px] flex-1">
             Savings
@@ -1194,6 +1208,11 @@ export default function AdminView() {
               />
             )}
           </Card>
+        </TabsContent>
+
+        {/* Bulk Payments */}
+        <TabsContent value="bulk-payments" className="mt-5">
+          <BulkPaymentsTab />
         </TabsContent>
 
         {/* Savings & Investments */}

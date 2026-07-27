@@ -2245,3 +2245,64 @@ model JournalBatch {
   @@index([status, createdAt])
   @@index([reference])
 }
+
+// ===== Bulk Payment System =====
+
+/// Bulk payment batch — a group of payments processed together.
+model BulkPaymentBatch {
+  id              String   @id @default(cuid())
+  batchRef        String   @unique
+  merchantId      String?
+  userId          String
+  name            String?
+  description     String?
+  totalItems      Int      @default(0)
+  totalAmountMinor Int     @default(0)
+  currency        String   @default("NGN")
+  successCount    Int      @default(0)
+  failedCount     Int      @default(0)
+  pendingCount    Int      @default(0)
+  totalFeeMinor   Int      @default(0)
+  status          String   @default("PENDING") // PENDING | VALIDATING | PROCESSING | COMPLETED | PARTIALLY_COMPLETED | FAILED | CANCELLED
+  source          String   @default("CSV") // CSV | MANUAL | API
+  fileName        String?
+  paymentMethod   String   @default("BANK_TRANSFER") // BANK_TRANSFER | MOBILE_MONEY | WALLET
+  providerCode    String?
+  metadata        String   @default("{}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  processingStartedAt DateTime?
+  completedAt     DateTime?
+  items           BulkPaymentItem[]
+  @@index([userId, status, createdAt])
+  @@index([merchantId, createdAt])
+  @@index([status, createdAt])
+}
+
+/// Individual item in a bulk payment batch.
+model BulkPaymentItem {
+  id              String   @id @default(cuid())
+  batchId         String
+  batch           BulkPaymentBatch @relation(fields: [batchId], references: [id])
+  rowNumber       Int
+  recipientName   String
+  recipientAccount String?
+  recipientBank   String?
+  bankCode        String?
+  recipientPhone  String?
+  amountMinor     Int
+  currency        String
+  narration       String?
+  reference       String?
+  status          String   @default("PENDING") // PENDING | VALIDATED | PROCESSING | SUCCESS | FAILED | REVERSED
+  providerCode    String?
+  providerRef     String?
+  transactionId   String?
+  errorCode       String?
+  errorMessage    String?
+  processedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@index([batchId, status])
+  @@index([reference])
+}
