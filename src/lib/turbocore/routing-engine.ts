@@ -9,6 +9,7 @@
 import { db } from "@/lib/db";
 import { registry, getBreakerStates } from "./registry";
 import { getCountryConfig } from "./geo/country-config";
+import { isFeatureEnabled, FeatureFlags } from "./feature-flags";
 import type { ContractName } from "./result";
 
 export interface RouteRequest {
@@ -64,7 +65,10 @@ let cache: { ts: number; rows: any[] } | null = null;
 const CACHE_TTL = 60_000;
 
 // Health sample cache — recent ProviderHealthCheck rows per provider (5-min window).
-let healthCache: { ts: number; byProvider: Map<string, { successRate: number; avgLatencyMs: number; count: number }> } | null = null;
+let healthCache: {
+  ts: number;
+  byProvider: Map<string, { successRate: number; avgLatencyMs: number; count: number }>;
+} | null = null;
 const HEALTH_CACHE_TTL = 30_000;
 
 async function loadCapabilities(): Promise<any[]> {
@@ -74,7 +78,9 @@ async function loadCapabilities(): Promise<any[]> {
   return rows;
 }
 
-async function loadHealthStats(): Promise<Map<string, { successRate: number; avgLatencyMs: number; count: number }>> {
+async function loadHealthStats(): Promise<
+  Map<string, { successRate: number; avgLatencyMs: number; count: number }>
+> {
   if (healthCache && Date.now() - healthCache.ts < HEALTH_CACHE_TTL) return healthCache.byProvider;
   const since = new Date(Date.now() - 5 * 60_000);
   const rows = await db.providerHealthCheck.findMany({ where: { sampledAt: { gte: since } } });
@@ -111,6 +117,18 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
   const healthStats = await loadHealthStats();
   const breakers = getBreakerStates();
 
+  // Feature flags — parked providers (stripe / wise) are filtered out before
+  // capability scoring so they can never be selected unless an admin has
+  // explicitly flipped the flag. The lookup is cached (5-min TTL) so this is
+  // cheap enough to run on every route() call.
+  const [stripeEnabled, wiseEnabled] = await Promise.all([
+    isFeatureEnabled(FeatureFlags.STRIPE_ENABLED, req.userId),
+    isFeatureEnabled(FeatureFlags.WISE_ENABLED, req.userId),
+  ]);
+  const parkedProviders = new Set<string>();
+  if (!stripeEnabled) parkedProviders.add("stripe");
+  if (!wiseEnabled) parkedProviders.add("wise");
+
   // Geo context — load the country config so we can boost preferred providers.
   const countryConfig = await getCountryConfig(req.country).catch(() => null);
   const preferredForContract: string[] =
@@ -125,7 +143,9 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
       (!c.service || !req.service || c.service === req.service) &&
       c.direction === req.direction &&
       req.amountMinor >= c.minAmountMinor &&
-      (c.maxAmountMinor === 0 || req.amountMinor <= c.maxAmountMinor),
+      (c.maxAmountMinor === 0 || req.amountMinor <= c.maxAmountMinor) &&
+      // Parked-provider gate — drop capabilities whose provider is feature-flagged off.
+      !parkedProviders.has(c.providerCode)
   );
 
   if (viable.length === 0) {
@@ -213,7 +233,10 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
       contract: req.contract,
       reason: "preferred",
       scores: pool,
-      alternatives: pool.filter((s) => s.providerCode !== req.preferredProvider).slice(0, 3).map((s) => s.providerCode),
+      alternatives: pool
+        .filter((s) => s.providerCode !== req.preferredProvider)
+        .slice(0, 3)
+        .map((s) => s.providerCode),
       geoAware: { country: req.country, currency: req.currency },
     };
   }
@@ -241,7 +264,11 @@ export async function route(req: RouteRequest): Promise<RoutingDecision> {
   };
 }
 
-export async function persistDecision(decision: RoutingDecision, requestId: string, transactionId?: string): Promise<void> {
+export async function persistDecision(
+  decision: RoutingDecision,
+  requestId: string,
+  transactionId?: string
+): Promise<void> {
   try {
     // Encode the geo context (country + currency) inside alternativesJSON so the audit
     // trail captures the geo decision even though the schema has no dedicated column.

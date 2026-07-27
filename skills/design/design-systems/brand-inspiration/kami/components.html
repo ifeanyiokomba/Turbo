@@ -42,13 +42,11 @@
         --warn: #8a6b1f;
         --danger: #8a3a30;
 
-        --font-display:
-          Charter, Georgia, Palatino, "Times New Roman", serif;
-        --font-body:
-          Charter, Georgia, Palatino, "Times New Roman", serif;
+        --font-display: Charter, Georgia, Palatino, "Times New Roman", serif;
+        --font-body: Charter, Georgia, Palatino, "Times New Roman", serif;
         --font-mono:
-          "JetBrains Mono", "SF Mono", "Fira Code", Consolas, Monaco,
-          "TsangerJinKai02", "Source Han Serif SC", monospace;
+          "JetBrains Mono", "SF Mono", "Fira Code", Consolas, Monaco, "TsangerJinKai02",
+          "Source Han Serif SC", monospace;
 
         --text-xs: 11px;
         --text-sm: 12px;
@@ -115,8 +113,16 @@
       }
 
       /* ─── Reset (minimal) ───────────────────────────────────────── */
-      *, *::before, *::after { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
       body {
         background: var(--bg);
         color: var(--fg);
@@ -131,8 +137,13 @@
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
-      strong { font-weight: 500; } /* kami forbids synthetic bold (>500) */
-      em, i { font-style: normal; }  /* kami forbids italic — keep upright */
+      strong {
+        font-weight: 500;
+      } /* kami forbids synthetic bold (>500) */
+      em,
+      i {
+        font-style: normal;
+      } /* kami forbids italic — keep upright */
 
       /* ─── Layout primitives ─────────────────────────────────────── */
       .container {
@@ -147,16 +158,26 @@
         border-top: 1px solid var(--border);
       }
       @media (max-width: 1023px) {
-        .container { padding-inline: var(--container-gutter-tablet); }
-        section { padding-block: var(--section-y-tablet); }
+        .container {
+          padding-inline: var(--container-gutter-tablet);
+        }
+        section {
+          padding-block: var(--section-y-tablet);
+        }
       }
       @media (max-width: 639px) {
-        .container { padding-inline: var(--container-gutter-phone); }
-        section { padding-block: var(--section-y-phone); }
+        .container {
+          padding-inline: var(--container-gutter-phone);
+        }
+        section {
+          padding-block: var(--section-y-phone);
+        }
       }
 
       /* ─── Typography ────────────────────────────────────────────── */
-      h1, h2, h3 {
+      h1,
+      h2,
+      h3 {
         font-family: var(--font-display);
         font-weight: 500;
         margin: 0;
@@ -175,16 +196,25 @@
         font-size: var(--text-lg);
         line-height: 1.3;
       }
-      p { margin: 0; }
+      p {
+        margin: 0;
+      }
 
       .lede {
         font-size: var(--text-md);
         line-height: var(--leading-body);
         color: var(--muted);
       }
-      .body-muted { color: var(--muted); }
-      .body-meta { color: var(--meta); font-size: var(--text-sm); }
-      .body-sm { font-size: var(--text-sm); }
+      .body-muted {
+        color: var(--muted);
+      }
+      .body-meta {
+        color: var(--meta);
+        font-size: var(--text-sm);
+      }
+      .body-sm {
+        font-size: var(--text-sm);
+      }
 
       /* `.eyebrow` is the only place sans is used (and "sans" literally
          equals serif here per DESIGN.md §3 — kami has no separate
@@ -213,9 +243,15 @@
         margin-block-end: var(--space-3);
       }
 
-      .stack-3 > * + * { margin-block-start: var(--space-3); }
-      .stack-4 > * + * { margin-block-start: var(--space-4); }
-      .stack-6 > * + * { margin-block-start: var(--space-6); }
+      .stack-3 > * + * {
+        margin-block-start: var(--space-3);
+      }
+      .stack-4 > * + * {
+        margin-block-start: var(--space-4);
+      }
+      .stack-6 > * + * {
+        margin-block-start: var(--space-6);
+      }
 
       /* ─── Buttons ───────────────────────────────────────────────
        * kami buttons use `box-shadow: 0 0 0 1px ...` as the edge
@@ -237,8 +273,7 @@
         letter-spacing: var(--tracking-label);
         cursor: pointer;
         text-decoration: none;
-        transition:
-          box-shadow var(--motion-base) var(--ease-standard);
+        transition: box-shadow var(--motion-base) var(--ease-standard);
       }
       .btn:focus-visible {
         outline: none;
@@ -306,7 +341,9 @@
         border-radius: var(--radius-xs);
         background: var(--tag-bg-soft);
       }
-      .tag-faint { background: var(--tag-bg-faint); }
+      .tag-faint {
+        background: var(--tag-bg-faint);
+      }
       .tag-strong {
         background: var(--tag-bg-strong);
         padding: 4px 10px;
@@ -387,8 +424,12 @@
         white-space: pre;
         overflow-x: auto;
       }
-      .code .k { color: var(--accent); }   /* keyword */
-      .code .c { color: var(--meta); }     /* comment */
+      .code .k {
+        color: var(--accent);
+      } /* keyword */
+      .code .c {
+        color: var(--meta);
+      } /* comment */
 
       /* ─── Links ─────────────────────────────────────────────────
        * Default link color is ink-blue. Underline on hover at
@@ -407,8 +448,13 @@
       .hero {
         padding-block: var(--space-22) var(--space-18);
       }
-      .hero h1 { margin-block-end: var(--space-6); max-width: 14ch; }
-      .hero .lede { max-width: 56ch; }
+      .hero h1 {
+        margin-block-end: var(--space-6);
+        max-width: 14ch;
+      }
+      .hero .lede {
+        max-width: 56ch;
+      }
       .hero-actions {
         display: flex;
         gap: var(--space-3);
@@ -421,7 +467,9 @@
         gap: var(--space-12);
       }
       @media (max-width: 639px) {
-        .metric-row { grid-template-columns: 1fr 1fr; }
+        .metric-row {
+          grid-template-columns: 1fr 1fr;
+        }
       }
 
       .features-grid {
@@ -431,7 +479,9 @@
         margin-block-start: var(--space-8);
       }
       @media (max-width: 767px) {
-        .features-grid { grid-template-columns: 1fr; }
+        .features-grid {
+          grid-template-columns: 1fr;
+        }
       }
 
       .quote-block {
@@ -453,17 +503,13 @@
         <p class="section-num">00 · Reference</p>
         <h1>One paper, set carefully, can hold every brand decision.</h1>
         <p class="lede">
-          A token system distilled from the kami print rules: warm
-          parchment canvas, single ink-blue accent capped under five
-          percent of the page, serif at one weight. The fixture you
-          are reading uses the same token block agents paste into
-          every artifact.
+          A token system distilled from the kami print rules: warm parchment canvas, single ink-blue
+          accent capped under five percent of the page, serif at one weight. The fixture you are
+          reading uses the same token block agents paste into every artifact.
         </p>
         <div class="hero-actions">
           <a href="./tokens.css" class="btn btn-primary">View tokens</a>
-          <a href="./DESIGN.md" class="btn btn-secondary">
-            Read the spec
-          </a>
+          <a href="./DESIGN.md" class="btn btn-secondary"> Read the spec </a>
         </div>
       </section>
 
@@ -506,10 +552,8 @@
             <span class="tag tag-faint">Surface</span>
             <h3>Three-tier surface ramp</h3>
             <p class="body-muted body-sm">
-              Parchment for the page, ivory for cards, warm sand for
-              secondary buttons. Cards lift one half-shade above the
-              page; the contrast is what gives them edge without a
-              shadow.
+              Parchment for the page, ivory for cards, warm sand for secondary buttons. Cards lift
+              one half-shade above the page; the contrast is what gives them edge without a shadow.
             </p>
             <ul class="dash body-sm">
               <li>--bg covers the page</li>
@@ -522,9 +566,8 @@
             <span class="tag">Accent</span>
             <h3>One color, two states</h3>
             <p class="body-muted body-sm">
-              Ink blue is the only chromatic move. Hover holds the
-              same color — kami expresses lift through elevation, not
-              brightness. Active darkens by a hand-picked value, not a
+              Ink blue is the only chromatic move. Hover holds the same color — kami expresses lift
+              through elevation, not brightness. Active darkens by a hand-picked value, not a
               formula.
             </p>
             <ul class="dash body-sm">
@@ -538,10 +581,8 @@
             <span class="tag tag-strong">Type</span>
             <h3>One weight does the work</h3>
             <p class="body-muted body-sm">
-              Serif at weight 500 carries every heading. There is no
-              bold, no italic, no second face. Hierarchy comes from
-              size, tracking, and color — never from another type
-              family.
+              Serif at weight 500 carries every heading. There is no bold, no italic, no second
+              face. Hierarchy comes from size, tracking, and color — never from another type family.
             </p>
             <ul class="dash body-sm">
               <li>--font-display equals --font-body equals serif</li>
@@ -554,11 +595,9 @@
             <span class="tag">Elevation</span>
             <h3>Ring before whisper before drop</h3>
             <p class="body-muted body-sm">
-              Three sanctioned levels. A 1px hairline ring is the
-              default edge; a 4-24-rgba whisper appears only on hover.
-              The schema reserves --elev-ring as a first-class level so
-              brands like this one don't have to misuse --elev-raised
-              for hairlines.
+              Three sanctioned levels. A 1px hairline ring is the default edge; a 4-24-rgba whisper
+              appears only on hover. The schema reserves --elev-ring as a first-class level so
+              brands like this one don't have to misuse --elev-raised for hairlines.
             </p>
           </article>
         </div>
@@ -574,13 +613,15 @@
 
         <div class="quote-block">
           <blockquote class="quote">
-            kami is not a UI framework. It is a constraint system for
-            the page, designed to keep deliverables stable, clear, and
-            unmistakably printed.
+            kami is not a UI framework. It is a constraint system for the page, designed to keep
+            deliverables stable, clear, and unmistakably printed.
           </blockquote>
         </div>
 
-        <pre class="code" style="margin-block-start: var(--space-8)"><span class="c">/* Paste this block into the first &lt;style&gt; of every kami artifact. */</span>
+        <pre
+          class="code"
+          style="margin-block-start: var(--space-8)"
+        ><span class="c">/* Paste this block into the first &lt;style&gt; of every kami artifact. */</span>
 <span class="k">:root</span> {
   <span class="c">/* Surface */</span>
   <span class="k">--bg</span>: <span>#f5f4ed</span>;
@@ -591,8 +632,7 @@
 
         <p class="body-meta" style="margin-block-start: var(--space-4)">
           Full reference at
-          <a href="./tokens.css">tokens.css</a> ·
-          spec at
+          <a href="./tokens.css">tokens.css</a> · spec at
           <a href="./DESIGN.md">DESIGN.md</a>
         </p>
       </section>

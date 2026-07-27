@@ -26,21 +26,21 @@
  *   - Posters (use html2poster.js which handles overflow automatically)
  */
 
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
 // ── Playwright import ──
 
 let playwright;
 try {
-  playwright = require('playwright');
+  playwright = require("playwright");
 } catch {
   try {
-    playwright = require('playwright-core');
+    playwright = require("playwright-core");
   } catch {
-    console.error('✗ Neither playwright nor playwright-core is installed.');
+    console.error("✗ Neither playwright nor playwright-core is installed.");
     process.exit(2);
   }
 }
@@ -49,35 +49,46 @@ try {
 
 function resolveChromium(chromiumObj) {
   let exe;
-  try { exe = chromiumObj.executablePath(); } catch (_) { exe = null; }
-  if (exe && fs.existsSync(exe)) return { status: 'ok', executablePath: exe };
+  try {
+    exe = chromiumObj.executablePath();
+  } catch (_) {
+    exe = null;
+  }
+  if (exe && fs.existsSync(exe)) return { status: "ok", executablePath: exe };
 
   const candidates = [
-    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    '/Applications/Chromium.app/Contents/MacOS/Chromium',
-    '/usr/bin/chromium-browser', '/usr/bin/chromium', '/usr/bin/google-chrome',
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "/Applications/Chromium.app/Contents/MacOS/Chromium",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/chromium",
+    "/usr/bin/google-chrome",
   ];
-  if (process.env.PLAYWRIGHT_CHROMIUM_PATH) candidates.unshift(process.env.PLAYWRIGHT_CHROMIUM_PATH);
+  if (process.env.PLAYWRIGHT_CHROMIUM_PATH)
+    candidates.unshift(process.env.PLAYWRIGHT_CHROMIUM_PATH);
 
   for (const c of candidates) {
-    if (fs.existsSync(c)) return { status: 'fallback', executablePath: c };
+    if (fs.existsSync(c)) return { status: "fallback", executablePath: c };
   }
-  return { status: 'missing', executablePath: exe || '' };
+  return { status: "missing", executablePath: exe || "" };
 }
 
 // ── CLI parsing ──
 
 function parseArgs(argv) {
   const tokens = argv.slice(2);
-  let input = null, width = '210mm', height = '297mm', minGap = null, noTextOverlap = false;
+  let input = null,
+    width = "210mm",
+    height = "297mm",
+    minGap = null,
+    noTextOverlap = false;
 
   for (let i = 0; i < tokens.length; i++) {
     const t = tokens[i];
-    if (t === '--width') width = tokens[++i];
-    else if (t === '--height') height = tokens[++i];
-    else if (t === '--min-gap') minGap = parseFloat(tokens[++i]);
-    else if (t === '--no-text-overlap') noTextOverlap = true;
-    else if (t === '--help' || t === '-h') {
+    if (t === "--width") width = tokens[++i];
+    else if (t === "--height") height = tokens[++i];
+    else if (t === "--min-gap") minGap = parseFloat(tokens[++i]);
+    else if (t === "--no-text-overlap") noTextOverlap = true;
+    else if (t === "--help" || t === "-h") {
       console.log(`Usage: node cover_validate.js <cover.html> [options]
 
 Options:
@@ -87,7 +98,7 @@ Options:
   --no-text-overlap     Skip Pass 2 (text vs text zone overlap detection)
   --help                Show this help`);
       process.exit(0);
-    } else if (!t.startsWith('-') && !input) {
+    } else if (!t.startsWith("-") && !input) {
       input = t;
     }
   }
@@ -100,10 +111,10 @@ function dimToPx(dim) {
   if (!dim) return null;
   const s = String(dim).trim();
   const num = parseFloat(s);
-  if (s.endsWith('mm')) return Math.round(num * 3.7795);  // 1mm ≈ 3.7795px at 96dpi
-  if (s.endsWith('cm')) return Math.round(num * 37.795);
-  if (s.endsWith('in')) return Math.round(num * 96);
-  if (s.endsWith('px') || !isNaN(num)) return Math.round(num);
+  if (s.endsWith("mm")) return Math.round(num * 3.7795); // 1mm ≈ 3.7795px at 96dpi
+  if (s.endsWith("cm")) return Math.round(num * 37.795);
+  if (s.endsWith("in")) return Math.round(num * 96);
+  if (s.endsWith("px") || !isNaN(num)) return Math.round(num);
   return null;
 }
 
@@ -489,7 +500,7 @@ async function main() {
   const { input, width, height, minGap, noTextOverlap } = parseArgs(process.argv);
 
   if (!input) {
-    console.error('✗ No input file specified. Usage: node cover_validate.js cover.html');
+    console.error("✗ No input file specified. Usage: node cover_validate.js cover.html");
     process.exit(2);
   }
 
@@ -499,28 +510,28 @@ async function main() {
     process.exit(2);
   }
 
-  const widthPx = dimToPx(width) || 794;   // A4 width in px
+  const widthPx = dimToPx(width) || 794; // A4 width in px
   const heightPx = dimToPx(height) || 1123; // A4 height in px
-  const gap = minGap || Math.round(widthPx * 0.05);  // 1U = 5% of page width
+  const gap = minGap || Math.round(widthPx * 0.05); // 1U = 5% of page width
 
   console.log(`🔍 cover_validate — Cover overlap detection`);
   console.log(`   Input:  ${absIn}`);
   console.log(`   Page:   ${widthPx}×${heightPx}px`);
   console.log(`   Min gap: ${gap}px (1U)`);
-  console.log(`   Pass 2 (text↔text): ${noTextOverlap ? 'DISABLED' : 'enabled'}`);
+  console.log(`   Pass 2 (text↔text): ${noTextOverlap ? "DISABLED" : "enabled"}`);
 
   const { chromium } = playwright;
   const bInfo = resolveChromium(chromium);
 
-  if (bInfo.status === 'missing') {
-    console.error('✗ No Chromium found. Install via: npx playwright install chromium');
+  if (bInfo.status === "missing") {
+    console.error("✗ No Chromium found. Install via: npx playwright install chromium");
     process.exit(2);
   }
 
   let browser;
   try {
     const opts = { headless: true };
-    if (bInfo.status === 'fallback') opts.executablePath = bInfo.executablePath;
+    if (bInfo.status === "fallback") opts.executablePath = bInfo.executablePath;
     browser = await chromium.launch(opts);
   } catch (err) {
     console.error(`✗ Browser launch failed: ${err.message}`);
@@ -529,21 +540,23 @@ async function main() {
 
   try {
     const page = await browser.newPage({ viewport: { width: widthPx, height: heightPx } });
-    await page.goto('file://' + absIn, { waitUntil: 'networkidle' });
+    await page.goto("file://" + absIn, { waitUntil: "networkidle" });
     console.log(`   ✓ HTML loaded`);
 
     // Wait for fonts
-    const fontsLoaded = await page.evaluate(() =>
-      document.fonts.ready.then(() => document.fonts.size)
-    ).catch(() => 0);
+    const fontsLoaded = await page
+      .evaluate(() => document.fonts.ready.then(() => document.fonts.size))
+      .catch(() => 0);
     console.log(`   ✓ Fonts: ${fontsLoaded} loaded`);
 
     // Run Pass 1: text vs decorative line overlap detection
     const result = await page.evaluate(`(${DECORATIVE_LINE_DETECTION})(${gap})`);
 
-    const layer3Text = result.textElements_by_layer ? result.textElements_by_layer.layer3 : '?';
-    const layer1Text = result.textElements_by_layer ? result.textElements_by_layer.layer1 : '?';
-    console.log(`   ✓ Found ${result.textElements} text elements (L3: ${layer3Text}, L1: ${layer1Text}), ${result.lineElements} decorative lines`);
+    const layer3Text = result.textElements_by_layer ? result.textElements_by_layer.layer3 : "?";
+    const layer1Text = result.textElements_by_layer ? result.textElements_by_layer.layer1 : "?";
+    console.log(
+      `   ✓ Found ${result.textElements} text elements (L3: ${layer3Text}, L1: ${layer1Text}), ${result.lineElements} decorative lines`
+    );
 
     let allIssues = [];
 
@@ -551,13 +564,21 @@ async function main() {
     if (result.overlaps.length > 0) {
       console.error(`\n   ❌ Pass 1: Found ${result.overlaps.length} text-line overlap(s):`);
       for (const o of result.overlaps) {
-        const direction = o.lineType === 'vertical' ? 'horizontal' : 'vertical';
-        console.error(`\n   ERROR [text↔line]: ${direction} gap = ${o.gap}px (required ≥ ${o.required}px)`);
-        console.error(`     Text: <${o.textTag}> "${o.text}" @ y=${Math.round(o.textRect.y)}-${Math.round(o.textRect.y + o.textRect.height)}`);
-        console.error(`     Line: <${o.lineTag}${o.lineClass ? '.' + o.lineClass.split(' ')[0] : ''}> [${o.lineType}] @ y=${Math.round(o.lineRect.y)}-${Math.round(o.lineRect.y + o.lineRect.height)}`);
-        console.error(`     Fix: Move the decorative line at least ${Math.ceil(o.required - o.gap)}px away from the text.`);
+        const direction = o.lineType === "vertical" ? "horizontal" : "vertical";
+        console.error(
+          `\n   ERROR [text↔line]: ${direction} gap = ${o.gap}px (required ≥ ${o.required}px)`
+        );
+        console.error(
+          `     Text: <${o.textTag}> "${o.text}" @ y=${Math.round(o.textRect.y)}-${Math.round(o.textRect.y + o.textRect.height)}`
+        );
+        console.error(
+          `     Line: <${o.lineTag}${o.lineClass ? "." + o.lineClass.split(" ")[0] : ""}> [${o.lineType}] @ y=${Math.round(o.lineRect.y)}-${Math.round(o.lineRect.y + o.lineRect.height)}`
+        );
+        console.error(
+          `     Fix: Move the decorative line at least ${Math.ceil(o.required - o.gap)}px away from the text.`
+        );
       }
-      allIssues.push(...result.overlaps.map(o => ({ pass: 1, ...o })));
+      allIssues.push(...result.overlaps.map((o) => ({ pass: 1, ...o })));
     } else {
       console.log(`   ✅ Pass 1: No text-line overlaps`);
     }
@@ -567,16 +588,28 @@ async function main() {
       const textOverlaps = await page.evaluate(`(${TEXT_ZONE_DETECTION})(${gap})`);
 
       if (textOverlaps.overlaps.length > 0) {
-        console.error(`\n   ❌ Pass 2: Found ${textOverlaps.overlaps.length} text-text zone overflow(s):`);
+        console.error(
+          `\n   ❌ Pass 2: Found ${textOverlaps.overlaps.length} text-text zone overflow(s):`
+        );
         for (const o of textOverlaps.overlaps) {
-          console.error(`\n   ERROR [text↔text]: ${o.axis} overlap = ${o.overlap}px (gap should be ≥ ${o.required}px)`);
-          console.error(`     Block A: <${o.a.tag}.${o.a.class.split(' ')[0] || '?'}> "${o.a.text}" @ y=${Math.round(o.a.rect.y)}-${Math.round(o.a.rect.y + o.a.rect.height)}`);
-          console.error(`     Block B: <${o.b.tag}.${o.b.class.split(' ')[0] || '?'}> "${o.b.text}" @ y=${Math.round(o.b.rect.y)}-${Math.round(o.b.rect.y + o.b.rect.height)}`);
-          console.error(`     Fix: Move block B down by at least ${Math.ceil(o.overlap + o.required)}px, or reduce block A font size.`);
+          console.error(
+            `\n   ERROR [text↔text]: ${o.axis} overlap = ${o.overlap}px (gap should be ≥ ${o.required}px)`
+          );
+          console.error(
+            `     Block A: <${o.a.tag}.${o.a.class.split(" ")[0] || "?"}> "${o.a.text}" @ y=${Math.round(o.a.rect.y)}-${Math.round(o.a.rect.y + o.a.rect.height)}`
+          );
+          console.error(
+            `     Block B: <${o.b.tag}.${o.b.class.split(" ")[0] || "?"}> "${o.b.text}" @ y=${Math.round(o.b.rect.y)}-${Math.round(o.b.rect.y + o.b.rect.height)}`
+          );
+          console.error(
+            `     Fix: Move block B down by at least ${Math.ceil(o.overlap + o.required)}px, or reduce block A font size.`
+          );
         }
-        allIssues.push(...textOverlaps.overlaps.map(o => ({ pass: 2, ...o })));
+        allIssues.push(...textOverlaps.overlaps.map((o) => ({ pass: 2, ...o })));
       } else {
-        console.log(`   ✅ Pass 2: No text-text zone overflows (checked ${textOverlaps.layer3Count} L3 blocks, skipped ${textOverlaps.layer1Count} L1 blocks)`);
+        console.log(
+          `   ✅ Pass 2: No text-text zone overflows (checked ${textOverlaps.layer3Count} L3 blocks, skipped ${textOverlaps.layer1Count} L1 blocks)`
+        );
       }
     }
 
@@ -587,13 +620,12 @@ async function main() {
       console.error(`\n   ❌ Total: ${allIssues.length} issue(s) found`);
       process.exit(1);
     }
-
   } finally {
     await browser.close();
   }
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error(`✗ Unexpected error: ${err.message}`);
   process.exit(2);
 });

@@ -12,22 +12,22 @@ export function detectMarket(code: string): Market {
 }
 
 const MARKET_LABEL: Record<Market, string> = {
-  CN: "A股", HK: "港股", US: "美股",
+  CN: "A股",
+  HK: "港股",
+  US: "美股",
 };
 
 // ── 单只股票数据 ──────────────────────────────────────────
 
-export async function fetchStockData(
-  code: string,
-  mode: FetchMode = "full"
-): Promise<StockData> {
+export async function fetchStockData(code: string, mode: FetchMode = "full"): Promise<StockData> {
   const market = detectMarket(code);
   const zai = await ZAI.create();
 
-  const prompt = mode === "quote"
-    ? `查询 ${code}（${MARKET_LABEL[market]}）实时股价，只返回 JSON，字段：
+  const prompt =
+    mode === "quote"
+      ? `查询 ${code}（${MARKET_LABEL[market]}）实时股价，只返回 JSON，字段：
        name, price, prev_close, change_pct, change_amount, volume, amount, turnover, volume_ratio, market_cap, pe_ttm, pb。`
-    : `获取 ${code}（${MARKET_LABEL[market]}）完整股票数据，只返回 JSON，包含：
+      : `获取 ${code}（${MARKET_LABEL[market]}）完整股票数据，只返回 JSON，包含：
        name, price, prev_close, open, high, low, change_pct, change_amount, amplitude,
        volume, amount, turnover, volume_ratio, market_cap, pe_ttm, pb, high_52w, low_52w, dividend_yield,
        ma5, ma10, ma20, bias_pct（相对MA20乖离率%）,
@@ -72,16 +72,18 @@ export async function fetchGlobalMacro(): Promise<string> {
   const zai = await ZAI.create();
   try {
     const completion = await zai.chat.completions.create({
-      messages: [{
-        role: "user",
-        content: `请获取今日全球市场关键信息，简洁 Markdown 输出，包含：
+      messages: [
+        {
+          role: "user",
+          content: `请获取今日全球市场关键信息，简洁 Markdown 输出，包含：
 - 美股三大指数昨收涨跌（道指/纳指/标普）
 - 美元指数、人民币汇率动向
 - 黄金、原油最新价格
 - 美联储最新政策动向（如有）
 - 影响 A股/港股的1-2条关键宏观事件
 控制在150字以内。`,
-      }],
+        },
+      ],
       thinking: { type: "disabled" },
     });
     return completion.choices[0]?.message?.content ?? "全球宏观数据获取失败";
@@ -96,16 +98,18 @@ export async function fetchMarketOverview(): Promise<string> {
   const zai = await ZAI.create();
   try {
     const completion = await zai.chat.completions.create({
-      messages: [{
-        role: "user",
-        content: `请获取今日 A股大盘数据，Markdown 输出，包含：
+      messages: [
+        {
+          role: "user",
+          content: `请获取今日 A股大盘数据，Markdown 输出，包含：
 - 上证/深证/创业板/科创50 最新点位和涨跌幅
 - 今日上涨/下跌/涨停/跌停家数，成交额
 - 领涨板块 TOP3 和领跌板块 TOP3
 - 北向资金净流入
 - 一句话后市展望和仓位策略
 控制在200字以内。`,
-      }],
+        },
+      ],
       thinking: { type: "disabled" },
     });
     return completion.choices[0]?.message?.content ?? "大盘数据获取失败";

@@ -74,8 +74,7 @@ export function extractPayload(provider: string, raw: string): ExtractedPayload 
 
 function extractPaystack(body: any, raw: string): ExtractedPayload {
   const eventId =
-    pick(body, ["data.id", "data.reference", "event"])?.toString() ||
-    hashId("paystack", raw);
+    pick(body, ["data.id", "data.reference", "event"])?.toString() || hashId("paystack", raw);
   const eventType = (body.event ?? "paystack.event").toString();
   const providerRef =
     pick(body, ["data.reference", "data.id", "data.providerRef"])?.toString() ?? null;
@@ -97,11 +96,7 @@ function extractFlutterwave(body: any, raw: string): ExtractedPayload {
   const eventType = (body.event ?? "flutterwave.event").toString();
   const providerRef =
     pick(body, ["data.tx_ref", "data.flw_ref", "data.id", "data.reference"])?.toString() ?? null;
-  const rawStatus = (
-    pick(body, ["data.status", "event", "status"]) ?? ""
-  )
-    .toString()
-    .toLowerCase();
+  const rawStatus = (pick(body, ["data.status", "event", "status"]) ?? "").toString().toLowerCase();
   const status = rawStatus.includes("success")
     ? "SUCCESS"
     : rawStatus.includes("fail") || rawStatus.includes("cancel")
@@ -129,13 +124,14 @@ function extractMonnify(body: any, raw: string): ExtractedPayload {
   )
     .toString()
     .toUpperCase();
-  const status = rawStatus.includes("SUCCESS") || rawStatus.includes("PAID")
-    ? "SUCCESS"
-    : rawStatus.includes("FAIL") || rawStatus.includes("OVERPAY")
-      ? "FAILED"
-      : rawStatus.includes("PENDING")
-        ? "PENDING"
-        : "UNKNOWN";
+  const status =
+    rawStatus.includes("SUCCESS") || rawStatus.includes("PAID")
+      ? "SUCCESS"
+      : rawStatus.includes("FAIL") || rawStatus.includes("OVERPAY")
+        ? "FAILED"
+        : rawStatus.includes("PENDING")
+          ? "PENDING"
+          : "UNKNOWN";
   return { eventId, eventType, providerRef, status };
 }
 
@@ -170,7 +166,9 @@ function extractDefault(provider: string, body: any, raw: string): ExtractedPayl
       "reference",
       "data.id",
     ])?.toString() ?? null;
-  const rawStatus = (pick(body, ["data.status", "status", "data.state"]) ?? "").toString().toUpperCase();
+  const rawStatus = (pick(body, ["data.status", "status", "data.state"]) ?? "")
+    .toString()
+    .toUpperCase();
   const status = rawStatus.includes("SUCCESS")
     ? "SUCCESS"
     : rawStatus.includes("FAIL")

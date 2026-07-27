@@ -11,18 +11,55 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
-  RadialBarChart, RadialBar, PolarAngleAxis,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  RadialBarChart,
+  RadialBar,
+  PolarAngleAxis,
 } from "recharts";
 import {
-  ArrowDownLeft, ArrowUpRight, Activity, Wallet as WalletIcon, ArrowLeftRight,
-  Smartphone, Receipt, CreditCard, PiggyBank, Plus, ChevronRight, ShieldAlert,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Activity,
+  Wallet as WalletIcon,
+  ArrowLeftRight,
+  Smartphone,
+  Receipt,
+  CreditCard,
+  PiggyBank,
+  Plus,
+  ChevronRight,
+  ShieldAlert,
   QrCode,
   BarChart3,
-  TrendingUp, TrendingDown, CalendarDays, Lightbulb,
-  Crown, Sparkles,
-  CheckCircle2, Circle, KeyRound, Mail, Phone, BadgeCheck, PartyPopper,
-  Award, Lock as LockIcon, Send, Coins, ShoppingBag, Bird, Gift, ShieldCheck,
+  TrendingUp,
+  TrendingDown,
+  CalendarDays,
+  Lightbulb,
+  Crown,
+  Sparkles,
+  CheckCircle2,
+  Circle,
+  KeyRound,
+  Mail,
+  Phone,
+  BadgeCheck,
+  PartyPopper,
+  Award,
+  Lock as LockIcon,
+  Send,
+  Coins,
+  ShoppingBag,
+  Bird,
+  Gift,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import { naira, nairaCompact, formatDate } from "@/lib/money";
@@ -86,12 +123,28 @@ interface BadgesData {
   stats: { earned: number; total: number; completionPct: number };
 }
 
-const SPEND_COLORS = ["oklch(0.62 0.14 162)", "oklch(0.80 0.13 75)", "oklch(0.65 0.18 250)", "oklch(0.70 0.20 18)", "oklch(0.60 0.14 155)", "oklch(0.65 0.18 303)"];
+const SPEND_COLORS = [
+  "oklch(0.62 0.14 162)",
+  "oklch(0.80 0.13 75)",
+  "oklch(0.65 0.18 250)",
+  "oklch(0.70 0.20 18)",
+  "oklch(0.60 0.14 155)",
+  "oklch(0.65 0.18 303)",
+];
 
 const TYPE_LABELS: Record<string, string> = {
-  FUNDING: "Funding", TRANSFER: "Transfer", AIRTIME: "Airtime", DATA: "Data",
-  BILL: "Bills", CARD_FUND: "Card topup", CARD_WITHDRAW: "Card withdraw",
-  REWARD: "Reward", REFERRAL: "Referral", SAVINGS_DEPOSIT: "Savings", SAVINGS_WITHDRAW: "Savings", INVESTMENT: "Investment",
+  FUNDING: "Funding",
+  TRANSFER: "Transfer",
+  AIRTIME: "Airtime",
+  DATA: "Data",
+  BILL: "Bills",
+  CARD_FUND: "Card topup",
+  CARD_WITHDRAW: "Card withdraw",
+  REWARD: "Reward",
+  REFERRAL: "Referral",
+  SAVINGS_DEPOSIT: "Savings",
+  SAVINGS_WITHDRAW: "Savings",
+  INVESTMENT: "Investment",
 };
 
 export default function DashboardView() {
@@ -113,7 +166,9 @@ export default function DashboardView() {
       setLoading(false);
     }
   }, []);
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => {
+    load();
+  }, [load]);
 
   // Fire confetti when a new SUCCESS FUNDING/TRANSFER transaction appears
   // compared to the last-seen id stored in localStorage. We skip the very
@@ -134,13 +189,17 @@ export default function DashboardView() {
     if (lastSeen && lastSeen !== latest.id && latest.status === "SUCCESS" && isCelebrateType) {
       setShowConfetti(true);
       const t = setTimeout(() => setShowConfetti(false), 3000);
-      try { localStorage.setItem(STORAGE_KEY, latest.id); } catch {}
+      try {
+        localStorage.setItem(STORAGE_KEY, latest.id);
+      } catch {}
       return () => clearTimeout(t);
     }
 
     // Always advance the baseline so the next change is detectable.
     if (lastSeen !== latest.id) {
-      try { localStorage.setItem(STORAGE_KEY, latest.id); } catch {}
+      try {
+        localStorage.setItem(STORAGE_KEY, latest.id);
+      } catch {}
     }
   }, [data?.recent]);
 
@@ -165,7 +224,9 @@ export default function DashboardView() {
         /* non-fatal — insights are decorative */
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const hour = new Date().getHours();
@@ -173,12 +234,42 @@ export default function DashboardView() {
   const firstName = user?.fullName.split(" ")[0] ?? "there";
 
   const quickActions = [
-    { label: "Transfer", icon: ArrowLeftRight, view: "transfer" as const, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-    { label: "QR", icon: QrCode, view: "qr" as const, color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-    { label: "Airtime", icon: Smartphone, view: "airtime" as const, color: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-    { label: "Bills", icon: Receipt, view: "bills" as const, color: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
-    { label: "Cards", icon: CreditCard, view: "cards" as const, color: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
-    { label: "Save", icon: PiggyBank, view: "savings" as const, color: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
+    {
+      label: "Transfer",
+      icon: ArrowLeftRight,
+      view: "transfer" as const,
+      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    },
+    {
+      label: "QR",
+      icon: QrCode,
+      view: "qr" as const,
+      color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    },
+    {
+      label: "Airtime",
+      icon: Smartphone,
+      view: "airtime" as const,
+      color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    },
+    {
+      label: "Bills",
+      icon: Receipt,
+      view: "bills" as const,
+      color: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+    },
+    {
+      label: "Cards",
+      icon: CreditCard,
+      view: "cards" as const,
+      color: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+    },
+    {
+      label: "Save",
+      icon: PiggyBank,
+      view: "savings" as const,
+      color: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+    },
   ];
 
   if (loading) {
@@ -186,8 +277,8 @@ export default function DashboardView() {
       <div className="space-y-6">
         {/* Greeting skeleton */}
         <div className="space-y-2">
-          <div className="h-7 w-56 animate-pulse rounded-full bg-muted" />
-          <div className="h-4 w-40 animate-pulse rounded-full bg-muted/70" />
+          <div className="bg-muted h-7 w-56 animate-pulse rounded-full" />
+          <div className="bg-muted/70 h-4 w-40 animate-pulse rounded-full" />
         </div>
         <BalanceCardSkeleton />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -197,8 +288,8 @@ export default function DashboardView() {
         </div>
         {/* Cashflow / recent placeholder */}
         <Card className="p-5">
-          <div className="mb-4 h-4 w-32 animate-pulse rounded-full bg-muted" />
-          <div className="h-[220px] w-full animate-pulse rounded-xl bg-muted/60" />
+          <div className="bg-muted mb-4 h-4 w-32 animate-pulse rounded-full" />
+          <div className="bg-muted/60 h-[220px] w-full animate-pulse rounded-xl" />
         </Card>
       </div>
     );
@@ -212,8 +303,10 @@ export default function DashboardView() {
       {/* Greeting */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">{greeting}, {firstName} 👋</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Your money at a glance</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            {greeting}, {firstName} 👋
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">Your money at a glance</p>
         </div>
         {user && user.kycStatus !== "VERIFIED" && (
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setView("kyc")}>
@@ -229,10 +322,14 @@ export default function DashboardView() {
             <ShieldAlert className="h-5 w-5 text-amber-500" />
             <div>
               <p className="text-sm font-medium">Complete your KYC to unlock higher limits</p>
-              <p className="text-xs text-muted-foreground">Tier {user.kycTier} · Max ₦50,000 per transaction. Verify NIN or BVN to do more.</p>
+              <p className="text-muted-foreground text-xs">
+                Tier {user.kycTier} · Max ₦50,000 per transaction. Verify NIN or BVN to do more.
+              </p>
             </div>
           </div>
-          <Button size="sm" onClick={() => setView("kyc")}>Verify now</Button>
+          <Button size="sm" onClick={() => setView("kyc")}>
+            Verify now
+          </Button>
         </div>
       )}
 
@@ -265,9 +362,11 @@ export default function DashboardView() {
                 <button
                   key={a.label}
                   onClick={() => setView(a.view)}
-                  className="flex flex-col items-center gap-2 rounded-xl p-2 transition-colors hover:bg-muted/60"
+                  className="hover:bg-muted/60 flex flex-col items-center gap-2 rounded-xl p-2 transition-colors"
                 >
-                  <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${a.color}`}>
+                  <div
+                    className={`flex h-11 w-11 items-center justify-center rounded-xl ${a.color}`}
+                  >
                     <a.icon className="h-5 w-5" />
                   </div>
                   <span className="text-xs font-medium">{a.label}</span>
@@ -281,7 +380,7 @@ export default function DashboardView() {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold">Cashflow</p>
-                <p className="text-xs text-muted-foreground">Last 14 days</p>
+                <p className="text-muted-foreground text-xs">Last 14 days</p>
               </div>
               <Badge variant="secondary" className="gap-1">
                 <Activity className="h-3 w-3" /> {data?.stats.txCount ?? 0} transactions
@@ -299,15 +398,44 @@ export default function DashboardView() {
                     <stop offset="95%" stopColor="oklch(0.80 0.13 75)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(d) => d.slice(5)} stroke="var(--muted-foreground)" />
-                <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => nairaCompact(v)} stroke="var(--muted-foreground)" width={50} />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10 }}
+                  tickFormatter={(d) => d.slice(5)}
+                  stroke="var(--muted-foreground)"
+                />
+                <YAxis
+                  tick={{ fontSize: 10 }}
+                  tickFormatter={(v) => nairaCompact(v)}
+                  stroke="var(--muted-foreground)"
+                  width={50}
+                />
                 <Tooltip
-                  contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12 }}
+                  contentStyle={{
+                    background: "var(--popover)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 12,
+                    fontSize: 12,
+                  }}
                   formatter={(v: number) => naira(v)}
                   labelFormatter={(d) => ` ${d}`}
                 />
-                <Area type="monotone" dataKey="inflow" stroke="oklch(0.62 0.14 162)" strokeWidth={2} fill="url(#inflow)" name="In" />
-                <Area type="monotone" dataKey="outflow" stroke="oklch(0.80 0.13 75)" strokeWidth={2} fill="url(#outflow)" name="Out" />
+                <Area
+                  type="monotone"
+                  dataKey="inflow"
+                  stroke="oklch(0.62 0.14 162)"
+                  strokeWidth={2}
+                  fill="url(#inflow)"
+                  name="In"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="outflow"
+                  stroke="oklch(0.80 0.13 75)"
+                  strokeWidth={2}
+                  fill="url(#outflow)"
+                  name="Out"
+                />
               </AreaChart>
             </ResponsiveContainer>
           </Card>
@@ -319,7 +447,10 @@ export default function DashboardView() {
           <Card className="p-5">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-semibold">Recent transactions</p>
-              <button onClick={() => setView("history")} className="flex items-center gap-1 text-xs text-primary hover:underline">
+              <button
+                onClick={() => setView("history")}
+                className="text-primary flex items-center gap-1 text-xs hover:underline"
+              >
                 View all <ChevronRight className="h-3 w-3" />
               </button>
             </div>
@@ -334,7 +465,11 @@ export default function DashboardView() {
                 icon={WalletIcon}
                 title="No transactions yet"
                 description="Fund your wallet to get started."
-                action={<Button size="sm" onClick={() => setView("wallet")} className="gap-1.5"><Plus className="h-4 w-4" /> Fund wallet</Button>}
+                action={
+                  <Button size="sm" onClick={() => setView("wallet")} className="gap-1.5">
+                    <Plus className="h-4 w-4" /> Fund wallet
+                  </Button>
+                }
               />
             )}
           </Card>
@@ -384,16 +519,19 @@ export default function DashboardView() {
           </div>
 
           {/* Quick analytics link */}
-          <Card className="group cursor-pointer p-4 transition-all hover:-translate-y-0.5 hover:shadow-md" onClick={() => setView("analytics")}>
+          <Card
+            className="group cursor-pointer p-4 transition-all hover:-translate-y-0.5 hover:shadow-md"
+            onClick={() => setView("analytics")}
+          >
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/20 to-sky-500/10 text-violet-600 dark:text-violet-400">
                 <BarChart3 className="h-5 w-5" />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-semibold">View full analytics</p>
-                <p className="text-xs text-muted-foreground">Trends, categories, insights</p>
+                <p className="text-muted-foreground text-xs">Trends, categories, insights</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              <ChevronRight className="text-muted-foreground h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </div>
           </Card>
 
@@ -404,17 +542,36 @@ export default function DashboardView() {
           {data?.stats && data.stats.moneyOut > 0 && (
             <Card className="p-5">
               <p className="mb-1 text-sm font-semibold">Monthly spending</p>
-              <p className="mb-3 text-xs text-muted-foreground">vs ₦500,000 budget</p>
+              <p className="text-muted-foreground mb-3 text-xs">vs ₦500,000 budget</p>
               <div className="flex items-center gap-4">
                 <ResponsiveContainer width={100} height={100}>
-                  <RadialBarChart innerRadius="65%" outerRadius="100%" data={[{ name: "spent", value: Math.min(100, (data.stats.moneyOut / 5000000) * 100), fill: data.stats.moneyOut > 4000000 ? "oklch(0.70 0.20 18)" : "oklch(0.62 0.14 162)" }]} startAngle={90} endAngle={-270}>
+                  <RadialBarChart
+                    innerRadius="65%"
+                    outerRadius="100%"
+                    data={[
+                      {
+                        name: "spent",
+                        value: Math.min(100, (data.stats.moneyOut / 5000000) * 100),
+                        fill:
+                          data.stats.moneyOut > 4000000
+                            ? "oklch(0.70 0.20 18)"
+                            : "oklch(0.62 0.14 162)",
+                      },
+                    ]}
+                    startAngle={90}
+                    endAngle={-270}
+                  >
                     <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-                    <RadialBar background={{ fill: "var(--muted)" }} dataKey="value" cornerRadius={8} />
+                    <RadialBar
+                      background={{ fill: "var(--muted)" }}
+                      dataKey="value"
+                      cornerRadius={8}
+                    />
                   </RadialBarChart>
                 </ResponsiveContainer>
                 <div>
                   <p className="text-lg font-bold tabular-nums">{naira(data.stats.moneyOut)}</p>
-                  <p className="text-xs text-muted-foreground">of ₦50,000 (14d)</p>
+                  <p className="text-muted-foreground text-xs">of ₦50,000 (14d)</p>
                   <Badge variant="secondary" className="mt-1.5 text-[10px]">
                     {Math.round((data.stats.moneyOut / 5000000) * 100)}% used
                   </Badge>
@@ -430,19 +587,39 @@ export default function DashboardView() {
               <>
                 <ResponsiveContainer width="100%" height={180}>
                   <PieChart>
-                    <Pie data={data.spending} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={2}>
+                    <Pie
+                      data={data.spending}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={45}
+                      outerRadius={75}
+                      paddingAngle={2}
+                    >
                       {data.spending.map((_, i) => (
                         <Cell key={i} fill={SPEND_COLORS[i % SPEND_COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(v: number) => naira(v)} contentStyle={{ background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 12 }} />
+                    <Tooltip
+                      formatter={(v: number) => naira(v)}
+                      contentStyle={{
+                        background: "var(--popover)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 12,
+                        fontSize: 12,
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="mt-2 space-y-1.5">
                   {data.spending.slice(0, 5).map((s, i) => (
                     <div key={s.name} className="flex items-center justify-between text-xs">
                       <span className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: SPEND_COLORS[i % SPEND_COLORS.length] }} />
+                        <span
+                          className="h-2.5 w-2.5 rounded-full"
+                          style={{ background: SPEND_COLORS[i % SPEND_COLORS.length] }}
+                        />
                         {TYPE_LABELS[s.name] ?? s.name}
                       </span>
                       <span className="font-medium tabular-nums">{naira(s.value)}</span>
@@ -451,7 +628,7 @@ export default function DashboardView() {
                 </div>
               </>
             ) : (
-              <p className="py-8 text-center text-sm text-muted-foreground">No spending yet</p>
+              <p className="text-muted-foreground py-8 text-center text-sm">No spending yet</p>
             )}
           </Card>
 
@@ -468,8 +645,20 @@ export default function DashboardView() {
 /* ================================================================= */
 
 const DASHBOARD_BADGE_ICONS: Record<string, LucideIcon> = {
-  Wallet: WalletIcon, Send, Smartphone, Receipt, CreditCard, PiggyBank, TrendingUp,
-  BadgeCheck, LockIcon, Coins, ShoppingBag, Bird, Gift, ShieldCheck,
+  Wallet: WalletIcon,
+  Send,
+  Smartphone,
+  Receipt,
+  CreditCard,
+  PiggyBank,
+  TrendingUp,
+  BadgeCheck,
+  LockIcon,
+  Coins,
+  ShoppingBag,
+  Bird,
+  Gift,
+  ShieldCheck,
 };
 
 function resolveBadgeIcon(name: string): LucideIcon {
@@ -519,15 +708,15 @@ function RecentBadgesCard({
               <Award className="h-3.5 w-3.5" />
             </div>
             <div>
-              <p className="text-sm font-semibold leading-tight">Your badges</p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-sm leading-tight font-semibold">Your badges</p>
+              <p className="text-muted-foreground text-[10px]">
                 {stats.earned} of {stats.total} unlocked
               </p>
             </div>
           </div>
           <button
             onClick={() => setView("achievements")}
-            className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            className="text-primary flex items-center gap-1 text-xs font-medium hover:underline"
           >
             View all <ChevronRight className="h-3 w-3" />
           </button>
@@ -537,7 +726,8 @@ function RecentBadgesCard({
           <div className="space-y-2">
             {earned.map((b) => {
               const Icon = resolveBadgeIcon(b.icon);
-              const colors = BADGE_COLOR_CLASSES[b.color as BadgeKey] ?? BADGE_COLOR_CLASSES.emerald;
+              const colors =
+                BADGE_COLOR_CLASSES[b.color as BadgeKey] ?? BADGE_COLOR_CLASSES.emerald;
               return (
                 <div
                   key={b.key}
@@ -549,9 +739,7 @@ function RecentBadgesCard({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-semibold">{b.name}</p>
                     {b.earnedAt && (
-                      <p className="text-[10px] text-muted-foreground">
-                        {formatDate(b.earnedAt)}
-                      </p>
+                      <p className="text-muted-foreground text-[10px]">{formatDate(b.earnedAt)}</p>
                     )}
                   </div>
                 </div>
@@ -559,11 +747,11 @@ function RecentBadgesCard({
             })}
             {/* Completion mini-bar */}
             <div className="pt-1">
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <div className="text-muted-foreground flex items-center justify-between text-[10px]">
                 <span>Completion</span>
                 <span className="font-medium tabular-nums">{stats.completionPct}%</span>
               </div>
-              <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
+              <div className="bg-muted mt-1 h-1.5 w-full overflow-hidden rounded-full">
                 <div
                   className="h-full rounded-full bg-emerald-500 transition-all"
                   style={{ width: `${stats.completionPct}%` }}
@@ -573,11 +761,11 @@ function RecentBadgesCard({
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-4 text-center">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+            <div className="bg-muted text-muted-foreground flex h-9 w-9 items-center justify-center rounded-xl">
               <LockIcon className="h-4 w-4" />
             </div>
             <p className="mt-2 text-xs font-medium">No badges yet</p>
-            <p className="mt-0.5 text-[10px] text-muted-foreground">
+            <p className="text-muted-foreground mt-0.5 text-[10px]">
               Fund your wallet to earn your first badge.
             </p>
             <Button
@@ -601,8 +789,13 @@ function RecentBadgesCard({
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const WEEKDAY_FULL: Record<string, string> = {
-  Sun: "Sunday", Mon: "Monday", Tue: "Tuesday", Wed: "Wednesday",
-  Thu: "Thursday", Fri: "Friday", Sat: "Saturday",
+  Sun: "Sunday",
+  Mon: "Monday",
+  Tue: "Tuesday",
+  Wed: "Wednesday",
+  Thu: "Thursday",
+  Fri: "Friday",
+  Sat: "Saturday",
 };
 
 function pickSmartTip(opts: {
@@ -702,8 +895,10 @@ function InsightsCard({
   return (
     <Card className="tp-card-hover tp-card-gradient relative overflow-hidden p-5">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <div className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${tone}`}>
+        <p className="text-muted-foreground text-xs font-medium">{label}</p>
+        <div
+          className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${tone}`}
+        >
           <Icon className="h-4 w-4" />
         </div>
       </div>
@@ -729,7 +924,15 @@ function InsightsSection({
 
   // 2. Busiest day of week — by transaction count from raw txns
   const dowCounts = React.useMemo(() => {
-    const counts: Record<string, number> = { Sun: 0, Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
+    const counts: Record<string, number> = {
+      Sun: 0,
+      Mon: 0,
+      Tue: 0,
+      Wed: 0,
+      Thu: 0,
+      Fri: 0,
+      Sat: 0,
+    };
     for (const t of insights?.transactions ?? []) {
       const d = new Date(t.createdAt);
       const dow = WEEKDAYS[d.getDay()];
@@ -757,7 +960,7 @@ function InsightsSection({
         totalIncome,
         totalExpense: totalSpend,
       }),
-    [topCat, weekChange, savingsRate, totalIncome, totalSpend],
+    [topCat, weekChange, savingsRate, totalIncome, totalSpend]
   );
 
   // Loading skeleton
@@ -784,12 +987,13 @@ function InsightsSection({
     return (
       <Card className="p-5">
         <div className="flex flex-col items-center justify-center py-6 text-center">
-          <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <div className="bg-primary/10 text-primary mb-3 flex h-11 w-11 items-center justify-center rounded-xl">
             <Lightbulb className="h-5 w-5" />
           </div>
           <p className="text-sm font-medium">Spending insights appear here</p>
-          <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-            Make a few transactions and we&apos;ll surface smart insights about your spending patterns.
+          <p className="text-muted-foreground mt-1 max-w-sm text-xs">
+            Make a few transactions and we&apos;ll surface smart insights about your spending
+            patterns.
           </p>
           <Button
             variant="outline"
@@ -809,7 +1013,7 @@ function InsightsSection({
       <div className="mb-3 flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold">Spending insights</p>
-          <p className="text-xs text-muted-foreground">Smart observations from your last 30 days</p>
+          <p className="text-muted-foreground text-xs">Smart observations from your last 30 days</p>
         </div>
         <Badge variant="secondary" className="gap-1">
           <Sparkles className="h-3 w-3 text-amber-500" /> AI-powered
@@ -830,7 +1034,7 @@ function InsightsSection({
               </div>
               <div className="mt-2 flex items-center gap-2">
                 <Progress value={topCatPct} className="h-1.5" />
-                <span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">
+                <span className="text-muted-foreground shrink-0 text-[10px] tabular-nums">
                   {topCatPct.toFixed(0)}%
                 </span>
               </div>
@@ -855,7 +1059,7 @@ function InsightsSection({
               </div>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">No spending yet</p>
+            <p className="text-muted-foreground text-sm">No spending yet</p>
           )}
         </InsightsCard>
 
@@ -869,7 +1073,9 @@ function InsightsSection({
             <>
               <div className="flex items-baseline justify-between gap-2">
                 <p className="text-xl font-bold">{WEEKDAY_FULL[busiestDay] ?? busiestDay}</p>
-                <p className="text-sm font-bold tabular-nums">{busiestCount} txn{busiestCount === 1 ? "" : "s"}</p>
+                <p className="text-sm font-bold tabular-nums">
+                  {busiestCount} txn{busiestCount === 1 ? "" : "s"}
+                </p>
               </div>
               <div className="mt-3 flex items-end justify-between gap-1.5">
                 {WEEKDAYS.map((d) => {
@@ -886,14 +1092,14 @@ function InsightsSection({
                         style={{ height: `${h}px` }}
                         title={`${d}: ${c} txn${c === 1 ? "" : "s"}`}
                       />
-                      <span className="text-[9px] text-muted-foreground">{d[0]}</span>
+                      <span className="text-muted-foreground text-[9px]">{d[0]}</span>
                     </div>
                   );
                 })}
               </div>
             </>
           ) : (
-            <p className="text-sm text-muted-foreground">No transactions yet</p>
+            <p className="text-muted-foreground text-sm">No transactions yet</p>
           )}
         </InsightsCard>
 
@@ -905,13 +1111,11 @@ function InsightsSection({
         >
           <div className="flex items-baseline justify-between gap-2">
             <p className="text-xl font-bold tabular-nums">{savingsRate.toFixed(1)}%</p>
-            <p className="text-xs text-muted-foreground">
-              of {nairaCompact(totalIncome)}
-            </p>
+            <p className="text-muted-foreground text-xs">of {nairaCompact(totalIncome)}</p>
           </div>
           <div className="mt-2">
             <Progress value={Math.min(100, savingsRate)} className="h-1.5" />
-            <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+            <div className="text-muted-foreground mt-1 flex items-center justify-between text-[10px]">
               <span>Saved: {nairaCompact(savingsDeposits)}</span>
               <span>Target: 20%</span>
             </div>
@@ -919,7 +1123,7 @@ function InsightsSection({
           {savingsRate < 20 && (
             <button
               onClick={() => setView("savings")}
-              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              className="text-primary mt-2 inline-flex items-center gap-1 text-xs font-medium hover:underline"
             >
               Boost your savings <ChevronRight className="h-3 w-3" />
             </button>
@@ -929,15 +1133,17 @@ function InsightsSection({
         {/* Smart tip */}
         <Card className="tp-tip-glow relative overflow-hidden p-5">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-muted-foreground">Smart tip</p>
-            <div className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${tip.tone}`}>
+            <p className="text-muted-foreground text-xs font-medium">Smart tip</p>
+            <div
+              className={`flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br ${tip.tone}`}
+            >
               <tip.icon className="h-4 w-4" />
             </div>
           </div>
           <p className="mt-3 text-sm leading-relaxed">{tip.tip}</p>
           <button
             onClick={() => setView("analytics")}
-            className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            className="text-primary mt-3 inline-flex items-center gap-1 text-xs font-medium hover:underline"
           >
             See full breakdown <ChevronRight className="h-3 w-3" />
           </button>
@@ -970,7 +1176,11 @@ interface CompletionData {
 
 const STEP_META: Record<
   string,
-  { icon: React.ComponentType<{ className?: string }>; ctaView: "settings" | "kyc"; ctaLabel: string }
+  {
+    icon: React.ComponentType<{ className?: string }>;
+    ctaView: "settings" | "kyc";
+    ctaLabel: string;
+  }
 > = {
   pin: { icon: KeyRound, ctaView: "settings", ctaLabel: "Set PIN" },
   email: { icon: Mail, ctaView: "settings", ctaLabel: "Verify email" },
@@ -978,11 +1188,7 @@ const STEP_META: Record<
   kyc: { icon: BadgeCheck, ctaView: "kyc", ctaLabel: "Complete KYC" },
 };
 
-function ProfileCompletionCard({
-  setView,
-}: {
-  setView: (v: "settings" | "kyc") => void;
-}) {
+function ProfileCompletionCard({ setView }: { setView: (v: "settings" | "kyc") => void }) {
   const [data, setData] = React.useState<CompletionData | null>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -1001,7 +1207,9 @@ function ProfileCompletionCard({
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (loading) {
@@ -1038,11 +1246,15 @@ function ProfileCompletionCard({
                 : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
             }`}
           >
-            {complete ? <PartyPopper className="h-4.5 w-4.5" /> : <ShieldAlert className="h-4.5 w-4.5" />}
+            {complete ? (
+              <PartyPopper className="h-4.5 w-4.5" />
+            ) : (
+              <ShieldAlert className="h-4.5 w-4.5" />
+            )}
           </div>
           <div>
             <p className="text-sm font-semibold">Profile completion</p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-muted-foreground text-[11px]">
               {complete ? "All set — you're fully verified" : "Secure & unlock higher limits"}
             </p>
           </div>
@@ -1059,7 +1271,7 @@ function ProfileCompletionCard({
       </div>
 
       {/* Gradient progress bar */}
-      <div className="relative mb-4 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+      <div className="bg-muted relative mb-4 h-2.5 w-full overflow-hidden rounded-full">
         <div
           className={`absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out ${
             complete
@@ -1113,7 +1325,9 @@ function ProfileCompletionCard({
                   />
                   <span
                     className={`truncate text-xs font-medium ${
-                      s.done ? "text-muted-foreground line-through decoration-emerald-500/40" : "text-foreground"
+                      s.done
+                        ? "text-muted-foreground line-through decoration-emerald-500/40"
+                        : "text-foreground"
                     }`}
                   >
                     {s.label}
@@ -1134,8 +1348,9 @@ function ProfileCompletionCard({
 
           {/* Footer nudge */}
           {incomplete.length > 0 && (
-            <p className="pt-1 text-[10px] text-muted-foreground">
-              {incomplete.length} step{incomplete.length === 1 ? "" : "s"} remaining · each adds 25% to your profile strength
+            <p className="text-muted-foreground pt-1 text-[10px]">
+              {incomplete.length} step{incomplete.length === 1 ? "" : "s"} remaining · each adds 25%
+              to your profile strength
             </p>
           )}
         </div>

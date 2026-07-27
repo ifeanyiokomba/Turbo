@@ -18,12 +18,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   RefreshCw,
   Plus,
@@ -86,14 +81,10 @@ const REF_LABELS: Record<string, string> = {
   INVESTMENT: "Investment",
 };
 
-function LedgerRow({
-  entry,
-}: {
-  entry: WalletData["ledgerEntries"][number];
-}) {
+function LedgerRow({ entry }: { entry: WalletData["ledgerEntries"][number] }) {
   const isCredit = entry.entryType === "CREDIT";
   return (
-    <div className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted/60">
+    <div className="hover:bg-muted/60 flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors">
       <div
         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
           isCredit
@@ -111,7 +102,7 @@ function LedgerRow({
         <p className="truncate text-sm font-medium">
           {entry.description || REF_LABELS[entry.refType] || entry.refType}
         </p>
-        <p className="truncate text-xs text-muted-foreground">
+        <p className="text-muted-foreground truncate text-xs">
           {REF_LABELS[entry.refType] ?? entry.refType} · {timeAgo(entry.createdAt)}
         </p>
       </div>
@@ -124,7 +115,7 @@ function LedgerRow({
           {isCredit ? "+" : "−"}
           {naira(entry.amountKobo)}
         </p>
-        <p className="text-[10px] text-muted-foreground tabular-nums">
+        <p className="text-muted-foreground text-[10px] tabular-nums">
           Bal {nairaPlain(entry.balanceAfterKobo)}
         </p>
       </div>
@@ -206,7 +197,7 @@ export default function WalletView() {
   const kycUnverified = user && user.kycStatus !== "VERIFIED";
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="Wallet"
         subtitle="Fund, transfer and review your ledger activity."
@@ -249,7 +240,7 @@ export default function WalletView() {
           <Card className="p-4">
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-semibold">Quick fund</p>
-              <span className="text-xs text-muted-foreground">Tap to top up</span>
+              <span className="text-muted-foreground text-xs">Tap to top up</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {QUICK_AMOUNTS.map((a) => (
@@ -260,7 +251,7 @@ export default function WalletView() {
                     setMethod("BANK_TRANSFER");
                     setFundOpen(true);
                   }}
-                  className="rounded-full border border-border bg-background px-4 py-1.5 text-sm font-medium transition-colors hover:border-primary hover:bg-primary/5"
+                  className="border-border bg-background hover:border-primary hover:bg-primary/5 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors"
                 >
                   {a.label}
                 </button>
@@ -274,7 +265,7 @@ export default function WalletView() {
               <p className="text-sm font-semibold">Recent activity</p>
               <button
                 onClick={() => setView("history")}
-                className="flex items-center gap-1 text-xs text-primary hover:underline"
+                className="text-primary flex items-center gap-1 text-xs hover:underline"
               >
                 View all <ChevronRight className="h-3 w-3" />
               </button>
@@ -286,7 +277,7 @@ export default function WalletView() {
                 ))}
               </div>
             ) : recent.length > 0 ? (
-              <div className="max-h-96 overflow-y-auto scrollbar-thin space-y-1 pr-1">
+              <div className="scrollbar-thin max-h-96 space-y-1 overflow-y-auto pr-1">
                 {recent.map((e) => (
                   <LedgerRow key={e.id} entry={e} />
                 ))}
@@ -313,7 +304,7 @@ export default function WalletView() {
             onClick={() => setView("wallet-insights")}
             className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-amber-500 p-5 text-left text-white shadow-lg transition-transform hover:-translate-y-0.5"
           >
-            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 blur-xl" />
+            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full bg-white/10 blur-xl" />
             <div className="absolute -bottom-8 -left-4 h-20 w-20 rounded-full bg-amber-300/20 blur-xl" />
             <div className="relative flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur">
@@ -322,7 +313,8 @@ export default function WalletView() {
               <div className="flex-1">
                 <p className="text-sm font-semibold">Wallet Insights</p>
                 <p className="mt-0.5 text-xs text-white/80">
-                  Cash flow forecast, burn rate & recurring expenses — see where your money is going.
+                  Cash flow forecast, burn rate & recurring expenses — see where your money is
+                  going.
                 </p>
                 <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium underline-offset-2 group-hover:underline">
                   View insights <ChevronRight className="h-3.5 w-3.5" />
@@ -340,7 +332,7 @@ export default function WalletView() {
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-semibold">Verify your identity</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
+                  <p className="text-muted-foreground mt-0.5 text-xs">
                     Tier {user?.kycTier} · Upgrade KYC to unlock higher limits and bank transfers.
                   </p>
                   <Button
@@ -360,12 +352,12 @@ export default function WalletView() {
           {data?.virtualAccount && (
             <Card className="p-5">
               <p className="text-sm font-semibold">Virtual account</p>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-1 text-xs">
                 Pay into this account to top up your wallet instantly.
               </p>
               <div className="mt-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Account number</span>
+                  <span className="text-muted-foreground text-xs">Account number</span>
                   <button
                     onClick={copyAcc}
                     className="flex items-center gap-1.5 font-mono text-sm font-medium"
@@ -374,16 +366,16 @@ export default function WalletView() {
                     {copied ? (
                       <Check className="h-3.5 w-3.5 text-emerald-600" />
                     ) : (
-                      <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                      <Copy className="text-muted-foreground h-3.5 w-3.5" />
                     )}
                   </button>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Account name</span>
+                  <span className="text-muted-foreground text-xs">Account name</span>
                   <span className="text-sm font-medium">{data.virtualAccount.accountName}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Bank</span>
+                  <span className="text-muted-foreground text-xs">Bank</span>
                   <span className="text-sm font-medium">{data.virtualAccount.bankName}</span>
                 </div>
                 <Button
@@ -418,23 +410,23 @@ export default function WalletView() {
                       m.label === "Bank transfer"
                         ? "BANK_TRANSFER"
                         : m.label === "Debit card"
-                        ? "CARD"
-                        : m.label === "USSD"
-                        ? "USSD"
-                        : "DEMO",
+                          ? "CARD"
+                          : m.label === "USSD"
+                            ? "USSD"
+                            : "DEMO"
                     );
                     setFundOpen(true);
                   }}
-                  className="flex w-full items-center gap-3 rounded-xl border border-transparent p-2 text-left transition-colors hover:border-border hover:bg-muted/50"
+                  className="hover:border-border hover:bg-muted/50 flex w-full items-center gap-3 rounded-xl border border-transparent p-2 text-left transition-colors"
                 >
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <div className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-lg">
                     <m.icon className="h-4.5 w-4.5" />
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium">{m.label}</p>
-                    <p className="text-xs text-muted-foreground">{m.desc}</p>
+                    <p className="text-muted-foreground text-xs">{m.desc}</p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="text-muted-foreground h-4 w-4" />
                 </button>
               ))}
             </div>
@@ -484,32 +476,28 @@ export default function WalletView() {
                     key={a.label}
                     type="button"
                     onClick={() => setAmountInput(String(a.kobo / 100))}
-                    className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                    className="border-border bg-background hover:border-primary hover:bg-primary/5 rounded-full border px-2.5 py-1 text-xs font-medium"
                   >
                     {a.label}
                   </button>
                 ))}
               </div>
               {amountKobo > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  You&apos;ll receive <span className="font-semibold text-foreground">{naira(amountKobo)}</span>
+                <p className="text-muted-foreground text-xs">
+                  You&apos;ll receive{" "}
+                  <span className="text-foreground font-semibold">{naira(amountKobo)}</span>
                 </p>
               )}
             </div>
 
             <TabsContent value="BANK_TRANSFER" className="mt-3">
-              <div className="rounded-xl border bg-muted/40 p-3">
-                <p className="text-xs text-muted-foreground">Transfer to your virtual account</p>
+              <div className="bg-muted/40 rounded-xl border p-3">
+                <p className="text-muted-foreground text-xs">Transfer to your virtual account</p>
                 <div className="mt-2 flex items-center justify-between">
                   <span className="font-mono text-sm font-semibold">
                     {data?.virtualAccount?.accountNumber ?? "—"}
                   </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 gap-1.5 px-2"
-                    onClick={copyAcc}
-                  >
+                  <Button size="sm" variant="ghost" className="h-7 gap-1.5 px-2" onClick={copyAcc}>
                     {copied ? (
                       <Check className="h-3.5 w-3.5 text-emerald-600" />
                     ) : (
@@ -518,7 +506,7 @@ export default function WalletView() {
                     Copy
                   </Button>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-xs">
                   {data?.virtualAccount?.accountName} · {data?.virtualAccount?.bankName}
                 </p>
               </div>
@@ -566,12 +554,14 @@ export default function WalletView() {
             </TabsContent>
 
             <TabsContent value="USSD" className="mt-3">
-              <div className="rounded-xl border bg-muted/40 p-4 text-center">
-                <p className="text-xs text-muted-foreground">Dial this code from your registered phone</p>
-                <p className="mt-2 font-mono text-2xl font-bold tracking-wider text-primary">
+              <div className="bg-muted/40 rounded-xl border p-4 text-center">
+                <p className="text-muted-foreground text-xs">
+                  Dial this code from your registered phone
+                </p>
+                <p className="text-primary mt-2 font-mono text-2xl font-bold tracking-wider">
                   *737*000*{amountKobo > 0 ? Math.floor(amountKobo / 100) : "0"}#
                 </p>
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-2 text-xs">
                   Available on MTN, Glo, Airtel &amp; 9mobile
                 </p>
               </div>
@@ -597,7 +587,7 @@ export default function WalletView() {
                     Demo funding
                   </p>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-xs">
                   Instant test credit — no real money is debited. Useful for trying out Turbopay.
                 </p>
               </div>

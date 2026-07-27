@@ -10,17 +10,14 @@ import { Badge } from "@/components/ui/badge";
 export function exportCsv(
   filename: string,
   headers: string[],
-  rows: (string | number | null | undefined)[][],
+  rows: (string | number | null | undefined)[][]
 ): void {
   const escape = (v: string | number | null | undefined) => {
     const s = v == null ? "" : String(v);
     if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
     return s;
   };
-  const lines = [
-    headers.map(escape).join(","),
-    ...rows.map((r) => r.map(escape).join(",")),
-  ];
+  const lines = [headers.map(escape).join(","), ...rows.map((r) => r.map(escape).join(","))];
   const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -67,8 +64,18 @@ export const SEVERITY_TONE: Record<string, string> = {
 
 // Health-score color (0-100): >70 green, 30-70 amber, <30 red.
 export function healthTone(score: number): { bg: string; bar: string; text: string } {
-  if (score >= 70) return { bg: "bg-emerald-500/10", bar: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400" };
-  if (score >= 30) return { bg: "bg-amber-500/10", bar: "bg-amber-500", text: "text-amber-600 dark:text-amber-400" };
+  if (score >= 70)
+    return {
+      bg: "bg-emerald-500/10",
+      bar: "bg-emerald-500",
+      text: "text-emerald-600 dark:text-emerald-400",
+    };
+  if (score >= 30)
+    return {
+      bg: "bg-amber-500/10",
+      bar: "bg-amber-500",
+      text: "text-amber-600 dark:text-amber-400",
+    };
   return { bg: "bg-red-500/10", bar: "bg-red-500", text: "text-red-600 dark:text-red-400" };
 }
 
@@ -89,7 +96,15 @@ export function truncate(s: string, max = 60): string {
 }
 
 // Small badge for boolean true/false with brand colors.
-export function BoolBadge({ value, trueLabel, falseLabel }: { value: boolean; trueLabel?: string; falseLabel?: string }) {
+export function BoolBadge({
+  value,
+  trueLabel,
+  falseLabel,
+}: {
+  value: boolean;
+  trueLabel?: string;
+  falseLabel?: string;
+}) {
   return (
     <Badge
       variant="secondary"
@@ -109,10 +124,13 @@ export function HealthBar({ score }: { score: number }) {
   const t = healthTone(score);
   return (
     <div className="flex items-center gap-2">
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
-        <div className={`h-full ${t.bar}`} style={{ width: `${Math.max(0, Math.min(100, score))}%` }} />
+      <div className="bg-muted h-1.5 w-16 overflow-hidden rounded-full">
+        <div
+          className={`h-full ${t.bar}`}
+          style={{ width: `${Math.max(0, Math.min(100, score))}%` }}
+        />
       </div>
-      <span className={`text-xs tabular-nums font-medium ${t.text}`}>{score}</span>
+      <span className={`text-xs font-medium tabular-nums ${t.text}`}>{score}</span>
     </div>
   );
 }

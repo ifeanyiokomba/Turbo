@@ -71,7 +71,8 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         status: TxStatus.SUCCESS,
         state: TxState.SETTLED,
         counterpartyName: merchant.name,
-        counterpartyAccount: merchant.phone ?? merchant.email ?? merchant.id.slice(-6).toUpperCase(),
+        counterpartyAccount:
+          merchant.phone ?? merchant.email ?? merchant.id.slice(-6).toUpperCase(),
         counterpartyBank: "Turbopay Marketplace",
         description,
         provider: "turbopay-marketplace",

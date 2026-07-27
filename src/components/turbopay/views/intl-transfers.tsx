@@ -18,12 +18,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -203,7 +198,10 @@ export default function IntlTransfersView() {
       if (wRes.ok) {
         const wJson = await wRes.json();
         setWallets(wJson.wallets ?? []);
-        if ((wJson.wallets ?? []).length > 0 && !wJson.wallets.some((w: CurrencyWallet) => w.currency === sourceCurrency)) {
+        if (
+          (wJson.wallets ?? []).length > 0 &&
+          !wJson.wallets.some((w: CurrencyWallet) => w.currency === sourceCurrency)
+        ) {
           setSourceCurrency(wJson.wallets[0].currency);
         }
       }
@@ -307,7 +305,8 @@ export default function IntlTransfersView() {
   async function addBeneficiary() {
     if (!benForm.name.trim()) return toast.error("Enter beneficiary name");
     if (!benForm.country) return toast.error("Pick country");
-    if (!benForm.bankName && !benForm.mobileWallet) return toast.error("Bank name or mobile wallet required");
+    if (!benForm.bankName && !benForm.mobileWallet)
+      return toast.error("Bank name or mobile wallet required");
     if (!benForm.accountNumber && !benForm.iban && !benForm.mobileWallet) {
       return toast.error("Account number / IBAN / mobile wallet required");
     }
@@ -355,7 +354,7 @@ export default function IntlTransfersView() {
   }
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="International Transfers"
         subtitle="Send money across borders with live FX rates and transparent fees."
@@ -384,14 +383,20 @@ export default function IntlTransfersView() {
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="p-5 lg:col-span-2">
               <p className="text-sm font-semibold">Send money abroad</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-0.5 text-xs">
                 Choose your source wallet and destination currency.
               </p>
 
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <div className="space-y-2">
                   <Label>From (your wallet)</Label>
-                  <Select value={sourceCurrency} onValueChange={(v) => { setSourceCurrency(v); setQuote(null); }}>
+                  <Select
+                    value={sourceCurrency}
+                    onValueChange={(v) => {
+                      setSourceCurrency(v);
+                      setQuote(null);
+                    }}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Source" />
                     </SelectTrigger>
@@ -407,7 +412,13 @@ export default function IntlTransfersView() {
                 </div>
                 <div className="space-y-2">
                   <Label>To (destination currency)</Label>
-                  <Select value={targetCurrency} onValueChange={(v) => { setTargetCurrency(v); setQuote(null); }}>
+                  <Select
+                    value={targetCurrency}
+                    onValueChange={(v) => {
+                      setTargetCurrency(v);
+                      setQuote(null);
+                    }}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Target" />
                     </SelectTrigger>
@@ -466,7 +477,9 @@ export default function IntlTransfersView() {
                   </SelectTrigger>
                   <SelectContent>
                     {PURPOSES.map((p) => (
-                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                      <SelectItem key={p} value={p}>
+                        {p}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -478,7 +491,11 @@ export default function IntlTransfersView() {
                 onClick={fetchQuote}
                 disabled={quoting || !amountInput || !sourceCurrency || !targetCurrency}
               >
-                {quoting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
+                {quoting ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Globe className="h-4 w-4" />
+                )}
                 Get quote
               </Button>
 
@@ -486,12 +503,16 @@ export default function IntlTransfersView() {
                 <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
                   <div className="mb-2 flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Provider</span>
-                    <Badge variant="outline" className="text-[10px]">{quote.quote.provider}</Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      {quote.quote.provider}
+                    </Badge>
                   </div>
                   <div className="mb-1 flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Rate</span>
                     <span className="font-semibold tabular-nums">
-                      1 {quote.quote.sourceCurrency} = {quote.quote.rate.toLocaleString("en-NG", { maximumFractionDigits: 4 })} {quote.quote.targetCurrency}
+                      1 {quote.quote.sourceCurrency} ={" "}
+                      {quote.quote.rate.toLocaleString("en-NG", { maximumFractionDigits: 4 })}{" "}
+                      {quote.quote.targetCurrency}
                     </span>
                   </div>
                   <div className="mb-1 flex items-center justify-between text-xs">
@@ -502,7 +523,7 @@ export default function IntlTransfersView() {
                   </div>
                   <div className="mt-2 flex items-center justify-between border-t pt-2 text-sm">
                     <span className="text-muted-foreground">Recipient gets</span>
-                    <span className="flex items-center gap-1 font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    <span className="flex items-center gap-1 font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
                       <ArrowRight className="h-3.5 w-3.5" />
                       {formatMoney(quote.quote.totalMinor, quote.quote.targetCurrency)}
                     </span>
@@ -520,7 +541,11 @@ export default function IntlTransfersView() {
                 onClick={sendTransfer}
                 disabled={!quote?.ok || sending || !beneficiaryId}
               >
-                {sending ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plane className="h-4 w-4" />}
+                {sending ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Plane className="h-4 w-4" />
+                )}
                 Send transfer
               </Button>
             </Card>
@@ -538,17 +563,28 @@ export default function IntlTransfersView() {
                     })()}
                   </p>
                 )}
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="text-muted-foreground mt-1 text-xs">
                   Funds will be debited from this wallet.
                 </p>
               </Card>
               <Card className="p-5">
                 <p className="text-sm font-semibold">How it works</p>
-                <ol className="mt-3 space-y-2 text-xs text-muted-foreground">
-                  <li className="flex gap-2"><span className="font-bold text-emerald-600">1.</span> Pick source & destination currencies.</li>
-                  <li className="flex gap-2"><span className="font-bold text-emerald-600">2.</span> Get a live FX quote with transparent fees.</li>
-                  <li className="flex gap-2"><span className="font-bold text-emerald-600">3.</span> Confirm with your PIN.</li>
-                  <li className="flex gap-2"><span className="font-bold text-emerald-600">4.</span> Track delivery in the History tab.</li>
+                <ol className="text-muted-foreground mt-3 space-y-2 text-xs">
+                  <li className="flex gap-2">
+                    <span className="font-bold text-emerald-600">1.</span> Pick source & destination
+                    currencies.
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold text-emerald-600">2.</span> Get a live FX quote with
+                    transparent fees.
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold text-emerald-600">3.</span> Confirm with your PIN.
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold text-emerald-600">4.</span> Track delivery in the
+                    History tab.
+                  </li>
                 </ol>
               </Card>
             </div>
@@ -566,7 +602,9 @@ export default function IntlTransfersView() {
             </div>
             {loading ? (
               <div className="space-y-2">
-                {[0, 1, 2].map((i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
+                {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} className="h-20 w-full rounded-xl" />
+                ))}
               </div>
             ) : beneficiaries.length === 0 ? (
               <EmptyState
@@ -580,18 +618,22 @@ export default function IntlTransfersView() {
                 }
               />
             ) : (
-              <div className="max-h-[60vh] space-y-2 overflow-y-auto scrollbar-thin pr-1">
+              <div className="scrollbar-thin max-h-[60vh] space-y-2 overflow-y-auto pr-1">
                 {beneficiaries.map((b) => (
                   <div
                     key={b.id}
-                    className="group flex items-center gap-3 rounded-xl border border-transparent p-3 transition-colors hover:border-border hover:bg-muted/40"
+                    className="group hover:border-border hover:bg-muted/40 flex items-center gap-3 rounded-xl border border-transparent p-3 transition-colors"
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      {b.mobileWallet ? <Smartphone className="h-4 w-4" /> : <Banknote className="h-4 w-4" />}
+                    <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
+                      {b.mobileWallet ? (
+                        <Smartphone className="h-4 w-4" />
+                      ) : (
+                        <Banknote className="h-4 w-4" />
+                      )}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{b.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="text-muted-foreground truncate text-xs">
                         {b.bankName}
                         {b.swiftCode && ` · SWIFT ${b.swiftCode}`}
                         {b.iban && ` · IBAN ${b.iban.slice(-4)}`}
@@ -604,7 +646,7 @@ export default function IntlTransfersView() {
                     <Button
                       size="icon"
                       variant="ghost"
-                      className="shrink-0 h-8 w-8 text-muted-foreground hover:text-destructive"
+                      className="text-muted-foreground hover:text-destructive h-8 w-8 shrink-0"
                       onClick={() => deleteBeneficiary(b)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -625,7 +667,9 @@ export default function IntlTransfersView() {
             </div>
             {loading ? (
               <div className="space-y-2">
-                {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                ))}
               </div>
             ) : history.length === 0 ? (
               <EmptyState
@@ -634,11 +678,11 @@ export default function IntlTransfersView() {
                 description="Your outbound cross-border transfers will appear here."
               />
             ) : (
-              <div className="max-h-[60vh] space-y-2 overflow-y-auto scrollbar-thin pr-1">
+              <div className="scrollbar-thin max-h-[60vh] space-y-2 overflow-y-auto pr-1">
                 {history.map((tx) => (
                   <div
                     key={tx.id}
-                    className="flex items-center gap-3 rounded-xl border border-transparent p-3 transition-colors hover:border-border hover:bg-muted/40"
+                    className="hover:border-border hover:bg-muted/40 flex items-center gap-3 rounded-xl border border-transparent p-3 transition-colors"
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400">
                       <Plane className="h-4 w-4" />
@@ -647,16 +691,20 @@ export default function IntlTransfersView() {
                       <p className="truncate text-sm font-medium">
                         {tx.counterpartyName ?? "International transfer"}
                       </p>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="text-muted-foreground truncate text-xs">
                         {tx.reference} · {tx.counterpartyBank ?? "—"} · {timeAgo(tx.createdAt)}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold tabular-nums">
-                        {naira(tx.amountKobo)}
-                      </p>
+                      <p className="text-sm font-semibold tabular-nums">{naira(tx.amountKobo)}</p>
                       <Badge
-                        variant={tx.status === "SUCCESS" ? "secondary" : tx.status === "PENDING" ? "outline" : "destructive"}
+                        variant={
+                          tx.status === "SUCCESS"
+                            ? "secondary"
+                            : tx.status === "PENDING"
+                              ? "outline"
+                              : "destructive"
+                        }
                         className="text-[10px]"
                       >
                         {tx.status}
@@ -692,27 +740,36 @@ export default function IntlTransfersView() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Country</Label>
-                <Select value={benForm.country} onValueChange={(v) => setBenForm((f) => ({ ...f, country: v }))}>
+                <Select
+                  value={benForm.country}
+                  onValueChange={(v) => setBenForm((f) => ({ ...f, country: v }))}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent className="max-h-72">
                     {BENEFICIARY_COUNTRIES.map((c) => (
-                      <SelectItem key={c.code} value={c.code}>{c.name}</SelectItem>
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Currency</Label>
-                <Select value={benForm.currency} onValueChange={(v) => setBenForm((f) => ({ ...f, currency: v }))}>
+                <Select
+                  value={benForm.currency}
+                  onValueChange={(v) => setBenForm((f) => ({ ...f, currency: v }))}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select" />
                   </SelectTrigger>
                   <SelectContent>
                     {TARGET_CURRENCIES.map((c) => (
                       <SelectItem key={c.code} value={c.code}>
-                        <span className="mr-2">{c.flag}</span>{c.code}
+                        <span className="mr-2">{c.flag}</span>
+                        {c.code}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -755,7 +812,9 @@ export default function IntlTransfersView() {
                   id="b-swift"
                   placeholder="BARCGB22"
                   value={benForm.swiftCode}
-                  onChange={(e) => setBenForm((f) => ({ ...f, swiftCode: e.target.value.toUpperCase() }))}
+                  onChange={(e) =>
+                    setBenForm((f) => ({ ...f, swiftCode: e.target.value.toUpperCase() }))
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -770,9 +829,15 @@ export default function IntlTransfersView() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={addBeneficiary} disabled={savingBen} className="gap-1.5">
-              {savingBen ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              {savingBen ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4" />
+              )}
               Save beneficiary
             </Button>
           </DialogFooter>
@@ -830,13 +895,17 @@ function CorridorExplorer() {
     }
   }, [selected]);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => {
+    load();
+  }, [load]);
 
   if (loading) {
     return (
       <div className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-48 rounded-2xl" />
+          ))}
         </div>
         <Skeleton className="h-72 rounded-2xl" />
       </div>
@@ -848,9 +917,9 @@ function CorridorExplorer() {
       {/* Corridor grid */}
       <div>
         <div className="mb-3 flex items-center gap-2">
-          <Compass className="h-4 w-4 text-primary" />
+          <Compass className="text-primary h-4 w-4" />
           <h2 className="text-sm font-semibold">Supported corridors</h2>
-          <span className="text-xs text-muted-foreground">Live rates from Wise & Flutterwave</span>
+          <span className="text-muted-foreground text-xs">Live rates from Wise & Flutterwave</span>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {corridors.map((c) => {
@@ -859,26 +928,34 @@ function CorridorExplorer() {
               <button
                 key={c.targetCurrency}
                 type="button"
-                onClick={() => { setSelected(c); setRecipientType(c.supportsBank ? "BANK" : "WALLET"); }}
-                className={`flex flex-col rounded-2xl border bg-card p-4 text-left transition-all ${
-                  isSelected ? "ring-2 ring-primary" : "hover:border-primary/40"
+                onClick={() => {
+                  setSelected(c);
+                  setRecipientType(c.supportsBank ? "BANK" : "WALLET");
+                }}
+                className={`bg-card flex flex-col rounded-2xl border p-4 text-left transition-all ${
+                  isSelected ? "ring-primary ring-2" : "hover:border-primary/40"
                 }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-2xl">{c.targetFlag}</span>
                     <div>
-                      <p className="text-sm font-semibold">{c.sourceCurrency} → {c.targetCurrency}</p>
-                      <p className="text-[10px] text-muted-foreground">{c.targetName}</p>
+                      <p className="text-sm font-semibold">
+                        {c.sourceCurrency} → {c.targetCurrency}
+                      </p>
+                      <p className="text-muted-foreground text-[10px]">{c.targetName}</p>
                     </div>
                   </div>
-                  <Badge variant="outline" className="text-[9px] capitalize">{c.provider}</Badge>
+                  <Badge variant="outline" className="text-[9px] capitalize">
+                    {c.provider}
+                  </Badge>
                 </div>
                 <div className="mt-3 space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">1 NGN =</span>
                     <span className="font-semibold tabular-nums">
-                      {c.rate.toLocaleString("en-NG", { maximumFractionDigits: 4 })} {c.targetCurrency}
+                      {c.rate.toLocaleString("en-NG", { maximumFractionDigits: 4 })}{" "}
+                      {c.targetCurrency}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs">
@@ -899,12 +976,12 @@ function CorridorExplorer() {
                 </div>
                 <div className="mt-3 flex items-center gap-1.5">
                   {c.supportsBank && (
-                    <Badge variant="secondary" className="text-[9px] gap-1">
+                    <Badge variant="secondary" className="gap-1 text-[9px]">
                       <Banknote className="h-2.5 w-2.5" /> Bank
                     </Badge>
                   )}
                   {c.supportsMobileWallet && (
-                    <Badge variant="secondary" className="text-[9px] gap-1">
+                    <Badge variant="secondary" className="gap-1 text-[9px]">
                       <Smartphone className="h-2.5 w-2.5" /> Wallet
                     </Badge>
                   )}
@@ -918,10 +995,10 @@ function CorridorExplorer() {
       {/* Recipient-gets calculator */}
       <Card className="p-5">
         <div className="mb-4 flex items-center gap-2">
-          <Calculator className="h-4 w-4 text-primary" />
+          <Calculator className="text-primary h-4 w-4" />
           <div>
             <p className="text-sm font-semibold">Recipient gets calculator</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               See exactly what your recipient receives after FX spread and fees.
             </p>
           </div>
@@ -932,7 +1009,9 @@ function CorridorExplorer() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label>You send (NGN)</Label>
-                  <span className="text-sm font-semibold text-primary tabular-nums">{naira(calcNGN)}</span>
+                  <span className="text-primary text-sm font-semibold tabular-nums">
+                    {naira(calcNGN)}
+                  </span>
                 </div>
                 <Slider
                   value={[calcNGN]}
@@ -952,7 +1031,7 @@ function CorridorExplorer() {
                       key={chip.label}
                       type="button"
                       onClick={() => setCalcNGN(chip.v)}
-                      className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                      className="border-border bg-background hover:border-primary hover:bg-primary/5 rounded-full border px-2.5 py-1 text-xs font-medium"
                     >
                       {chip.label}
                     </button>
@@ -968,7 +1047,9 @@ function CorridorExplorer() {
                     disabled={!selected.supportsBank}
                     onClick={() => setRecipientType("BANK")}
                     className={`flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition-colors ${
-                      recipientType === "BANK" && selected.supportsBank ? "border-primary bg-primary/5 text-primary" : "hover:bg-muted/40"
+                      recipientType === "BANK" && selected.supportsBank
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "hover:bg-muted/40"
                     } ${!selected.supportsBank ? "cursor-not-allowed opacity-40" : ""}`}
                   >
                     <Banknote className="h-4 w-4" /> Bank account
@@ -978,7 +1059,9 @@ function CorridorExplorer() {
                     disabled={!selected.supportsMobileWallet}
                     onClick={() => setRecipientType("WALLET")}
                     className={`flex items-center gap-2 rounded-xl border p-2.5 text-xs font-medium transition-colors ${
-                      recipientType === "WALLET" && selected.supportsMobileWallet ? "border-primary bg-primary/5 text-primary" : "hover:bg-muted/40"
+                      recipientType === "WALLET" && selected.supportsMobileWallet
+                        ? "border-primary bg-primary/5 text-primary"
+                        : "hover:bg-muted/40"
                     } ${!selected.supportsMobileWallet ? "cursor-not-allowed opacity-40" : ""}`}
                   >
                     <Smartphone className="h-4 w-4" /> Mobile wallet
@@ -986,7 +1069,7 @@ function CorridorExplorer() {
                 </div>
               </div>
 
-              <div className="space-y-1.5 rounded-xl bg-muted/40 p-3 text-xs">
+              <div className="bg-muted/40 space-y-1.5 rounded-xl p-3 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Min amount</span>
                   <span className="font-medium tabular-nums">{naira(selected.minAmountKobo)}</span>
@@ -1011,10 +1094,10 @@ function CorridorExplorer() {
             </div>
 
             <div className="flex flex-col justify-center rounded-2xl bg-gradient-to-br from-emerald-500/10 to-amber-500/5 p-5">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Recipient gets ({selected.targetCurrency})
               </p>
-              <p className="mt-1 text-3xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+              <p className="mt-1 text-3xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
                 {(() => {
                   const variableFee = Math.round((calcNGN * selected.feeBps) / 10_000);
                   const totalFee = variableFee + selected.feeFixedKobo;
@@ -1033,16 +1116,21 @@ function CorridorExplorer() {
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">FX rate</span>
                   <span className="font-medium tabular-nums">
-                    1 NGN = {selected.rate.toLocaleString("en-NG", { maximumFractionDigits: 4 })} {selected.targetCurrency}
+                    1 NGN = {selected.rate.toLocaleString("en-NG", { maximumFractionDigits: 4 })}{" "}
+                    {selected.targetCurrency}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Variable fee</span>
-                  <span className="font-medium tabular-nums">−{nairaCompact(Math.round((calcNGN * selected.feeBps) / 10_000))}</span>
+                  <span className="font-medium tabular-nums">
+                    −{nairaCompact(Math.round((calcNGN * selected.feeBps) / 10_000))}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Fixed fee</span>
-                  <span className="font-medium tabular-nums">−{nairaCompact(selected.feeFixedKobo)}</span>
+                  <span className="font-medium tabular-nums">
+                    −{nairaCompact(selected.feeFixedKobo)}
+                  </span>
                 </div>
                 <div className="mt-2 flex items-center justify-between border-t pt-2 text-xs">
                   <span className="text-muted-foreground">Delivery method</span>
@@ -1051,13 +1139,13 @@ function CorridorExplorer() {
                   </span>
                 </div>
               </div>
-              <p className="mt-4 text-[10px] text-muted-foreground">
+              <p className="text-muted-foreground mt-4 text-[10px]">
                 Final amount may vary slightly based on the live rate at the time of transfer.
               </p>
             </div>
           </div>
         ) : (
-          <p className="py-8 text-center text-sm text-muted-foreground">Select a corridor above.</p>
+          <p className="text-muted-foreground py-8 text-center text-sm">Select a corridor above.</p>
         )}
       </Card>
 
@@ -1072,10 +1160,19 @@ function CorridorExplorer() {
 /* ================================================================== */
 
 function RateAlertCard({ corridors }: { corridors: Corridor[] }) {
-  const [targetCurrency, setTargetCurrency] = React.useState<string>(corridors[0]?.targetCurrency ?? "USD");
+  const [targetCurrency, setTargetCurrency] = React.useState<string>(
+    corridors[0]?.targetCurrency ?? "USD"
+  );
   const [targetRate, setTargetRate] = React.useState<string>("");
   const [alerts, setAlerts] = React.useState<
-    { id: string; currency: string; targetRate: number; currentRate: number; createdAt: string; direction: "above" | "below" }[]
+    {
+      id: string;
+      currency: string;
+      targetRate: number;
+      currentRate: number;
+      createdAt: string;
+      direction: "above" | "below";
+    }[]
   >([]);
 
   React.useEffect(() => {
@@ -1101,7 +1198,9 @@ function RateAlertCard({ corridors }: { corridors: Corridor[] }) {
     };
     setAlerts((prev) => [newAlert, ...prev]);
     setTargetRate("");
-    toast.success(`Rate alert set — we'll notify you when 1 NGN ${direction} ${rate} ${targetCurrency}`);
+    toast.success(
+      `Rate alert set — we'll notify you when 1 NGN ${direction} ${rate} ${targetCurrency}`
+    );
   }
 
   function removeAlert(id: string) {
@@ -1112,10 +1211,10 @@ function RateAlertCard({ corridors }: { corridors: Corridor[] }) {
   return (
     <Card className="p-5">
       <div className="mb-4 flex items-center gap-2">
-        <Bell className="h-4 w-4 text-primary" />
+        <Bell className="text-primary h-4 w-4" />
         <div>
           <p className="text-sm font-semibold">Rate alerts</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             Get notified when your target FX rate is reached.
           </p>
         </div>
@@ -1125,12 +1224,15 @@ function RateAlertCard({ corridors }: { corridors: Corridor[] }) {
         <div className="space-y-2">
           <Label>Currency pair</Label>
           <Select value={targetCurrency} onValueChange={setTargetCurrency}>
-            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               {corridors.map((c) => (
                 <SelectItem key={c.targetCurrency} value={c.targetCurrency}>
                   <span className="mr-1.5">{c.targetFlag}</span>
-                  NGN → {c.targetCurrency} ({c.rate.toLocaleString("en-NG", { maximumFractionDigits: 4 })})
+                  NGN → {c.targetCurrency} (
+                  {c.rate.toLocaleString("en-NG", { maximumFractionDigits: 4 })})
                 </SelectItem>
               ))}
             </SelectContent>
@@ -1153,28 +1255,40 @@ function RateAlertCard({ corridors }: { corridors: Corridor[] }) {
       {alerts.length > 0 && (
         <div className="mt-4 space-y-2">
           {alerts.map((a) => {
-            const wouldTrigger = a.direction === "above" ? a.currentRate >= a.targetRate : a.currentRate <= a.targetRate;
+            const wouldTrigger =
+              a.direction === "above"
+                ? a.currentRate >= a.targetRate
+                : a.currentRate <= a.targetRate;
             return (
               <div key={a.id} className="flex items-center gap-3 rounded-xl border p-3">
-                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                  wouldTrigger ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                }`}>
+                <div
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                    wouldTrigger
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                      : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                  }`}
+                >
                   <TrendingUp className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium">
-                    Notify when 1 NGN <span className="font-bold">{a.direction}</span> {a.targetRate} {a.currency}
+                    Notify when 1 NGN <span className="font-bold">{a.direction}</span>{" "}
+                    {a.targetRate} {a.currency}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     Current: {a.currentRate.toLocaleString("en-NG", { maximumFractionDigits: 4 })} ·{" "}
-                    {wouldTrigger
-                      ? <span className="text-emerald-600 dark:text-emerald-400 font-medium">Triggered!</span>
-                      : <span>Waiting ({timeAgo(a.createdAt)})</span>}
+                    {wouldTrigger ? (
+                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                        Triggered!
+                      </span>
+                    ) : (
+                      <span>Waiting ({timeAgo(a.createdAt)})</span>
+                    )}
                   </p>
                 </div>
                 <button
                   onClick={() => removeAlert(a.id)}
-                  className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-red-500/10 hover:text-red-600"
+                  className="text-muted-foreground flex h-7 w-7 items-center justify-center rounded hover:bg-red-500/10 hover:text-red-600"
                   aria-label="Remove alert"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -1194,9 +1308,24 @@ function RateAlertCard({ corridors }: { corridors: Corridor[] }) {
 
 const TRACKING_STAGES = [
   { key: "INITIATED", label: "Initiated", icon: CircleDot, description: "Transfer created" },
-  { key: "PIN_VERIFIED", label: "PIN verified", icon: Check, description: "Authorization confirmed" },
-  { key: "PROVIDER_CALLED", label: "Provider called", icon: Loader2, description: "FX provider notified" },
-  { key: "IN_TRANSIT", label: "In transit", icon: Plane, description: "Funds moving across borders" },
+  {
+    key: "PIN_VERIFIED",
+    label: "PIN verified",
+    icon: Check,
+    description: "Authorization confirmed",
+  },
+  {
+    key: "PROVIDER_CALLED",
+    label: "Provider called",
+    icon: Loader2,
+    description: "FX provider notified",
+  },
+  {
+    key: "IN_TRANSIT",
+    label: "In transit",
+    icon: Plane,
+    description: "Funds moving across borders",
+  },
   { key: "DELIVERED", label: "Delivered", icon: CheckCircle2, description: "Recipient paid" },
 ] as const;
 
@@ -1222,7 +1351,7 @@ function TransferTrackingDialog({ tx, onClose }: { tx: IntlTx | null; onClose: (
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Plane className="h-4 w-4 text-primary" /> Transfer tracking
+            <Plane className="text-primary h-4 w-4" /> Transfer tracking
           </DialogTitle>
           <DialogDescription>
             Reference <span className="font-mono">{tx.reference}</span>
@@ -1232,19 +1361,19 @@ function TransferTrackingDialog({ tx, onClose }: { tx: IntlTx | null; onClose: (
         <div className="space-y-3 py-2">
           {/* Summary */}
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded-lg bg-muted/40 p-2">
+            <div className="bg-muted/40 rounded-lg p-2">
               <p className="text-muted-foreground">Amount</p>
               <p className="font-semibold tabular-nums">{naira(tx.amountKobo)}</p>
             </div>
-            <div className="rounded-lg bg-muted/40 p-2">
+            <div className="bg-muted/40 rounded-lg p-2">
               <p className="text-muted-foreground">Recipient</p>
               <p className="truncate font-medium">{tx.counterpartyName ?? "—"}</p>
             </div>
-            <div className="rounded-lg bg-muted/40 p-2">
+            <div className="bg-muted/40 rounded-lg p-2">
               <p className="text-muted-foreground">Bank / Wallet</p>
               <p className="truncate font-medium">{tx.counterpartyBank ?? "—"}</p>
             </div>
-            <div className="rounded-lg bg-muted/40 p-2">
+            <div className="bg-muted/40 rounded-lg p-2">
               <p className="text-muted-foreground">Provider</p>
               <p className="truncate font-medium capitalize">{tx.provider ?? "—"}</p>
             </div>
@@ -1252,7 +1381,7 @@ function TransferTrackingDialog({ tx, onClose }: { tx: IntlTx | null; onClose: (
 
           {/* Timeline */}
           <div className="rounded-xl border p-3">
-            <p className="mb-3 text-xs font-semibold text-muted-foreground">Delivery timeline</p>
+            <p className="text-muted-foreground mb-3 text-xs font-semibold">Delivery timeline</p>
             <ol className="relative space-y-3">
               {TRACKING_STAGES.map((stage, idx) => {
                 const Icon = stage.icon;
@@ -1261,17 +1390,21 @@ function TransferTrackingDialog({ tx, onClose }: { tx: IntlTx | null; onClose: (
                 const isCurrent = idx === currentIdx && !failed;
                 return (
                   <li key={stage.key} className="flex items-start gap-3">
-                    <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
-                      isFailed
-                        ? "bg-red-500/15 text-red-600 dark:text-red-400"
-                        : reached
-                        ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                        : "bg-muted text-muted-foreground"
-                    }`}>
+                    <div
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${
+                        isFailed
+                          ? "bg-red-500/15 text-red-600 dark:text-red-400"
+                          : reached
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                            : "bg-muted text-muted-foreground"
+                      }`}
+                    >
                       <Icon className={`h-3.5 w-3.5 ${isCurrent ? "animate-pulse" : ""}`} />
                     </div>
                     <div className="flex-1 pt-0.5">
-                      <p className={`text-xs font-medium ${reached ? "" : "text-muted-foreground"}`}>
+                      <p
+                        className={`text-xs font-medium ${reached ? "" : "text-muted-foreground"}`}
+                      >
                         {stage.label}
                         {isCurrent && !failed && (
                           <span className="ml-1.5 inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-400">
@@ -1279,10 +1412,12 @@ function TransferTrackingDialog({ tx, onClose }: { tx: IntlTx | null; onClose: (
                           </span>
                         )}
                         {isFailed && (
-                          <span className="ml-1.5 text-[10px] text-red-600 dark:text-red-400 font-semibold">failed</span>
+                          <span className="ml-1.5 text-[10px] font-semibold text-red-600 dark:text-red-400">
+                            failed
+                          </span>
                         )}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">{stage.description}</p>
+                      <p className="text-muted-foreground text-[10px]">{stage.description}</p>
                     </div>
                   </li>
                 );
@@ -1290,10 +1425,16 @@ function TransferTrackingDialog({ tx, onClose }: { tx: IntlTx | null; onClose: (
             </ol>
           </div>
 
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="text-muted-foreground flex items-center justify-between text-xs">
             <span>Initiated {timeAgo(tx.createdAt)}</span>
             <Badge
-              variant={tx.status === "SUCCESS" ? "secondary" : tx.status === "PENDING" ? "outline" : "destructive"}
+              variant={
+                tx.status === "SUCCESS"
+                  ? "secondary"
+                  : tx.status === "PENDING"
+                    ? "outline"
+                    : "destructive"
+              }
               className="text-[10px]"
             >
               {tx.status}

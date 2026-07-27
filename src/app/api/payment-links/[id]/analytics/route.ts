@@ -1,10 +1,5 @@
 import { db } from "@/lib/db";
-import {
-  json,
-  handleError,
-  requireUser,
-  ServiceError,
-} from "@/lib/api";
+import { json, handleError, requireUser, ServiceError } from "@/lib/api";
 
 /**
  * GET /api/payment-links/[id]/analytics

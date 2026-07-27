@@ -20,7 +20,7 @@ interface ShapedReview {
 
 function shapeReview(
   r: { id: string; rating: number; comment: string | null; createdAt: Date; userId: string },
-  userFullNameById: Map<string, string>,
+  userFullNameById: Map<string, string>
 ): ShapedReview {
   return {
     id: r.id,
@@ -50,16 +50,14 @@ function shapeReview(
 function buildAggregate(
   baselineRating: number,
   baselineCount: number,
-  realReviews: { rating: number }[],
+  realReviews: { rating: number }[]
 ) {
   const realCount = realReviews.length;
   const totalReviews = baselineCount + realCount;
 
   const sumReal = realReviews.reduce((acc, r) => acc + r.rating, 0);
   const avgRating =
-    totalReviews > 0
-      ? (baselineRating * baselineCount + sumReal) / totalReviews
-      : baselineRating;
+    totalReviews > 0 ? (baselineRating * baselineCount + sumReal) / totalReviews : baselineRating;
 
   // Distribution from real reviews only
   const ratingDistribution: Record<string, number> = {
@@ -142,8 +140,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
 
     const body = (await req.json().catch(() => ({}))) as PostBody;
     const rating = Math.round(Number(body.rating ?? 0));
-    const comment =
-      typeof body.comment === "string" ? body.comment.trim().slice(0, 1000) : null;
+    const comment = typeof body.comment === "string" ? body.comment.trim().slice(0, 1000) : null;
 
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       throw new ServiceError("Rating must be between 1 and 5", 400, "INVALID_RATING");
@@ -186,8 +183,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id: string }> 
         : baselineRating * baselineCount;
 
     const newCount = adjustedCount + 1;
-    const newAvg =
-      newCount > 0 ? (adjustedSum + rating) / newCount : baselineRating;
+    const newAvg = newCount > 0 ? (adjustedSum + rating) / newCount : baselineRating;
 
     await db.marketplaceMerchant.update({
       where: { id },

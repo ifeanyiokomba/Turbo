@@ -38,9 +38,7 @@ export function mockWarnOnce(code: string): void {
  *   const creds = await getCredentials("paystack"); // null in mock mode
  *   if (!creds) { mockWarnOnce("paystack"); return ok(demoData, "mock", 0); }
  */
-export async function requireCreds(
-  code: string,
-): Promise<ProviderResult<never> | null> {
+export async function requireCreds(code: string): Promise<ProviderResult<never> | null> {
   const creds = await getCredentials(code);
   if (creds) return null; // configured — caller proceeds with real call
   if (process.env.NODE_ENV === "production") {
@@ -70,7 +68,7 @@ export async function loadCreds(code: string): Promise<ProviderCredentials | nul
 export async function http(
   url: string,
   init: RequestInit & { timeoutMs?: number },
-  onHttpError: (status: number, body: unknown) => ProviderResult<never>,
+  onHttpError: (status: number, body: unknown) => ProviderResult<never>
 ): Promise<{ status: number; body: unknown }> {
   // SSRF guard — runs BEFORE the network call so we never even establish a
   // TCP connection to an internal address. The original SsrfError is re-
@@ -80,10 +78,14 @@ export async function http(
   await validateOutboundUrl(url);
 
   const { timeoutMs = 20_000, ...rest } = init;
+  // SSRF guard — block requests to private/internal IPs before fetching.
+  // Provider base URLs are allowlisted in manifest-registry, but the guard
+  // defends against any future misconfiguration or redirect attack.
+  const safeUrl = validateOutboundUrl(url);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { ...rest, signal: controller.signal });
+    const res = await fetch(safeUrl, { ...rest, signal: controller.signal });
     let body: unknown = null;
     const text = await res.text();
     if (text) {
@@ -150,7 +152,7 @@ export function sanitize(value: unknown, depth = 0): unknown {
 export function defaultHttpError(
   code: string,
   status: number,
-  body: unknown,
+  body: unknown
 ): ProviderResult<never> {
   let errCode: ProviderErrorCode = "UPSTREAM_ERROR";
   if (status === 401 || status === 403) errCode = "AUTH_FAILED";

@@ -7,11 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Collapsible,
-  CollapsibleTrigger,
-  CollapsibleContent,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -100,7 +96,13 @@ function merchantHue(name: string): string {
 function intervalLabel(plan: SubPlan): string {
   const unit = plan.interval.toLowerCase();
   if (plan.intervalCount === 1) {
-    return unit === "day" ? "Daily" : unit === "week" ? "Weekly" : unit === "month" ? "Monthly" : "Yearly";
+    return unit === "day"
+      ? "Daily"
+      : unit === "week"
+        ? "Weekly"
+        : unit === "month"
+          ? "Monthly"
+          : "Yearly";
   }
   return `Every ${plan.intervalCount} ${unit}s`;
 }
@@ -109,19 +111,19 @@ function statusBadge(status: Subscription["status"]) {
   switch (status) {
     case "ACTIVE":
       return (
-        <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20">
+        <Badge className="bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 dark:text-emerald-400">
           Active
         </Badge>
       );
     case "TRIALING":
       return (
-        <Badge className="bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/20">
+        <Badge className="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 dark:text-amber-400">
           <Sparkles className="mr-1 h-3 w-3" /> Trialing
         </Badge>
       );
     case "PAST_DUE":
       return (
-        <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 hover:bg-red-500/20">
+        <Badge className="bg-red-500/10 text-red-600 hover:bg-red-500/20 dark:text-red-400">
           Past due
         </Badge>
       );
@@ -132,7 +134,10 @@ function statusBadge(status: Subscription["status"]) {
   }
 }
 
-function nextChargeLabel(nextChargeAt: string): { label: string; tone: "default" | "warning" | "danger" } {
+function nextChargeLabel(nextChargeAt: string): {
+  label: string;
+  tone: "default" | "warning" | "danger";
+} {
   const d = new Date(nextChargeAt);
   const now = new Date();
   const diffMs = d.getTime() - now.getTime();
@@ -218,12 +223,12 @@ export default function SubscriptionsView() {
           active
             .map((s) => new Date(s.nextChargeAt).getTime())
             .sort((a, b) => a - b)[0]
-            .toString(),
+            .toString()
         )
       : null;
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="Subscriptions"
         subtitle="Manage recurring payments, see your monthly spend and cancel anytime."
@@ -262,7 +267,13 @@ export default function SubscriptionsView() {
               label="Next charge"
               value={earliestNext?.label ?? "—"}
               icon={CalendarClock}
-              tone={earliestNext?.tone === "danger" ? "danger" : earliestNext?.tone === "warning" ? "warning" : "default"}
+              tone={
+                earliestNext?.tone === "danger"
+                  ? "danger"
+                  : earliestNext?.tone === "warning"
+                    ? "warning"
+                    : "default"
+              }
               hint={earliestNext ? "Earliest upcoming debit" : "No upcoming charges"}
             />
           </>
@@ -297,11 +308,7 @@ export default function SubscriptionsView() {
         ) : (
           <div className="space-y-3">
             {active.map((s) => (
-              <SubscriptionRow
-                key={s.id}
-                s={s}
-                onCancel={() => setCancelTarget(s)}
-              />
+              <SubscriptionRow key={s.id} s={s} onCancel={() => setCancelTarget(s)} />
             ))}
           </div>
         )}
@@ -313,15 +320,15 @@ export default function SubscriptionsView() {
           <Card className="p-3">
             <CollapsibleTrigger asChild>
               <button
-                className="flex w-full items-center justify-between rounded-xl px-2 py-2 text-sm font-medium transition-colors hover:bg-muted/50"
+                className="hover:bg-muted/50 flex w-full items-center justify-between rounded-xl px-2 py-2 text-sm font-medium transition-colors"
                 type="button"
               >
                 <span className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Clock className="text-muted-foreground h-4 w-4" />
                   Cancelled &amp; past-due ({inactive.length})
                 </span>
                 <ChevronDown
-                  className={`h-4 w-4 text-muted-foreground transition-transform ${
+                  className={`text-muted-foreground h-4 w-4 transition-transform ${
                     historyOpen ? "rotate-180" : ""
                   }`}
                 />
@@ -330,12 +337,7 @@ export default function SubscriptionsView() {
             <CollapsibleContent>
               <div className="mt-2 space-y-3 border-t pt-3">
                 {inactive.map((s) => (
-                  <SubscriptionRow
-                    key={s.id}
-                    s={s}
-                    onCancel={() => setCancelTarget(s)}
-                    readonly
-                  />
+                  <SubscriptionRow key={s.id} s={s} onCancel={() => setCancelTarget(s)} readonly />
                 ))}
               </div>
             </CollapsibleContent>
@@ -352,8 +354,9 @@ export default function SubscriptionsView() {
               {cancelTarget?.plan?.name ? (
                 <>
                   You&apos;re about to cancel <strong>{cancelTarget.plan.name}</strong>
-                  {cancelTarget.merchant?.name ? ` from ${cancelTarget.merchant.name}` : ""}. You won&apos;t be
-                  charged again, and you&apos;ll keep access until the end of the current billing period.
+                  {cancelTarget.merchant?.name ? ` from ${cancelTarget.merchant.name}` : ""}. You
+                  won&apos;t be charged again, and you&apos;ll keep access until the end of the
+                  current billing period.
                 </>
               ) : (
                 <>You won&apos;t be charged again after cancellation.</>
@@ -368,7 +371,7 @@ export default function SubscriptionsView() {
                 confirmCancel();
               }}
               disabled={canceling}
-              className="gap-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 gap-1.5"
             >
               {canceling ? (
                 <RefreshCw className="h-4 w-4 animate-spin" />
@@ -408,7 +411,7 @@ function SubscriptionRow({
         <div className="flex items-start gap-3">
           <div
             className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${merchantHue(
-              merchant?.name ?? "M",
+              merchant?.name ?? "M"
             )} text-sm font-bold text-white shadow`}
           >
             {initials(merchant?.name ?? "M")}
@@ -421,12 +424,14 @@ function SubscriptionRow({
                 <BadgeCheck className="h-3.5 w-3.5 text-emerald-500" aria-label="Verified" />
               )}
             </div>
-            <p className="mt-0.5 truncate text-xs text-muted-foreground">
+            <p className="text-muted-foreground mt-0.5 truncate text-xs">
               {merchant?.name ?? "Unknown merchant"}
-              {merchant?.category ? ` · ${merchant.category.charAt(0) + merchant.category.slice(1).toLowerCase()}` : ""}
+              {merchant?.category
+                ? ` · ${merchant.category.charAt(0) + merchant.category.slice(1).toLowerCase()}`
+                : ""}
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span className="inline-flex items-center gap-1 font-semibold text-foreground">
+            <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-3 text-xs">
+              <span className="text-foreground inline-flex items-center gap-1 font-semibold">
                 <Wallet className="h-3 w-3" /> {amountDisplay}
               </span>
               <span>·</span>
@@ -465,7 +470,7 @@ function SubscriptionRow({
               size="sm"
               variant="ghost"
               onClick={onCancel}
-              className="gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5"
             >
               <Ban className="h-3.5 w-3.5" /> Cancel
             </Button>

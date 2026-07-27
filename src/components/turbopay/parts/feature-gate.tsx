@@ -61,7 +61,7 @@ export function FeatureGate({
           </div>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{title}</p>
-            <p className="truncate text-xs text-muted-foreground">
+            <p className="text-muted-foreground truncate text-xs">
               {description ?? TIER_DESCRIPTIONS[requiredTier]}
             </p>
           </div>
@@ -84,13 +84,10 @@ export function FeatureGate({
         <Lock className="h-6 w-6" />
       </div>
       <p className="mt-4 font-semibold">{title}</p>
-      <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+      <p className="text-muted-foreground mx-auto mt-1 max-w-sm text-sm">
         {description ?? TIER_DESCRIPTIONS[requiredTier]}
       </p>
-      <Button
-        className="mt-5 gap-1.5"
-        onClick={() => setView("kyc")}
-      >
+      <Button className="mt-5 gap-1.5" onClick={() => setView("kyc")}>
         <ShieldCheck className="h-4 w-4" />
         Upgrade now
       </Button>

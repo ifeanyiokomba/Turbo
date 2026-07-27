@@ -30,7 +30,7 @@ export function useAutoConnect() {
   const inMiniPay = React.useSyncExternalStore(
     subscribeMiniPay,
     getMiniPaySnapshot,
-    getMiniPayServerSnapshot,
+    getMiniPayServerSnapshot
   );
 
   React.useEffect(() => {

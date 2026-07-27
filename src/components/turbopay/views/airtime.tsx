@@ -6,12 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -87,7 +82,7 @@ export default function AirtimeView() {
       />
 
       {/* Balance bar */}
-      <Card className="tp-emerald-grad relative overflow-hidden p-5 text-white tp-sheen">
+      <Card className="tp-emerald-grad tp-sheen relative overflow-hidden p-5 text-white">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs opacity-80">Available balance</p>
@@ -222,7 +217,7 @@ function AirtimeForm({
   return (
     <Card className="p-5 sm:p-6">
       <p className="text-sm font-semibold">Buy airtime</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">
+      <p className="text-muted-foreground mt-0.5 text-xs">
         Select a network, enter the phone number and amount.
       </p>
 
@@ -258,7 +253,7 @@ function AirtimeForm({
       <div className="mt-5 space-y-2">
         <Label htmlFor="airtime-phone">Phone number</Label>
         <div className="relative">
-          <Smartphone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Smartphone className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <Input
             id="airtime-phone"
             inputMode="tel"
@@ -274,7 +269,7 @@ function AirtimeForm({
       <div className="mt-5 space-y-2">
         <Label htmlFor="airtime-amount">Amount</Label>
         <div className="relative">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">
+          <span className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm font-semibold">
             ₦
           </span>
           <Input
@@ -292,7 +287,7 @@ function AirtimeForm({
               key={c.label}
               type="button"
               onClick={() => setAmountInput(String(c.kobo / 100))}
-              className="rounded-lg border border-border px-2 py-1.5 text-xs font-medium transition-colors hover:border-primary/50 hover:bg-muted/50"
+              className="border-border hover:border-primary/50 hover:bg-muted/50 rounded-lg border px-2 py-1.5 text-xs font-medium transition-colors"
             >
               {c.label}
             </button>
@@ -305,13 +300,17 @@ function AirtimeForm({
         <div className="text-sm">
           {amountKobo > 0 && (
             <p className="text-muted-foreground">
-              You pay <span className="font-semibold text-foreground">{naira(amountKobo)}</span> ·{" "}
+              You pay <span className="text-foreground font-semibold">{naira(amountKobo)}</span> ·{" "}
               <span className="text-emerald-600 dark:text-emerald-400">no fee</span>
             </p>
           )}
         </div>
         <Button onClick={handleSubmit} disabled={!canSubmit} className="gap-1.5">
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Smartphone className="h-4 w-4" />}
+          {submitting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Smartphone className="h-4 w-4" />
+          )}
           Buy airtime
         </Button>
       </div>
@@ -336,11 +335,10 @@ function DataForm({
   const [submitting, setSubmitting] = React.useState(false);
   const [success, setSuccess] = React.useState<AirtimeSuccess | null>(null);
 
-  const plans = network ? DATA_PLANS[network] ?? [] : [];
+  const plans = network ? (DATA_PLANS[network] ?? []) : [];
   const plan = plans.find((p) => p.id === planId);
   const amountKobo = plan?.amountKobo ?? 0;
-  const canSubmit =
-    !!network && !!plan && phone.replace(/\D/g, "").length >= 10 && !submitting;
+  const canSubmit = !!network && !!plan && phone.replace(/\D/g, "").length >= 10 && !submitting;
 
   // Reset plan when network changes
   React.useEffect(() => {
@@ -409,9 +407,7 @@ function DataForm({
   return (
     <Card className="p-5 sm:p-6">
       <p className="text-sm font-semibold">Buy data</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">
-        Pick a network and browse plans.
-      </p>
+      <p className="text-muted-foreground mt-0.5 text-xs">Pick a network and browse plans.</p>
 
       {/* Network picker */}
       <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -445,7 +441,7 @@ function DataForm({
       <div className="mt-5 space-y-2">
         <Label htmlFor="data-phone">Phone number</Label>
         <div className="relative">
-          <Smartphone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Smartphone className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <Input
             id="data-phone"
             inputMode="tel"
@@ -470,25 +466,25 @@ function DataForm({
                 <SelectItem key={p.id} value={p.id}>
                   <span className="flex w-full items-center justify-between gap-2">
                     <span>{p.name}</span>
-                    <span className="ml-2 font-semibold text-primary">{naira(p.amountKobo)}</span>
+                    <span className="text-primary ml-2 font-semibold">{naira(p.amountKobo)}</span>
                   </span>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         ) : (
-          <div className="rounded-lg border border-dashed bg-muted/30 px-3 py-2.5 text-xs text-muted-foreground">
+          <div className="bg-muted/30 text-muted-foreground rounded-lg border border-dashed px-3 py-2.5 text-xs">
             Select a network to see plans
           </div>
         )}
 
         {plan && (
-          <div className="mt-2 rounded-xl bg-muted/40 p-3 text-xs">
+          <div className="bg-muted/40 mt-2 rounded-xl p-3 text-xs">
             <div className="flex items-center justify-between">
               <span className="font-medium">{plan.name}</span>
-              <span className="font-semibold text-primary">{naira(plan.amountKobo)}</span>
+              <span className="text-primary font-semibold">{naira(plan.amountKobo)}</span>
             </div>
-            <p className="mt-0.5 text-muted-foreground">Valid for {plan.validity}</p>
+            <p className="text-muted-foreground mt-0.5">Valid for {plan.validity}</p>
           </div>
         )}
       </div>
@@ -498,7 +494,7 @@ function DataForm({
         <div className="text-sm">
           {plan && (
             <p className="text-muted-foreground">
-              You pay <span className="font-semibold text-foreground">{naira(amountKobo)}</span> ·{" "}
+              You pay <span className="text-foreground font-semibold">{naira(amountKobo)}</span> ·{" "}
               <span className="text-emerald-600 dark:text-emerald-400">no fee</span>
             </p>
           )}
@@ -511,7 +507,7 @@ function DataForm({
 
       <button
         onClick={onRefresh}
-        className="mt-4 hidden items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        className="text-muted-foreground hover:text-foreground mt-4 hidden items-center gap-1 text-xs"
       >
         <RefreshCw className="h-3 w-3" /> Refresh balance
       </button>
@@ -544,9 +540,9 @@ function SuccessCard({
         </div>
         <div>
           <p className="text-base font-semibold">{title}</p>
-          <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
+          <p className="text-muted-foreground mt-0.5 text-sm">{subtitle}</p>
         </div>
-        <p className="text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+        <p className="text-2xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
           {naira(amountKobo)}
         </p>
       </div>
@@ -556,7 +552,7 @@ function SuccessCard({
         <Row label="New balance" value={naira(newBalance)} />
       </div>
 
-      <div className="flex gap-2 border-t bg-muted/30 p-4">
+      <div className="bg-muted/30 flex gap-2 border-t p-4">
         <Button variant="outline" className="flex-1 gap-1.5" onClick={onAgain}>
           <ArrowLeft className="h-4 w-4" /> Buy again
         </Button>

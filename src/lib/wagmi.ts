@@ -21,7 +21,10 @@ import { privateKeyToAccount } from "viem/accounts";
 
 export function getPublicClient(chainId: number = 42220) {
   const chain = chainId === 11142220 ? celoSepoliaChain : celoChain;
-  const transport = chainId === 11142220 ? viemHttp("https://forno.celo-sepolia.org") : viemHttp("https://forno.celo.org");
+  const transport =
+    chainId === 11142220
+      ? viemHttp("https://forno.celo-sepolia.org")
+      : viemHttp("https://forno.celo.org");
   return createPublicClient({ chain, transport });
 }
 
@@ -30,7 +33,10 @@ export function getServerWalletClient(chainId: number = 42220) {
   if (!privateKey) throw new Error("TURBOPAY_TREASURY_PRIVATE_KEY not set");
   const chain = chainId === 11142220 ? celoSepoliaChain : celoChain;
   const account = privateKeyToAccount(privateKey as `0x${string}`);
-  const transport = chainId === 11142220 ? viemHttp("https://forno.celo-sepolia.org") : viemHttp("https://forno.celo.org");
+  const transport =
+    chainId === 11142220
+      ? viemHttp("https://forno.celo-sepolia.org")
+      : viemHttp("https://forno.celo.org");
   return createWalletClient({ chain, transport, account });
 }
 

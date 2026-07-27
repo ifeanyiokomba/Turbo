@@ -52,14 +52,18 @@ export async function POST(req: Request) {
       throw new ServiceError("This payment link has expired", 400, "LINK_EXPIRED");
     }
     if (link.maxUses > 0 && link.usesCount >= link.maxUses) {
-      throw new ServiceError("This payment link has reached its usage limit", 400, "LINK_EXHAUSTED");
+      throw new ServiceError(
+        "This payment link has reached its usage limit",
+        400,
+        "LINK_EXHAUSTED"
+      );
     }
     // If link has a fixed amount, payer must match it
     if (link.amountMinor && link.amountMinor > 0 && link.amountMinor !== amountMinor) {
       throw new ServiceError(
         `This link expects ${link.amountMinor} ${link.currency}. You sent ${amountMinor}.`,
         400,
-        "AMOUNT_MISMATCH",
+        "AMOUNT_MISMATCH"
       );
     }
 

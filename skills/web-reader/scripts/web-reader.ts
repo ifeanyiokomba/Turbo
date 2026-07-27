@@ -1,4 +1,4 @@
-import ZAI from 'z-ai-web-dev-sdk';
+import ZAI from "z-ai-web-dev-sdk";
 
 interface PageReaderFunctionResult {
   code: number;
@@ -23,15 +23,15 @@ async function main(url: string) {
   try {
     const zai = await ZAI.create();
 
-    const results: PageReaderFunctionResult = await zai.functions.invoke('page_reader', {
-      url: url
+    const results: PageReaderFunctionResult = await zai.functions.invoke("page_reader", {
+      url: url,
     });
 
-    console.log('Web reader invocation succeeded. Results:');
+    console.log("Web reader invocation succeeded. Results:");
     console.log(JSON.stringify(results, null, 2));
   } catch (err: any) {
-    console.error('page_reader failed:', err?.message || err);
+    console.error("page_reader failed:", err?.message || err);
   }
 }
 
-main('https://www.google.com');
+main("https://www.google.com");

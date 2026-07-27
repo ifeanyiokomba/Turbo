@@ -1,14 +1,14 @@
 import { db } from "@/lib/db";
-import {
-  json,
-  handleError,
-  requireUser,
-} from "@/lib/api";
+import { json, handleError, requireUser } from "@/lib/api";
 import { ensureMarketplaceSeeded } from "@/lib/marketplace-data";
 import { nairaCompact } from "@/lib/money";
 
 /** Convert a plan amount to its monthly-equivalent in kobo. */
-function monthlyEquivalentKobo(amountMinor: number, interval: string, intervalCount: number): number {
+function monthlyEquivalentKobo(
+  amountMinor: number,
+  interval: string,
+  intervalCount: number
+): number {
   const n = Math.max(1, intervalCount || 1);
   switch (interval) {
     case "DAY":
@@ -206,7 +206,14 @@ export async function GET() {
                 rating: 0,
                 verified: m.status === "ACTIVE",
               }
-            : { id: plan?.merchantId ?? "unknown", name: "Unknown merchant", category: null, logoUrl: null, rating: 0, verified: false },
+            : {
+                id: plan?.merchantId ?? "unknown",
+                name: "Unknown merchant",
+                category: null,
+                logoUrl: null,
+                rating: 0,
+                verified: false,
+              },
       };
     });
 
@@ -214,8 +221,11 @@ export async function GET() {
     const totalActive = active.length;
     const totalMonthly = active.reduce(
       (sum, s) =>
-        sum + (s.plan ? monthlyEquivalentKobo(s.plan.amountMinor, s.plan.interval, s.plan.intervalCount) : 0),
-      0,
+        sum +
+        (s.plan
+          ? monthlyEquivalentKobo(s.plan.amountMinor, s.plan.interval, s.plan.intervalCount)
+          : 0),
+      0
     );
 
     // Earliest upcoming charge among active subs

@@ -45,7 +45,7 @@ const CORRIDOR_SEEDS: CorridorSeed[] = [
     feeFixedKobo: 50_000_00, // ₦500
     estimatedDeliveryHours: 24,
     provider: "wise",
-    minAmountKobo: 50_000_00,    // ₦500
+    minAmountKobo: 50_000_00, // ₦500
     maxAmountKobo: 50_000_000_00, // ₦500,000
     supportsBank: true,
     supportsMobileWallet: false,
@@ -136,28 +136,26 @@ export async function GET(req: Request) {
       /* non-fatal — fall back to seed rates */
     }
 
-    const corridors = CORRIDOR_SEEDS
-      .filter((c) => c.sourceCurrency === base)
-      .map((c) => {
-        const liveRate = rateOverlay[c.targetCurrency];
-        const rate = typeof liveRate === "number" && liveRate > 0 ? liveRate : c.rate;
-        return {
-          sourceCurrency: c.sourceCurrency,
-          targetCurrency: c.targetCurrency,
-          rate,
-          rateAgeHours: typeof liveRate === "number" ? 1 : null,
-          feeBps: c.feeBps,
-          feeFixedKobo: c.feeFixedKobo,
-          estimatedDeliveryHours: c.estimatedDeliveryHours,
-          provider: c.provider,
-          minAmountKobo: c.minAmountKobo,
-          maxAmountKobo: c.maxAmountKobo,
-          supportsBank: c.supportsBank,
-          supportsMobileWallet: c.supportsMobileWallet,
-          targetFlag: c.targetFlag,
-          targetName: c.targetName,
-        };
-      });
+    const corridors = CORRIDOR_SEEDS.filter((c) => c.sourceCurrency === base).map((c) => {
+      const liveRate = rateOverlay[c.targetCurrency];
+      const rate = typeof liveRate === "number" && liveRate > 0 ? liveRate : c.rate;
+      return {
+        sourceCurrency: c.sourceCurrency,
+        targetCurrency: c.targetCurrency,
+        rate,
+        rateAgeHours: typeof liveRate === "number" ? 1 : null,
+        feeBps: c.feeBps,
+        feeFixedKobo: c.feeFixedKobo,
+        estimatedDeliveryHours: c.estimatedDeliveryHours,
+        provider: c.provider,
+        minAmountKobo: c.minAmountKobo,
+        maxAmountKobo: c.maxAmountKobo,
+        supportsBank: c.supportsBank,
+        supportsMobileWallet: c.supportsMobileWallet,
+        targetFlag: c.targetFlag,
+        targetName: c.targetName,
+      };
+    });
 
     return json({
       base,

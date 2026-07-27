@@ -25,7 +25,18 @@ export function verifyPassword(password: string, hash: string): boolean {
 export const hashPin = hashPassword;
 export const verifyPin = verifyPassword;
 
-const WEAK_PINS = new Set(["0000", "1111", "1234", "4321", "9999", "1212", "1004", "2000", "2580", "0843"]);
+const WEAK_PINS = new Set([
+  "0000",
+  "1111",
+  "1234",
+  "4321",
+  "9999",
+  "1212",
+  "1004",
+  "2000",
+  "2580",
+  "0843",
+]);
 
 export function isWeakPin(pin: string): boolean {
   return WEAK_PINS.has(pin) || /^(\d)\1{3}$/.test(pin);

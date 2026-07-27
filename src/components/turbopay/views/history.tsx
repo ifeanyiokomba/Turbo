@@ -22,11 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { PageHeader, EmptyState } from "../parts/layout";
 import { TransactionItem } from "../parts/transaction-item";
 import { downloadReceipt } from "../parts/receipt-pdf";
@@ -247,9 +243,7 @@ export default function HistoryView() {
         });
         if (!res.ok) throw new Error("Failed to load transactions");
         const data: TxResponse = await res.json();
-        setTransactions((prev) =>
-          replace ? data.transactions : [...prev, ...data.transactions],
-        );
+        setTransactions((prev) => (replace ? data.transactions : [...prev, ...data.transactions]));
         setHasMore(data.hasMore);
         setPage(targetPage);
         setSummary(data.summary ?? null);
@@ -271,7 +265,7 @@ export default function HistoryView() {
       appliedDateFrom,
       appliedDateTo,
       appliedHasNote,
-    ],
+    ]
   );
 
   // Initial + filter/search change
@@ -321,9 +315,7 @@ export default function HistoryView() {
 
   function toggleDraftType(typeId: string) {
     setDraftTypes((prev) =>
-      prev.includes(typeId)
-        ? prev.filter((t) => t !== typeId)
-        : [...prev, typeId],
+      prev.includes(typeId) ? prev.filter((t) => t !== typeId) : [...prev, typeId]
     );
   }
 
@@ -390,9 +382,7 @@ export default function HistoryView() {
         toast.error(data.error ?? "Failed to generate statement");
         return;
       }
-      toast.success(
-        `Statement ready — ${data.statement.transactionCount ?? 0} transactions`,
-      );
+      toast.success(`Statement ready — ${data.statement.transactionCount ?? 0} transactions`);
       setStmtOpen(false);
       // Auto-download
       const a = document.createElement("a");
@@ -466,7 +456,7 @@ export default function HistoryView() {
             t.provider ?? "",
           ]
             .map((v) => escape(String(v)))
-            .join(","),
+            .join(",")
         );
       }
       const csv = lines.join("\n");
@@ -530,8 +520,18 @@ export default function HistoryView() {
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Statement</span>
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={handleExport} disabled={exporting}>
-              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={handleExport}
+              disabled={exporting}
+            >
+              {exporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
               <span className="hidden sm:inline">Export CSV</span>
               <span className="sm:hidden">Export</span>
             </Button>
@@ -541,7 +541,7 @@ export default function HistoryView() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
         <Input
           placeholder="Search by name, description or reference…"
           value={search}
@@ -551,7 +551,7 @@ export default function HistoryView() {
         {search && (
           <button
             onClick={() => setSearch("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
           >
             <X className="h-4 w-4" />
           </button>
@@ -559,7 +559,7 @@ export default function HistoryView() {
       </div>
 
       {/* Filter chips */}
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-thin">
+      <div className="scrollbar-thin -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
         {FILTER_CHIPS.map((c) => {
           const activeChip = filter === c.id;
           return (
@@ -573,7 +573,7 @@ export default function HistoryView() {
                   setDraftTypes([]);
                 }
               }}
-              className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
                 activeChip
                   ? "border-primary bg-primary text-primary-foreground"
                   : "border-border bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
@@ -591,12 +591,12 @@ export default function HistoryView() {
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="h-4 w-4 text-primary" />
+                <SlidersHorizontal className="text-primary h-4 w-4" />
                 <h3 className="text-sm font-semibold">Advanced filters</h3>
               </div>
               <button
                 onClick={() => setAdvancedOpen(false)}
-                className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md p-1"
                 aria-label="Close filters"
               >
                 <X className="h-4 w-4" />
@@ -606,10 +606,10 @@ export default function HistoryView() {
             <div className="grid gap-5 lg:grid-cols-2">
               {/* Date range */}
               <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">Date range</Label>
+                <Label className="text-muted-foreground text-xs font-medium">Date range</Label>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="relative">
-                    <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Calendar className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                     <Input
                       type="date"
                       value={draftDateFrom}
@@ -619,7 +619,7 @@ export default function HistoryView() {
                     />
                   </div>
                   <div className="relative">
-                    <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Calendar className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                     <Input
                       type="date"
                       value={draftDateTo}
@@ -633,7 +633,9 @@ export default function HistoryView() {
 
               {/* Amount range */}
               <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">Amount range (₦)</Label>
+                <Label className="text-muted-foreground text-xs font-medium">
+                  Amount range (₦)
+                </Label>
                 <div className="grid grid-cols-2 gap-2">
                   <Input
                     type="number"
@@ -656,7 +658,9 @@ export default function HistoryView() {
 
               {/* Type multi-select */}
               <div className="space-y-2 lg:col-span-2">
-                <Label className="text-xs font-medium text-muted-foreground">Transaction type</Label>
+                <Label className="text-muted-foreground text-xs font-medium">
+                  Transaction type
+                </Label>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   {TYPE_OPTIONS.map((t) => {
                     const checked = draftTypes.includes(t.id);
@@ -669,10 +673,7 @@ export default function HistoryView() {
                             : "border-border text-muted-foreground hover:bg-muted/50"
                         }`}
                       >
-                        <Checkbox
-                          checked={checked}
-                          onCheckedChange={() => toggleDraftType(t.id)}
-                        />
+                        <Checkbox checked={checked} onCheckedChange={() => toggleDraftType(t.id)} />
                         <span>{t.label}</span>
                       </label>
                     );
@@ -682,7 +683,7 @@ export default function HistoryView() {
 
               {/* Status */}
               <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">Status</Label>
+                <Label className="text-muted-foreground text-xs font-medium">Status</Label>
                 <Select value={draftStatus} onValueChange={setDraftStatus}>
                   <SelectTrigger>
                     <SelectValue />
@@ -699,7 +700,7 @@ export default function HistoryView() {
 
               {/* Direction */}
               <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">Direction</Label>
+                <Label className="text-muted-foreground text-xs font-medium">Direction</Label>
                 <Select value={draftDirection} onValueChange={setDraftDirection}>
                   <SelectTrigger>
                     <SelectValue />
@@ -734,7 +735,12 @@ export default function HistoryView() {
             </div>
 
             <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={resetAdvancedFilters} className="gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={resetAdvancedFilters}
+                className="gap-1.5"
+              >
                 <RotateCcw className="h-4 w-4" /> Reset
               </Button>
               <Button size="sm" onClick={applyAdvancedFilters} className="gap-1.5">
@@ -747,7 +753,7 @@ export default function HistoryView() {
 
       {/* Summary bar */}
       {hasAnyFilter && summary && !loading && (
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border bg-muted/30 px-4 py-3 text-sm">
+        <div className="bg-muted/30 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border px-4 py-3 text-sm">
           <span className="font-medium">
             {summary.count} {summary.count === 1 ? "transaction" : "transactions"}
           </span>
@@ -769,12 +775,12 @@ export default function HistoryView() {
         <Card className="divide-y p-2">
           {[0, 1, 2, 3, 4].map((i) => (
             <div key={i} className="flex items-center gap-3 p-3">
-              <div className="h-10 w-10 animate-pulse rounded-full bg-muted" />
+              <div className="bg-muted h-10 w-10 animate-pulse rounded-full" />
               <div className="flex-1 space-y-2">
-                <div className="h-3.5 w-1/3 animate-pulse rounded bg-muted" />
-                <div className="h-3 w-1/4 animate-pulse rounded bg-muted" />
+                <div className="bg-muted h-3.5 w-1/3 animate-pulse rounded" />
+                <div className="bg-muted h-3 w-1/4 animate-pulse rounded" />
               </div>
-              <div className="h-3.5 w-16 animate-pulse rounded bg-muted" />
+              <div className="bg-muted h-3.5 w-16 animate-pulse rounded" />
             </div>
           ))}
         </Card>
@@ -796,10 +802,10 @@ export default function HistoryView() {
           {groups.map(([day, items]) => (
             <div key={day}>
               <div className="mb-1.5 flex items-center justify-between px-2">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                   {formatDate(day)}
                 </p>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-muted-foreground text-xs">
                   {items.length} {items.length === 1 ? "transaction" : "transactions"}
                 </span>
               </div>
@@ -833,9 +839,7 @@ export default function HistoryView() {
         onClose={() => setActive(null)}
         onNoteSaved={(id, note) => {
           setActive((prev) => (prev && prev.id === id ? { ...prev, note } : prev));
-          setTransactions((prev) =>
-            prev.map((t) => (t.id === id ? { ...t, note } : t)),
-          );
+          setTransactions((prev) => prev.map((t) => (t.id === id ? { ...t, note } : t)));
         }}
       />
 
@@ -844,25 +848,27 @@ export default function HistoryView() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
+              <FileText className="text-primary h-5 w-5" />
               Download statement
             </DialogTitle>
             <DialogDescription>
-              Generate a branded account statement for the selected period.
-              You can choose PDF (formatted) or CSV (spreadsheet).
+              Generate a branded account statement for the selected period. You can choose PDF
+              (formatted) or CSV (spreadsheet).
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-1">
             {/* Period chips */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Period</Label>
+              <Label className="text-muted-foreground text-xs font-medium">Period</Label>
               <div className="grid grid-cols-3 gap-2">
-                {([
-                  { v: "30", l: "Last 30 days" },
-                  { v: "90", l: "Last 90 days" },
-                  { v: "custom", l: "Custom" },
-                ] as const).map((opt) => (
+                {(
+                  [
+                    { v: "30", l: "Last 30 days" },
+                    { v: "90", l: "Last 90 days" },
+                    { v: "custom", l: "Custom" },
+                  ] as const
+                ).map((opt) => (
                   <button
                     key={opt.v}
                     type="button"
@@ -883,11 +889,11 @@ export default function HistoryView() {
             {stmtPeriod === "custom" && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="stmtStart" className="text-xs font-medium text-muted-foreground">
+                  <Label htmlFor="stmtStart" className="text-muted-foreground text-xs font-medium">
                     Start date
                   </Label>
                   <div className="relative">
-                    <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Calendar className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                     <Input
                       id="stmtStart"
                       type="date"
@@ -898,11 +904,11 @@ export default function HistoryView() {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="stmtEnd" className="text-xs font-medium text-muted-foreground">
+                  <Label htmlFor="stmtEnd" className="text-muted-foreground text-xs font-medium">
                     End date
                   </Label>
                   <div className="relative">
-                    <Calendar className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Calendar className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                     <Input
                       id="stmtEnd"
                       type="date"
@@ -917,11 +923,8 @@ export default function HistoryView() {
 
             {/* Format */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-muted-foreground">Format</Label>
-              <Select
-                value={stmtFormat}
-                onValueChange={(v: "PDF" | "CSV") => setStmtFormat(v)}
-              >
+              <Label className="text-muted-foreground text-xs font-medium">Format</Label>
+              <Select value={stmtFormat} onValueChange={(v: "PDF" | "CSV") => setStmtFormat(v)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -932,9 +935,9 @@ export default function HistoryView() {
               </Select>
             </div>
 
-            <p className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
-              The statement includes your account info, all transactions in the period,
-              running balances, and a summary of money in / out / net change.
+            <p className="bg-muted/40 text-muted-foreground rounded-lg p-3 text-xs">
+              The statement includes your account info, all transactions in the period, running
+              balances, and a summary of money in / out / net change.
             </p>
           </div>
 
@@ -943,7 +946,11 @@ export default function HistoryView() {
               Cancel
             </Button>
             <Button onClick={generateStatement} disabled={generating} className="gap-1.5">
-              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+              {generating ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <FileDown className="h-4 w-4" />
+              )}
               Generate &amp; download
             </Button>
           </DialogFooter>
@@ -983,9 +990,7 @@ function TxDetailDialog({
           >
             <span className="text-2xl font-bold">{isCredit ? "+" : "−"}</span>
           </div>
-          <DialogTitle className="text-center">
-            {naira(tx.amountKobo)}
-          </DialogTitle>
+          <DialogTitle className="text-center">{naira(tx.amountKobo)}</DialogTitle>
           <DialogDescription className="text-center">
             {TYPE_LABELS[tx.type] ?? tx.type}
           </DialogDescription>
@@ -997,26 +1002,18 @@ function TxDetailDialog({
           </span>
         </div>
 
-        <div className="space-y-2.5 rounded-xl bg-muted/40 p-4 text-sm">
+        <div className="bg-muted/40 space-y-2.5 rounded-xl p-4 text-sm">
           <DetailRow label="Reference" value={tx.reference} mono />
           {tx.description && <DetailRow label="Description" value={tx.description} />}
-          {tx.counterpartyName && (
-            <DetailRow label="Counterparty" value={tx.counterpartyName} />
-          )}
+          {tx.counterpartyName && <DetailRow label="Counterparty" value={tx.counterpartyName} />}
           {tx.counterpartyAccount && (
             <DetailRow label="Account" value={tx.counterpartyAccount} mono />
           )}
-          {tx.counterpartyBank && (
-            <DetailRow label="Bank" value={tx.counterpartyBank} />
-          )}
+          {tx.counterpartyBank && <DetailRow label="Bank" value={tx.counterpartyBank} />}
           {tx.provider && <DetailRow label="Provider" value={tx.provider} />}
-          {(!!tx.feeKobo && tx.feeKobo > 0) && (
-            <DetailRow label="Fee" value={naira(tx.feeKobo)} />
-          )}
+          {!!tx.feeKobo && tx.feeKobo > 0 && <DetailRow label="Fee" value={naira(tx.feeKobo)} />}
           <DetailRow label="Date" value={formatDate(tx.createdAt, true)} />
-          {tx.state && tx.state !== "SETTLED" && (
-            <DetailRow label="State" value={tx.state} />
-          )}
+          {tx.state && tx.state !== "SETTLED" && <DetailRow label="State" value={tx.state} />}
         </div>
 
         {/* Note editor — add / edit / clear a personal note for this transaction */}
@@ -1031,7 +1028,10 @@ function TxDetailDialog({
             className="flex-1 gap-1.5 border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
             onClick={() => {
               try {
-                sessionStorage.setItem("tp_prefill_dispute", JSON.stringify({ transactionId: tx.id, subject: `Dispute: ${tx.reference}` }));
+                sessionStorage.setItem(
+                  "tp_prefill_dispute",
+                  JSON.stringify({ transactionId: tx.id, subject: `Dispute: ${tx.reference}` })
+                );
               } catch {}
               onClose();
               toast.info("Opening dispute form...");
@@ -1046,9 +1046,7 @@ function TxDetailDialog({
                 downloadReceipt(tx);
                 toast.success("Receipt downloaded");
               } catch (e) {
-                toast.error(
-                  e instanceof Error ? e.message : "Could not generate receipt",
-                );
+                toast.error(e instanceof Error ? e.message : "Could not generate receipt");
               }
             }}
           >
@@ -1125,12 +1123,15 @@ function NoteEditor({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <Label htmlFor="tx-note" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+        <Label
+          htmlFor="tx-note"
+          className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium"
+        >
           <StickyNote className="h-3.5 w-3.5 text-amber-500" />
           Note / tag
         </Label>
         {saving && (
-          <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <span className="text-muted-foreground flex items-center gap-1 text-[10px]">
             <Loader2 className="h-3 w-3 animate-spin" /> Saving…
           </span>
         )}
@@ -1143,7 +1144,7 @@ function NoteEditor({
               setValue("");
               persist("");
             }}
-            className="text-[10px] text-muted-foreground transition-colors hover:text-red-500"
+            className="text-muted-foreground text-[10px] transition-colors hover:text-red-500"
           >
             Clear
           </button>
@@ -1168,34 +1169,24 @@ function NoteEditor({
           <button
             onClick={() => persist(value)}
             aria-label="Save note"
-            className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md bg-emerald-500 text-white transition-transform hover:scale-105 active:scale-95"
+            className="absolute top-1/2 right-2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md bg-emerald-500 text-white transition-transform hover:scale-105 active:scale-95"
           >
             <Save className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-muted-foreground text-[10px]">
         Only you can see this note. It saves automatically on blur or Enter.
       </p>
     </div>
   );
 }
 
-function DetailRow({
-  label,
-  value,
-  mono,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
+function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3">
       <span className="text-muted-foreground">{label}</span>
-      <span className={`text-right font-medium ${mono ? "font-mono text-xs" : ""}`}>
-        {value}
-      </span>
+      <span className={`text-right font-medium ${mono ? "font-mono text-xs" : ""}`}>{value}</span>
     </div>
   );
 }

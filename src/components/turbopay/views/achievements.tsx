@@ -4,12 +4,7 @@ import * as React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge as UiBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Wallet,
   Send,
@@ -135,10 +130,7 @@ export default function AchievementsView() {
   if (!data) {
     return (
       <>
-        <PageHeader
-          title="Achievements"
-          subtitle="Unlock badges as you use Turbopay"
-        />
+        <PageHeader title="Achievements" subtitle="Unlock badges as you use Turbopay" />
         <EmptyAchievements onRetry={() => load()} />
       </>
     );
@@ -192,7 +184,7 @@ export default function AchievementsView() {
       <Card className="p-5">
         <div className="mb-4 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Award className="h-4 w-4 text-primary" />
+            <Award className="text-primary h-4 w-4" />
             <p className="text-sm font-semibold">All badges</p>
           </div>
           <UiBadge variant="secondary" className="tabular-nums">
@@ -200,7 +192,7 @@ export default function AchievementsView() {
           </UiBadge>
         </div>
         <TooltipProvider delayDuration={150}>
-          <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {badges.map((b) => (
               <BadgeTile key={b.key} badge={b} />
             ))}
@@ -213,13 +205,7 @@ export default function AchievementsView() {
 
 // ---------- Hero card ------------------------------------------------------
 
-function HeroCard({
-  stats,
-  earnedBadges,
-}: {
-  stats: StatsPayload;
-  earnedBadges: number;
-}) {
+function HeroCard({ stats, earnedBadges }: { stats: StatsPayload; earnedBadges: number }) {
   const radius = 56;
   const circ = 2 * Math.PI * radius;
   const offset = circ - (stats.completionPct / 100) * circ;
@@ -234,14 +220,7 @@ function HeroCard({
         {/* Progress ring */}
         <div className="relative h-36 w-36 shrink-0">
           <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90">
-            <circle
-              cx="70"
-              cy="70"
-              r={radius}
-              fill="none"
-              stroke="var(--muted)"
-              strokeWidth="10"
-            />
+            <circle cx="70" cy="70" r={radius} fill="none" stroke="var(--muted)" strokeWidth="10" />
             <circle
               cx="70"
               cy="70"
@@ -260,9 +239,9 @@ function HeroCard({
               value={stats.completionPct}
               duration={1100}
               format={(n) => `${Math.round(n)}%`}
-              className="text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400"
+              className="text-2xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400"
             />
-            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            <p className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
               complete
             </p>
           </div>
@@ -277,13 +256,13 @@ function HeroCard({
               ? "Let's earn your first badge"
               : `${earnedBadges} badge${earnedBadges === 1 ? "" : "s"} unlocked`}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Keep using Turbopay — every transfer, bill payment, and savings
-            deposit brings you closer to the next one.
+          <p className="text-muted-foreground mt-1 text-sm">
+            Keep using Turbopay — every transfer, bill payment, and savings deposit brings you
+            closer to the next one.
           </p>
           <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
             <UiBadge variant="secondary" className="gap-1">
-              <Award className="h-3 w-3 text-primary" />
+              <Award className="text-primary h-3 w-3" />
               {stats.earned} earned
             </UiBadge>
             <UiBadge variant="outline" className="gap-1">
@@ -312,9 +291,7 @@ function RecentBadgeCard({ badge }: { badge: BadgePayload }) {
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold">{badge.name}</p>
-          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-            {badge.description}
-          </p>
+          <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">{badge.description}</p>
           {badge.earnedAt && (
             <p className={`mt-1.5 text-[10px] font-medium ${colors.text}`}>
               Earned on {formatDate(badge.earnedAt)}
@@ -338,7 +315,7 @@ function BadgeTile({ badge }: { badge: BadgePayload }) {
         <TooltipTrigger asChild>
           <button
             type="button"
-            className={`group relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl border bg-gradient-to-br p-4 text-center ring-1 transition-all hover:-translate-y-0.5 ${colors.grad} ${colors.ring} ${colors.glow} focus:outline-none focus-visible:ring-2 focus-visible:ring-primary`}
+            className={`group relative flex flex-col items-center gap-2 overflow-hidden rounded-2xl border bg-gradient-to-br p-4 text-center ring-1 transition-all hover:-translate-y-0.5 ${colors.grad} ${colors.ring} ${colors.glow} focus-visible:ring-primary focus:outline-none focus-visible:ring-2`}
           >
             {/* Shine sweep on hover */}
             <span
@@ -350,7 +327,7 @@ function BadgeTile({ badge }: { badge: BadgePayload }) {
             </div>
             <div className="w-full">
               <p className="truncate text-sm font-semibold">{badge.name}</p>
-              <p className="mt-0.5 line-clamp-2 text-[10px] text-muted-foreground">
+              <p className="text-muted-foreground mt-0.5 line-clamp-2 text-[10px]">
                 {badge.description}
               </p>
               {badge.earnedAt && (
@@ -363,7 +340,7 @@ function BadgeTile({ badge }: { badge: BadgePayload }) {
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-[220px] text-center">
           <p className="font-semibold">{badge.name}</p>
-          <p className="text-xs text-muted-foreground">{badge.description}</p>
+          <p className="text-muted-foreground text-xs">{badge.description}</p>
         </TooltipContent>
       </Tooltip>
     );
@@ -374,31 +351,27 @@ function BadgeTile({ badge }: { badge: BadgePayload }) {
       <TooltipTrigger asChild>
         <button
           type="button"
-          className="group relative flex cursor-default flex-col items-center gap-2 overflow-hidden rounded-2xl border border-dashed bg-muted/40 p-4 text-center opacity-70 grayscale transition-all hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="group bg-muted/40 focus-visible:ring-primary relative flex cursor-default flex-col items-center gap-2 overflow-hidden rounded-2xl border border-dashed p-4 text-center opacity-70 grayscale transition-all hover:opacity-90 focus:outline-none focus-visible:ring-2"
         >
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+          <div className="bg-muted text-muted-foreground flex h-14 w-14 items-center justify-center rounded-2xl">
             <Icon className="h-7 w-7" />
           </div>
           {/* Lock badge */}
-          <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-background/80 text-muted-foreground shadow-sm">
+          <span className="bg-background/80 text-muted-foreground absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full shadow-sm">
             <LockIcon className="h-3 w-3" />
           </span>
           <div className="w-full">
-            <p className="truncate text-sm font-medium text-muted-foreground">
-              {badge.name}
-            </p>
-            <p className="mt-0.5 line-clamp-2 text-[10px] text-muted-foreground/80">
+            <p className="text-muted-foreground truncate text-sm font-medium">{badge.name}</p>
+            <p className="text-muted-foreground/80 mt-0.5 line-clamp-2 text-[10px]">
               {badge.description}
             </p>
-            <p className="mt-1.5 text-[10px] font-medium text-muted-foreground">
-              Locked
-            </p>
+            <p className="text-muted-foreground mt-1.5 text-[10px] font-medium">Locked</p>
           </div>
         </button>
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-[220px] text-center">
         <p className="font-semibold">{badge.name}</p>
-        <p className="text-xs text-muted-foreground">{badge.description}</p>
+        <p className="text-muted-foreground text-xs">{badge.description}</p>
       </TooltipContent>
     </Tooltip>
   );
@@ -411,32 +384,32 @@ function AchievementsSkeleton() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div className="space-y-2">
-          <div className="h-7 w-44 animate-pulse rounded-lg bg-muted" />
-          <div className="h-4 w-56 animate-pulse rounded-full bg-muted/70" />
+          <div className="bg-muted h-7 w-44 animate-pulse rounded-lg" />
+          <div className="bg-muted/70 h-4 w-56 animate-pulse rounded-full" />
         </div>
-        <div className="h-9 w-24 animate-pulse rounded-lg bg-muted" />
+        <div className="bg-muted h-9 w-24 animate-pulse rounded-lg" />
       </div>
       {/* Hero skeleton */}
       <Card className="p-6">
         <div className="flex flex-col items-center gap-6 sm:flex-row sm:gap-8">
-          <div className="h-36 w-36 animate-pulse rounded-full bg-muted" />
+          <div className="bg-muted h-36 w-36 animate-pulse rounded-full" />
           <div className="flex-1 space-y-3">
-            <div className="h-6 w-40 animate-pulse rounded-full bg-muted" />
-            <div className="h-4 w-full animate-pulse rounded-full bg-muted/70" />
-            <div className="h-4 w-3/4 animate-pulse rounded-full bg-muted/70" />
+            <div className="bg-muted h-6 w-40 animate-pulse rounded-full" />
+            <div className="bg-muted/70 h-4 w-full animate-pulse rounded-full" />
+            <div className="bg-muted/70 h-4 w-3/4 animate-pulse rounded-full" />
             <div className="flex gap-2">
-              <div className="h-6 w-20 animate-pulse rounded-full bg-muted" />
-              <div className="h-6 w-20 animate-pulse rounded-full bg-muted" />
+              <div className="bg-muted h-6 w-20 animate-pulse rounded-full" />
+              <div className="bg-muted h-6 w-20 animate-pulse rounded-full" />
             </div>
           </div>
         </div>
       </Card>
       {/* Grid skeleton */}
       <Card className="p-5">
-        <div className="mb-4 h-4 w-32 animate-pulse rounded-full bg-muted" />
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="bg-muted mb-4 h-4 w-32 animate-pulse rounded-full" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {[...Array(14)].map((_, i) => (
-            <div key={i} className="h-36 animate-pulse rounded-2xl bg-muted/60" />
+            <div key={i} className="bg-muted/60 h-36 animate-pulse rounded-2xl" />
           ))}
         </div>
       </Card>
@@ -448,13 +421,12 @@ function EmptyAchievements({ onRetry }: { onRetry: () => void }) {
   return (
     <Card className="p-10">
       <div className="flex flex-col items-center justify-center text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <div className="bg-primary/10 text-primary flex h-14 w-14 items-center justify-center rounded-2xl">
           <Award className="h-7 w-7" />
         </div>
         <p className="mt-4 font-semibold">We couldn't load your badges</p>
-        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          Something went wrong while fetching your achievements. Please try
-          again.
+        <p className="text-muted-foreground mt-1 max-w-sm text-sm">
+          Something went wrong while fetching your achievements. Please try again.
         </p>
         <Button size="sm" className="mt-4" onClick={onRetry}>
           Try again

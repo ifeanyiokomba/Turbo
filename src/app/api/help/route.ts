@@ -9,13 +9,7 @@
 // applied in-memory on the client only.
 
 import { NextRequest } from "next/server";
-import {
-  json,
-  handleError,
-  requireUser,
-  audit,
-  getClientIp,
-} from "@/lib/api";
+import { json, handleError, requireUser, audit, getClientIp } from "@/lib/api";
 
 export interface HelpArticle {
   id: string;

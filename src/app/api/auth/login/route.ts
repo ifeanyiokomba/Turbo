@@ -3,7 +3,10 @@ import { db } from "@/lib/db";
 import { verifyPassword } from "@/lib/auth";
 import { createSession } from "@/lib/session";
 import { json, errorJson, handleError, audit, getClientIp, getUserAgent } from "@/lib/api";
+import { rateLimitMiddleware } from "@/lib/rate-limit-helpers";
 import { ensureSeed } from "@/lib/seed";
+import { trackDevice } from "@/lib/device";
+import { logSecurityEvent } from "@/lib/security-log";
 import { z } from "zod";
 
 const schema = z.object({
@@ -33,6 +36,8 @@ export async function POST(req: NextRequest) {
   try {
     await ensureSeed();
     const body = await req.json();
+    const limited = await rateLimitMiddleware(req, "login", body?.identifier);
+    if (limited) return limited;
     const parsed = schema.safeParse(body);
     if (!parsed.success) return errorJson("Invalid credentials", 400);
     const { identifier, password } = parsed.data;
@@ -47,6 +52,12 @@ export async function POST(req: NextRequest) {
     // Timing-safe-ish: always hash something
     if (!user) {
       verifyPassword(password, "scrypt$0000$0000");
+      await logSecurityEvent({
+        type: "LOGIN_FAILED",
+        ip: getClientIp(req),
+        userAgent: getUserAgent(req),
+        metadata: { identifier: id, reason: "user-not-found" },
+      });
       return errorJson("Invalid credentials", 401);
     }
     if (user.status !== "ACTIVE") return errorJson("Account is " + user.status.toLowerCase(), 403);
@@ -65,26 +76,46 @@ export async function POST(req: NextRequest) {
         where: { id: user.id },
         data: { loginFailCount: fails, loginLockedUntil: lockUntil },
       });
-      await audit({
+      await logSecurityEvent({
         userId: user.id,
-        action: "LOGIN_FAILED",
-        category: "AUTH",
-        severity: "WARN",
+        type: "LOGIN_FAILED",
         ip: getClientIp(req),
         userAgent: getUserAgent(req),
+        metadata: { reason: "wrong-password" },
       });
       return errorJson("Invalid credentials", 401);
     }
 
     // Reset fails
-    await db.user.update({ where: { id: user.id }, data: { loginFailCount: 0, loginLockedUntil: null } });
-    await createSession({ userId: user.id, ip: getClientIp(req), userAgent: getUserAgent(req) });
+    await db.user.update({
+      where: { id: user.id },
+      data: { loginFailCount: 0, loginLockedUntil: null },
+    });
+
+    // Track the device this login came from.
+    const device = await trackDevice(user.id, req);
+
+    await createSession({
+      userId: user.id,
+      ip: getClientIp(req),
+      userAgent: getUserAgent(req),
+      role: user.role,
+      kycTier: user.kycTier,
+      deviceId: device.id,
+    });
     await audit({
       userId: user.id,
       action: "LOGIN",
       category: "AUTH",
       ip: getClientIp(req),
       userAgent: getUserAgent(req),
+    });
+    await logSecurityEvent({
+      userId: user.id,
+      type: "LOGIN_SUCCESS",
+      ip: getClientIp(req),
+      userAgent: getUserAgent(req),
+      metadata: { method: "password", deviceId: device.id },
     });
 
     return json({ user: publicUser(user) });

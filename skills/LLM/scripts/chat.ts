@@ -7,7 +7,7 @@ async function main(prompt: string) {
     const messages: ChatMessage[] = [
       {
         role: "assistant",
-        content: "Hi, I'm a helpful assistant."
+        content: "Hi, I'm a helpful assistant.",
       },
       {
         role: "user",
@@ -29,4 +29,4 @@ async function main(prompt: string) {
   }
 }
 
-main('What is the capital of France?');
+main("What is the capital of France?");

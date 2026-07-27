@@ -56,7 +56,9 @@ interface GoalDTO {
   updatedAt: string;
 }
 
-function computeAvgMonthly(contributions: Array<{ amountKobo: number; type: string; createdAt: Date }>): number {
+function computeAvgMonthly(
+  contributions: Array<{ amountKobo: number; type: string; createdAt: Date }>
+): number {
   const deposits = contributions.filter((c) => c.type === "DEPOSIT");
   if (deposits.length === 0) return 0;
   const total = deposits.reduce((s, c) => s + c.amountKobo, 0);
@@ -72,7 +74,7 @@ function estimateCompletion(
   currentKobo: number,
   targetKobo: number,
   avgMonthly: number,
-  targetDate: Date | null,
+  targetDate: Date | null
 ): string | null {
   if (currentKobo >= targetKobo) return null;
   if (avgMonthly > 0) {
@@ -85,28 +87,24 @@ function estimateCompletion(
   return targetDate ? targetDate.toISOString() : null;
 }
 
-function toDTO(
-  goal: {
-    id: string;
-    name: string;
-    targetKobo: number;
-    currentKobo: number;
-    targetDate: Date | null;
-    color: string;
-    icon: string;
-    status: string;
-    createdAt: Date;
-    updatedAt: Date;
-    contributions: Array<{ amountKobo: number; type: string; createdAt: Date }>;
-  },
-): GoalDTO {
+function toDTO(goal: {
+  id: string;
+  name: string;
+  targetKobo: number;
+  currentKobo: number;
+  targetDate: Date | null;
+  color: string;
+  icon: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  contributions: Array<{ amountKobo: number; type: string; createdAt: Date }>;
+}): GoalDTO {
   const progressPct =
-    goal.targetKobo > 0
-      ? Math.min(100, Math.round((goal.currentKobo / goal.targetKobo) * 100))
-      : 0;
+    goal.targetKobo > 0 ? Math.min(100, Math.round((goal.currentKobo / goal.targetKobo) * 100)) : 0;
   const avgMonthly = computeAvgMonthly(goal.contributions);
   const sorted = [...goal.contributions].sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
   );
   return {
     id: goal.id,
@@ -126,7 +124,7 @@ function toDTO(
       goal.currentKobo,
       goal.targetKobo,
       avgMonthly,
-      goal.targetDate,
+      goal.targetDate
     ),
     createdAt: goal.createdAt.toISOString(),
     updatedAt: goal.updatedAt.toISOString(),
@@ -210,10 +208,8 @@ export async function POST(req: NextRequest) {
       if (!isNaN(d.getTime())) targetDate = d;
     }
 
-    if (!ALLOWED_COLORS.has(color))
-      throw new ServiceError("Invalid color", 400, "INVALID_COLOR");
-    if (!ALLOWED_ICONS.has(icon))
-      throw new ServiceError("Invalid icon", 400, "INVALID_ICON");
+    if (!ALLOWED_COLORS.has(color)) throw new ServiceError("Invalid color", 400, "INVALID_COLOR");
+    if (!ALLOWED_ICONS.has(icon)) throw new ServiceError("Invalid icon", 400, "INVALID_ICON");
 
     const wallet = await db.wallet.findUnique({ where: { userId: user.id } });
     if (!wallet) throw new ServiceError("Wallet not found", 404, "WALLET_NOT_FOUND");
@@ -221,7 +217,8 @@ export async function POST(req: NextRequest) {
     // Optional initial deposit: needs a PIN + a wallet debit + a contribution row.
     const pinVal = String(body?.pin ?? "");
     if (initialDepositKobo > 0) {
-      if (!pinVal) throw new ServiceError("PIN is required for initial deposit", 400, "PIN_REQUIRED");
+      if (!pinVal)
+        throw new ServiceError("PIN is required for initial deposit", 400, "PIN_REQUIRED");
       const { verifyPin } = await import("@/lib/auth");
       if (!user.transactionPinHash)
         throw new ServiceError("Transaction PIN not set", 400, "PIN_NOT_SET");

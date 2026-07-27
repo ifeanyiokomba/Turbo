@@ -1,7 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Button } from "@/components/ui/button";
 import { Loader2, ShieldCheck, AlertTriangle, RefreshCw } from "lucide-react";
@@ -141,7 +147,12 @@ export function PinDialogProvider({ children }: { children: React.ReactNode }) {
       } else {
         const remaining = body.remainingAttempts;
         const reason = body.reason ?? "mismatch";
-        if (reason === "locked" || reason === "expired" || reason === "no-otp" || reason === "already-used") {
+        if (
+          reason === "locked" ||
+          reason === "expired" ||
+          reason === "no-otp" ||
+          reason === "already-used"
+        ) {
           toast.error(`OTP ${reason.replace("-", " ")}. Please request a new code.`);
           setStage("pin");
           setPinValue("");
@@ -151,7 +162,7 @@ export function PinDialogProvider({ children }: { children: React.ReactNode }) {
           toast.error(
             typeof remaining === "number"
               ? `Incorrect code. ${remaining} attempt${remaining === 1 ? "" : "s"} left.`
-              : "Incorrect code",
+              : "Incorrect code"
           );
           setStage("otp");
           setOtpValue("");
@@ -218,10 +229,10 @@ export function PinDialogProvider({ children }: { children: React.ReactNode }) {
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-xs">
           <DialogHeader>
-            <DialogTitle className="text-center flex items-center justify-center gap-1.5">
+            <DialogTitle className="flex items-center justify-center gap-1.5 text-center">
               {stepUpRequired && stage !== "pin" ? (
                 <>
-                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  <ShieldCheck className="text-primary h-4 w-4" />
                   Step-up verification
                 </>
               ) : (
@@ -252,14 +263,14 @@ export function PinDialogProvider({ children }: { children: React.ReactNode }) {
                   <InputOTPSlot index={3} />
                 </InputOTPGroup>
               </InputOTP>
-              <p className="text-xs text-muted-foreground">Enter your 4-digit transaction PIN</p>
+              <p className="text-muted-foreground text-xs">Enter your 4-digit transaction PIN</p>
             </div>
           )}
 
           {stage === "requesting-otp" && (
             <div className="flex flex-col items-center gap-4 py-6">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <p className="text-xs text-muted-foreground">Sending verification code…</p>
+              <Loader2 className="text-primary h-6 w-6 animate-spin" />
+              <p className="text-muted-foreground text-xs">Sending verification code…</p>
             </div>
           )}
 
@@ -283,21 +294,14 @@ export function PinDialogProvider({ children }: { children: React.ReactNode }) {
                   <InputOTPSlot index={5} />
                 </InputOTPGroup>
               </InputOTP>
-              <p className="text-center text-xs text-muted-foreground">
-                {otpHint}
-              </p>
+              <p className="text-muted-foreground text-center text-xs">{otpHint}</p>
               {stage === "otp" && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="gap-1.5 text-xs"
-                  onClick={resendOtp}
-                >
+                <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={resendOtp}>
                   <RefreshCw className="h-3 w-3" /> Resend code
                 </Button>
               )}
               {stage === "verifying" && (
-                <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
                   <Loader2 className="h-3 w-3 animate-spin" /> Verifying…
                 </p>
               )}
@@ -308,8 +312,8 @@ export function PinDialogProvider({ children }: { children: React.ReactNode }) {
             <div className="mt-1 flex items-start gap-2 rounded-lg bg-amber-500/10 p-2.5 text-[11px] text-amber-800 dark:text-amber-300">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span>
-                This transaction exceeds 50% of your KYC tier&apos;s single-transaction limit,
-                so we require an extra verification step.
+                This transaction exceeds 50% of your KYC tier&apos;s single-transaction limit, so we
+                require an extra verification step.
               </span>
             </div>
           )}

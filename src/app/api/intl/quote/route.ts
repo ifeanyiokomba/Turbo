@@ -1,9 +1,4 @@
-import {
-  json,
-  handleError,
-  requireUser,
-  ServiceError,
-} from "@/lib/api";
+import { json, handleError, requireUser, ServiceError } from "@/lib/api";
 import { route } from "@/lib/turbocore/routing-engine";
 import { registry } from "@/lib/turbocore/registry";
 import type { IInternationalTransferProvider } from "@/lib/turbocore/contracts";
@@ -34,16 +29,19 @@ export async function GET(req: Request) {
     });
 
     if (decision.reason === "none" || !decision.providerCode) {
-      return json({
-        ok: false,
-        error: "No international provider available for this route. Try NGN → USD/EUR/GBP.",
-        decision,
-      }, 404);
+      return json(
+        {
+          ok: false,
+          error: "No international provider available for this route. Try NGN → USD/EUR/GBP.",
+          decision,
+        },
+        404
+      );
     }
 
     const adapter = await registry.resolve<IInternationalTransferProvider>(
       "INTERNATIONAL_TRANSFER",
-      decision.providerCode,
+      decision.providerCode
     );
 
     const result = await adapter.getQuote({
@@ -54,11 +52,14 @@ export async function GET(req: Request) {
     });
 
     if (!result.ok) {
-      return json({
-        ok: false,
-        error: result.error.message,
-        provider: decision.providerCode,
-      }, 502);
+      return json(
+        {
+          ok: false,
+          error: result.error.message,
+          provider: decision.providerCode,
+        },
+        502
+      );
     }
 
     return json({

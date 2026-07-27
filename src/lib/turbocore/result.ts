@@ -34,10 +34,13 @@ export function ok<T>(data: T, providerRequestId = "", latencyMs = 0): ProviderR
 export function fail<T = never>(
   code: ProviderErrorCode,
   message: string,
-  opts: Partial<Pick<ProviderError, "providerCode" | "httpStatus" | "raw">> = {},
+  opts: Partial<Pick<ProviderError, "providerCode" | "httpStatus" | "raw">> = {}
 ): ProviderResult<T> {
   const retryable =
-    code === "PROVIDER_TIMEOUT" || code === "RATE_LIMITED" || code === "UPSTREAM_ERROR" || code === "PROVIDER_DOWN";
+    code === "PROVIDER_TIMEOUT" ||
+    code === "RATE_LIMITED" ||
+    code === "UPSTREAM_ERROR" ||
+    code === "PROVIDER_DOWN";
   return {
     ok: false,
     error: { code, message, retryable, ...opts },
@@ -61,6 +64,30 @@ export const ContractName = {
   MOBILE_MONEY: "MOBILE_MONEY",
   EXCHANGE_RATE: "EXCHANGE_RATE",
   VIRTUAL_CARD_ISSUER: "VIRTUAL_CARD_ISSUER",
+  AML: "AML",
+  BUSINESS_KYC: "BUSINESS_KYC",
+  FRAUD_SCREENING: "FRAUD_SCREENING",
+  OTP: "OTP",
+  RECIPIENT: "RECIPIENT",
+  MULTI_CURRENCY_BALANCE: "MULTI_CURRENCY_BALANCE",
+  SPLIT_PAYMENT: "SPLIT_PAYMENT",
+  INVOICE: "INVOICE",
+  DIRECT_DEBIT: "DIRECT_DEBIT",
+  CARD_TOKENIZATION: "CARD_TOKENIZATION",
+  RECURRING_BILLING: "RECURRING_BILLING",
+  CHECKOUT: "CHECKOUT",
+  USSD: "USSD",
+  CUSTOMER: "CUSTOMER",
+  PAYOUT: "PAYOUT",
+  REFUND: "REFUND",
+  SETTLEMENT: "SETTLEMENT",
+  APPLE_PAY: "APPLE_PAY",
+  VIRTUAL_CARD_MGMT: "VIRTUAL_CARD_MGMT",
+  BULK_TRANSFER: "BULK_TRANSFER",
+  CHARGEBACK: "CHARGEBACK",
+  PRODUCT: "PRODUCT",
+  PRICE: "PRICE",
+  WEBHOOK_ENDPOINT: "WEBHOOK_ENDPOINT",
 } as const;
 export type ContractName = (typeof ContractName)[keyof typeof ContractName];
 

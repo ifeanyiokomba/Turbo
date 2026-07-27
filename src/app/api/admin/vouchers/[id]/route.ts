@@ -50,27 +50,23 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     }
     if (body.maxRedemptions !== undefined) {
       const m = Math.max(0, Math.floor(Number(body.maxRedemptions)));
-      if (!Number.isFinite(m))
-        throw new ServiceError("Invalid maxRedemptions", 400, "VALIDATION");
+      if (!Number.isFinite(m)) throw new ServiceError("Invalid maxRedemptions", 400, "VALIDATION");
       data.maxRedemptions = m;
     }
     if (body.perUserLimit !== undefined) {
       const p = Math.max(1, Math.floor(Number(body.perUserLimit)));
-      if (!Number.isFinite(p))
-        throw new ServiceError("Invalid perUserLimit", 400, "VALIDATION");
+      if (!Number.isFinite(p)) throw new ServiceError("Invalid perUserLimit", 400, "VALIDATION");
       data.perUserLimit = p;
     }
     if (body.validUntil !== undefined && body.validUntil !== null) {
       const d = new Date(body.validUntil);
-      if (isNaN(d.getTime()))
-        throw new ServiceError("Invalid validUntil", 400, "VALIDATION");
+      if (isNaN(d.getTime())) throw new ServiceError("Invalid validUntil", 400, "VALIDATION");
       data.validUntil = d;
     } else if (body.validUntil === null) {
       data.validUntil = null;
     }
 
-    if (Object.keys(data).length === 0)
-      return json({ voucher: existing, unchanged: true });
+    if (Object.keys(data).length === 0) return json({ voucher: existing, unchanged: true });
 
     const updated = await db.voucher.update({ where: { id }, data });
 

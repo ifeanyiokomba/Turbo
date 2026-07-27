@@ -19,8 +19,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   try {
     const secret =
-      process.env.CRON_SECRET ??
-      (process.env.NODE_ENV === "production" ? null : "dev-cron-secret");
+      process.env.CRON_SECRET ?? (process.env.NODE_ENV === "production" ? null : "dev-cron-secret");
     const headerSecret = req.headers.get("x-cron-secret");
     if (!secret || !headerSecret || headerSecret !== secret) {
       return json({ error: "Unauthorized" }, 401);
@@ -60,9 +59,7 @@ export async function POST(req: Request) {
       byUser.set(tx.userId, list);
     }
 
-    console.log(
-      `[cron:interest-accrue] ${byUser.size} users with active savings`,
-    );
+    console.log(`[cron:interest-accrue] ${byUser.size} users with active savings`);
 
     let processed = 0;
     let totalAccrued = 0;
@@ -85,9 +82,7 @@ export async function POST(req: Request) {
 
             // daily interest = balance * (bps / 10000) / 365
             // floor to whole kobo to keep Int storage honest
-            const interest = Math.floor(
-              (prevBalance * pair.interestBps) / 10000 / 365,
-            );
+            const interest = Math.floor((prevBalance * pair.interestBps) / 10000 / 365);
             if (interest <= 0 || interest < 1) continue; // dust guard
 
             await tx.savingsTransaction.create({
@@ -115,7 +110,7 @@ export async function POST(req: Request) {
 
     const finishedAt = new Date().toISOString();
     console.log(
-      `[cron:interest-accrue] done at ${finishedAt} — processed=${processed} totalAccrued=${totalAccrued} kobo errors=${errors.length}`,
+      `[cron:interest-accrue] done at ${finishedAt} — processed=${processed} totalAccrued=${totalAccrued} kobo errors=${errors.length}`
     );
 
     return json({

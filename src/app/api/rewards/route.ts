@@ -44,7 +44,12 @@ const TIERS: TierDef[] = [
     label: "Silver",
     min: 6,
     max: 20,
-    perks: ["₦750 per referral (+50%)", "Priority support", "10% cashback on vouchers", "Early feature access"],
+    perks: [
+      "₦750 per referral (+50%)",
+      "Priority support",
+      "10% cashback on vouchers",
+      "Early feature access",
+    ],
     accent: "from-slate-400 to-slate-600",
     badge: "🥈",
   },
@@ -53,7 +58,13 @@ const TIERS: TierDef[] = [
     label: "Gold",
     min: 21,
     max: 50,
-    perks: ["₦1,000 per referral (+100%)", "VIP support line", "15% cashback", "Free premium insights", "Birthday bonus"],
+    perks: [
+      "₦1,000 per referral (+100%)",
+      "VIP support line",
+      "15% cashback",
+      "Free premium insights",
+      "Birthday bonus",
+    ],
     accent: "from-amber-400 to-yellow-600",
     badge: "🥇",
   },
@@ -62,7 +73,14 @@ const TIERS: TierDef[] = [
     label: "Platinum",
     min: 51,
     max: Number.MAX_SAFE_INTEGER,
-    perks: ["₦1,500 per referral (+200%)", "Dedicated account manager", "20% cashback", "Exclusive events", "Fee-free transfers", "Concierge onboarding"],
+    perks: [
+      "₦1,500 per referral (+200%)",
+      "Dedicated account manager",
+      "20% cashback",
+      "Exclusive events",
+      "Fee-free transfers",
+      "Concierge onboarding",
+    ],
     accent: "from-emerald-500 to-teal-700",
     badge: "💎",
   },
@@ -204,12 +222,10 @@ export async function GET() {
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
     const thisMonthReferrals = referralTxns.filter(
-      (t) => new Date(t.createdAt) >= monthStart,
+      (t) => new Date(t.createdAt) >= monthStart
     ).length;
 
-    const pendingReferrals = referralTxns.filter(
-      (t) => t.status !== TxStatus.SUCCESS,
-    ).length;
+    const pendingReferrals = referralTxns.filter((t) => t.status !== TxStatus.SUCCESS).length;
 
     const wallet = await db.wallet.findUnique({
       where: { userId: user.id },
@@ -238,7 +254,10 @@ export async function GET() {
         counterpartyName: true,
       },
     });
-    const byUser = new Map<string, { userId: string; count: number; total: number; name: string }>();
+    const byUser = new Map<
+      string,
+      { userId: string; count: number; total: number; name: string }
+    >();
     for (const t of monthReferralTxns) {
       const entry = byUser.get(t.userId) ?? {
         userId: t.userId,
@@ -262,15 +281,51 @@ export async function GET() {
         isCurrentUser: entry.userId === user.id,
       }));
 
-    const finalLeaderboard = leaderboard.length > 0
-      ? leaderboard
-      : [
-          { rank: 1, userId: "demo-1", name: "Adaeze N.", referrals: 28, earned: 28 * REFERRAL_BONUS_KOBO, isCurrentUser: false },
-          { rank: 2, userId: "demo-2", name: "Tunde O.", referrals: 21, earned: 21 * REFERRAL_BONUS_KOBO, isCurrentUser: false },
-          { rank: 3, userId: "demo-3", name: "Kwame A.", referrals: 18, earned: 18 * REFERRAL_BONUS_KOBO, isCurrentUser: false },
-          { rank: 4, userId: "demo-4", name: "Fatima B.", referrals: 12, earned: 12 * REFERRAL_BONUS_KOBO, isCurrentUser: false },
-          { rank: 5, userId: "demo-5", name: "Chidi E.", referrals: 9, earned: 9 * REFERRAL_BONUS_KOBO, isCurrentUser: false },
-        ];
+    const finalLeaderboard =
+      leaderboard.length > 0
+        ? leaderboard
+        : [
+            {
+              rank: 1,
+              userId: "demo-1",
+              name: "Adaeze N.",
+              referrals: 28,
+              earned: 28 * REFERRAL_BONUS_KOBO,
+              isCurrentUser: false,
+            },
+            {
+              rank: 2,
+              userId: "demo-2",
+              name: "Tunde O.",
+              referrals: 21,
+              earned: 21 * REFERRAL_BONUS_KOBO,
+              isCurrentUser: false,
+            },
+            {
+              rank: 3,
+              userId: "demo-3",
+              name: "Kwame A.",
+              referrals: 18,
+              earned: 18 * REFERRAL_BONUS_KOBO,
+              isCurrentUser: false,
+            },
+            {
+              rank: 4,
+              userId: "demo-4",
+              name: "Fatima B.",
+              referrals: 12,
+              earned: 12 * REFERRAL_BONUS_KOBO,
+              isCurrentUser: false,
+            },
+            {
+              rank: 5,
+              userId: "demo-5",
+              name: "Chidi E.",
+              referrals: 9,
+              earned: 9 * REFERRAL_BONUS_KOBO,
+              isCurrentUser: false,
+            },
+          ];
 
     const userRank = leaderboard.find((e) => e.userId === user.id)?.rank ?? null;
 

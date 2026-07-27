@@ -22,17 +22,45 @@ export async function GET(req: Request, ctx: { params: Promise<{ id: string }> }
     const plan = await db.subscriptionPlan.findUnique({ where: { id: sub.planId } });
 
     // Resolve merchant name
-    let merchant: { id: string; name: string; category: string | null; logoUrl: string | null; rating: number; verified: boolean } | null = null;
+    let merchant: {
+      id: string;
+      name: string;
+      category: string | null;
+      logoUrl: string | null;
+      rating: number;
+      verified: boolean;
+    } | null = null;
     if (plan) {
       const mm = await db.marketplaceMerchant.findUnique({ where: { id: plan.merchantId } });
       if (mm) {
-        merchant = { id: mm.id, name: mm.name, category: mm.category, logoUrl: mm.logoUrl, rating: mm.rating, verified: mm.verified };
+        merchant = {
+          id: mm.id,
+          name: mm.name,
+          category: mm.category,
+          logoUrl: mm.logoUrl,
+          rating: mm.rating,
+          verified: mm.verified,
+        };
       } else {
         const m = await db.merchant.findUnique({ where: { id: plan.merchantId } });
         if (m) {
-          merchant = { id: m.id, name: m.businessName ?? m.name, category: null, logoUrl: null, rating: 0, verified: m.status === "ACTIVE" };
+          merchant = {
+            id: m.id,
+            name: m.businessName ?? m.name,
+            category: null,
+            logoUrl: null,
+            rating: 0,
+            verified: m.status === "ACTIVE",
+          };
         } else {
-          merchant = { id: plan.merchantId, name: "Unknown merchant", category: null, logoUrl: null, rating: 0, verified: false };
+          merchant = {
+            id: plan.merchantId,
+            name: "Unknown merchant",
+            category: null,
+            logoUrl: null,
+            rating: 0,
+            verified: false,
+          };
         }
       }
     }

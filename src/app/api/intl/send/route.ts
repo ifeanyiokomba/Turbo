@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       throw new ServiceError(
         "No international transfer provider available for this route",
         400,
-        "NOT_SUPPORTED",
+        "NOT_SUPPORTED"
       );
     }
 
@@ -78,7 +78,8 @@ export async function POST(req: Request) {
         direction: "OUTBOUND",
         description: `Intl transfer to ${beneficiary.name} (${targetCurrency})`,
         counterpartyName: beneficiary.name,
-        counterpartyAccount: beneficiary.accountNumber ?? beneficiary.iban ?? beneficiary.mobileWallet ?? "",
+        counterpartyAccount:
+          beneficiary.accountNumber ?? beneficiary.iban ?? beneficiary.mobileWallet ?? "",
         counterpartyBank: beneficiary.bankName,
         pin,
         preferredProvider: decision.providerCode,
@@ -141,7 +142,7 @@ export async function POST(req: Request) {
       // 2. Call provider
       const adapter = await registry.resolve<IInternationalTransferProvider>(
         "INTERNATIONAL_TRANSFER",
-        decision.providerCode,
+        decision.providerCode
       );
       providerResult = await adapter.sendTransfer({
         reference,
@@ -152,7 +153,10 @@ export async function POST(req: Request) {
       });
 
       // 3. If provider failed — auto-reverse the currency wallet debit
-      if (!providerResult.ok || (providerResult.data.status !== "SUCCESS" && providerResult.data.status !== "PENDING")) {
+      if (
+        !providerResult.ok ||
+        (providerResult.data.status !== "SUCCESS" && providerResult.data.status !== "PENDING")
+      ) {
         try {
           await creditCurrencyWallet({
             userId: user.id,
@@ -178,10 +182,16 @@ export async function POST(req: Request) {
         direction: "DEBIT",
         amountKobo: amountMinor, // minor units in source currency
         feeKobo: 0,
-        status: providerResult.ok ? (providerResult.data.status === "SUCCESS" ? "SUCCESS" : "PENDING") : "REVERSED",
-        state: providerResult.ok && providerResult.data.status === "SUCCESS" ? "SETTLED" : "INITIATED",
+        status: providerResult.ok
+          ? providerResult.data.status === "SUCCESS"
+            ? "SUCCESS"
+            : "PENDING"
+          : "REVERSED",
+        state:
+          providerResult.ok && providerResult.data.status === "SUCCESS" ? "SETTLED" : "INITIATED",
         counterpartyName: beneficiary.name,
-        counterpartyAccount: beneficiary.accountNumber ?? beneficiary.iban ?? beneficiary.mobileWallet ?? "",
+        counterpartyAccount:
+          beneficiary.accountNumber ?? beneficiary.iban ?? beneficiary.mobileWallet ?? "",
         counterpartyBank: beneficiary.bankName,
         description: `${purpose} · ${sourceCurrency}→${targetCurrency}`,
         provider: decision.providerCode,
@@ -196,11 +206,14 @@ export async function POST(req: Request) {
     });
 
     if (!providerResult.ok) {
-      return json({
-        ok: false,
-        error: providerResult.error.message,
-        transaction: tx,
-      }, 502);
+      return json(
+        {
+          ok: false,
+          error: providerResult.error.message,
+          transaction: tx,
+        },
+        502
+      );
     }
 
     await audit({

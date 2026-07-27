@@ -87,15 +87,33 @@ export const TxState = {
   REVERSED: "REVERSED",
 } as const;
 
-export const KYC_TIER_LIMITS: Record<number, {
-  label: string;
-  singleTxLimitKobo: number;
-  dailyLimitKobo: number;
-  maxBalanceKobo: number;
-}> = {
-  1: { label: "Starter", singleTxLimitKobo: 5_000_000, dailyLimitKobo: 15_000_000, maxBalanceKobo: 30_000_000 },
-  2: { label: "Verified", singleTxLimitKobo: 50_000_000, dailyLimitKobo: 200_000_000, maxBalanceKobo: 500_000_000 },
-  3: { label: "Premium", singleTxLimitKobo: 500_000_000, dailyLimitKobo: 2_000_000_000, maxBalanceKobo: Number.MAX_SAFE_INTEGER },
+export const KYC_TIER_LIMITS: Record<
+  number,
+  {
+    label: string;
+    singleTxLimitKobo: number;
+    dailyLimitKobo: number;
+    maxBalanceKobo: number;
+  }
+> = {
+  1: {
+    label: "Starter",
+    singleTxLimitKobo: 5_000_000,
+    dailyLimitKobo: 15_000_000,
+    maxBalanceKobo: 30_000_000,
+  },
+  2: {
+    label: "Verified",
+    singleTxLimitKobo: 50_000_000,
+    dailyLimitKobo: 200_000_000,
+    maxBalanceKobo: 500_000_000,
+  },
+  3: {
+    label: "Premium",
+    singleTxLimitKobo: 500_000_000,
+    dailyLimitKobo: 2_000_000_000,
+    maxBalanceKobo: Number.MAX_SAFE_INTEGER,
+  },
 };
 
 export const NETWORKS = [

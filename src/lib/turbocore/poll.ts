@@ -50,7 +50,7 @@ export function contractForTxType(txType: string): ContractName | null {
 export async function pollProviderStatus(
   contract: ContractName,
   providerCode: string,
-  providerRef: string,
+  providerRef: string
 ): Promise<string> {
   let adapter: any;
   try {

@@ -17,7 +17,7 @@ export function PageHeader({
     <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+        {subtitle && <p className="text-muted-foreground mt-1 text-sm">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}
     </div>
@@ -67,27 +67,32 @@ export function StatCard({
   format?: (n: number) => string;
   duration?: number;
 }) {
-  const canAnimate =
-    animated && typeof numericValue === "number" && typeof format === "function";
+  const canAnimate = animated && typeof numericValue === "number" && typeof format === "function";
   return (
     <Card
       className="tp-card-hover tp-card-gradient relative overflow-hidden p-5"
       style={{ backgroundImage: TONE_GRADIENT[tone] }}
     >
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
-        <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${TONE_ICON_BG[tone]}`}>
+        <p className="text-muted-foreground text-xs font-medium">{label}</p>
+        <div
+          className={`flex h-9 w-9 items-center justify-center rounded-lg ${TONE_ICON_BG[tone]}`}
+        >
           <Icon className="h-4 w-4" />
         </div>
       </div>
       <p className="mt-3 text-2xl font-bold tabular-nums">
         {canAnimate ? (
-          <AnimatedNumber value={numericValue as number} format={format} duration={duration ?? 800} />
+          <AnimatedNumber
+            value={numericValue as number}
+            format={format}
+            duration={duration ?? 800}
+          />
         ) : (
           value
         )}
       </p>
-      {hint && <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-muted-foreground mt-0.5 text-xs">{hint}</p>}
     </Card>
   );
 }
@@ -117,7 +122,16 @@ export function EmptyStateIllustration({
         {/* coin glow */}
         <circle cx="58" cy="34" r="20" fill={EM} opacity="0.10" />
         {/* wallet body */}
-        <rect x="14" y="24" width="56" height="38" rx="8" fill="white" stroke={EM_DARK} strokeWidth="2" />
+        <rect
+          x="14"
+          y="24"
+          width="56"
+          height="38"
+          rx="8"
+          fill="white"
+          stroke={EM_DARK}
+          strokeWidth="2"
+        />
         <rect x="14" y="24" width="56" height="10" rx="8" fill={EM} opacity="0.18" />
         {/* flap */}
         <path d="M14 30 H60 a8 8 0 0 1 8 8 v0 H14 Z" fill={EM} opacity="0.25" />
@@ -125,7 +139,9 @@ export function EmptyStateIllustration({
         <rect x="48" y="42" width="22" height="9" rx="4.5" fill={SLATE} opacity="0.18" />
         {/* floating coins */}
         <circle cx="72" cy="22" r="6" fill={AM} />
-        <text x="72" y="25" textAnchor="middle" fontSize="7" fontWeight="700" fill="white">₦</text>
+        <text x="72" y="25" textAnchor="middle" fontSize="7" fontWeight="700" fill="white">
+          ₦
+        </text>
         <circle cx="82" cy="40" r="4" fill={EM} />
         <circle cx="22" cy="18" r="3" fill={AM} opacity="0.7" />
       </svg>
@@ -188,12 +204,12 @@ export function EmptyState({
       {illustration ? (
         <EmptyStateIllustration name={illustration} className="h-20 w-24" />
       ) : Icon ? (
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+        <div className="bg-muted text-muted-foreground flex h-14 w-14 items-center justify-center rounded-2xl">
           <Icon className="h-6 w-6" />
         </div>
       ) : null}
       <p className="mt-4 font-medium">{title}</p>
-      {description && <p className="mt-1 max-w-xs text-sm text-muted-foreground">{description}</p>}
+      {description && <p className="text-muted-foreground mt-1 max-w-xs text-sm">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );

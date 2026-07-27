@@ -9,11 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Table,
   TableBody,
@@ -205,33 +201,51 @@ export default function RewardsView() {
   function shareTwitter() {
     if (!data) return;
     const text = `Just invited friends to @turbopay — use my code ${data.referralCode} and we both get ${nairaCompact(data.bonusAmountKobo)} 🚀 ${data.shareLink}`;
-    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, "_blank", "noopener,noreferrer");
+    window.open(
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
   }
 
   function shareFacebook() {
     if (!data) return;
     const url = encodeURIComponent(data.shareLink);
-    const quote = encodeURIComponent(`Join me on Turbopay — use my code ${data.referralCode} and we both earn!`);
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${quote}`, "_blank", "noopener,noreferrer");
+    const quote = encodeURIComponent(
+      `Join me on Turbopay — use my code ${data.referralCode} and we both earn!`
+    );
+    window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${url}&quote=${quote}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
   }
 
   function shareTelegram() {
     if (!data) return;
-    const text = encodeURIComponent(`Join me on Turbopay — use my code ${data.referralCode} and we both earn ${nairaCompact(data.bonusAmountKobo)}! ${data.shareLink}`);
-    window.open(`https://t.me/share/url?url=${encodeURIComponent(data.shareLink)}&text=${text}`, "_blank", "noopener,noreferrer");
+    const text = encodeURIComponent(
+      `Join me on Turbopay — use my code ${data.referralCode} and we both earn ${nairaCompact(data.bonusAmountKobo)}! ${data.shareLink}`
+    );
+    window.open(
+      `https://t.me/share/url?url=${encodeURIComponent(data.shareLink)}&text=${text}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
   }
 
   function shareNative() {
     if (!data) return;
     const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
     if (nav.share) {
-      nav.share({
-        title: "Join me on Turbopay",
-        text: `Use my referral code ${data.referralCode} and we both earn rewards!`,
-        url: data.shareLink,
-      }).catch(() => {
-        copyLink();
-      });
+      nav
+        .share({
+          title: "Join me on Turbopay",
+          text: `Use my referral code ${data.referralCode} and we both earn rewards!`,
+          url: data.shareLink,
+        })
+        .catch(() => {
+          copyLink();
+        });
     } else {
       copyLink();
     }
@@ -299,7 +313,11 @@ export default function RewardsView() {
               disabled={claiming}
               className="gap-1.5"
             >
-              {claiming ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
+              {claiming ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Gift className="h-4 w-4" />
+              )}
               Claim rewards
             </Button>
             <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
@@ -310,7 +328,7 @@ export default function RewardsView() {
       />
 
       {/* ============ Referral hero card ============ */}
-      <Card className="tp-emerald-grad relative overflow-hidden p-5 sm:p-7 text-white tp-sheen">
+      <Card className="tp-emerald-grad tp-sheen relative overflow-hidden p-5 text-white sm:p-7">
         <div className="relative z-10 flex flex-wrap items-end justify-between gap-4">
           <div>
             <Badge className="bg-white/20 text-white">
@@ -320,7 +338,8 @@ export default function RewardsView() {
               Give {naira(bonusNaira)}, get {naira(bonusNaira)}
             </h2>
             <p className="mt-1 max-w-md text-sm text-white/85">
-              Share your code with {firstName}. When your friend verifies their KYC, you both get {naira(bonusNaira)} in your Turbopay wallet.
+              Share your code with {firstName}. When your friend verifies their KYC, you both get{" "}
+              {naira(bonusNaira)} in your Turbopay wallet.
             </p>
           </div>
           <Trophy className="hidden h-16 w-16 text-white/30 sm:block" />
@@ -364,19 +383,44 @@ export default function RewardsView() {
             </div>
 
             <div className="flex flex-wrap gap-2 pt-1">
-              <Button size="sm" variant="secondary" onClick={shareWhatsApp} className="gap-1.5 bg-white text-emerald-700 hover:bg-white/90">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={shareWhatsApp}
+                className="gap-1.5 bg-white text-emerald-700 hover:bg-white/90"
+              >
                 <MessageCircle className="h-4 w-4" /> WhatsApp
               </Button>
-              <Button size="sm" variant="secondary" onClick={shareTwitter} className="gap-1.5 bg-white text-emerald-700 hover:bg-white/90">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={shareTwitter}
+                className="gap-1.5 bg-white text-emerald-700 hover:bg-white/90"
+              >
                 <Twitter className="h-4 w-4" /> Twitter
               </Button>
-              <Button size="sm" variant="secondary" onClick={shareFacebook} className="gap-1.5 bg-white text-emerald-700 hover:bg-white/90">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={shareFacebook}
+                className="gap-1.5 bg-white text-emerald-700 hover:bg-white/90"
+              >
                 <Facebook className="h-4 w-4" /> Facebook
               </Button>
-              <Button size="sm" variant="secondary" onClick={shareTelegram} className="gap-1.5 bg-white text-emerald-700 hover:bg-white/90">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={shareTelegram}
+                className="gap-1.5 bg-white text-emerald-700 hover:bg-white/90"
+              >
                 <Send className="h-4 w-4" /> Telegram
               </Button>
-              <Button size="sm" variant="secondary" onClick={shareNative} className="gap-1.5 bg-white/10 text-white hover:bg-white/20">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={shareNative}
+                className="gap-1.5 bg-white/10 text-white hover:bg-white/20"
+              >
                 <Share2 className="h-4 w-4" /> More
               </Button>
             </div>
@@ -402,14 +446,14 @@ export default function RewardsView() {
       {/* ============ Tier card ============ */}
       {tier && (
         <Card className="overflow-hidden p-0">
-          <div className={`bg-gradient-to-r ${tier.current.accent} p-5 sm:p-6 text-white`}>
+          <div className={`bg-gradient-to-r ${tier.current.accent} p-5 text-white sm:p-6`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-center gap-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 text-3xl">
                   {tier.current.badge}
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-white/80">
+                  <p className="text-[10px] font-semibold tracking-widest text-white/80 uppercase">
                     Current tier
                   </p>
                   <p className="text-2xl font-bold">{tier.current.label}</p>
@@ -432,7 +476,8 @@ export default function RewardsView() {
                 <div className="flex items-center justify-between text-xs text-white/85">
                   <span>{tier.current.label}</span>
                   <span>
-                    {tier.referralsToNextTier} more {tier.referralsToNextTier === 1 ? "referral" : "referrals"} to {tier.next.label}
+                    {tier.referralsToNextTier} more{" "}
+                    {tier.referralsToNextTier === 1 ? "referral" : "referrals"} to {tier.next.label}
                   </span>
                 </div>
                 <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/20">
@@ -451,15 +496,12 @@ export default function RewardsView() {
           </div>
 
           <div className="p-5 sm:p-6">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-muted-foreground mb-3 text-xs font-semibold tracking-wide uppercase">
               {tier.current.label} perks
             </p>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {tier.current.perks.map((perk) => (
-                <div
-                  key={perk}
-                  className="flex items-start gap-2 rounded-xl border p-3 text-sm"
-                >
+                <div key={perk} className="flex items-start gap-2 rounded-xl border p-3 text-sm">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                   <span>{perk}</span>
                 </div>
@@ -517,11 +559,11 @@ export default function RewardsView() {
           <CollapsibleTrigger asChild>
             <button className="flex w-full items-center justify-between gap-3 text-left">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
+                <Sparkles className="text-primary h-5 w-5" />
                 <h2 className="text-base font-semibold">How referrals work</h2>
               </div>
               <ChevronDown
-                className={`h-5 w-5 text-muted-foreground transition-transform ${
+                className={`text-muted-foreground h-5 w-5 transition-transform ${
                   explainerOpen ? "rotate-180" : ""
                 }`}
               />
@@ -572,14 +614,14 @@ export default function RewardsView() {
               />
             </div>
 
-            <div className="mt-5 rounded-xl border bg-muted/30 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="bg-muted/30 mt-5 rounded-xl border p-4">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                 Reward tiers
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="text-muted-foreground mt-1 text-sm">
                 The more friends you refer, the higher your tier — and the bigger your per-referral
-                bonus. Reach <span className="font-semibold text-foreground">Platinum</span> for ₦1,500
-                per referral and dedicated account management.
+                bonus. Reach <span className="text-foreground font-semibold">Platinum</span> for
+                ₦1,500 per referral and dedicated account management.
               </p>
             </div>
           </CollapsibleContent>
@@ -592,7 +634,9 @@ export default function RewardsView() {
           <div className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-amber-500" />
             <h2 className="text-base font-semibold">Leaderboard</h2>
-            <Badge variant="secondary" className="text-[10px]">This month</Badge>
+            <Badge variant="secondary" className="text-[10px]">
+              This month
+            </Badge>
           </div>
           {userRank && (
             <Badge variant="outline" className="gap-1">
@@ -625,7 +669,7 @@ export default function RewardsView() {
                               {entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉"}
                             </span>
                           ) : (
-                            <span className="font-mono text-sm text-muted-foreground">
+                            <span className="text-muted-foreground font-mono text-sm">
                               #{entry.rank}
                             </span>
                           )}
@@ -633,13 +677,15 @@ export default function RewardsView() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold uppercase text-emerald-600 dark:text-emerald-400">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-600 uppercase dark:text-emerald-400">
                             {entry.name.slice(0, 2)}
                           </div>
                           <div>
                             <p className="text-sm font-medium">{entry.name}</p>
                             {entry.isCurrentUser && (
-                              <p className="text-[10px] text-emerald-600 dark:text-emerald-400">You</p>
+                              <p className="text-[10px] text-emerald-600 dark:text-emerald-400">
+                                You
+                              </p>
                             )}
                           </div>
                         </div>
@@ -647,7 +693,7 @@ export default function RewardsView() {
                       <TableCell className="text-right text-sm font-semibold tabular-nums">
                         {entry.referrals}
                       </TableCell>
-                      <TableCell className="text-right text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                      <TableCell className="text-right text-sm font-semibold text-emerald-600 tabular-nums dark:text-emerald-400">
                         {nairaCompact(entry.earned)}
                       </TableCell>
                     </TableRow>
@@ -657,15 +703,22 @@ export default function RewardsView() {
             </div>
             <div className="divide-y sm:hidden">
               {leaderboard.map((entry) => (
-                <div key={entry.userId} className={`flex items-center gap-3 p-4 ${entry.isCurrentUser ? "bg-emerald-500/5" : ""}`}>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-bold">
+                <div
+                  key={entry.userId}
+                  className={`flex items-center gap-3 p-4 ${entry.isCurrentUser ? "bg-emerald-500/5" : ""}`}
+                >
+                  <div className="bg-muted flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold">
                     {entry.rank <= 3
-                      ? (entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : "🥉")
+                      ? entry.rank === 1
+                        ? "🥇"
+                        : entry.rank === 2
+                          ? "🥈"
+                          : "🥉"
                       : `#${entry.rank}`}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{entry.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       {entry.referrals} referrals · {nairaCompact(entry.earned)}
                     </p>
                   </div>
@@ -688,7 +741,7 @@ export default function RewardsView() {
       <Card className="overflow-hidden p-0">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b p-5 sm:p-6">
           <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
+            <Users className="text-primary h-5 w-5" />
             <h2 className="text-base font-semibold">Referral history</h2>
             {data?.referredUsers && data.referredUsers.length > 0 && (
               <Badge variant="secondary" className="ml-1">
@@ -714,24 +767,26 @@ export default function RewardsView() {
                     <TableRow key={u.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold uppercase text-emerald-600 dark:text-emerald-400">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-600 uppercase dark:text-emerald-400">
                             {(u.username || u.fullName || "?").slice(0, 2)}
                           </div>
                           <div>
                             <p className="text-sm font-medium">{u.fullName}</p>
-                            <p className="text-xs text-muted-foreground">@{u.username}</p>
+                            <p className="text-muted-foreground text-xs">@{u.username}</p>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_TONE[u.status]}`}>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_TONE[u.status]}`}
+                        >
                           {u.status === "VERIFIED" ? "Verified" : "Pending"}
                         </span>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
+                      <TableCell className="text-muted-foreground text-sm">
                         {formatDate(u.dateJoined)}
                       </TableCell>
-                      <TableCell className="text-right text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                      <TableCell className="text-right text-sm font-semibold text-emerald-600 tabular-nums dark:text-emerald-400">
                         {u.status === "VERIFIED" ? naira(u.rewardEarned) : "—"}
                       </TableCell>
                     </TableRow>
@@ -743,21 +798,23 @@ export default function RewardsView() {
             <div className="divide-y sm:hidden">
               {data.referredUsers.map((u) => (
                 <div key={u.id} className="flex items-center gap-3 p-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold uppercase text-emerald-600 dark:text-emerald-400">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-600 uppercase dark:text-emerald-400">
                     {(u.username || u.fullName || "?").slice(0, 2)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{u.fullName}</p>
-                    <p className="truncate text-xs text-muted-foreground">
+                    <p className="text-muted-foreground truncate text-xs">
                       @{u.username} · {formatDate(u.dateJoined)}
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_TONE[u.status]}`}>
+                    <span
+                      className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_TONE[u.status]}`}
+                    >
                       {u.status === "VERIFIED" ? "Verified" : "Pending"}
                     </span>
                     {u.status === "VERIFIED" && (
-                      <span className="text-xs font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                      <span className="text-xs font-semibold text-emerald-600 tabular-nums dark:text-emerald-400">
                         {nairaCompact(u.rewardEarned)}
                       </span>
                     )}
@@ -787,43 +844,53 @@ export default function RewardsView() {
       {campaigns.length > 0 && (
         <Card className="p-5 sm:p-6">
           <div className="mb-4 flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary" />
+            <Target className="text-primary h-5 w-5" />
             <h2 className="text-base font-semibold">Active campaigns</h2>
-            <Badge variant="secondary" className="text-[10px]">{campaigns.length}</Badge>
+            <Badge variant="secondary" className="text-[10px]">
+              {campaigns.length}
+            </Badge>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {campaigns.map((c) => (
               <div
                 key={c.id}
-                className="group rounded-xl border p-4 transition-colors hover:border-primary/30"
+                className="group hover:border-primary/30 rounded-xl border p-4 transition-colors"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <p className="font-medium">{c.title}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{c.description}</p>
+                    <p className="text-muted-foreground mt-1 text-xs">{c.description}</p>
                   </div>
                   {c.rewardKobo > 0 ? (
-                    <Badge variant="secondary" className="shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                    <Badge
+                      variant="secondary"
+                      className="shrink-0 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                    >
                       +{nairaCompact(c.rewardKobo)}
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="shrink-0">{c.endsIn}</Badge>
+                    <Badge variant="outline" className="shrink-0">
+                      {c.endsIn}
+                    </Badge>
                   )}
                 </div>
                 <div className="mt-3">
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <div className="text-muted-foreground flex items-center justify-between text-[11px]">
                     <span>{c.currentCount.toLocaleString()} joined</span>
-                    <span>{Math.round(c.progress * 100)}% of {c.goalCount.toLocaleString()}</span>
+                    <span>
+                      {Math.round(c.progress * 100)}% of {c.goalCount.toLocaleString()}
+                    </span>
                   </div>
                   <Progress className="mt-1 h-1.5" value={c.progress * 100} />
                 </div>
                 {c.rewardKobo > 0 && (
-                  <p className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+                  <p className="text-muted-foreground mt-3 flex items-center gap-1 text-xs">
                     <Award className="h-3.5 w-3.5" />
-                    Reward: <span className="font-medium text-foreground">{naira(c.rewardKobo)}</span>
+                    Reward:{" "}
+                    <span className="text-foreground font-medium">{naira(c.rewardKobo)}</span>
                     <span className="ml-auto flex items-center gap-1">
                       <Circle className="h-2 w-2 fill-amber-500 text-amber-500" />
-                      Ends in <span className="font-medium text-foreground">{c.endsIn}</span>
+                      Ends in <span className="text-foreground font-medium">{c.endsIn}</span>
                     </span>
                   </p>
                 )}
@@ -837,37 +904,40 @@ export default function RewardsView() {
       <Card className="p-5 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Gift className="h-5 w-5 text-primary" />
+            <Gift className="text-primary h-5 w-5" />
             <h2 className="text-base font-semibold">Recent referral rewards</h2>
           </div>
         </div>
         {data?.recentRewards && data.recentRewards.length > 0 ? (
-          <ul className="max-h-96 overflow-y-auto pr-1 scrollbar-thin">
+          <ul className="scrollbar-thin max-h-96 overflow-y-auto pr-1">
             {data.recentRewards.map((r) => {
               const isReferral = r.type === "REFERRAL";
               return (
                 <li
                   key={r.id}
-                  className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted/60"
+                  className="hover:bg-muted/60 flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                     {isReferral ? <Users className="h-5 w-5" /> : <Gift className="h-5 w-5" />}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">
-                      {isReferral ? "Referral bonus" : "Reward"} · {r.counterpartyName || r.description || "Turbopay"}
+                      {isReferral ? "Referral bonus" : "Reward"} ·{" "}
+                      {r.counterpartyName || r.description || "Turbopay"}
                     </p>
-                    <p className="truncate text-xs text-muted-foreground">
+                    <p className="text-muted-foreground truncate text-xs">
                       {r.reference} · {timeAgo(r.createdAt)}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    <p className="text-sm font-semibold text-emerald-600 tabular-nums dark:text-emerald-400">
                       <ArrowDownLeft className="mr-0.5 inline h-3 w-3" />
                       {naira(r.amountKobo)}
                     </p>
                     {r.status !== "SUCCESS" && (
-                      <Badge variant="outline" className="mt-0.5 text-[10px]">{r.status}</Badge>
+                      <Badge variant="outline" className="mt-0.5 text-[10px]">
+                        {r.status}
+                      </Badge>
                     )}
                   </div>
                 </li>
@@ -913,13 +983,13 @@ function StatTile({
   return (
     <Card className="tp-card-hover p-5">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <p className="text-muted-foreground text-xs font-medium">{label}</p>
         <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${bg}`}>
           <Icon className="h-4 w-4" />
         </div>
       </div>
       <p className="mt-2.5 text-2xl font-bold tabular-nums">{value}</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
+      <p className="text-muted-foreground mt-0.5 text-xs">{hint}</p>
     </Card>
   );
 }
@@ -952,11 +1022,11 @@ function FunnelStep({
       <div className={`mx-auto flex h-10 w-10 items-center justify-center rounded-xl ${bg}`}>
         <Icon className="h-5 w-5" />
       </div>
-      <span className="absolute -left-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground shadow-sm">
+      <span className="bg-primary text-primary-foreground absolute -top-1.5 -left-1.5 flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold shadow-sm">
         {n}
       </span>
       <p className="mt-2 text-sm font-semibold">{label}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+      <p className="text-muted-foreground mt-1 text-xs">{description}</p>
     </div>
   );
 }
@@ -964,7 +1034,7 @@ function FunnelStep({
 function FunnelArrow() {
   return (
     <div className="hidden items-center justify-center sm:flex">
-      <ArrowRight className="h-5 w-5 text-muted-foreground/50" />
+      <ArrowRight className="text-muted-foreground/50 h-5 w-5" />
     </div>
   );
 }

@@ -16,10 +16,7 @@ import {
 // server restart), we transparently regenerate the file from the stored
 // period range + transactions.
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser();
     const { id } = await params;
@@ -59,10 +56,7 @@ export async function GET(
       const currentBalance = wallet?.balanceKobo ?? 0;
       const signedDelta = transactions
         .filter((t) => t.status === "SUCCESS")
-        .reduce(
-          (s, t) => s + (t.direction === "CREDIT" ? t.amountKobo : -t.amountKobo),
-          0,
-        );
+        .reduce((s, t) => s + (t.direction === "CREDIT" ? t.amountKobo : -t.amountKobo), 0);
       const openingBalance = currentBalance - signedDelta;
 
       const account: StatementAccount = {
@@ -112,8 +106,7 @@ export async function GET(
       });
     }
 
-    const contentType =
-      format === "PDF" ? "application/pdf" : "text/csv;charset=utf-8";
+    const contentType = format === "PDF" ? "application/pdf" : "text/csv;charset=utf-8";
 
     return new NextResponse(bytes as unknown as BodyInit, {
       status: 200,

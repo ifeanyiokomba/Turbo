@@ -85,7 +85,7 @@ export async function releaseCronLock(key: string): Promise<void> {
 export async function withCronLock<T>(
   key: string,
   fn: () => Promise<T>,
-  ttlMs = 30_000,
+  ttlMs = 30_000
 ): Promise<T | undefined> {
   const acquired = await acquireCronLock(key, ttlMs);
   if (!acquired) {

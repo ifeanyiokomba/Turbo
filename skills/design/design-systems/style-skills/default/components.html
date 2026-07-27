@@ -78,11 +78,9 @@
 
         --elev-flat: none;
         --elev-ring: 0 0 0 1px var(--border);
-        --elev-raised: 0 2px 8px
-          color-mix(in oklab, var(--fg), transparent 92%);
+        --elev-raised: 0 2px 8px color-mix(in oklab, var(--fg), transparent 92%);
 
-        --focus-ring: 0 0 0 3px
-          color-mix(in oklab, var(--accent), transparent 70%);
+        --focus-ring: 0 0 0 3px color-mix(in oklab, var(--accent), transparent 70%);
 
         --motion-fast: 150ms;
         --motion-base: 200ms;
@@ -95,8 +93,16 @@
       }
 
       /* ─── Reset (minimal) ───────────────────────────────────── */
-      *, *::before, *::after { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
       body {
         background: var(--bg);
         color: var(--fg);
@@ -119,16 +125,26 @@
         border-top: 1px solid var(--border);
       }
       @media (max-width: 1023px) {
-        .container { padding-inline: var(--container-gutter-tablet); }
-        section { padding-block: var(--section-y-tablet); }
+        .container {
+          padding-inline: var(--container-gutter-tablet);
+        }
+        section {
+          padding-block: var(--section-y-tablet);
+        }
       }
       @media (max-width: 639px) {
-        .container { padding-inline: var(--container-gutter-phone); }
-        section { padding-block: var(--section-y-phone); }
+        .container {
+          padding-inline: var(--container-gutter-phone);
+        }
+        section {
+          padding-block: var(--section-y-phone);
+        }
       }
 
       /* ─── Typography ────────────────────────────────────────── */
-      h1, h2, h3 {
+      h1,
+      h2,
+      h3 {
         font-family: var(--font-display);
         line-height: var(--leading-tight);
         margin: 0;
@@ -147,13 +163,19 @@
         font-size: var(--text-lg);
         font-weight: 600;
       }
-      p { margin: 0; }
+      p {
+        margin: 0;
+      }
       .lead {
         font-size: var(--text-lg);
         color: var(--muted);
       }
-      .body-muted { color: var(--muted); }
-      .body-sm { font-size: var(--text-sm); }
+      .body-muted {
+        color: var(--muted);
+      }
+      .body-sm {
+        font-size: var(--text-sm);
+      }
       /* `.eyebrow` is the only component that uses uppercase + tracking.
          craft/typography.md requires letter-spacing ≥ 0.06em on any
          uppercase rule; the token below is well above that floor. */
@@ -164,9 +186,15 @@
         letter-spacing: 0.08em;
         font-weight: 500;
       }
-      .stack-3 > * + * { margin-block-start: var(--space-3); }
-      .stack-4 > * + * { margin-block-start: var(--space-4); }
-      .stack-6 > * + * { margin-block-start: var(--space-6); }
+      .stack-3 > * + * {
+        margin-block-start: var(--space-3);
+      }
+      .stack-4 > * + * {
+        margin-block-start: var(--space-4);
+      }
+      .stack-6 > * + * {
+        margin-block-start: var(--space-6);
+      }
 
       /* ─── Buttons ───────────────────────────────────────────── */
       .btn {
@@ -187,7 +215,9 @@
           border-color var(--motion-fast) var(--ease-standard);
         text-decoration: none;
       }
-      .btn:active { transform: translateY(1px); }
+      .btn:active {
+        transform: translateY(1px);
+      }
       .btn:focus-visible {
         outline: none;
         box-shadow: var(--focus-ring);
@@ -240,7 +270,9 @@
         border-color: var(--accent);
         box-shadow: var(--focus-ring);
       }
-      .field input::placeholder { color: var(--muted); }
+      .field input::placeholder {
+        color: var(--muted);
+      }
       .field-help {
         font-size: var(--text-xs);
         color: var(--muted);
@@ -317,7 +349,10 @@
         align-items: end;
       }
       @media (max-width: 1023px) {
-        .hero-grid { grid-template-columns: 1fr; gap: var(--space-8); }
+        .hero-grid {
+          grid-template-columns: 1fr;
+          gap: var(--space-8);
+        }
       }
       .hero-actions {
         display: flex;
@@ -339,10 +374,14 @@
         gap: var(--space-5);
       }
       @media (max-width: 1023px) {
-        .features-grid { grid-template-columns: 1fr 1fr; }
+        .features-grid {
+          grid-template-columns: 1fr 1fr;
+        }
       }
       @media (max-width: 639px) {
-        .features-grid { grid-template-columns: 1fr; }
+        .features-grid {
+          grid-template-columns: 1fr;
+        }
       }
       .form-row {
         display: grid;
@@ -351,7 +390,9 @@
         align-items: start;
       }
       @media (max-width: 1023px) {
-        .form-row { grid-template-columns: 1fr; }
+        .form-row {
+          grid-template-columns: 1fr;
+        }
       }
       .form {
         display: flex;
@@ -364,7 +405,11 @@
         gap: var(--space-3);
         margin-block-start: var(--space-2);
       }
-      .icon { width: 16px; height: 16px; flex-shrink: 0; }
+      .icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
       .row-between {
         display: flex;
         align-items: center;
@@ -386,9 +431,9 @@
             <p class="eyebrow">Reference fixture · default</p>
             <h1>One source for the values your team keeps re-deciding.</h1>
             <p class="lead" style="max-width: 52ch">
-              A starter pack that turns brand decisions into shippable
-              tokens — colors, type, spacing — so every interface
-              inherits the same answer instead of reaching for a default.
+              A starter pack that turns brand decisions into shippable tokens — colors, type,
+              spacing — so every interface inherits the same answer instead of reaching for a
+              default.
             </p>
             <div class="hero-actions">
               <a href="./tokens.css" class="btn btn-primary">
@@ -422,9 +467,7 @@
               Last reviewed
               <time datetime="2026-05-11">2026-05-11</time> · v0.1
             </p>
-            <p class="body-sm body-muted">
-              Press <kbd>⌘</kbd> <kbd>K</kbd> to search tokens.
-            </p>
+            <p class="body-sm body-muted">Press <kbd>⌘</kbd> <kbd>K</kbd> to search tokens.</p>
           </aside>
         </div>
       </section>
@@ -438,8 +481,7 @@
         <div class="stack-3">
           <p class="eyebrow">What this fixture exercises</p>
           <h2 style="max-width: 28ch">
-            Every component below uses only var(--*) — no raw hex, no
-            off-token type.
+            Every component below uses only var(--*) — no raw hex, no off-token type.
           </h2>
         </div>
 
@@ -447,9 +489,8 @@
           <article class="card">
             <h3>Surface tokens</h3>
             <p class="body-muted body-sm">
-              --bg, --surface, --fg, --muted, --border. The whole page
-              derives from these five names; rebind them for any other
-              brand and the layout follows.
+              --bg, --surface, --fg, --muted, --border. The whole page derives from these five
+              names; rebind them for any other brand and the layout follows.
             </p>
             <a href="./tokens.css" class="body-sm">Inspect tokens →</a>
           </article>
@@ -457,9 +498,8 @@
           <article class="card">
             <h3>Accent discipline</h3>
             <p class="body-muted body-sm">
-              --accent appears at most twice on this screen — the
-              primary CTA and the focus ring. The hero status uses
-              --success instead, so the page does not feel mono-blue.
+              --accent appears at most twice on this screen — the primary CTA and the focus ring.
+              The hero status uses --success instead, so the page does not feel mono-blue.
             </p>
             <a href="./DESIGN.md" class="body-sm">Read the rule →</a>
           </article>
@@ -467,9 +507,8 @@
           <article class="card">
             <h3>Type rhythm</h3>
             <p class="body-muted body-sm">
-              Display and body share Inter but differ in size, weight,
-              and tracking. No third type face, no fourth size on this
-              screen.
+              Display and body share Inter but differ in size, weight, and tracking. No third type
+              face, no fourth size on this screen.
             </p>
             <a href="./tokens.css" class="body-sm">Inspect typography →</a>
           </article>
@@ -486,14 +525,12 @@
             <p class="eyebrow">Form components</p>
             <h2>Inputs inherit the same tokens.</h2>
             <p class="body-muted" style="max-width: 48ch">
-              Focus rings, borders, placeholder color — all derive from
-              --accent and --border. The submit button reuses
-              .btn-primary unchanged. No new token introduced for this
-              section.
+              Focus rings, borders, placeholder color — all derive from --accent and --border. The
+              submit button reuses .btn-primary unchanged. No new token introduced for this section.
             </p>
           </div>
 
-          <form class="form" onsubmit="event.preventDefault();">
+          <form class="form" onsubmit="event.preventDefault()">
             <div class="field">
               <label for="email">Work email</label>
               <input
@@ -503,17 +540,11 @@
                 autocomplete="email"
                 required
               />
-              <p class="field-help">
-                We'll send the spec PDF and nothing else.
-              </p>
+              <p class="field-help">We'll send the spec PDF and nothing else.</p>
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary">
-                Send the spec
-              </button>
-              <button type="button" class="btn btn-secondary">
-                Skip for now
-              </button>
+              <button type="submit" class="btn btn-primary">Send the spec</button>
+              <button type="button" class="btn btn-secondary">Skip for now</button>
             </div>
           </form>
         </div>

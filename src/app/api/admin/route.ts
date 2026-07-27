@@ -1,10 +1,12 @@
 import { db } from "@/lib/db";
-import { json, handleError, requireAdmin } from "@/lib/api";
+import { json, handleError } from "@/lib/api";
+import { requirePermission } from "@/lib/turbocore/rbac";
+import { Permissions } from "@/lib/turbocore/rbac/permissions";
 import { TxStatus, UserStatus, WalletStatus } from "@/lib/constants";
 
 export async function GET() {
   try {
-    await requireAdmin();
+    await requirePermission(Permissions.MONITORING_VIEW);
 
     const [
       usersCount,

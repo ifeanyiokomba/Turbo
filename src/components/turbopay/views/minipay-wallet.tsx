@@ -47,11 +47,7 @@ import {
   TREASURY_ADDRESS,
 } from "@/lib/minipay";
 import { timeAgo } from "@/lib/money";
-import {
-  useSendTransaction,
-  useAccount,
-  useChainId,
-} from "wagmi";
+import { useSendTransaction, useAccount, useChainId } from "wagmi";
 import { encodeFunctionData, parseUnits, isAddress, erc20Abi } from "viem";
 
 // ---------- Types ----------
@@ -187,13 +183,7 @@ function TxRowSkeleton() {
 }
 
 // ---------- Sub-components ----------
-function TokenCard({
-  tok,
-  usdNgnRate,
-}: {
-  tok: TokenBalance;
-  usdNgnRate: number;
-}) {
+function TokenCard({ tok, usdNgnRate }: { tok: TokenBalance; usdNgnRate: number }) {
   const ngnEquiv = tokenNgnEquivalent(tok.symbol, tok.balanceNumber, usdNgnRate);
   return (
     <Card
@@ -201,19 +191,19 @@ function TokenCard({
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-background/80 font-bold">
+          <div className="bg-background/80 flex h-8 w-8 items-center justify-center rounded-lg font-bold">
             {TOKEN_ICON[tok.symbol] ?? "•"}
           </div>
           <div>
-            <p className="text-sm font-semibold leading-none">{tok.symbol}</p>
-            <p className="mt-0.5 text-[10px] text-muted-foreground">{tok.name}</p>
+            <p className="text-sm leading-none font-semibold">{tok.symbol}</p>
+            <p className="text-muted-foreground mt-0.5 text-[10px]">{tok.name}</p>
           </div>
         </div>
       </div>
       <p className="mt-3 text-lg font-bold tabular-nums">
         {formatTokenAmount(tok.balanceNumber, tok.decimals)}
       </p>
-      <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+      <p className="text-muted-foreground mt-0.5 text-xs tabular-nums">
         ≈ {naira(Math.round(ngnEquiv * 100))}
       </p>
     </Card>
@@ -250,24 +240,30 @@ function RecentTxRow({ tx, chainId }: { tx: OnchainTx; chainId: number }) {
       href={getExplorerUrl(tx.hash, chainId)}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted/60"
+      className="hover:bg-muted/60 flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors"
     >
       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${tone}`}>
         <Icon className="h-4.5 w-4.5" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">
-          {tx.type === "DEPOSIT" ? "Deposit" : tx.type === "WITHDRAW" ? "Withdrawal" : "Payment"} · {tx.tokenSymbol}
+          {tx.type === "DEPOSIT" ? "Deposit" : tx.type === "WITHDRAW" ? "Withdrawal" : "Payment"} ·{" "}
+          {tx.tokenSymbol}
         </p>
-        <p className="truncate text-xs text-muted-foreground">
+        <p className="text-muted-foreground truncate text-xs">
           {truncateAddress(tx.counterpartyAddress)} · {timeAgo(tx.createdAt)}
         </p>
       </div>
       <div className="text-right">
-        <p className={`text-sm font-semibold tabular-nums ${isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>
-          {isCredit ? "+" : "−"}{formatTokenAmount(Number(tx.amountHuman) || 0, 18)}
+        <p
+          className={`text-sm font-semibold tabular-nums ${isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}
+        >
+          {isCredit ? "+" : "−"}
+          {formatTokenAmount(Number(tx.amountHuman) || 0, 18)}
         </p>
-        <span className={`mt-0.5 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${statusTone}`}>
+        <span
+          className={`mt-0.5 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${statusTone}`}
+        >
           {tx.status}
         </span>
       </div>
@@ -317,7 +313,10 @@ export default function MiniPayWalletView() {
       if (linkedAddress) {
         const chainForBalances = w?.wallet?.chainId ?? activeChainId;
         const [bRes, tRes] = await Promise.all([
-          fetch(`/api/celo/balances?address=${encodeURIComponent(linkedAddress)}&chainId=${chainForBalances}`, { cache: "no-store" }),
+          fetch(
+            `/api/celo/balances?address=${encodeURIComponent(linkedAddress)}&chainId=${chainForBalances}`,
+            { cache: "no-store" }
+          ),
           fetch(`/api/celo/transactions?limit=5`, { cache: "no-store" }),
         ]);
         if (bRes.ok) setBalances(await bRes.json());
@@ -351,11 +350,10 @@ export default function MiniPayWalletView() {
   const usdmBalance = balances?.balances.find((b) => b.symbol === "USDm")?.balanceNumber ?? 0;
   const usdmNgnEquiv = usdmBalance * usdNgnRate;
 
-  const chainBadge =
-    activeChainId === CELO_SEPOLIA_CHAIN_ID ? "Celo Sepolia" : "Celo Mainnet";
+  const chainBadge = activeChainId === CELO_SEPOLIA_CHAIN_ID ? "Celo Sepolia" : "Celo Mainnet";
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="MiniPay Wallet"
         subtitle="Your cUSD stablecoin balance on Celo — bridged to NGN instantly."
@@ -380,7 +378,7 @@ export default function MiniPayWalletView() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold">Open inside MiniPay to auto-link</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-0.5 text-xs">
                 This view works best inside the MiniPay super-app. Outside MiniPay, you can still
                 view any Celo address by linking it manually.
               </p>
@@ -395,7 +393,7 @@ export default function MiniPayWalletView() {
           {loading ? (
             <WalletCardSkeleton />
           ) : activeAddress ? (
-            <div className="tp-wallet-card tp-float relative aspect-[1.7/1] w-full max-w-md rounded-3xl p-5 text-white tp-sheen sm:p-6">
+            <div className="tp-wallet-card tp-float tp-sheen relative aspect-[1.7/1] w-full max-w-md rounded-3xl p-5 text-white sm:p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <p className="flex items-center gap-1.5 text-xs opacity-80">
@@ -411,7 +409,7 @@ export default function MiniPayWalletView() {
                     </p>
                     <span className="text-sm font-medium opacity-80">USDm</span>
                   </div>
-                  <p className="mt-1 text-sm opacity-80 tabular-nums">
+                  <p className="mt-1 text-sm tabular-nums opacity-80">
                     ≈ {naira(Math.round(usdmNgnEquiv * 100))}
                   </p>
                 </div>
@@ -493,7 +491,7 @@ export default function MiniPayWalletView() {
           <div>
             <div className="mb-3 flex items-center justify-between">
               <p className="text-sm font-semibold">Token balances</p>
-              <span className="text-xs text-muted-foreground">Live on-chain</span>
+              <span className="text-muted-foreground text-xs">Live on-chain</span>
             </div>
             {loading ? (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -510,7 +508,7 @@ export default function MiniPayWalletView() {
                   ))}
               </div>
             ) : (
-              <Card className="p-4 text-sm text-muted-foreground">
+              <Card className="text-muted-foreground p-4 text-sm">
                 Couldn't load balances — try refreshing.
               </Card>
             )}
@@ -522,7 +520,7 @@ export default function MiniPayWalletView() {
               <p className="text-sm font-semibold">Recent on-chain activity</p>
               <button
                 onClick={() => setView("onchain-history")}
-                className="flex items-center gap-1 text-xs text-primary hover:underline"
+                className="text-primary flex items-center gap-1 text-xs hover:underline"
               >
                 View all <ChevronRight className="h-3 w-3" />
               </button>
@@ -560,13 +558,18 @@ export default function MiniPayWalletView() {
               </Badge>
             </div>
             <p className="mt-3 text-2xl font-bold tabular-nums">
-              ₦{(usdNgnRate).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ₦
+              {usdNgnRate.toLocaleString("en-NG", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              1 USDm ≈ ₦{(usdNgnRate).toLocaleString("en-NG", { maximumFractionDigits: 2 })}
+            <p className="text-muted-foreground mt-0.5 text-xs">
+              1 USDm ≈ ₦{usdNgnRate.toLocaleString("en-NG", { maximumFractionDigits: 2 })}
             </p>
-            <p className="mt-3 text-[10px] text-muted-foreground">
-              Source: {price?.source ?? "fallback"} · Updated {price ? timeAgo(price.updatedAt) : "—"}
+            <p className="text-muted-foreground mt-3 text-[10px]">
+              Source: {price?.source ?? "fallback"} · Updated{" "}
+              {price ? timeAgo(price.updatedAt) : "—"}
             </p>
           </Card>
 
@@ -574,7 +577,7 @@ export default function MiniPayWalletView() {
             onClick={() => setView("celo-bridge")}
             className="group relative w-full overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-amber-500 p-5 text-left text-white shadow-lg transition-transform hover:-translate-y-0.5"
           >
-            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10 blur-xl" />
+            <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full bg-white/10 blur-xl" />
             <div className="absolute -bottom-8 -left-4 h-20 w-20 rounded-full bg-amber-300/20 blur-xl" />
             <div className="relative flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20 backdrop-blur">
@@ -594,8 +597,9 @@ export default function MiniPayWalletView() {
 
           <Card className="p-5">
             <p className="text-sm font-semibold">Treasury address</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Send USDm here to bridge into NGN. The deposit is auto-credited once confirmed on-chain.
+            <p className="text-muted-foreground mt-1 text-xs">
+              Send USDm here to bridge into NGN. The deposit is auto-credited once confirmed
+              on-chain.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <AddressPill address={TREASURY_ADDRESS} chainId={activeChainId} />
@@ -625,7 +629,7 @@ export default function MiniPayWalletView() {
                   includeMargin={false}
                 />
               </div>
-              <div className="w-full break-all rounded-xl bg-muted/50 p-3 text-center font-mono text-xs">
+              <div className="bg-muted/50 w-full rounded-xl p-3 text-center font-mono text-xs break-all">
                 {activeAddress}
               </div>
               <Button
@@ -681,11 +685,7 @@ function SendCUsdDialog({
   const usdmToken = getToken("USDm", chainId);
   const ngnEquiv = amountNum * usdNgnRate;
 
-  const valid =
-    !!usdmToken &&
-    isAddress(recipient) &&
-    amountNum > 0 &&
-    amountNum <= usdmBalance;
+  const valid = !!usdmToken && isAddress(recipient) && amountNum > 0 && amountNum <= usdmBalance;
 
   React.useEffect(() => {
     if (!open) {
@@ -742,16 +742,14 @@ function SendCUsdDialog({
               <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
                 Transaction submitted
               </p>
-              <p className="font-mono text-xs text-muted-foreground">
-                {truncateAddress(txHash)}
-              </p>
+              <p className="text-muted-foreground font-mono text-xs">{truncateAddress(txHash)}</p>
             </div>
             <div className="flex gap-2">
               <a
                 href={getExplorerUrl(txHash, chainId)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-muted"
+                className="hover:bg-muted flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium"
               >
                 <ExternalLink className="h-4 w-4" /> View on Celoscan
               </a>
@@ -778,7 +776,7 @@ function SendCUsdDialog({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="send-amount">Amount (USDm)</Label>
-                <span className="text-xs text-muted-foreground">
+                <span className="text-muted-foreground text-xs">
                   Balance: {formatTokenAmount(usdmBalance, 18)} USDm
                 </span>
               </div>
@@ -790,7 +788,7 @@ function SendCUsdDialog({
                 onChange={(e) => setAmount(e.target.value)}
               />
               {amountNum > 0 && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   ≈ {naira(Math.round(ngnEquiv * 100))}
                 </p>
               )}
@@ -799,10 +797,8 @@ function SendCUsdDialog({
                   <button
                     key={f}
                     type="button"
-                    onClick={() =>
-                      setAmount((usdmBalance * f).toFixed(4))
-                    }
-                    className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                    onClick={() => setAmount((usdmBalance * f).toFixed(4))}
+                    className="border-border bg-background hover:border-primary hover:bg-primary/5 rounded-full border px-2.5 py-1 text-xs font-medium"
                   >
                     {Math.round(f * 100)}%
                   </button>
@@ -810,17 +806,13 @@ function SendCUsdDialog({
                 <button
                   type="button"
                   onClick={() => setAmount(String(usdmBalance))}
-                  className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                  className="border-border bg-background hover:border-primary hover:bg-primary/5 rounded-full border px-2.5 py-1 text-xs font-medium"
                 >
                   Max
                 </button>
               </div>
             </div>
-            <Button
-              className="w-full gap-1.5"
-              disabled={!valid || isPending}
-              onClick={handleSend}
-            >
+            <Button className="w-full gap-1.5" disabled={!valid || isPending} onClick={handleSend}>
               {isPending ? (
                 <RefreshCw className="h-4 w-4 animate-spin" />
               ) : (
@@ -828,7 +820,7 @@ function SendCUsdDialog({
               )}
               {isPending ? "Confirm in wallet…" : "Send USDm"}
             </Button>
-            <p className="text-center text-[10px] text-muted-foreground">
+            <p className="text-muted-foreground text-center text-[10px]">
               You&apos;ll confirm this transaction in your MiniPay wallet.
             </p>
           </div>

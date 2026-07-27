@@ -60,11 +60,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     const body = await req.json().catch(() => ({}));
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
-      return errorJson(
-        parsed.error.issues[0]?.message ?? "Invalid input",
-        400,
-        "VALIDATION",
-      );
+      return errorJson(parsed.error.issues[0]?.message ?? "Invalid input", 400, "VALIDATION");
     }
 
     const dispute = await db.dispute.findUnique({
@@ -72,13 +68,12 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       select: { id: true, userId: true, status: true, subject: true },
     });
     if (!dispute) throw new ServiceError("Dispute not found", 404, "NOT_FOUND");
-    if (dispute.userId !== user.id)
-      throw new ServiceError("Dispute not found", 404, "NOT_FOUND");
+    if (dispute.userId !== user.id) throw new ServiceError("Dispute not found", 404, "NOT_FOUND");
     if (dispute.status === "CLOSED")
       throw new ServiceError(
         "This dispute is closed. Open a new one if you need more help.",
         400,
-        "DISPUTE_CLOSED",
+        "DISPUTE_CLOSED"
       );
 
     const message = await db.disputeMessage.create({
@@ -92,8 +87,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
     // Bump dispute.updatedAt; reopen if it was resolved in platform's favour
     const reopen =
-      dispute.status === "RESOLVED_FAVOUR_PLATFORM" ||
-      dispute.status === "RESOLVED_FAVOUR_USER";
+      dispute.status === "RESOLVED_FAVOUR_PLATFORM" || dispute.status === "RESOLVED_FAVOUR_USER";
     await db.dispute.update({
       where: { id },
       data: {

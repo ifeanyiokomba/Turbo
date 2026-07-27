@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-push checks..."
+bun run lint || (echo "❌ Lint failed" && exit 1)
+bun run test || (echo "❌ Tests failed" && exit 1)
+echo "✅ Lint + tests passed"

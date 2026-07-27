@@ -56,7 +56,8 @@ export async function GET(req: Request) {
     const user = await requireUser();
     const url = new URL(req.url);
     const periodParam = String(url.searchParams.get("period") ?? "30d");
-    const period: Period = periodParam === "1y" || periodParam === "90d" ? (periodParam as Period) : "30d";
+    const period: Period =
+      periodParam === "1y" || periodParam === "90d" ? (periodParam as Period) : "30d";
     const days = periodDays(period);
 
     const now = new Date();
@@ -126,9 +127,12 @@ export async function GET(req: Request) {
         else if (d >= twoWeeksAgo) lastWeekSpend += t.amountKobo;
       }
     }
-    const weekChangePct = lastWeekSpend > 0
-      ? Math.round(((thisWeekSpend - lastWeekSpend) / lastWeekSpend) * 100)
-      : thisWeekSpend > 0 ? 100 : 0;
+    const weekChangePct =
+      lastWeekSpend > 0
+        ? Math.round(((thisWeekSpend - lastWeekSpend) / lastWeekSpend) * 100)
+        : thisWeekSpend > 0
+          ? 100
+          : 0;
 
     // This month vs last month (calendar months)
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -142,9 +146,12 @@ export async function GET(req: Request) {
       if (d >= monthStart) thisMonthSpend += t.amountKobo;
       else if (d >= lastMonthStart && d <= lastMonthEnd) lastMonthSpend += t.amountKobo;
     }
-    const monthChangePct = lastMonthSpend > 0
-      ? Math.round(((thisMonthSpend - lastMonthSpend) / lastMonthSpend) * 100)
-      : thisMonthSpend > 0 ? 100 : 0;
+    const monthChangePct =
+      lastMonthSpend > 0
+        ? Math.round(((thisMonthSpend - lastMonthSpend) / lastMonthSpend) * 100)
+        : thisMonthSpend > 0
+          ? 100
+          : 0;
 
     // ---- Category trends (MoM) ----
     const thisMonthCats: Record<string, number> = {};
@@ -153,24 +160,26 @@ export async function GET(req: Request) {
       if (t.direction !== "DEBIT") continue;
       const d = new Date(t.createdAt);
       if (d >= monthStart) thisMonthCats[t.type] = (thisMonthCats[t.type] ?? 0) + t.amountKobo;
-      else if (d >= lastMonthStart && d <= lastMonthEnd) lastMonthCats[t.type] = (lastMonthCats[t.type] ?? 0) + t.amountKobo;
+      else if (d >= lastMonthStart && d <= lastMonthEnd)
+        lastMonthCats[t.type] = (lastMonthCats[t.type] ?? 0) + t.amountKobo;
     }
     const allCats = new Set([...Object.keys(thisMonthCats), ...Object.keys(lastMonthCats)]);
-    const categoryTrends = Array.from(allCats).map((cat) => {
-      const thisM = thisMonthCats[cat] ?? 0;
-      const lastM = lastMonthCats[cat] ?? 0;
-      const changePct = lastM > 0
-        ? Math.round(((thisM - lastM) / lastM) * 100)
-        : thisM > 0 ? 100 : 0;
-      return {
-        category: cat,
-        label: TX_TYPE_LABELS[cat] ?? cat,
-        thisMonthKobo: thisM,
-        lastMonthKobo: lastM,
-        changePct,
-        direction: changePct > 0 ? "up" : changePct < 0 ? "down" : "flat",
-      } as const;
-    }).sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
+    const categoryTrends = Array.from(allCats)
+      .map((cat) => {
+        const thisM = thisMonthCats[cat] ?? 0;
+        const lastM = lastMonthCats[cat] ?? 0;
+        const changePct =
+          lastM > 0 ? Math.round(((thisM - lastM) / lastM) * 100) : thisM > 0 ? 100 : 0;
+        return {
+          category: cat,
+          label: TX_TYPE_LABELS[cat] ?? cat,
+          thisMonthKobo: thisM,
+          lastMonthKobo: lastM,
+          changePct,
+          direction: changePct > 0 ? "up" : changePct < 0 ? "down" : "flat",
+        } as const;
+      })
+      .sort((a, b) => Math.abs(b.changePct) - Math.abs(a.changePct));
 
     // ---- Savings balance (across all time) from SavingsTransaction for accuracy ----
     let savingsBalanceKobo = 0;
@@ -200,7 +209,10 @@ export async function GET(req: Request) {
     const daysSoFar = Math.max(1, dayOfMonth);
     const projectedMonthIncome = Math.round((totalIncome / periodDaysActual) * daysInMonth);
     const projectedMonthExpense = Math.round((thisMonthSpend / daysSoFar) * daysInMonth);
-    const projectedMonthEndBalance = currentBalanceKobo + (projectedMonthIncome - totalIncome) - (projectedMonthExpense - totalExpense);
+    const projectedMonthEndBalance =
+      currentBalanceKobo +
+      (projectedMonthIncome - totalIncome) -
+      (projectedMonthExpense - totalExpense);
     const projectedMonthlySavings = Math.max(0, projectedMonthIncome - projectedMonthExpense);
 
     // Burn rate: how many days until wallet hits 0 at current net daily outflow.
@@ -220,10 +232,12 @@ export async function GET(req: Request) {
     const savingsRatePts = Math.max(0, Math.min(30, (savingsRatePct / 20) * 30)); // 20% savings = full 30 pts
 
     const dailyValues = Array.from(dailySpend.values());
-    const meanDaily = dailyValues.length > 0 ? dailyValues.reduce((a, b) => a + b, 0) / dailyValues.length : 0;
-    const variance = dailyValues.length > 0
-      ? dailyValues.reduce((sum, v) => sum + Math.pow(v - meanDaily, 2), 0) / dailyValues.length
-      : 0;
+    const meanDaily =
+      dailyValues.length > 0 ? dailyValues.reduce((a, b) => a + b, 0) / dailyValues.length : 0;
+    const variance =
+      dailyValues.length > 0
+        ? dailyValues.reduce((sum, v) => sum + Math.pow(v - meanDaily, 2), 0) / dailyValues.length
+        : 0;
     const stdDev = Math.sqrt(variance);
     const cv = meanDaily > 0 ? stdDev / meanDaily : 1; // 0 = perfectly stable, 1+ = erratic
     const stabilityPts = Math.max(0, Math.min(25, (1 - Math.min(1, cv)) * 25));
@@ -235,25 +249,45 @@ export async function GET(req: Request) {
     // Bill consistency — variance of monthly bill totals (proxy: count of distinct bill payment days)
     const billTxns = txns.filter((t) => t.type === "BILL" && t.direction === "DEBIT");
     const billDays = new Set(billTxns.map((t) => new Date(t.createdAt).toISOString().slice(0, 10)));
-    const billConsistencyPts = billTxns.length === 0
-      ? 10 // neutral when no bill history
-      : Math.min(20, Math.round((billDays.size / Math.max(1, billTxns.length)) * 20));
+    const billConsistencyPts =
+      billTxns.length === 0
+        ? 10 // neutral when no bill history
+        : Math.min(20, Math.round((billDays.size / Math.max(1, billTxns.length)) * 20));
 
-    const healthScore = Math.round(savingsRatePts + stabilityPts + emergencyFundPts + billConsistencyPts);
-    const letterGrade = healthScore >= 85 ? "A" : healthScore >= 70 ? "B" : healthScore >= 55 ? "C" : healthScore >= 40 ? "D" : "E";
+    const healthScore = Math.round(
+      savingsRatePts + stabilityPts + emergencyFundPts + billConsistencyPts
+    );
+    const letterGrade =
+      healthScore >= 85
+        ? "A"
+        : healthScore >= 70
+          ? "B"
+          : healthScore >= 55
+            ? "C"
+            : healthScore >= 40
+              ? "D"
+              : "E";
 
     // ---- Peer comparison ----
     const peer = PEER_BENCHMARKS.default;
     const peerMonthlySpend = monthlyExpense;
-    const spendVsPeerPct = peer.avgMonthlySpend > 0
-      ? Math.round(((peerMonthlySpend - peer.avgMonthlySpend) / peer.avgMonthlySpend) * 100)
-      : 0;
-    const airtimeVsPeerPct = peer.avgAirtime > 0
-      ? Math.round(((expenseByCat["AIRTIME"] ?? 0) / (days / 30) - peer.avgAirtime) / peer.avgAirtime * 100)
-      : 0;
-    const billsVsPeerPct = peer.avgBills > 0
-      ? Math.round(((expenseByCat["BILL"] ?? 0) / (days / 30) - peer.avgBills) / peer.avgBills * 100)
-      : 0;
+    const spendVsPeerPct =
+      peer.avgMonthlySpend > 0
+        ? Math.round(((peerMonthlySpend - peer.avgMonthlySpend) / peer.avgMonthlySpend) * 100)
+        : 0;
+    const airtimeVsPeerPct =
+      peer.avgAirtime > 0
+        ? Math.round(
+            (((expenseByCat["AIRTIME"] ?? 0) / (days / 30) - peer.avgAirtime) / peer.avgAirtime) *
+              100
+          )
+        : 0;
+    const billsVsPeerPct =
+      peer.avgBills > 0
+        ? Math.round(
+            (((expenseByCat["BILL"] ?? 0) / (days / 30) - peer.avgBills) / peer.avgBills) * 100
+          )
+        : 0;
     const savingsVsPeerPct = savingsRatePct - peer.avgSavingsRatePct;
 
     const peerComparison = {
@@ -288,7 +322,9 @@ export async function GET(req: Request) {
     };
 
     // ---- Cash flow by category ----
-    const cashFlowByCategory = Array.from(new Set([...Object.keys(incomeByCat), ...Object.keys(expenseByCat)]))
+    const cashFlowByCategory = Array.from(
+      new Set([...Object.keys(incomeByCat), ...Object.keys(expenseByCat)])
+    )
       .map((cat) => ({
         category: cat,
         label: TX_TYPE_LABELS[cat] ?? cat,
@@ -296,7 +332,7 @@ export async function GET(req: Request) {
         expense: expenseByCat[cat] ?? 0,
         net: (incomeByCat[cat] ?? 0) - (expenseByCat[cat] ?? 0),
       }))
-      .sort((a, b) => (b.income + b.expense) - (a.income + a.expense));
+      .sort((a, b) => b.income + b.expense - (a.income + a.expense));
 
     return json({
       period,
@@ -320,10 +356,35 @@ export async function GET(req: Request) {
         score: healthScore,
         letterGrade,
         factors: [
-          { key: "savings_rate", label: "Savings rate", points: Math.round(savingsRatePts), maxPoints: 30, detail: `${Math.max(0, Math.round(savingsRatePct))}% of income saved` },
-          { key: "spending_stability", label: "Spending stability", points: Math.round(stabilityPts), maxPoints: 25, detail: cv < 0.5 ? "Steady spending pattern" : "Spending varies significantly day-to-day" },
-          { key: "emergency_fund", label: "Emergency fund", points: Math.round(emergencyFundPts), maxPoints: 25, detail: `${(emergencyFundRatio * 3).toFixed(1)} months of expenses covered` },
-          { key: "bill_consistency", label: "Bill consistency", points: Math.round(billConsistencyPts), maxPoints: 20, detail: `${billDays.size} bill payment days` },
+          {
+            key: "savings_rate",
+            label: "Savings rate",
+            points: Math.round(savingsRatePts),
+            maxPoints: 30,
+            detail: `${Math.max(0, Math.round(savingsRatePct))}% of income saved`,
+          },
+          {
+            key: "spending_stability",
+            label: "Spending stability",
+            points: Math.round(stabilityPts),
+            maxPoints: 25,
+            detail:
+              cv < 0.5 ? "Steady spending pattern" : "Spending varies significantly day-to-day",
+          },
+          {
+            key: "emergency_fund",
+            label: "Emergency fund",
+            points: Math.round(emergencyFundPts),
+            maxPoints: 25,
+            detail: `${(emergencyFundRatio * 3).toFixed(1)} months of expenses covered`,
+          },
+          {
+            key: "bill_consistency",
+            label: "Bill consistency",
+            points: Math.round(billConsistencyPts),
+            maxPoints: 20,
+            detail: `${billDays.size} bill payment days`,
+          },
         ],
       },
       predictions: {

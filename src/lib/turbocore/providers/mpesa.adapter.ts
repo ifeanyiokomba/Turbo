@@ -36,9 +36,15 @@ interface TokenCache {
   token: string;
   expiresAt: number;
 }
-const tokenCache: { sandbox: TokenCache | null; live: TokenCache | null } = { sandbox: null, live: null };
+const tokenCache: { sandbox: TokenCache | null; live: TokenCache | null } = {
+  sandbox: null,
+  live: null,
+};
 
-async function getAccessToken(creds: { secrets: Record<string, string>; sandbox: boolean }): Promise<string | null> {
+async function getAccessToken(creds: {
+  secrets: Record<string, string>;
+  sandbox: boolean;
+}): Promise<string | null> {
   const consumerKey = creds.secrets.consumerKey;
   const consumerSecret = creds.secrets.consumerSecret;
   if (!consumerKey || !consumerSecret) return null;
@@ -51,7 +57,7 @@ async function getAccessToken(creds: { secrets: Record<string, string>; sandbox:
     const { body } = await http(
       `${base}/oauth/v1/generate?grant_type=client_credentials`,
       { method: "GET", headers: { Authorization: `Basic ${basic}` } },
-      (s, b) => defaultHttpError(CODE, s, b),
+      (s, b) => defaultHttpError(CODE, s, b)
     );
     const data = body as { access_token?: string; expires_in?: string | number };
     if (!data?.access_token) return null;
@@ -110,7 +116,11 @@ export const mpesaProvider: IMobileMoneyProvider = {
     const initiator = creds.secrets.initiatorName;
     const securityCredential = creds.secrets.securityCredential;
     if (!shortCode || !initiator || !securityCredential) {
-      return fail("AUTH_FAILED", "M-Pesa balance requires shortCode + initiatorName + securityCredential", { providerCode: CODE });
+      return fail(
+        "AUTH_FAILED",
+        "M-Pesa balance requires shortCode + initiatorName + securityCredential",
+        { providerCode: CODE }
+      );
     }
     try {
       const { body } = await http(
@@ -129,9 +139,10 @@ export const mpesaProvider: IMobileMoneyProvider = {
             ResultURL: `${creds.secrets.callbackUrl ?? ""}/result`,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const conversationId = (body as { ConversationID?: string; ResponseCode?: string }).ConversationID ?? "mpesa-bal";
+      const conversationId =
+        (body as { ConversationID?: string; ResponseCode?: string }).ConversationID ?? "mpesa-bal";
       // Balance is delivered async via callback; surface 0 with the conversation
       // id so the caller can correlate.
       return ok({ balanceMinor: 0, currency: "KES" }, conversationId, 0);
@@ -155,11 +166,14 @@ export const mpesaProvider: IMobileMoneyProvider = {
     const shortCode = creds.secrets.shortCode;
     const passkey = creds.secrets.passkey;
     if (!shortCode || !passkey) {
-      return fail("AUTH_FAILED", "M-Pesa STK push requires shortCode + passkey", { providerCode: CODE });
+      return fail("AUTH_FAILED", "M-Pesa STK push requires shortCode + passkey", {
+        providerCode: CODE,
+      });
     }
     const timestamp = mpesaTimestamp();
     const password = mpesaPassword(shortCode, passkey, timestamp);
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
     try {
       const { body } = await http(
         `${base}/mpesa/stkpush/v1/processrequest`,
@@ -180,16 +194,25 @@ export const mpesaProvider: IMobileMoneyProvider = {
             TransactionDesc: req.narration ?? "Turbopay STK push",
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { CheckoutRequestID?: string; ResponseCode?: string; ResponseDescription?: string; CustomerMessage?: string });
+      const data = body as {
+        CheckoutRequestID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+        CustomerMessage?: string;
+      };
       if (!data.CheckoutRequestID) {
         return fail("UPSTREAM_ERROR", data.ResponseDescription ?? "M-Pesa STK push failed", {
           providerCode: CODE,
           raw: sanitize(body),
         });
       }
-      return ok({ providerRef: data.CheckoutRequestID, status: "PENDING" }, data.CheckoutRequestID, 0);
+      return ok(
+        { providerRef: data.CheckoutRequestID, status: "PENDING" },
+        data.CheckoutRequestID,
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "M-Pesa STK push failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -211,9 +234,14 @@ export const mpesaProvider: IMobileMoneyProvider = {
     const initiator = creds.secrets.initiatorName;
     const securityCredential = creds.secrets.securityCredential;
     if (!shortCode || !initiator || !securityCredential) {
-      return fail("AUTH_FAILED", "M-Pesa B2C requires shortCode + initiatorName + securityCredential", { providerCode: CODE });
+      return fail(
+        "AUTH_FAILED",
+        "M-Pesa B2C requires shortCode + initiatorName + securityCredential",
+        { providerCode: CODE }
+      );
     }
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
     try {
       const { body } = await http(
         `${base}/mpesa/b2c/v1/paymentrequest`,
@@ -233,9 +261,13 @@ export const mpesaProvider: IMobileMoneyProvider = {
             Occasion: req.reference.slice(0, 32),
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { ConversationID?: string; ResponseCode?: string; ResponseDescription?: string });
+      const data = body as {
+        ConversationID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+      };
       const providerRef = data.ConversationID ?? `mpesa-b2c-${req.reference}`;
       return ok({ providerRef, status: "PENDING" }, providerRef, 0);
     } catch (e) {
@@ -258,7 +290,9 @@ export const mpesaProvider: IMobileMoneyProvider = {
     const shortCode = creds.secrets.shortCode;
     const passkey = creds.secrets.passkey;
     if (!shortCode || !passkey) {
-      return fail("AUTH_FAILED", "M-Pesa STK query requires shortCode + passkey", { providerCode: CODE });
+      return fail("AUTH_FAILED", "M-Pesa STK query requires shortCode + passkey", {
+        providerCode: CODE,
+      });
     }
     const timestamp = mpesaTimestamp();
     const password = mpesaPassword(shortCode, passkey, timestamp);
@@ -275,9 +309,9 @@ export const mpesaProvider: IMobileMoneyProvider = {
             CheckoutRequestID: providerRef,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { ResultCode?: string | number; ResultDesc?: string });
+      const data = body as { ResultCode?: string | number; ResultDesc?: string };
       const resultCode = String(data.ResultCode ?? "");
       // 0 = success; 1032/1037 = cancelled/timeout; everything else = failed.
       let status = "PENDING";
@@ -287,6 +321,469 @@ export const mpesaProvider: IMobileMoneyProvider = {
       return ok({ status }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "M-Pesa status query failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  // ─── Deep methods ──────────────────────────────────────────────────────────
+
+  /**
+   * POST /mpesa/reversal/v1/request — reverse a completed M-Pesa transaction.
+   * Requires SecurityCredential (RSA-encrypted initiator password). If the
+   * credential is missing we either mock (non-prod) or fail AUTH (prod).
+   */
+  async reverseTransaction(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok(
+        { reversalRef: `mpesa-reversal-${req.transactionId}`, status: "PENDING" },
+        "mock",
+        200
+      );
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "M-Pesa token retrieval failed", { providerCode: CODE });
+    const initiator = creds.secrets.initiatorName;
+    const securityCredential = creds.secrets.securityCredential;
+    if (!initiator || !securityCredential) {
+      // No SecurityCredential → in non-prod return mock, in prod fail AUTH.
+      if (process.env.NODE_ENV === "production") {
+        return fail("AUTH_FAILED", "M-Pesa reversal requires initiatorName + securityCredential", {
+          providerCode: CODE,
+        });
+      }
+      mockWarnOnce(CODE);
+      return ok(
+        { reversalRef: `mpesa-reversal-${req.transactionId}`, status: "PENDING" },
+        "mock-cred-missing",
+        0
+      );
+    }
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    const shortCode = creds.secrets.shortCode ?? "";
+    const callbackUrl =
+      creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
+    try {
+      const { body } = await http(
+        `${base}/mpesa/reversal/v1/request`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            Initiator: initiator,
+            SecurityCredential: securityCredential,
+            CommandID: "TransactionReversal",
+            TransactionID: req.transactionId,
+            ReceiverParty: req.receiverParty ?? shortCode,
+            RecieverIdentifierType: "11", // shortcode identifier type
+            Amount: req.amountMinor != null ? Math.round(req.amountMinor / 100) : undefined,
+            Remarks: (req.remarks ?? "Turbopay reversal").slice(0, 100),
+            QueueTimeOutURL: `${callbackUrl}/timeout`,
+            ResultURL: `${callbackUrl}/result`,
+            Occasion: req.transactionId.slice(0, 32),
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b)
+      );
+      const data = body as {
+        ConversationID?: string;
+        OriginatorConversationID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+      };
+      const ref =
+        data.ConversationID ??
+        data.OriginatorConversationID ??
+        `mpesa-reversal-${req.transactionId}`;
+      const responseCode = String(data.ResponseCode ?? "0");
+      // ResponseCode "0" = accepted (pending callback); anything else = reject.
+      const status = responseCode === "0" ? "PENDING" : "FAILED";
+      return ok({ reversalRef: ref, status }, ref, 0);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "M-Pesa reversal failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  /**
+   * POST /mpesa/transactionstatus/v1/query — query B2C transaction status.
+   * Result is delivered async via callback; we surface the OriginatorConversationID
+   * so the caller can correlate.
+   */
+  async getB2CStatus(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok(
+        { status: "PENDING", conversationId: `mpesa-b2c-status-${req.transactionID}` },
+        "mock",
+        50
+      );
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "M-Pesa token retrieval failed", { providerCode: CODE });
+    const initiator = creds.secrets.initiatorName;
+    const securityCredential = creds.secrets.securityCredential;
+    if (!initiator || !securityCredential) {
+      if (process.env.NODE_ENV === "production") {
+        return fail(
+          "AUTH_FAILED",
+          "M-Pesa B2C status requires initiatorName + securityCredential",
+          { providerCode: CODE }
+        );
+      }
+      mockWarnOnce(CODE);
+      return ok(
+        { status: "PENDING", conversationId: `mpesa-b2c-status-${req.transactionID}` },
+        "mock-cred-missing",
+        0
+      );
+    }
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    const shortCode = creds.secrets.shortCode ?? "";
+    const callbackUrl =
+      creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
+    try {
+      const { body } = await http(
+        `${base}/mpesa/transactionstatus/v1/query`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            Initiator: initiator,
+            SecurityCredential: securityCredential,
+            CommandID: req.commandID || "TransactionStatusQuery",
+            TransactionID: req.transactionID,
+            PartyA: req.partyA ?? shortCode,
+            IdentifierType: req.identifierType ?? "4",
+            Remarks: (req.remarks ?? "Turbopay B2C status query").slice(0, 100),
+            Occasion: (req.occasion ?? req.transactionID).slice(0, 32),
+            QueueTimeOutURL: `${callbackUrl}/timeout`,
+            ResultURL: `${callbackUrl}/result`,
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b)
+      );
+      const data = body as {
+        ConversationID?: string;
+        OriginatorConversationID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+      };
+      const responseCode = String(data.ResponseCode ?? "0");
+      const status = responseCode === "0" ? "PENDING" : "FAILED";
+      return ok(
+        {
+          status,
+          conversationId: data.ConversationID,
+          originatorConversationId: data.OriginatorConversationID,
+        },
+        data.ConversationID ?? `mpesa-b2c-status-${req.transactionID}`,
+        0
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "M-Pesa B2C status query failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  /**
+   * POST /mpesa/c2b/v1/register/url — register C2B validation + confirmation
+   * URLs for a Paybill / Till shortcode. Only needs OAuth (no SecurityCredential).
+   */
+  async registerC2BUrl(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok(
+        { responseCode: "0", responseDescription: "Mock C2B registration accepted" },
+        "mock",
+        50
+      );
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "M-Pesa token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/mpesa/c2b/v1/register/url`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            ValidationURL: req.validationURL,
+            ConfirmationURL: req.confirmationURL,
+            ResponseType: req.responseType,
+            ShortCode: req.shortCode,
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b)
+      );
+      const data = body as { ResponseCode?: string; ResponseDescription?: string };
+      return ok(
+        {
+          responseCode: String(data.ResponseCode ?? "0"),
+          responseDescription: data.ResponseDescription ?? "C2B URLs registered",
+        },
+        `mpesa-c2b-register-${req.shortCode}`,
+        0
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "M-Pesa C2B registration failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  /**
+   * POST /mpesa/c2b/v1/simulate — simulate a customer-to-business payment
+   * (sandbox only; production calls are rejected by Safaricom).
+   */
+  async simulateC2B(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok(
+        {
+          conversationId: `mpesa-c2b-sim-${req.shortCode}`,
+          responseCode: "0",
+          responseDescription: "Mock C2B simulate accepted",
+        },
+        "mock",
+        50
+      );
+    }
+    if (!creds.sandbox) {
+      return fail("NOT_SUPPORTED", "M-Pesa C2B simulate is only available in sandbox", {
+        providerCode: CODE,
+      });
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "M-Pesa token retrieval failed", { providerCode: CODE });
+    const base = SANDBOX_BASE;
+    try {
+      const { body } = await http(
+        `${base}/mpesa/c2b/v1/simulate`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            CommandID: req.commandID,
+            Amount: Math.round(req.amountMinor / 100),
+            Msisdn: req.msisdn,
+            BillRefNumber: req.billRefNumber.slice(0, 32),
+            ShortCode: req.shortCode,
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b)
+      );
+      const data = body as {
+        ConversationID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+      };
+      return ok(
+        {
+          conversationId: data.ConversationID,
+          responseCode: String(data.ResponseCode ?? "0"),
+          responseDescription: data.ResponseDescription ?? "C2B simulate accepted",
+        },
+        data.ConversationID ?? `mpesa-c2b-sim-${req.shortCode}`,
+        0
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "M-Pesa C2B simulate failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  /**
+   * POST /mpesa/accountbalance/v1/query — query the balance of a shortcode
+   * (async; the actual balance arrives via the configured ResultURL callback).
+   * Requires SecurityCredential; falls back to mock when not configured.
+   */
+  async getAccountBalance(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok(
+        {
+          conversationId: `mpesa-acct-bal-${req.partyA ?? "shortcode"}`,
+          responseCode: "0",
+          responseDescription: "Mock balance query accepted",
+          balanceMinor: 0,
+          currency: "KES",
+        },
+        "mock",
+        50
+      );
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "M-Pesa token retrieval failed", { providerCode: CODE });
+    const initiator = req.initiator ?? creds.secrets.initiatorName;
+    const securityCredential = creds.secrets.securityCredential;
+    if (!initiator || !securityCredential) {
+      if (process.env.NODE_ENV === "production") {
+        return fail(
+          "AUTH_FAILED",
+          "M-Pesa account balance requires initiatorName + securityCredential",
+          { providerCode: CODE }
+        );
+      }
+      const shortCode = creds.secrets.shortCode ?? "";
+      const partyA = req.partyA ?? shortCode;
+      mockWarnOnce(CODE);
+      return ok(
+        {
+          conversationId: `mpesa-acct-bal-${partyA}`,
+          responseCode: "0",
+          responseDescription: "Mock balance query accepted (no SecurityCredential)",
+          balanceMinor: 0,
+          currency: "KES",
+        },
+        "mock-cred-missing",
+        0
+      );
+    }
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    const shortCode = creds.secrets.shortCode ?? "";
+    const callbackUrl =
+      creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
+    try {
+      const { body } = await http(
+        `${base}/mpesa/accountbalance/v1/query`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            Initiator: initiator,
+            SecurityCredential: securityCredential,
+            CommandID: req.commandID ?? "AccountBalance",
+            PartyA: req.partyA ?? shortCode,
+            IdentifierType: req.identifierType ?? "4",
+            Remarks: (req.remarks ?? "Turbopay account balance query").slice(0, 100),
+            QueueTimeOutURL: `${callbackUrl}/timeout`,
+            ResultURL: `${callbackUrl}/result`,
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b)
+      );
+      const data = body as {
+        ConversationID?: string;
+        OriginatorConversationID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+      };
+      const responseCode = String(data.ResponseCode ?? "0");
+      return ok(
+        {
+          conversationId: data.ConversationID ?? data.OriginatorConversationID,
+          responseCode,
+          responseDescription: data.ResponseDescription ?? "Account balance query accepted",
+          // Actual balance arrives async via callback; surface 0 placeholder.
+          balanceMinor: 0,
+          currency: "KES",
+        },
+        data.ConversationID ?? `mpesa-acct-bal-${req.partyA ?? shortCode}`,
+        0
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "M-Pesa account balance query failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  /**
+   * POST /mpesa/transactionstatus/v1/query — generic transaction status query
+   * (works for B2C, B2B, reversal, etc.). The actual result arrives async via
+   * the configured ResultURL callback; we surface the ConversationID for
+   * correlation. Requires SecurityCredential.
+   */
+  async getTransactionStatus(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok(
+        { status: "PENDING", conversationId: `mpesa-tx-status-${req.transactionID}` },
+        "mock",
+        50
+      );
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "M-Pesa token retrieval failed", { providerCode: CODE });
+    const initiator = creds.secrets.initiatorName;
+    const securityCredential = creds.secrets.securityCredential;
+    if (!initiator || !securityCredential) {
+      if (process.env.NODE_ENV === "production") {
+        return fail(
+          "AUTH_FAILED",
+          "M-Pesa transaction status requires initiatorName + securityCredential",
+          { providerCode: CODE }
+        );
+      }
+      mockWarnOnce(CODE);
+      return ok(
+        { status: "PENDING", conversationId: `mpesa-tx-status-${req.transactionID}` },
+        "mock-cred-missing",
+        0
+      );
+    }
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    const shortCode = creds.secrets.shortCode ?? "";
+    const callbackUrl =
+      creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
+    try {
+      const { body } = await http(
+        `${base}/mpesa/transactionstatus/v1/query`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            Initiator: initiator,
+            SecurityCredential: securityCredential,
+            CommandID: req.commandID || "TransactionStatusQuery",
+            TransactionID: req.transactionID,
+            PartyA: req.partyA ?? shortCode,
+            IdentifierType: req.identifierType ?? "4",
+            Remarks: (req.remarks ?? "Turbopay transaction status query").slice(0, 100),
+            Occasion: (req.occasion ?? req.transactionID).slice(0, 32),
+            QueueTimeOutURL: `${callbackUrl}/timeout`,
+            ResultURL: `${callbackUrl}/result`,
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b)
+      );
+      const data = body as {
+        ConversationID?: string;
+        OriginatorConversationID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+      };
+      const responseCode = String(data.ResponseCode ?? "0");
+      const status = responseCode === "0" ? "PENDING" : "FAILED";
+      return ok(
+        {
+          status,
+          conversationId: data.ConversationID,
+          originatorConversationId: data.OriginatorConversationID,
+        },
+        data.ConversationID ?? `mpesa-tx-status-${req.transactionID}`,
+        0
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "M-Pesa transaction status query failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
     }
   },

@@ -34,7 +34,9 @@ interface GoalDTO {
   updatedAt: string;
 }
 
-function computeAvgMonthly(contributions: Array<{ amountKobo: number; type: string; createdAt: Date }>): number {
+function computeAvgMonthly(
+  contributions: Array<{ amountKobo: number; type: string; createdAt: Date }>
+): number {
   const deposits = contributions.filter((c) => c.type === "DEPOSIT");
   if (deposits.length === 0) return 0;
   const total = deposits.reduce((s, c) => s + c.amountKobo, 0);
@@ -50,7 +52,7 @@ function estimateCompletion(
   currentKobo: number,
   targetKobo: number,
   avgMonthly: number,
-  targetDate: Date | null,
+  targetDate: Date | null
 ): string | null {
   if (currentKobo >= targetKobo) return null;
   if (avgMonthly > 0) {
@@ -63,28 +65,24 @@ function estimateCompletion(
   return targetDate ? targetDate.toISOString() : null;
 }
 
-function toDTO(
-  goal: {
-    id: string;
-    name: string;
-    targetKobo: number;
-    currentKobo: number;
-    targetDate: Date | null;
-    color: string;
-    icon: string;
-    status: string;
-    createdAt: Date;
-    updatedAt: Date;
-    contributions: Array<{ amountKobo: number; type: string; createdAt: Date }>;
-  },
-): GoalDTO {
+function toDTO(goal: {
+  id: string;
+  name: string;
+  targetKobo: number;
+  currentKobo: number;
+  targetDate: Date | null;
+  color: string;
+  icon: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  contributions: Array<{ amountKobo: number; type: string; createdAt: Date }>;
+}): GoalDTO {
   const progressPct =
-    goal.targetKobo > 0
-      ? Math.min(100, Math.round((goal.currentKobo / goal.targetKobo) * 100))
-      : 0;
+    goal.targetKobo > 0 ? Math.min(100, Math.round((goal.currentKobo / goal.targetKobo) * 100)) : 0;
   const avgMonthly = computeAvgMonthly(goal.contributions);
   const sorted = [...goal.contributions].sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
   );
   return {
     id: goal.id,
@@ -104,7 +102,7 @@ function toDTO(
       goal.currentKobo,
       goal.targetKobo,
       avgMonthly,
-      goal.targetDate,
+      goal.targetDate
     ),
     createdAt: goal.createdAt.toISOString(),
     updatedAt: goal.updatedAt.toISOString(),
@@ -127,10 +125,7 @@ interface ContributeBody {
  *            record WITHDRAW contribution → decrement goal.currentKobo (min 0). If goal was
  *            COMPLETED, reactivate back to ACTIVE.
  */
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser();
     const { id } = await params;
@@ -213,7 +208,11 @@ export async function POST(
           where: { id: goal.id },
           data: {
             currentKobo: newCurrent,
-            status: reachedTarget ? "COMPLETED" : goal.status === "COMPLETED" ? "ACTIVE" : goal.status,
+            status: reachedTarget
+              ? "COMPLETED"
+              : goal.status === "COMPLETED"
+                ? "ACTIVE"
+                : goal.status,
           },
           include: {
             contributions: { select: { amountKobo: true, type: true, createdAt: true } },
@@ -267,7 +266,8 @@ export async function POST(
       });
 
       // If withdrawal drops below target on a previously COMPLETED goal, reactivate it.
-      const newStatus = newCurrent < goal.targetKobo && goal.status === "COMPLETED" ? "ACTIVE" : goal.status;
+      const newStatus =
+        newCurrent < goal.targetKobo && goal.status === "COMPLETED" ? "ACTIVE" : goal.status;
 
       return tx.savingsGoal.update({
         where: { id: goal.id },

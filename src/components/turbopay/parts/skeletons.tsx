@@ -66,10 +66,7 @@ export function StatCardSkeleton({ className = "" }: { className?: string }) {
 /** Matches the TransactionItem button row (icon + 2 lines + right-aligned amount). */
 export function TransactionItemSkeleton({ className = "" }: { className?: string }) {
   return (
-    <div
-      aria-hidden
-      className={`flex items-center gap-3 rounded-xl px-2 py-2.5 ${className}`}
-    >
+    <div aria-hidden className={`flex items-center gap-3 rounded-xl px-2 py-2.5 ${className}`}>
       <div className="tp-shimmer h-10 w-10 shrink-0 rounded-full" />
       <div className="flex-1 space-y-1.5">
         <div className="tp-shimmer h-3.5 w-3/4 rounded-full" />
@@ -95,10 +92,7 @@ export function TableRowSkeleton({
     <tr aria-hidden className={`border-b ${className}`}>
       {Array.from({ length: cells }).map((_, i) => (
         <td key={i} className="px-4 py-3">
-          <div
-            className="tp-shimmer h-4 rounded-full"
-            style={{ maxWidth: `${100 - i * 8}%` }}
-          />
+          <div className="tp-shimmer h-4 rounded-full" style={{ maxWidth: `${100 - i * 8}%` }} />
         </td>
       ))}
     </tr>

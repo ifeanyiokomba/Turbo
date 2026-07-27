@@ -134,21 +134,19 @@ export async function GET() {
         // race (the @@unique([userId, badgeKey]) guard is the source of truth).
         await Promise.all(
           newlyEarned.map((key) =>
-            tx.userBadge
-              .create({ data: { userId: user.id, badgeKey: key } })
-              .catch((err) => {
-                // P2002 = unique constraint violation — acceptable here.
-                if (
-                  typeof err === "object" &&
-                  err !== null &&
-                  "code" in err &&
-                  (err as { code: string }).code === "P2002"
-                ) {
-                  return;
-                }
-                throw err;
-              }),
-          ),
+            tx.userBadge.create({ data: { userId: user.id, badgeKey: key } }).catch((err) => {
+              // P2002 = unique constraint violation — acceptable here.
+              if (
+                typeof err === "object" &&
+                err !== null &&
+                "code" in err &&
+                (err as { code: string }).code === "P2002"
+              ) {
+                return;
+              }
+              throw err;
+            })
+          )
         );
         await tx.inAppNotification.createMany({
           data: newlyEarned.map((key) => ({
@@ -171,12 +169,13 @@ export async function GET() {
     }
 
     // ----- Re-fetch the full badge set so earnedAt is fresh -------------
-    const finalBadges = newlyEarned.length > 0
-      ? await db.userBadge.findMany({
-          where: { userId: user.id },
-          orderBy: { earnedAt: "desc" },
-        })
-      : existingBadges;
+    const finalBadges =
+      newlyEarned.length > 0
+        ? await db.userBadge.findMany({
+            where: { userId: user.id },
+            orderBy: { earnedAt: "desc" },
+          })
+        : existingBadges;
 
     const earnedByBadgeKey = new Map(finalBadges.map((b) => [b.badgeKey, b.earnedAt]));
 

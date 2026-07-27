@@ -11,8 +11,7 @@ export const dynamic = "force-dynamic";
 /** Returns 401 response if the request is not a valid cron invocation. */
 export function guardCron(req: Request): Response | null {
   const secret =
-    process.env.CRON_SECRET ??
-    (process.env.NODE_ENV === "production" ? null : "dev-cron-secret");
+    process.env.CRON_SECRET ?? (process.env.NODE_ENV === "production" ? null : "dev-cron-secret");
   const headerSecret = req.headers.get("x-cron-secret");
   if (!secret || !headerSecret || headerSecret !== secret) {
     return json({ error: "Unauthorized" }, 401);

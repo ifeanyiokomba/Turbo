@@ -38,19 +38,18 @@ export const metadata: Metadata = {
   icons: { icon: "/logo.svg" },
   openGraph: {
     title: "Turbopay — The fast lane to your money",
-    description: "Fund, transfer, pay bills, save and invest — faster than ever. MiniPay + Celo integrated.",
+    description:
+      "Fund, transfer, pay bills, save and invest — faster than ever. MiniPay + Celo integrated.",
     siteName: "Turbopay",
     type: "website",
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} bg-background text-foreground antialiased`}
       >
         <ThemeProvider
           attribute="class"

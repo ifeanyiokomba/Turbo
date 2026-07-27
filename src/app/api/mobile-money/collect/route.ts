@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       throw new ServiceError(
         "Pick a valid wallet provider (MPESA / MTN_MOMO / AIRTEL_MONEY)",
         400,
-        "INVALID_PROVIDER",
+        "INVALID_PROVIDER"
       );
     }
     if (!Number.isFinite(amountMinor) || amountMinor <= 0) {
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       throw new ServiceError(
         `Mobile money is not available in ${country.name}. Switch your country to KE/GH/UG to use this feature.`,
         400,
-        "NOT_SUPPORTED",
+        "NOT_SUPPORTED"
       );
     }
 

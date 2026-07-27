@@ -26,7 +26,9 @@ export async function GET() {
       buckets.push({ date: d.toISOString().slice(0, 10), inflow: 0, outflow: 0 });
     }
     const bucketMap = new Map(buckets.map((b) => [b.date, b]));
-    let moneyIn = 0, moneyOut = 0, txCount = 0;
+    let moneyIn = 0,
+      moneyOut = 0,
+      txCount = 0;
     for (const t of recent) {
       if (t.status !== "SUCCESS") continue;
       txCount++;
@@ -35,8 +37,13 @@ export async function GET() {
       const key = day.toISOString().slice(0, 10);
       const b = bucketMap.get(key);
       if (b) {
-        if (t.direction === "CREDIT") { b.inflow += t.amountKobo; moneyIn += t.amountKobo; }
-        else { b.outflow += t.amountKobo; moneyOut += t.amountKobo; }
+        if (t.direction === "CREDIT") {
+          b.inflow += t.amountKobo;
+          moneyIn += t.amountKobo;
+        } else {
+          b.outflow += t.amountKobo;
+          moneyOut += t.amountKobo;
+        }
       }
     }
 
@@ -57,9 +64,15 @@ export async function GET() {
     });
 
     return json({
-      wallet: wallet ? { balanceKobo: wallet.balanceKobo, currency: wallet.currency, status: wallet.status } : null,
+      wallet: wallet
+        ? { balanceKobo: wallet.balanceKobo, currency: wallet.currency, status: wallet.status }
+        : null,
       virtualAccount: virtualAccount
-        ? { accountNumber: virtualAccount.accountNumber, accountName: virtualAccount.accountName, bankName: virtualAccount.bankName }
+        ? {
+            accountNumber: virtualAccount.accountNumber,
+            accountName: virtualAccount.accountName,
+            bankName: virtualAccount.bankName,
+          }
         : null,
       recent: latest,
       cashflow: buckets,

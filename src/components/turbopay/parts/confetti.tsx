@@ -14,21 +14,21 @@ interface ConfettiProps {
 const COLORS = [
   "oklch(0.62 0.14 162)", // emerald
   "oklch(0.72 0.15 162)", // emerald light
-  "oklch(0.80 0.13 75)",  // amber
-  "oklch(0.85 0.13 80)",  // gold
-  "oklch(0.95 0.05 85)",  // cream
-  "oklch(1 0 0)",         // white
+  "oklch(0.80 0.13 75)", // amber
+  "oklch(0.85 0.13 80)", // gold
+  "oklch(0.95 0.05 85)", // cream
+  "oklch(1 0 0)", // white
 ];
 
 interface Piece {
   id: number;
-  left: number;          // vw position (0–100)
+  left: number; // vw position (0–100)
   color: string;
-  duration: number;      // 2–4s
-  delay: number;         // 0–0.5s
-  rotation: number;      // initial rotation deg
-  drift: number;         // horizontal drift in vw (negative = left)
-  size: number;          // 8–14px square-ish
+  duration: number; // 2–4s
+  delay: number; // 0–0.5s
+  rotation: number; // initial rotation deg
+  drift: number; // horizontal drift in vw (negative = left)
+  size: number; // 8–14px square-ish
 }
 
 function buildPieces(count: number): Piece[] {
@@ -38,10 +38,10 @@ function buildPieces(count: number): Piece[] {
       id: i,
       left: Math.random() * 100,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      duration: 2 + Math.random() * 2,    // 2–4s
-      delay: Math.random() * 0.5,         // 0–0.5s
+      duration: 2 + Math.random() * 2, // 2–4s
+      delay: Math.random() * 0.5, // 0–0.5s
       rotation: Math.random() * 360,
-      drift: (Math.random() - 0.5) * 18,  // -9..+9 vw
+      drift: (Math.random() - 0.5) * 18, // -9..+9 vw
       size,
     };
   });
@@ -87,10 +87,7 @@ export function Confetti({ trigger, count = 50 }: ConfettiProps) {
   if (pieces.length === 0) return null;
 
   return (
-    <div
-      aria-hidden
-      className="pointer-events-none fixed inset-0 z-[100] overflow-hidden"
-    >
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-[100] overflow-hidden">
       {pieces.map((p) => (
         <span
           key={p.id}

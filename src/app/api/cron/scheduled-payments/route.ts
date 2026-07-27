@@ -88,7 +88,12 @@ export async function POST(req: Request) {
               action: "SCHEDULED_PAYMENT_FAILED",
               category: "WALLET",
               severity: "WARN",
-              metadata: { scheduledId: sp.id, type: sp.type, error: res.error, failCount: newFailCount },
+              metadata: {
+                scheduledId: sp.id,
+                type: sp.type,
+                error: res.error,
+                failCount: newFailCount,
+              },
             });
           }
         } catch (e) {
@@ -112,7 +117,7 @@ export async function POST(req: Request) {
 
       const finishedAt = new Date().toISOString();
       console.log(
-        `[cron:scheduled-payments] done at ${finishedAt} — executed=${executed} succeeded=${succeeded} failed=${failed} completed=${completed} errors=${errors.length}`,
+        `[cron:scheduled-payments] done at ${finishedAt} — executed=${executed} succeeded=${succeeded} failed=${failed} completed=${completed} errors=${errors.length}`
       );
       return {
         executed,

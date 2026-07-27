@@ -73,7 +73,11 @@ export async function PATCH(req: Request, { params }: Ctx) {
       newStatus = "TERMINATED";
       auditAction = "CARD_TERMINATE";
     } else {
-      throw new ServiceError("Unknown action. Use freeze, unfreeze, or terminate.", 400, "INVALID_ACTION");
+      throw new ServiceError(
+        "Unknown action. Use freeze, unfreeze, or terminate.",
+        400,
+        "INVALID_ACTION"
+      );
     }
 
     const updated = await db.virtualCard.update({

@@ -14,80 +14,89 @@
 
     <style>
       :root {
-        --bg:           #ffffff;
-        --surface:      #ffffff;
+        --bg: #ffffff;
+        --surface: #ffffff;
         --surface-warm: #f8f8f8;
 
-        --fg:   #000000;
+        --fg: #000000;
         --fg-2: #000000;
         --muted: #4b4b4b;
-        --meta:  #afafaf;
+        --meta: #afafaf;
 
-        --border:      #000000;
+        --border: #000000;
         --border-soft: rgba(0, 0, 0, 0.1);
 
-        --accent:        #000000;
-        --accent-on:     #ffffff;
-        --accent-hover:  #e2e2e2;
+        --accent: #000000;
+        --accent-on: #ffffff;
+        --accent-hover: #e2e2e2;
         --accent-active: rgba(0, 0, 0, 0.08);
 
         --success: #16a34a;
-        --warn:    #eab308;
-        --danger:  #dc2626;
+        --warn: #eab308;
+        --danger: #dc2626;
 
-        --font-display: "UberMove", "UberMoveText", system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
-        --font-body:    "UberMoveText", system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
-        --font-mono:    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        --font-display:
+          "UberMove", "UberMoveText", system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+        --font-body: "UberMoveText", system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-        --text-xs:   12px;
-        --text-sm:   14px;
+        --text-xs: 12px;
+        --text-sm: 14px;
         --text-base: 16px;
-        --text-lg:   18px;
-        --text-xl:   24px;
-        --text-2xl:  32px;
-        --text-3xl:  36px;
-        --text-4xl:  52px;
+        --text-lg: 18px;
+        --text-xl: 24px;
+        --text-2xl: 32px;
+        --text-3xl: 36px;
+        --text-4xl: 52px;
 
-        --leading-body:     1.50;
-        --leading-tight:    1.23;
+        --leading-body: 1.5;
+        --leading-tight: 1.23;
         --tracking-display: normal;
 
-        --space-1:  4px;
-        --space-2:  8px;
-        --space-3:  12px;
-        --space-4:  16px;
-        --space-5:  20px;
-        --space-6:  24px;
-        --space-8:  32px;
+        --space-1: 4px;
+        --space-2: 8px;
+        --space-3: 12px;
+        --space-4: 16px;
+        --space-5: 20px;
+        --space-6: 24px;
+        --space-8: 32px;
         --space-12: 48px;
 
         --section-y-desktop: 80px;
-        --section-y-tablet:  48px;
-        --section-y-phone:   32px;
+        --section-y-tablet: 48px;
+        --section-y-phone: 32px;
 
-        --radius-sm:   999px;
-        --radius-md:   8px;
-        --radius-lg:   12px;
+        --radius-sm: 999px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
         --radius-pill: 9999px;
 
-        --elev-flat:   none;
-        --elev-ring:   0 0 0 1px var(--border-soft);
+        --elev-flat: none;
+        --elev-ring: 0 0 0 1px var(--border-soft);
         --elev-raised: rgba(0, 0, 0, 0.12) 0px 4px 16px 0px;
 
         --focus-ring: rgb(255, 255, 255) 0px 0px 0px 2px inset;
 
-        --motion-fast:   150ms;
-        --motion-base:   200ms;
+        --motion-fast: 150ms;
+        --motion-base: 200ms;
         --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
-        --container-max:            1136px;
+        --container-max: 1136px;
         --container-gutter-desktop: 24px;
-        --container-gutter-tablet:  16px;
-        --container-gutter-phone:   16px;
+        --container-gutter-tablet: 16px;
+        --container-gutter-phone: 16px;
       }
 
-      *, *::before, *::after { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
       body {
         background: var(--bg);
         color: var(--fg);
@@ -102,21 +111,35 @@
         margin-inline: auto;
         padding-inline: var(--container-gutter-desktop);
       }
-      section { padding-block: var(--section-y-desktop); }
-      section + section { border-top: 1px solid var(--border-soft); }
+      section {
+        padding-block: var(--section-y-desktop);
+      }
+      section + section {
+        border-top: 1px solid var(--border-soft);
+      }
       @media (max-width: 1023px) {
-        .container { padding-inline: var(--container-gutter-tablet); }
-        section { padding-block: var(--section-y-tablet); }
+        .container {
+          padding-inline: var(--container-gutter-tablet);
+        }
+        section {
+          padding-block: var(--section-y-tablet);
+        }
       }
       @media (max-width: 639px) {
-        .container { padding-inline: var(--container-gutter-phone); }
-        section { padding-block: var(--section-y-phone); }
+        .container {
+          padding-inline: var(--container-gutter-phone);
+        }
+        section {
+          padding-block: var(--section-y-phone);
+        }
       }
 
       /* ─── Typography ─────────────────────────── */
-      h1, h2, h3 {
+      h1,
+      h2,
+      h3 {
         font-family: var(--font-display);
-        font-weight: 700;              /* always bold — billboard force */
+        font-weight: 700; /* always bold — billboard force */
         margin: 0;
         color: var(--fg);
         line-height: var(--leading-tight);
@@ -136,12 +159,24 @@
            Overrides the shared 1.23 set above. */
         line-height: 1.33;
       }
-      p { margin: 0; }
-      .body-muted { color: var(--muted); }
-      .body-sm { font-size: var(--text-sm); }
-      .stack-3 > * + * { margin-block-start: var(--space-3); }
-      .stack-4 > * + * { margin-block-start: var(--space-4); }
-      .stack-6 > * + * { margin-block-start: var(--space-6); }
+      p {
+        margin: 0;
+      }
+      .body-muted {
+        color: var(--muted);
+      }
+      .body-sm {
+        font-size: var(--text-sm);
+      }
+      .stack-3 > * + * {
+        margin-block-start: var(--space-3);
+      }
+      .stack-4 > * + * {
+        margin-block-start: var(--space-4);
+      }
+      .stack-6 > * + * {
+        margin-block-start: var(--space-6);
+      }
 
       /* ─── Buttons — 999px full pill for all. ─── */
       .btn {
@@ -149,7 +184,7 @@
         align-items: center;
         gap: var(--space-2);
         padding: 10px 12px;
-        border-radius: var(--radius-sm);   /* 999px full pill */
+        border-radius: var(--radius-sm); /* 999px full pill */
         font-family: var(--font-body);
         font-size: var(--text-base);
         font-weight: 500;
@@ -159,18 +194,25 @@
         transition: background-color var(--motion-fast) var(--ease-standard);
         text-decoration: none;
       }
-      .btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+      .btn:focus-visible {
+        outline: none;
+        box-shadow: var(--focus-ring);
+      }
       .btn-black {
         background: var(--fg);
         color: var(--accent-on);
       }
-      .btn-black:hover { background: #222; }
+      .btn-black:hover {
+        background: #222;
+      }
       .btn-white {
         background: var(--bg);
         color: var(--fg);
         border: 1px solid var(--border-soft);
       }
-      .btn-white:hover { background: var(--accent-hover); }
+      .btn-white:hover {
+        background: var(--accent-hover);
+      }
 
       /* ─── Chip / category pill ───────────────── */
       .chip {
@@ -187,8 +229,13 @@
         border: none;
         transition: background-color var(--motion-fast) var(--ease-standard);
       }
-      .chip:hover { background: #e2e2e2; }
-      .chip.active { background: var(--fg); color: var(--accent-on); }
+      .chip:hover {
+        background: #e2e2e2;
+      }
+      .chip.active {
+        background: var(--fg);
+        color: var(--accent-on);
+      }
 
       /* ─── Cards ──────────────────────────────── */
       .card {
@@ -202,8 +249,16 @@
       }
 
       /* ─── Inputs ─────────────────────────────── */
-      .field { display: flex; flex-direction: column; gap: var(--space-2); }
-      .field label { font-size: var(--text-sm); font-weight: 500; color: var(--muted); }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+      }
+      .field label {
+        font-size: var(--text-sm);
+        font-weight: 500;
+        color: var(--muted);
+      }
       .field input {
         background: var(--bg);
         color: var(--fg);
@@ -215,8 +270,13 @@
         outline: none;
         transition: border-color var(--motion-fast) var(--ease-standard);
       }
-      .field input::placeholder { color: var(--meta); }
-      .field input:focus { border-color: var(--fg); box-shadow: 0 0 0 2px rgba(0,0,0,0.1); }
+      .field input::placeholder {
+        color: var(--meta);
+      }
+      .field input:focus {
+        border-color: var(--fg);
+        box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+      }
 
       /* ─── Dark footer ────────────────────────── */
       .footer-dark {
@@ -234,24 +294,49 @@
         gap: var(--space-8);
         align-items: center;
       }
-      @media (max-width: 1023px) { .hero-grid { grid-template-columns: 1fr; } }
+      @media (max-width: 1023px) {
+        .hero-grid {
+          grid-template-columns: 1fr;
+        }
+      }
       .features-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: var(--space-5);
       }
-      @media (max-width: 1023px) { .features-grid { grid-template-columns: 1fr 1fr; } }
-      @media (max-width: 639px)  { .features-grid { grid-template-columns: 1fr; } }
-      .hero-actions { display: flex; gap: var(--space-3); margin-block-start: var(--space-6); flex-wrap: wrap; }
-      .chip-row { display: flex; gap: var(--space-2); flex-wrap: wrap; }
-      .icon { width: 16px; height: 16px; flex-shrink: 0; }
+      @media (max-width: 1023px) {
+        .features-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 639px) {
+        .features-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .hero-actions {
+        display: flex;
+        gap: var(--space-3);
+        margin-block-start: var(--space-6);
+        flex-wrap: wrap;
+      }
+      .chip-row {
+        display: flex;
+        gap: var(--space-2);
+        flex-wrap: wrap;
+      }
+      .icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
     </style>
   </head>
   <body>
     <main class="container">
       <!-- HERO -->
       <section data-od-id="hero">
-        <div style="margin-bottom:var(--space-6)">
+        <div style="margin-bottom: var(--space-6)">
           <div class="chip-row">
             <button class="chip active">Ride</button>
             <button class="chip">Drive</button>
@@ -264,16 +349,32 @@
         <div class="hero-grid">
           <div class="stack-4">
             <h1>Get a ride in minutes.</h1>
-            <p class="body-muted" style="font-size:var(--text-lg);line-height:1.5;max-width:44ch;margin-top:var(--space-3)">
-              From your first trip to your thousandth, Uber is here for you.
-              Pure black-and-white, full-pill buttons, whisper-soft shadows.
+            <p
+              class="body-muted"
+              style="
+                font-size: var(--text-lg);
+                line-height: 1.5;
+                max-width: 44ch;
+                margin-top: var(--space-3);
+              "
+            >
+              From your first trip to your thousandth, Uber is here for you. Pure black-and-white,
+              full-pill buttons, whisper-soft shadows.
             </p>
             <div class="hero-actions">
               <a href="./tokens.css" class="btn btn-black">
                 See prices
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                     stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M5 12h14M13 6l6 6-6 6"/>
+                <svg
+                  class="icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M5 12h14M13 6l6 6-6 6" />
                 </svg>
               </a>
               <a href="./DESIGN.md" class="btn btn-white">Read the spec</a>
@@ -282,16 +383,27 @@
 
           <aside>
             <div class="card card-featured">
-              <p style="font-size:var(--text-sm);font-weight:500;color:var(--muted);margin-bottom:var(--space-4)">Your trip</p>
-              <div class="field" style="margin-bottom:var(--space-3)">
+              <p
+                style="
+                  font-size: var(--text-sm);
+                  font-weight: 500;
+                  color: var(--muted);
+                  margin-bottom: var(--space-4);
+                "
+              >
+                Your trip
+              </p>
+              <div class="field" style="margin-bottom: var(--space-3)">
                 <label for="pickup">Pickup</label>
                 <input id="pickup" type="text" placeholder="Enter pickup location" />
               </div>
-              <div class="field" style="margin-bottom:var(--space-5)">
+              <div class="field" style="margin-bottom: var(--space-5)">
                 <label for="dest">Destination</label>
                 <input id="dest" type="text" placeholder="Where to?" />
               </div>
-              <button class="btn btn-black" style="width:100%;justify-content:center">See prices</button>
+              <button class="btn btn-black" style="width: 100%; justify-content: center">
+                See prices
+              </button>
             </div>
           </aside>
         </div>
@@ -299,46 +411,62 @@
 
       <!-- FEATURES -->
       <section data-od-id="features">
-        <h2 style="max-width:26ch;margin-bottom:var(--space-6)">Uber for business, every day.</h2>
+        <h2 style="max-width: 26ch; margin-bottom: var(--space-6)">
+          Uber for business, every day.
+        </h2>
 
         <div class="features-grid">
           <article class="card stack-3">
             <h3>Black on white</h3>
             <p class="body-muted body-sm">
-              True #000000 and #ffffff — not near-black, not off-white.
-              The stark duality IS Uber. No warmth, no tint, no gradients.
+              True #000000 and #ffffff — not near-black, not off-white. The stark duality IS Uber.
+              No warmth, no tint, no gradients.
             </p>
           </article>
           <article class="card stack-3">
             <h3>999px radius</h3>
             <p class="body-muted body-sm">
-              Every button, chip, and navigation item uses full-pill geometry.
-              UberMove Bold (700) for all headings — billboard force.
+              Every button, chip, and navigation item uses full-pill geometry. UberMove Bold (700)
+              for all headings — billboard force.
             </p>
           </article>
           <article class="card stack-3">
             <h3>Whisper shadow</h3>
             <p class="body-muted body-sm">
-              rgba(0,0,0,0.12) 0px 4px 16px — bare minimum lift.
-              Cards defined by shadow, not border. Never dramatic depth.
+              rgba(0,0,0,0.12) 0px 4px 16px — bare minimum lift. Cards defined by shadow, not
+              border. Never dramatic depth.
             </p>
           </article>
         </div>
       </section>
 
       <!-- DARK FOOTER -->
-      <section data-od-id="footer" style="padding-block:0">
+      <section data-od-id="footer" style="padding-block: 0">
         <div class="footer-dark">
-          <h2 style="color:#ffffff;font-size:var(--text-xl);margin-bottom:var(--space-4)">Move the world forward.</h2>
-          <p style="font-size:var(--text-sm);color:var(--meta);max-width:44ch">
+          <h2 style="color: #ffffff; font-size: var(--text-xl); margin-bottom: var(--space-4)">
+            Move the world forward.
+          </h2>
+          <p style="font-size: var(--text-sm); color: var(--meta); max-width: 44ch">
             Uber's vision: transportation as reliable as running water, everywhere, for everyone.
           </p>
-          <div style="display:flex;gap:var(--space-3);margin-top:var(--space-6);flex-wrap:wrap">
-            <a href="#" style="font-size:var(--text-sm);color:var(--meta);text-decoration:none">Company</a>
-            <a href="#" style="font-size:var(--text-sm);color:var(--meta);text-decoration:none">Newsroom</a>
-            <a href="#" style="font-size:var(--text-sm);color:var(--meta);text-decoration:none">Investors</a>
-            <a href="#" style="font-size:var(--text-sm);color:var(--meta);text-decoration:none">Blog</a>
-            <a href="#" style="font-size:var(--text-sm);color:var(--meta);text-decoration:none">Careers</a>
+          <div
+            style="display: flex; gap: var(--space-3); margin-top: var(--space-6); flex-wrap: wrap"
+          >
+            <a href="#" style="font-size: var(--text-sm); color: var(--meta); text-decoration: none"
+              >Company</a
+            >
+            <a href="#" style="font-size: var(--text-sm); color: var(--meta); text-decoration: none"
+              >Newsroom</a
+            >
+            <a href="#" style="font-size: var(--text-sm); color: var(--meta); text-decoration: none"
+              >Investors</a
+            >
+            <a href="#" style="font-size: var(--text-sm); color: var(--meta); text-decoration: none"
+              >Blog</a
+            >
+            <a href="#" style="font-size: var(--text-sm); color: var(--meta); text-decoration: none"
+              >Careers</a
+            >
           </div>
         </div>
       </section>

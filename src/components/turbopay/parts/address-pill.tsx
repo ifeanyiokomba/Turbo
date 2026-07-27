@@ -47,8 +47,8 @@ export function AddressPill({
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border bg-muted/50 px-2.5 py-1 text-xs",
-        className,
+        "bg-muted/50 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs",
+        className
       )}
     >
       <span className="font-mono font-medium tabular-nums">
@@ -61,13 +61,9 @@ export function AddressPill({
           onClick={copy}
           aria-label="Copy address"
           title="Copy address"
-          className="flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground flex h-4 w-4 items-center justify-center rounded-full transition-colors"
         >
-          {copied ? (
-            <Check className="h-3 w-3 text-emerald-500" />
-          ) : (
-            <Copy className="h-3 w-3" />
-          )}
+          {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
         </button>
       )}
 
@@ -78,7 +74,7 @@ export function AddressPill({
           rel="noopener noreferrer"
           aria-label="View on explorer"
           title="View on explorer"
-          className="flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground flex h-4 w-4 items-center justify-center rounded-full transition-colors"
         >
           <ExternalLink className="h-3 w-3" />
         </a>

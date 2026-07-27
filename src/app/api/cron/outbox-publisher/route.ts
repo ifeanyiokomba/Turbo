@@ -25,7 +25,7 @@ export async function POST(req: Request) {
       const stats = await publishPendingEvents();
       const finishedAt = new Date().toISOString();
       console.log(
-        `[cron:outbox-publisher] done at ${finishedAt} — processed=${stats.processed} published=${stats.published} failed=${stats.failed} inApp=${stats.inAppDispatched} errors=${stats.errors}`,
+        `[cron:outbox-publisher] done at ${finishedAt} — processed=${stats.processed} published=${stats.published} failed=${stats.failed} inApp=${stats.inAppDispatched} errors=${stats.errors}`
       );
       return { ...stats, startedAt, finishedAt };
     });

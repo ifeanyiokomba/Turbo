@@ -116,8 +116,8 @@
    * surfaces, not promoted to shared accent slots. */
   --accent: #ff385c;
   --accent-on: #ffffff;
-  --accent-hover: #e31c5f;       /* hand-picked, between Rausch and Deep Rausch */
-  --accent-active: #e00b41;      /* Deep Rausch — DESIGN.md §2 pressed-state value */
+  --accent-hover: #e31c5f; /* hand-picked, between Rausch and Deep Rausch */
+  --accent-active: #e00b41; /* Deep Rausch — DESIGN.md §2 pressed-state value */
 
   /* ─── Semantic ──────────────────────────────────────────────────
    * Error Red is explicit from DESIGN.md §2; success and warn are
@@ -125,9 +125,9 @@
    * that survive the white canvas without competing with Rausch.
    * Keep total semantic-color pixels well under five percent of
    * any page — the brand almost never renders status. */
-  --success: #008a05;            /* hand-picked warm green — available/in-stock */
-  --warn: #c47700;               /* burnt amber — never tailwind yellow */
-  --danger: #c13515;             /* DESIGN.md §2 Error Red */
+  --success: #008a05; /* hand-picked warm green — available/in-stock */
+  --warn: #c47700; /* burnt amber — never tailwind yellow */
+  --danger: #c13515; /* DESIGN.md §2 Error Red */
 
   /* ─── Typography — fonts ────────────────────────────────────────
    * Airbnb Cereal VF is the proprietary face that carries every
@@ -138,14 +138,12 @@
    * family itself, never from typeface mixing. Mono is a generic
    * stack for kbd, tabular metrics, and the rare code label. */
   --font-display:
-    "Airbnb Cereal VF", "Airbnb Cereal App", Circular,
-    -apple-system, system-ui, "Helvetica Neue", Roboto, sans-serif;
+    "Airbnb Cereal VF", "Airbnb Cereal App", Circular, -apple-system, system-ui, "Helvetica Neue",
+    Roboto, sans-serif;
   --font-body:
-    "Airbnb Cereal VF", "Airbnb Cereal App", Circular,
-    -apple-system, system-ui, "Helvetica Neue", Roboto, sans-serif;
-  --font-mono:
-    ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco,
-    Consolas, monospace;
+    "Airbnb Cereal VF", "Airbnb Cereal App", Circular, -apple-system, system-ui, "Helvetica Neue",
+    Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
 
   /* ─── Typography — type scale (px) ──────────────────────────────
    * Derived from DESIGN.md §3 Hierarchy table. The system clusters
@@ -154,14 +152,14 @@
    * sparingly for the Guest Favorite rating lockup (44–56px) and
    * the rare hero numeral. No 400-regular: Cereal's body weight
    * is 500, which any consuming component should set explicitly. */
-  --text-xs: 12px;               /* micro / footer disclaimer */
-  --text-sm: 14px;               /* button default, link, caption */
-  --text-base: 16px;             /* body medium, button large, subtitle bold */
-  --text-lg: 20px;               /* listing title */
-  --text-xl: 22px;               /* subsection heading */
-  --text-2xl: 28px;              /* section heading */
-  --text-3xl: 44px;              /* Guest Favorite rating, hero numeral */
-  --text-4xl: 56px;              /* display ceiling — Guest Favorite max */
+  --text-xs: 12px; /* micro / footer disclaimer */
+  --text-sm: 14px; /* button default, link, caption */
+  --text-base: 16px; /* body medium, button large, subtitle bold */
+  --text-lg: 20px; /* listing title */
+  --text-xl: 22px; /* subsection heading */
+  --text-2xl: 28px; /* section heading */
+  --text-3xl: 44px; /* Guest Favorite rating, hero numeral */
+  --text-4xl: 56px; /* display ceiling — Guest Favorite max */
 
   /* ─── Typography — leading & tracking ───────────────────────────
    * Tight for display (1.20 — chiseled headlines), generous for
@@ -171,7 +169,7 @@
    * their travel-magazine feel rather than a utility-app feel. */
   --leading-body: 1.43;
   --leading-tight: 1.2;
-  --tracking-display: -0.02em;   /* applied at sizes ≥20px only */
+  --tracking-display: -0.02em; /* applied at sizes ≥20px only */
 
   /* ─── Spacing — base scale ──────────────────────────────────────
    * 8px base unit per DESIGN.md §5. The brand uses fine-grained
@@ -222,9 +220,7 @@
   --elev-flat: none;
   --elev-ring: 0 0 0 1px var(--border);
   --elev-raised:
-    rgba(0, 0, 0, 0.02) 0 0 0 1px,
-    rgba(0, 0, 0, 0.04) 0 2px 6px 0,
-    rgba(0, 0, 0, 0.1) 0 4px 8px 0;
+    rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0, rgba(0, 0, 0, 0.1) 0 4px 8px 0;
 
   /* ─── Focus ring ────────────────────────────────────────────────
    * 2px solid Ink Black, NOT the schema's accent-tinted default.

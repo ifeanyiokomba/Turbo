@@ -158,14 +158,14 @@ export async function GET() {
     const daysInMonth = new Date(
       thisMonthStart.getFullYear(),
       thisMonthStart.getMonth() + 1,
-      0,
+      0
     ).getDate();
     const dayOfMonth = now.getDate();
     const daysLeft = Math.max(0, daysInMonth - dayOfMonth);
     const dailyIncome = avgMonthlyIncome / daysInMonth;
     const dailyExpense = avgMonthlyExpense / daysInMonth;
     const projectedMonthEndBalance = Math.round(
-      currentBalance + dailyIncome * daysLeft - dailyExpense * daysLeft,
+      currentBalance + dailyIncome * daysLeft - dailyExpense * daysLeft
     );
 
     // --- Burn rate: days until wallet hits 0 ---
@@ -183,7 +183,7 @@ export async function GET() {
     let savingsRatePct: number | null;
     if (avgMonthlyIncome > 0) {
       savingsRatePct = Math.round(
-        ((avgMonthlyIncome - avgMonthlyExpense) / avgMonthlyIncome) * 100,
+        ((avgMonthlyIncome - avgMonthlyExpense) / avgMonthlyIncome) * 100
       );
     } else {
       savingsRatePct = null;
@@ -206,16 +206,12 @@ export async function GET() {
       const amounts = entries.map((e) => e.amount).sort((a, b) => a - b);
       const median = amounts[Math.floor(amounts.length / 2)];
       // Within 5% of median counts as "same/similar amount"
-      const similar = entries.filter(
-        (e) => Math.abs(e.amount - median) <= median * 0.05,
-      );
+      const similar = entries.filter((e) => Math.abs(e.amount - median) <= median * 0.05);
       if (similar.length < 2) continue;
 
       const totalAmountKobo = similar.reduce((s, e) => s + e.amount, 0);
       const averageAmountKobo = Math.round(totalAmountKobo / similar.length);
-      const sortedByDate = [...similar].sort(
-        (a, b) => a.date.getTime() - b.date.getTime(),
-      );
+      const sortedByDate = [...similar].sort((a, b) => a.date.getTime() - b.date.getTime());
       const first = sortedByDate[0].date;
       const last = sortedByDate[sortedByDate.length - 1].date;
 
@@ -248,9 +244,7 @@ export async function GET() {
     if (lastMonthSpend === 0) {
       spendingTrendPct = thisMonthSpend > 0 ? 100 : 0;
     } else {
-      spendingTrendPct = Math.round(
-        ((thisMonthSpend - lastMonthSpend) / lastMonthSpend) * 100,
-      );
+      spendingTrendPct = Math.round(((thisMonthSpend - lastMonthSpend) / lastMonthSpend) * 100);
     }
 
     // --- Income sources breakdown (last 3 months) ---

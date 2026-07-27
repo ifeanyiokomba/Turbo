@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { destroySession } from "@/lib/session";
 import { json, handleError, audit, getClientIp, getUserAgent } from "@/lib/api";
 import { getSession } from "@/lib/session";
+import { logSecurityEvent } from "@/lib/security-log";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,6 +12,12 @@ export async function POST(req: NextRequest) {
         userId: session.userId,
         action: "LOGOUT",
         category: "AUTH",
+        ip: getClientIp(req),
+        userAgent: getUserAgent(req),
+      });
+      await logSecurityEvent({
+        userId: session.userId,
+        type: "LOGOUT",
         ip: getClientIp(req),
         userAgent: getUserAgent(req),
       });

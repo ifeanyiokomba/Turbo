@@ -33,7 +33,7 @@ export interface ConfirmResult {
 export async function confirmOrReverseTransaction(
   txId: string,
   status: string,
-  actor: string,
+  actor: string
 ): Promise<ConfirmResult> {
   const tx = await db.transaction.findUnique({ where: { id: txId } });
   if (!tx) return { outcome: "NOOP", reason: "tx not found" };
@@ -44,7 +44,7 @@ export async function confirmOrReverseTransaction(
 
   const success = String(status).toUpperCase() === "SUCCESS";
   const failed = ["FAILED", "FAILURE", "ERROR", "REJECTED", "CANCELLED", "CANCELED"].includes(
-    String(status).toUpperCase(),
+    String(status).toUpperCase()
   );
 
   if (!success && !failed) {
@@ -99,7 +99,11 @@ async function confirmTransaction(tx: any, actor: string): Promise<ConfirmResult
       aggregateType: "TRANSACTION",
       aggregateId: tx.id,
       type: "PAYMENT_SETTLED",
-      payloadJSON: JSON.stringify({ reference: tx.reference, amountMinor: tx.amountKobo, provider: tx.provider }),
+      payloadJSON: JSON.stringify({
+        reference: tx.reference,
+        amountMinor: tx.amountKobo,
+        provider: tx.provider,
+      }),
     },
   });
   await audit({
@@ -167,7 +171,10 @@ async function reverseTransaction(tx: any, actor: string): Promise<ConfirmResult
       aggregateType: "TRANSACTION",
       aggregateId: tx.id,
       type: "PAYMENT_REVERSED",
-      payloadJSON: JSON.stringify({ reference: tx.reference, reason: `provider-reported failure via ${actor}` }),
+      payloadJSON: JSON.stringify({
+        reference: tx.reference,
+        reason: `provider-reported failure via ${actor}`,
+      }),
     },
   });
   await audit({

@@ -17,7 +17,7 @@ export class ServiceError extends Error {
   constructor(
     message: string,
     public statusCode: number = 400,
-    public code?: string,
+    public code?: string
   ) {
     super(message);
   }
@@ -34,7 +34,11 @@ export async function requireUser() {
   const session = await getSession();
   if (!session) throw new ServiceError("Authentication required", 401, "UNAUTHENTICATED");
   if (session.user.status !== "ACTIVE")
-    throw new ServiceError("Account is " + session.user.status.toLowerCase(), 403, "ACCOUNT_INACTIVE");
+    throw new ServiceError(
+      "Account is " + session.user.status.toLowerCase(),
+      403,
+      "ACCOUNT_INACTIVE"
+    );
   return session.user;
 }
 
@@ -45,9 +49,11 @@ export async function requireAdmin() {
 }
 
 export async function verifyPin(user: { transactionPinHash: string | null }, pin: string) {
-  if (!user.transactionPinHash) throw new ServiceError("Transaction PIN not set", 400, "PIN_NOT_SET");
+  if (!user.transactionPinHash)
+    throw new ServiceError("Transaction PIN not set", 400, "PIN_NOT_SET");
   const { verifyPin: verify } = await import("@/lib/auth");
-  if (!verify(pin, user.transactionPinHash)) throw new ServiceError("Incorrect PIN", 400, "INVALID_PIN");
+  if (!verify(pin, user.transactionPinHash))
+    throw new ServiceError("Incorrect PIN", 400, "INVALID_PIN");
 }
 
 export function getClientIp(req: Request): string {

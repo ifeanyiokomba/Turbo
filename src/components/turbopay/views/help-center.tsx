@@ -126,9 +126,7 @@ export default function HelpCenterView() {
         (a) =>
           a.title.toLowerCase().includes(q) ||
           a.content.toLowerCase().includes(q) ||
-          (data.categories.find((c) => c.id === a.category)?.label ?? "")
-            .toLowerCase()
-            .includes(q),
+          (data.categories.find((c) => c.id === a.category)?.label ?? "").toLowerCase().includes(q)
       );
     }
     return list;
@@ -152,12 +150,15 @@ export default function HelpCenterView() {
 
   function vote(article: HelpArticle, kind: "up" | "down") {
     setVotes((prev) => ({ ...prev, [article.id]: kind }));
-    toast.success(kind === "up" ? "Thanks for your feedback!" : "We'll work on improving this article.", {
-      description:
-        kind === "up"
-          ? "Glad this was helpful."
-          : "Try reaching our team for more specific help.",
-    });
+    toast.success(
+      kind === "up" ? "Thanks for your feedback!" : "We'll work on improving this article.",
+      {
+        description:
+          kind === "up"
+            ? "Glad this was helpful."
+            : "Try reaching our team for more specific help.",
+      }
+    );
   }
 
   function openArticle(article: HelpArticle) {
@@ -166,7 +167,7 @@ export default function HelpCenterView() {
 
   const activeArticle = React.useMemo(
     () => data?.articles.find((a) => a.id === openArticleId) ?? null,
-    [data, openArticleId],
+    [data, openArticleId]
   );
 
   if (loading) {
@@ -220,19 +221,19 @@ export default function HelpCenterView() {
             Browse 24+ articles across 8 categories, or search for a specific topic.
           </p>
           <div className="relative mt-4">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/70" />
+            <Search className="pointer-events-none absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-white/70" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search for help..."
               aria-label="Search help articles"
-              className="h-14 w-full rounded-2xl border-0 bg-white/95 pl-12 pr-12 text-base text-foreground shadow-lg outline-none placeholder:text-muted-foreground focus:bg-white focus:ring-4 focus:ring-white/30"
+              className="text-foreground placeholder:text-muted-foreground h-14 w-full rounded-2xl border-0 bg-white/95 pr-12 pl-12 text-base shadow-lg outline-none focus:bg-white focus:ring-4 focus:ring-white/30"
             />
             {search && (
               <button
                 onClick={() => setSearch("")}
                 aria-label="Clear search"
-                className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+                className="bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground absolute top-1/2 right-3 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -245,9 +246,9 @@ export default function HelpCenterView() {
       {isSearching ? (
         <div className="space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {filteredArticles.length} result{filteredArticles.length === 1 ? "" : "s"} for{" "}
-              <span className="font-medium text-foreground">&ldquo;{search.trim()}&rdquo;</span>
+              <span className="text-foreground font-medium">&ldquo;{search.trim()}&rdquo;</span>
             </p>
             <Button variant="ghost" size="sm" onClick={() => setSearch("")} className="gap-1.5">
               <X className="h-3.5 w-3.5" /> Clear
@@ -271,20 +272,22 @@ export default function HelpCenterView() {
               return (
                 <div key={category.id}>
                   <div className="mb-2 flex items-center gap-2">
-                    <Icon className="h-4 w-4 text-primary" />
+                    <Icon className="text-primary h-4 w-4" />
                     <h3 className="text-sm font-semibold">{category.label}</h3>
-                    <Badge variant="secondary" className="text-[10px]">{articles.length}</Badge>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {articles.length}
+                    </Badge>
                   </div>
                   <Card className="divide-y overflow-hidden p-0">
                     {articles.map((a) => (
                       <button
                         key={a.id}
                         onClick={() => openArticle(a)}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+                        className="hover:bg-muted/40 flex w-full items-center gap-3 px-4 py-3 text-left transition-colors"
                       >
-                        <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <FileText className="text-muted-foreground h-4 w-4 shrink-0" />
                         <p className="flex-1 truncate text-sm font-medium">{a.title}</p>
-                        <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <ArrowRight className="text-muted-foreground h-4 w-4 shrink-0" />
                       </button>
                     ))}
                   </Card>
@@ -305,15 +308,22 @@ export default function HelpCenterView() {
               <>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${CATEGORY_TONE[cat.id] ?? ""}`}>
+                    <span
+                      className={`flex h-8 w-8 items-center justify-center rounded-lg ${CATEGORY_TONE[cat.id] ?? ""}`}
+                    >
                       <Icon className="h-4 w-4" />
                     </span>
                     <div>
                       <h3 className="text-base font-semibold">{cat.label}</h3>
-                      <p className="text-xs text-muted-foreground">{cat.description}</p>
+                      <p className="text-muted-foreground text-xs">{cat.description}</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={() => setActiveCategory(null)} className="gap-1.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveCategory(null)}
+                    className="gap-1.5"
+                  >
                     <X className="h-3.5 w-3.5" /> Back to all categories
                   </Button>
                 </div>
@@ -321,10 +331,10 @@ export default function HelpCenterView() {
                   <Accordion type="single" collapsible className="w-full">
                     {arts.map((a) => (
                       <AccordionItem key={a.id} value={a.id} className="border-b last:border-b-0">
-                        <AccordionTrigger className="px-5 py-4 text-left text-sm font-medium hover:no-underline hover:bg-muted/30">
+                        <AccordionTrigger className="hover:bg-muted/30 px-5 py-4 text-left text-sm font-medium hover:no-underline">
                           {a.title}
                         </AccordionTrigger>
-                        <AccordionContent className="px-5 pb-4 pt-0 text-sm text-muted-foreground">
+                        <AccordionContent className="text-muted-foreground px-5 pt-0 pb-4 text-sm">
                           <ArticleBody article={a} onVote={vote} vote={votes[a.id]} />
                         </AccordionContent>
                       </AccordionItem>
@@ -339,7 +349,7 @@ export default function HelpCenterView() {
         /* Default browse — categories grid + popular articles */
         <div className="space-y-6">
           <div>
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wider uppercase">
               Popular categories
             </h3>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -350,18 +360,24 @@ export default function HelpCenterView() {
                   <button
                     key={cat.id}
                     onClick={() => setActiveCategory(cat.id)}
-                    className="tp-card-hover tp-card-gradient group flex flex-col gap-3 rounded-2xl border bg-card p-5 text-left"
+                    className="tp-card-hover tp-card-gradient group bg-card flex flex-col gap-3 rounded-2xl border p-5 text-left"
                   >
-                    <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${CATEGORY_TONE[cat.id] ?? ""}`}>
+                    <span
+                      className={`flex h-10 w-10 items-center justify-center rounded-xl ${CATEGORY_TONE[cat.id] ?? ""}`}
+                    >
                       <Icon className="h-5 w-5" />
                     </span>
                     <div>
                       <p className="text-sm font-semibold">{cat.label}</p>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{cat.description}</p>
+                      <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
+                        {cat.description}
+                      </p>
                     </div>
-                    <div className="mt-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div className="text-muted-foreground mt-auto flex items-center gap-1.5 text-xs">
                       <FileText className="h-3.5 w-3.5" />
-                      <span>{count} article{count === 1 ? "" : "s"}</span>
+                      <span>
+                        {count} article{count === 1 ? "" : "s"}
+                      </span>
                     </div>
                   </button>
                 );
@@ -371,7 +387,7 @@ export default function HelpCenterView() {
 
           {/* Popular articles */}
           <div>
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <h3 className="text-muted-foreground mb-3 text-sm font-semibold tracking-wider uppercase">
               Popular articles
             </h3>
             <Card className="overflow-hidden p-0">
@@ -383,23 +399,23 @@ export default function HelpCenterView() {
                   <button
                     key={a.id}
                     onClick={() => openArticle(a)}
-                    className={`flex w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-muted/40 ${
+                    className={`hover:bg-muted/40 flex w-full items-center gap-3 px-5 py-3 text-left transition-colors ${
                       i > 0 ? "border-t" : ""
                     }`}
                   >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                    <span className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-xs font-bold">
                       {i + 1}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{a.title}</p>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="text-muted-foreground truncate text-xs">
                         {data.categories.find((c) => c.id === a.category)?.label}
                       </p>
                     </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <div className="text-muted-foreground flex items-center gap-1 text-xs">
                       <ThumbsUp className="h-3 w-3" /> {a.helpful}
                     </div>
-                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <ArrowRight className="text-muted-foreground h-4 w-4 shrink-0" />
                   </button>
                 ))}
             </Card>
@@ -416,8 +432,9 @@ export default function HelpCenterView() {
             </span>
             <div>
               <p className="font-semibold">Still need help?</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                Our support team is available 24/7. Reach out and we&apos;ll respond within 24 hours.
+              <p className="text-muted-foreground mt-0.5 text-sm">
+                Our support team is available 24/7. Reach out and we&apos;ll respond within 24
+                hours.
               </p>
             </div>
           </div>
@@ -434,7 +451,8 @@ export default function HelpCenterView() {
             <>
               <DialogHeader>
                 <Badge variant="secondary" className="mb-1.5 w-fit text-[10px]">
-                  {data.categories.find((c) => c.id === activeArticle.category)?.label ?? activeArticle.category}
+                  {data.categories.find((c) => c.id === activeArticle.category)?.label ??
+                    activeArticle.category}
                 </Badge>
                 <DialogTitle className="text-lg leading-snug">{activeArticle.title}</DialogTitle>
                 <DialogDescription className="sr-only">
@@ -453,7 +471,12 @@ export default function HelpCenterView() {
                 <Button variant="ghost" size="sm" onClick={() => setOpenArticleId(null)}>
                   Close
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => setView("support")} className="gap-1.5">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setView("support")}
+                  className="gap-1.5"
+                >
                   <LifeBuoy className="h-4 w-4" /> Still need help?
                 </Button>
               </div>
@@ -484,7 +507,9 @@ function ArticleBody({
 
   return (
     <div className={expanded ? "space-y-4" : "space-y-3"}>
-      <div className={expanded ? "text-sm leading-relaxed text-foreground" : "text-sm leading-relaxed"}>
+      <div
+        className={expanded ? "text-foreground text-sm leading-relaxed" : "text-sm leading-relaxed"}
+      >
         {article.content.split("\n").map((line, i) =>
           line.trim() === "" ? (
             <div key={i} className="h-2" aria-hidden />
@@ -492,13 +517,13 @@ function ArticleBody({
             <p key={i} className="whitespace-pre-wrap">
               {line}
             </p>
-          ),
+          )
         )}
       </div>
 
       {/* Vote prompt */}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl bg-muted/40 p-3">
-        <p className="text-xs font-medium text-muted-foreground">Was this helpful?</p>
+      <div className="bg-muted/40 flex flex-wrap items-center gap-3 rounded-xl p-3">
+        <p className="text-muted-foreground text-xs font-medium">Was this helpful?</p>
         <div className="flex items-center gap-2">
           <button
             onClick={() => onVote(article, "up")}

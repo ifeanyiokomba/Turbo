@@ -61,7 +61,7 @@ export async function executeScheduledPayment(
   scheduledId: string,
   userId: string,
   type: string,
-  payloadRaw: string,
+  payloadRaw: string
 ): Promise<ScheduledRunResult> {
   let payload: any = {};
   try {
@@ -107,7 +107,7 @@ export async function executeScheduledPayment(
 async function runTransfer(
   userId: string,
   scheduledId: string,
-  p: TransferPayload,
+  p: TransferPayload
 ): Promise<ScheduledRunResult> {
   if (!p.recipient || !p.amountKobo) return { ok: false, error: "missing recipient/amount" };
   const wallet = await db.wallet.findUnique({ where: { userId } });
@@ -118,11 +118,7 @@ async function runTransfer(
   if (p.type === "TURBOPAY") {
     const recipientUser = await db.user.findFirst({
       where: {
-        OR: [
-          { username: p.recipient },
-          { email: p.recipient },
-          { phone: p.recipient },
-        ],
+        OR: [{ username: p.recipient }, { email: p.recipient }, { phone: p.recipient }],
       },
     });
     if (!recipientUser) return { ok: false, error: "recipient not found" };
@@ -201,9 +197,10 @@ async function runTransfer(
 async function runAirtime(
   userId: string,
   scheduledId: string,
-  p: AirtimePayload,
+  p: AirtimePayload
 ): Promise<ScheduledRunResult> {
-  if (!p.network || !p.phone || !p.amountKobo) return { ok: false, error: "missing network/phone/amount" };
+  if (!p.network || !p.phone || !p.amountKobo)
+    return { ok: false, error: "missing network/phone/amount" };
   const wallet = await db.wallet.findUnique({ where: { userId } });
   if (!wallet) return { ok: false, error: "wallet not found" };
 
@@ -254,7 +251,7 @@ async function runAirtime(
 async function runData(
   userId: string,
   scheduledId: string,
-  p: DataPayload,
+  p: DataPayload
 ): Promise<ScheduledRunResult> {
   if (!p.network || !p.phone || !p.planId || !p.amountKobo) {
     return { ok: false, error: "missing network/phone/plan/amount" };
@@ -310,12 +307,13 @@ async function runData(
 async function runBill(
   userId: string,
   scheduledId: string,
-  p: BillPayload,
+  p: BillPayload
 ): Promise<ScheduledRunResult> {
   if (!p.category || !p.billerCode || !p.billerName || !p.customerRef || !p.amountKobo) {
     return { ok: false, error: "missing bill fields" };
   }
-  const billers = (BILLERS as Record<string, { code: string; name: string }[] | undefined>)[p.category] ?? [];
+  const billers =
+    (BILLERS as Record<string, { code: string; name: string }[] | undefined>)[p.category] ?? [];
   const biller = billers.find((b) => b.code === p.billerCode);
   if (!biller) return { ok: false, error: "invalid biller" };
 

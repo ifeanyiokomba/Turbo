@@ -23,10 +23,7 @@ const patchSchema = z.object({
   status: z.enum(["ACTIVE", "DEACTIVATED"]),
 });
 
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const admin = await requireAdmin();
     const { id } = await params;
@@ -47,11 +44,7 @@ export async function PATCH(
         where: { role: "ADMIN", status: "ACTIVE" },
       });
       if (activeAdminCount <= 1) {
-        return errorJson(
-          "Cannot deactivate the last active admin",
-          400,
-          "LAST_ADMIN",
-        );
+        return errorJson("Cannot deactivate the last active admin", 400, "LAST_ADMIN");
       }
     }
 
@@ -89,10 +82,7 @@ export async function PATCH(
 
 // DELETE /api/admin/team/[id] — remove a team member.
 // Refuses to delete the *last* admin.
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const admin = await requireAdmin();
     const { id } = await params;
@@ -106,11 +96,7 @@ export async function DELETE(
         where: { role: "ADMIN" },
       });
       if (adminCount <= 1) {
-        return errorJson(
-          "Cannot delete the last admin team member",
-          400,
-          "LAST_ADMIN",
-        );
+        return errorJson("Cannot delete the last admin team member", 400, "LAST_ADMIN");
       }
     }
 

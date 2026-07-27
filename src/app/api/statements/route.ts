@@ -71,11 +71,7 @@ export async function POST(req: NextRequest) {
     // Cap the period at 366 days to keep statement size sane.
     const days = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
     if (days > 366) {
-      return errorJson(
-        "Statement period cannot exceed 366 days",
-        400,
-        "PERIOD_TOO_LONG",
-      );
+      return errorJson("Statement period cannot exceed 366 days", 400, "PERIOD_TOO_LONG");
     }
 
     // Fetch wallet + virtual account info for the header.
@@ -99,10 +95,7 @@ export async function POST(req: NextRequest) {
     const currentBalance = wallet?.balanceKobo ?? 0;
     const signedDelta = transactions
       .filter((t) => t.status === "SUCCESS")
-      .reduce(
-        (s, t) => s + (t.direction === "CREDIT" ? t.amountKobo : -t.amountKobo),
-        0,
-      );
+      .reduce((s, t) => s + (t.direction === "CREDIT" ? t.amountKobo : -t.amountKobo), 0);
     const openingBalance = currentBalance - signedDelta;
 
     const account: StatementAccount = {

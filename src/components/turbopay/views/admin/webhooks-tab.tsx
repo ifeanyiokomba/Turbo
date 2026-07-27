@@ -16,10 +16,22 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Plus, RefreshCw, Loader2, Download, Webhook, Copy, Check, Link as LinkIcon,
+  Plus,
+  RefreshCw,
+  Loader2,
+  Download,
+  Webhook,
+  Copy,
+  Check,
+  Link as LinkIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate, timeAgo } from "@/lib/money";
@@ -65,7 +77,10 @@ export default function WebhooksTab() {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/webhooks", { cache: "no-store" });
-      if (!res.ok) { toast.error("Failed to load webhooks"); return; }
+      if (!res.ok) {
+        toast.error("Failed to load webhooks");
+        return;
+      }
       const data = await res.json();
       setEvents(data.events);
       setEndpoints(data.endpoints);
@@ -74,7 +89,9 @@ export default function WebhooksTab() {
     }
   }, []);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => {
+    load();
+  }, [load]);
 
   async function submitAdd() {
     if (!addForm.merchantId.trim() || !addForm.url.trim()) {
@@ -87,7 +104,10 @@ export default function WebhooksTab() {
     }
     setAdding(true);
     try {
-      const eventsArr = addForm.events.split(",").map((s) => s.trim()).filter(Boolean);
+      const eventsArr = addForm.events
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       const res = await fetch("/api/admin/webhooks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -128,18 +148,42 @@ export default function WebhooksTab() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-semibold">Inbound webhook events</h3>
-            <p className="text-xs text-muted-foreground">Last 50 received events from upstream providers.</p>
+            <p className="text-muted-foreground text-xs">
+              Last 50 received events from upstream providers.
+            </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5" disabled={!events || events.length === 0} onClick={() => {
-              if (!events) return;
-              exportCsv(
-                `turbopay-webhook-events-${new Date().toISOString().slice(0, 10)}.csv`,
-                ["Provider", "Event ID", "Event Type", "Signature Valid", "Processed At", "Transaction ID", "Created At"],
-                events.map((e) => [e.providerCode, e.eventId, e.eventType, e.signatureValid ? "Yes" : "No", e.processedAt ?? "", e.transactionId ?? "", new Date(e.createdAt).toISOString()]),
-              );
-              toast.success("Events exported");
-            }}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              disabled={!events || events.length === 0}
+              onClick={() => {
+                if (!events) return;
+                exportCsv(
+                  `turbopay-webhook-events-${new Date().toISOString().slice(0, 10)}.csv`,
+                  [
+                    "Provider",
+                    "Event ID",
+                    "Event Type",
+                    "Signature Valid",
+                    "Processed At",
+                    "Transaction ID",
+                    "Created At",
+                  ],
+                  events.map((e) => [
+                    e.providerCode,
+                    e.eventId,
+                    e.eventType,
+                    e.signatureValid ? "Yes" : "No",
+                    e.processedAt ?? "",
+                    e.transactionId ?? "",
+                    new Date(e.createdAt).toISOString(),
+                  ])
+                );
+                toast.success("Events exported");
+              }}
+            >
               <Download className="h-4 w-4" /> Export
             </Button>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={load}>
@@ -152,36 +196,52 @@ export default function WebhooksTab() {
       <Card className="p-5">
         {loading && !events ? (
           <div className="space-y-2">
-            {[0,1,2,3,4].map((i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-12 rounded-xl" />
+            ))}
           </div>
         ) : events && events.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10">
-                <tr className="text-left text-xs text-muted-foreground">
-                  <th className="pb-2 pr-2 font-medium">Provider</th>
-                  <th className="pb-2 pr-2 font-medium">Event type</th>
-                  <th className="pb-2 pr-2 font-medium">Event ID</th>
-                  <th className="pb-2 pr-2 font-medium">Signature</th>
-                  <th className="pb-2 pr-2 font-medium">Transaction</th>
-                  <th className="pb-2 pr-2 font-medium">Processed</th>
+                <tr className="text-muted-foreground text-left text-xs">
+                  <th className="pr-2 pb-2 font-medium">Provider</th>
+                  <th className="pr-2 pb-2 font-medium">Event type</th>
+                  <th className="pr-2 pb-2 font-medium">Event ID</th>
+                  <th className="pr-2 pb-2 font-medium">Signature</th>
+                  <th className="pr-2 pb-2 font-medium">Transaction</th>
+                  <th className="pr-2 pb-2 font-medium">Processed</th>
                   <th className="pb-2 font-medium">Received</th>
                 </tr>
               </thead>
               <tbody>
                 {events.map((e) => (
-                  <tr key={e.id} className="border-t transition-colors hover:bg-muted/40">
+                  <tr key={e.id} className="hover:bg-muted/40 border-t transition-colors">
                     <td className="py-2 pr-2 font-mono text-xs">{e.providerCode}</td>
                     <td className="py-2 pr-2 text-xs font-medium">{e.eventType}</td>
-                    <td className="py-2 pr-2 font-mono text-[10px] text-muted-foreground">{e.eventId}</td>
+                    <td className="text-muted-foreground py-2 pr-2 font-mono text-[10px]">
+                      {e.eventId}
+                    </td>
                     <td className="py-2 pr-2">
-                      <Badge variant="secondary" className={`text-[10px] ${e.signatureValid ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-red-500/10 text-red-600 dark:text-red-400"}`}>
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] ${e.signatureValid ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-red-500/10 text-red-600 dark:text-red-400"}`}
+                      >
                         {e.signatureValid ? "Valid" : "Invalid"}
                       </Badge>
                     </td>
-                    <td className="py-2 pr-2 font-mono text-[10px] text-muted-foreground">{e.transactionId ?? "—"}</td>
-                    <td className="py-2 pr-2 text-xs">{e.processedAt ? formatDate(e.processedAt, true) : "Pending"}</td>
-                    <td className="py-2 text-xs text-muted-foreground" title={formatDate(e.createdAt, true)}>{timeAgo(e.createdAt)}</td>
+                    <td className="text-muted-foreground py-2 pr-2 font-mono text-[10px]">
+                      {e.transactionId ?? "—"}
+                    </td>
+                    <td className="py-2 pr-2 text-xs">
+                      {e.processedAt ? formatDate(e.processedAt, true) : "Pending"}
+                    </td>
+                    <td
+                      className="text-muted-foreground py-2 text-xs"
+                      title={formatDate(e.createdAt, true)}
+                    >
+                      {timeAgo(e.createdAt)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -189,9 +249,11 @@ export default function WebhooksTab() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-14 text-center">
-            <Webhook className="h-6 w-6 text-muted-foreground" />
+            <Webhook className="text-muted-foreground h-6 w-6" />
             <p className="mt-3 font-medium">No inbound webhook events yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">Provider events will appear here once they fire.</p>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Provider events will appear here once they fire.
+            </p>
           </div>
         )}
       </Card>
@@ -200,10 +262,17 @@ export default function WebhooksTab() {
       <Card className="p-5">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <LinkIcon className="h-4 w-4 text-primary" />
+            <LinkIcon className="text-primary h-4 w-4" />
             <h3 className="text-sm font-semibold">Outbound webhook endpoints</h3>
           </div>
-          <Button size="sm" className="gap-1.5" onClick={() => { setAddOpen(true); setNewSecret(null); }}>
+          <Button
+            size="sm"
+            className="gap-1.5"
+            onClick={() => {
+              setAddOpen(true);
+              setNewSecret(null);
+            }}
+          >
             <Plus className="h-4 w-4" /> Create endpoint
           </Button>
         </div>
@@ -211,46 +280,71 @@ export default function WebhooksTab() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs text-muted-foreground">
-                  <th className="pb-2 pr-2 font-medium">Merchant</th>
-                  <th className="pb-2 pr-2 font-medium">URL</th>
-                  <th className="pb-2 pr-2 font-medium">Events</th>
-                  <th className="pb-2 pr-2 font-medium">Secret</th>
-                  <th className="pb-2 pr-2 font-medium">Failures</th>
+                <tr className="text-muted-foreground text-left text-xs">
+                  <th className="pr-2 pb-2 font-medium">Merchant</th>
+                  <th className="pr-2 pb-2 font-medium">URL</th>
+                  <th className="pr-2 pb-2 font-medium">Events</th>
+                  <th className="pr-2 pb-2 font-medium">Secret</th>
+                  <th className="pr-2 pb-2 font-medium">Failures</th>
                   <th className="pb-2 font-medium">Created</th>
                 </tr>
               </thead>
               <tbody>
                 {endpoints.map((ep) => (
-                  <tr key={ep.id} className="border-t transition-colors hover:bg-muted/40">
+                  <tr key={ep.id} className="hover:bg-muted/40 border-t transition-colors">
                     <td className="py-2 pr-2 font-mono text-xs">{ep.merchantId}</td>
-                    <td className="py-2 pr-2 text-xs truncate max-w-xs" title={ep.url}>{ep.url}</td>
-                    <td className="py-2 pr-2 text-xs text-muted-foreground">{ep.eventsJSON || "[]"}</td>
-                    <td className="py-2 pr-2 font-mono text-[10px] text-muted-foreground">{ep.secretMasked}</td>
+                    <td className="max-w-xs truncate py-2 pr-2 text-xs" title={ep.url}>
+                      {ep.url}
+                    </td>
+                    <td className="text-muted-foreground py-2 pr-2 text-xs">
+                      {ep.eventsJSON || "[]"}
+                    </td>
+                    <td className="text-muted-foreground py-2 pr-2 font-mono text-[10px]">
+                      {ep.secretMasked}
+                    </td>
                     <td className="py-2 pr-2 text-xs">
                       {ep.consecutiveFailures > 0 ? (
-                        <Badge variant="secondary" className="text-[10px] bg-red-500/10 text-red-600 dark:text-red-400">{ep.consecutiveFailures}</Badge>
+                        <Badge
+                          variant="secondary"
+                          className="bg-red-500/10 text-[10px] text-red-600 dark:text-red-400"
+                        >
+                          {ep.consecutiveFailures}
+                        </Badge>
                       ) : (
-                        <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">0</Badge>
+                        <Badge
+                          variant="secondary"
+                          className="bg-emerald-500/10 text-[10px] text-emerald-600 dark:text-emerald-400"
+                        >
+                          0
+                        </Badge>
                       )}
                     </td>
-                    <td className="py-2 text-xs text-muted-foreground">{formatDate(ep.createdAt)}</td>
+                    <td className="text-muted-foreground py-2 text-xs">
+                      {formatDate(ep.createdAt)}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">No outbound endpoints registered.</p>
+          <p className="text-muted-foreground text-sm">No outbound endpoints registered.</p>
         )}
       </Card>
 
-      <Dialog open={addOpen} onOpenChange={(o) => { setAddOpen(o); if (!o) setNewSecret(null); }}>
+      <Dialog
+        open={addOpen}
+        onOpenChange={(o) => {
+          setAddOpen(o);
+          if (!o) setNewSecret(null);
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create webhook endpoint</DialogTitle>
             <DialogDescription>
-              Generates a fresh signing secret. The plaintext secret is shown ONCE below — copy it now and store it securely.
+              Generates a fresh signing secret. The plaintext secret is shown ONCE below — copy it
+              now and store it securely.
             </DialogDescription>
           </DialogHeader>
           {newSecret ? (
@@ -259,7 +353,11 @@ export default function WebhooksTab() {
               <div className="flex items-center gap-2">
                 <Input readOnly value={newSecret} className="font-mono text-xs" />
                 <Button size="sm" variant="outline" className="gap-1" onClick={copySecret}>
-                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-600" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
                   {copied ? "Copied" : "Copy"}
                 </Button>
               </div>
@@ -271,24 +369,45 @@ export default function WebhooksTab() {
             <div className="space-y-3">
               <div>
                 <Label>Merchant ID</Label>
-                <Input placeholder="merchant_123" value={addForm.merchantId} onChange={(e) => setAddForm({ ...addForm, merchantId: e.target.value })} />
+                <Input
+                  placeholder="merchant_123"
+                  value={addForm.merchantId}
+                  onChange={(e) => setAddForm({ ...addForm, merchantId: e.target.value })}
+                />
               </div>
               <div>
                 <Label>Endpoint URL</Label>
-                <Input placeholder="https://merchant.example.com/webhooks/turbopay" value={addForm.url} onChange={(e) => setAddForm({ ...addForm, url: e.target.value })} />
+                <Input
+                  placeholder="https://merchant.example.com/webhooks/turbopay"
+                  value={addForm.url}
+                  onChange={(e) => setAddForm({ ...addForm, url: e.target.value })}
+                />
               </div>
               <div>
                 <Label>Subscribed events (comma-separated)</Label>
-                <Input placeholder="PAYMENT_SETTLED, PAYMENT_REVERSED" value={addForm.events} onChange={(e) => setAddForm({ ...addForm, events: e.target.value })} />
+                <Input
+                  placeholder="PAYMENT_SETTLED, PAYMENT_REVERSED"
+                  value={addForm.events}
+                  onChange={(e) => setAddForm({ ...addForm, events: e.target.value })}
+                />
               </div>
             </div>
           )}
           <DialogFooter>
             {newSecret ? (
-              <Button onClick={() => { setAddOpen(false); setNewSecret(null); }}>Done</Button>
+              <Button
+                onClick={() => {
+                  setAddOpen(false);
+                  setNewSecret(null);
+                }}
+              >
+                Done
+              </Button>
             ) : (
               <>
-                <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+                <Button variant="outline" onClick={() => setAddOpen(false)}>
+                  Cancel
+                </Button>
                 <Button onClick={submitAdd} disabled={adding}>
                   {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Create endpoint

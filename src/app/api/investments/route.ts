@@ -44,7 +44,10 @@ interface UserInvestmentDTO {
 /** Parse "30 days" / "6 months" / "1 year" / "91 days" into a future Date. */
 function parseDuration(durationLabel: string): Date {
   const now = new Date();
-  const match = durationLabel.trim().toLowerCase().match(/^(\d+)\s*(day|month|year)s?$/);
+  const match = durationLabel
+    .trim()
+    .toLowerCase()
+    .match(/^(\d+)\s*(day|month|year)s?$/);
   if (!match) {
     // default 30 days
     now.setDate(now.getDate() + 30);
@@ -134,13 +137,13 @@ export async function POST(req: Request) {
       throw new ServiceError(
         `Minimum investment is ₦${product.minAmountKobo / 100}`,
         400,
-        "MIN_AMOUNT",
+        "MIN_AMOUNT"
       );
     if (amountKobo > product.maxAmountKobo)
       throw new ServiceError(
         `Maximum investment is ₦${product.maxAmountKobo / 100}`,
         400,
-        "MAX_AMOUNT",
+        "MAX_AMOUNT"
       );
 
     const wallet = await db.wallet.findUnique({ where: { userId: user.id } });

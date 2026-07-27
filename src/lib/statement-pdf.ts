@@ -88,7 +88,7 @@ function notEmpty(v: string | null | undefined): v is string {
 export function generateStatementPdf(
   account: StatementAccount,
   period: StatementPeriod,
-  transactions: StatementTx[],
+  transactions: StatementTx[]
 ): Uint8Array {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -134,17 +134,14 @@ export function generateStatementPdf(
     `${fmtDate(period.periodStart)} – ${fmtDate(period.periodEnd)}`,
     pageWidth - margin,
     48,
-    { align: "right" },
+    { align: "right" }
   );
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(209, 250, 229);
-  doc.text(
-    `Generated ${new Date().toLocaleString("en-NG")}`,
-    pageWidth - margin,
-    62,
-    { align: "right" },
-  );
+  doc.text(`Generated ${new Date().toLocaleString("en-NG")}`, pageWidth - margin, 62, {
+    align: "right",
+  });
 
   // ===== Account info card =====
   const infoY = 115;
@@ -182,12 +179,11 @@ export function generateStatementPdf(
   let runningBalance = account.openingBalanceKobo;
 
   const body = transactions.map((t) => {
-    const signed =
-      t.direction === "CREDIT" ? t.amountKobo : -t.amountKobo;
+    const signed = t.direction === "CREDIT" ? t.amountKobo : -t.amountKobo;
     runningBalance += signed;
     const desc =
       t.description ??
-      (notEmpty(t.counterpartyName) ? t.counterpartyName! : TYPE_LABELS[t.type] ?? t.type);
+      (notEmpty(t.counterpartyName) ? t.counterpartyName! : (TYPE_LABELS[t.type] ?? t.type));
     return [
       fmtDate(t.createdAt, true),
       t.reference,
@@ -276,12 +272,9 @@ export function generateStatementPdf(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(209, 250, 229);
-  doc.text(
-    `Closing balance: ${naira(account.closingBalanceKobo)}`,
-    pageWidth / 2,
-    summaryY + 66,
-    { align: "center" },
-  );
+  doc.text(`Closing balance: ${naira(account.closingBalanceKobo)}`, pageWidth / 2, summaryY + 66, {
+    align: "center",
+  });
 
   // ===== Footer =====
   const footerY = pageHeight - 60;
@@ -296,20 +289,14 @@ export function generateStatementPdf(
     "This statement was generated electronically by Turbopay MFB and is valid without signature.",
     pageWidth / 2,
     footerY + 16,
-    { align: "center" },
+    { align: "center" }
   );
-  doc.text(
-    "Turbopay MFB · Licensed partners · NDPR-aware",
-    pageWidth / 2,
-    footerY + 28,
-    { align: "center" },
-  );
-  doc.text(
-    `Page 1 · ${transactions.length} transactions`,
-    pageWidth / 2,
-    footerY + 40,
-    { align: "center" },
-  );
+  doc.text("Turbopay MFB · Licensed partners · NDPR-aware", pageWidth / 2, footerY + 28, {
+    align: "center",
+  });
+  doc.text(`Page 1 · ${transactions.length} transactions`, pageWidth / 2, footerY + 40, {
+    align: "center",
+  });
 
   // Return as Uint8Array (raw PDF bytes)
   return doc.output("arraybuffer") as unknown as Uint8Array;
@@ -320,7 +307,7 @@ export function generateStatementPdf(
 export function generateStatementCsv(
   account: StatementAccount,
   period: StatementPeriod,
-  transactions: StatementTx[],
+  transactions: StatementTx[]
 ): Uint8Array {
   const escape = (v: string | number | null | undefined) => {
     const s = v == null ? "" : String(v);
@@ -335,7 +322,9 @@ export function generateStatementCsv(
   if (account.email) lines.push(`Email,${escape(account.email)}`);
   lines.push(`Account number,${escape(account.accountNumber ?? "—")}`);
   lines.push(`Bank,${escape(account.bankName ?? "Turbopay MFB")}`);
-  lines.push(`Period,${escape(fmtDate(period.periodStart))} to ${escape(fmtDate(period.periodEnd))}`);
+  lines.push(
+    `Period,${escape(fmtDate(period.periodStart))} to ${escape(fmtDate(period.periodEnd))}`
+  );
   lines.push(`Opening balance,${(account.openingBalanceKobo / 100).toFixed(2)}`);
   lines.push(`Closing balance,${(account.closingBalanceKobo / 100).toFixed(2)}`);
   lines.push("");
@@ -347,7 +336,7 @@ export function generateStatementCsv(
     runningBalance += signed;
     const desc =
       t.description ??
-      (notEmpty(t.counterpartyName) ? t.counterpartyName! : TYPE_LABELS[t.type] ?? t.type);
+      (notEmpty(t.counterpartyName) ? t.counterpartyName! : (TYPE_LABELS[t.type] ?? t.type));
     return [
       new Date(t.createdAt).toISOString(),
       t.reference,
@@ -358,13 +347,25 @@ export function generateStatementCsv(
       (t.feeKobo / 100).toFixed(2),
       t.status,
       (runningBalance / 100).toFixed(2),
-    ].map(escape).join(",");
+    ]
+      .map(escape)
+      .join(",");
   });
 
   lines.push(
-    ["Date", "Reference", "Type", "Direction", "Description", "Amount (NGN)", "Fee (NGN)", "Status", "Balance (NGN)"]
+    [
+      "Date",
+      "Reference",
+      "Type",
+      "Direction",
+      "Description",
+      "Amount (NGN)",
+      "Fee (NGN)",
+      "Status",
+      "Balance (NGN)",
+    ]
       .map(escape)
-      .join(","),
+      .join(",")
   );
   lines.push(...rows);
 
@@ -390,7 +391,7 @@ export function generateStatementCsv(
 export function buildStatementFilename(
   account: StatementAccount,
   period: StatementPeriod,
-  format: "PDF" | "CSV",
+  format: "PDF" | "CSV"
 ): string {
   const safeName = (account.fullName || "user")
     .toLowerCase()

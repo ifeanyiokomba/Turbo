@@ -62,7 +62,7 @@ export interface IssueOtpResult {
 export function issueOtp(
   userId: string,
   amountKobo: number,
-  channel: "SMS" | "EMAIL" | "WHATSAPP" = "SMS",
+  channel: "SMS" | "EMAIL" | "WHATSAPP" = "SMS"
 ): IssueOtpResult {
   const code = generateOtpCode();
   const now = Date.now();

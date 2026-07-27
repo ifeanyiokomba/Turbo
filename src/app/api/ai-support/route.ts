@@ -23,7 +23,7 @@ export async function POST(req: Request) {
           !!m &&
           (m.role === "user" || m.role === "assistant") &&
           typeof m.content === "string" &&
-          m.content.trim().length > 0,
+          m.content.trim().length > 0
       )
       .slice(-10);
 

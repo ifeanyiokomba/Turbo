@@ -45,9 +45,7 @@ const inflight = new Map<string, Promise<ProviderCredentials | null>>();
  * Adapters should treat `null` as "unconfigured" — in non-prod they fall back
  * to mock behaviour, in prod they return `fail("AUTH_FAILED", ...)`.
  */
-export async function getCredentials(
-  providerCode: string,
-): Promise<ProviderCredentials | null> {
+export async function getCredentials(providerCode: string): Promise<ProviderCredentials | null> {
   const code = providerCode.toLowerCase();
 
   // Cache hit (still within TTL)?
@@ -141,10 +139,7 @@ export function invalidateCredentials(providerCode: string): void {
  * Adapters should prefer this over reaching into `secrets` directly so the
  * access pattern is uniform and easy to audit.
  */
-export function secret(
-  creds: ProviderCredentials | null,
-  key: string,
-): string | null {
+export function secret(creds: ProviderCredentials | null, key: string): string | null {
   if (!creds) return null;
   const v = creds.secrets[key];
   return typeof v === "string" && v.length > 0 ? v : null;

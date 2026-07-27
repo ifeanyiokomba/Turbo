@@ -146,7 +146,11 @@ export async function POST(req: Request) {
           note: note ?? null,
           provider: "turbopay-qr",
           providerRef: qrReference,
-          metadata: JSON.stringify({ qrReference, recipientId: recipient.id, tokenReference: qrReference }),
+          metadata: JSON.stringify({
+            qrReference,
+            recipientId: recipient.id,
+            tokenReference: qrReference,
+          }),
         },
       });
     }

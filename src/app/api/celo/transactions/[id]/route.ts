@@ -17,8 +17,7 @@ export async function GET(_req: Request, { params }: Ctx) {
       include: { celoWallet: { select: { address: true, chainId: true } } },
     });
 
-    if (!transaction)
-      throw new ServiceError("Transaction not found", 404, "TX_NOT_FOUND");
+    if (!transaction) throw new ServiceError("Transaction not found", 404, "TX_NOT_FOUND");
     if (transaction.userId !== user.id)
       throw new ServiceError("Transaction not found", 404, "TX_NOT_FOUND");
 

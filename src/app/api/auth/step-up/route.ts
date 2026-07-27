@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
     if (process.env.NODE_ENV !== "production") {
       console.log(
         `[step-up] OTP for ${user.username} (${channel}): ${issued.code} ` +
-          `(amount=${amountKobo} kobo, threshold=${threshold} kobo)`,
+          `(amount=${amountKobo} kobo, threshold=${threshold} kobo)`
       );
     }
 

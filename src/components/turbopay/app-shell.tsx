@@ -8,7 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { PinDialogProvider } from "./parts/pin-dialog";
 import { CountrySwitcher } from "./parts/country-switcher";
 import { ViewTransition } from "./view-transition";
@@ -82,7 +88,15 @@ import { cn } from "@/lib/utils";
 // import { isMiniPay, getMiniPayAddress } from "@/lib/minipay";
 // import { useAutoConnect } from "@/hooks/use-auto-connect";
 
-const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any; cond?: (user: { country: string }) => boolean }[] }[] = [
+const USER_NAV: {
+  group: string;
+  items: {
+    key: ViewKey;
+    label: string;
+    icon: any;
+    cond?: (user: { country: string }) => boolean;
+  }[];
+}[] = [
   {
     group: "Financial",
     items: [
@@ -94,7 +108,12 @@ const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any
       { key: "bills", label: "Pay Bills", icon: Receipt },
       { key: "multi-currency", label: "Multi-Currency", icon: Globe },
       { key: "intl-transfers", label: "International", icon: Plane },
-      { key: "mobile-money", label: "Mobile Money", icon: Smartphone, cond: (u) => MOBILE_MONEY_COUNTRIES.has(u.country) },
+      {
+        key: "mobile-money",
+        label: "Mobile Money",
+        icon: Smartphone,
+        cond: (u) => MOBILE_MONEY_COUNTRIES.has(u.country),
+      },
       { key: "payment-links", label: "Payment Links", icon: LinkIcon },
       { key: "marketplace", label: "Marketplace", icon: Store },
       { key: "merchant-dashboard", label: "Merchant Dashboard", icon: Crown },
@@ -128,7 +147,15 @@ const USER_NAV: { group: string; items: { key: ViewKey; label: string; icon: any
 // Countries where Mobile Money is supported (matches CountryConfig.paymentMethods includes "MOBILE_MONEY")
 const MOBILE_MONEY_COUNTRIES = new Set(["KE", "GH", "UG", "TZ", "RW"]);
 
-const ADMIN_NAV: { group: string; items: { key: ViewKey; label: string; icon: any; cond?: (user: { country: string }) => boolean }[] }[] = [
+const ADMIN_NAV: {
+  group: string;
+  items: {
+    key: ViewKey;
+    label: string;
+    icon: any;
+    cond?: (user: { country: string }) => boolean;
+  }[];
+}[] = [
   {
     group: "Overview",
     items: [{ key: "admin", label: "Admin Console", icon: UserCog }],
@@ -220,16 +247,49 @@ const VIEW_TITLES: Record<ViewKey, string> = {
 
 // Set of valid view keys — used to resolve notification actionUrl → setView.
 const VALID_VIEW_KEYS = new Set<string>([
-  "dashboard", "wallet", "transfer", "airtime", "bills", "history", "cards",
-  "savings", "investments", "kyc", "beneficiaries", "qr", "settings", "security",
-  "rewards", "support", "admin", "multi-currency", "intl-transfers", "mobile-money",
-  "payment-links", "scheduled-payments", "analytics", "disputes", "vouchers", "help-center",
-  "achievements", "marketplace", "subscriptions", "wallet-insights",
-  "minipay-wallet", "onchain-history", "celo-bridge", "merchant-dashboard",
+  "dashboard",
+  "wallet",
+  "transfer",
+  "airtime",
+  "bills",
+  "history",
+  "cards",
+  "savings",
+  "investments",
+  "kyc",
+  "beneficiaries",
+  "qr",
+  "settings",
+  "security",
+  "rewards",
+  "support",
+  "admin",
+  "multi-currency",
+  "intl-transfers",
+  "mobile-money",
+  "payment-links",
+  "scheduled-payments",
+  "analytics",
+  "disputes",
+  "vouchers",
+  "help-center",
+  "achievements",
+  "marketplace",
+  "subscriptions",
+  "wallet-insights",
+  "minipay-wallet",
+  "onchain-history",
+  "celo-bridge",
+  "merchant-dashboard",
 ]);
 
 // MiniPay-only nav items — appended to the Financial group when minipayMode is true.
-const MINIPAY_NAV_ITEMS: { key: ViewKey; label: string; icon: any; cond?: (user: { country: string }) => boolean }[] = [
+const MINIPAY_NAV_ITEMS: {
+  key: ViewKey;
+  label: string;
+  icon: any;
+  cond?: (user: { country: string }) => boolean;
+}[] = [
   { key: "minipay-wallet", label: "MiniPay Wallet", icon: Wallet },
   { key: "onchain-history", label: "On-Chain History", icon: Link2 },
   { key: "celo-bridge", label: "cUSD Bridge", icon: ArrowLeftRight },
@@ -281,7 +341,11 @@ const TONE_CLASSES: Record<string, string> = {
   slate: "bg-slate-500/15 text-slate-600 dark:text-slate-300",
 };
 
-export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.getState>["user"]> }) {
+export function AppShell({
+  user,
+}: {
+  user: NonNullable<ReturnType<typeof useApp.getState>["user"]>;
+}) {
   const router = useRouter();
   const { view, setView, sidebarOpen, setSidebarOpen } = useApp();
   const { theme, setTheme } = useTheme();
@@ -387,9 +451,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
   async function handleNotificationClick(n: AppNotification) {
     // Mark as read individually (fire-and-forget, optimistic local update).
     if (!n.read) {
-      setNotifications((prev) =>
-        prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)),
-      );
+      setNotifications((prev) => prev.map((x) => (x.id === n.id ? { ...x, read: true } : x)));
       setUnread((u) => Math.max(0, u - 1));
       try {
         await fetch(`/api/notifications/${n.id}/read`, { method: "PATCH" });
@@ -431,9 +493,20 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
   });
 
   const CurrentView = Views[view];
-  const initials = user.fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
+  const initials = user.fullName
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
   // MiniPay nav items are dormant (standalone mode) — minipayMode is always false.
   const minipayMode = false;
+<<<<<<< HEAD
+=======
+  // celoAddress is null because MiniPay mode is disabled. When MiniPay is
+  // enabled, this would be populated from the connected wallet. Using a
+  // proper `string | null` type without a cast — null is a valid value.
+>>>>>>> ecead5e1765c9674c5c6ba0b7f23bbf8d0791ddf
   const celoAddress = null as string | null;
   // Compute nav groups — when minipayMode is on, inject the MiniPay nav items
   // into the Financial group so they appear in the sidebar.
@@ -441,9 +514,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
     const baseNav = user.role === "ADMIN" ? [...USER_NAV, ...ADMIN_NAV] : USER_NAV;
     if (!minipayMode) return baseNav;
     return baseNav.map((g) =>
-      g.group === "Financial"
-        ? { ...g, items: [...g.items, ...MINIPAY_NAV_ITEMS] }
-        : g,
+      g.group === "Financial" ? { ...g, items: [...g.items, ...MINIPAY_NAV_ITEMS] } : g
     );
   }, [user.role]);
 
@@ -452,7 +523,12 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
     return (
       <div className="flex h-full flex-col">
         {/* Header — logo + collapse toggle (desktop only) */}
-        <div className={cn("flex h-16 items-center gap-2 border-b", c ? "justify-center px-2" : "px-4")}>
+        <div
+          className={cn(
+            "flex h-16 items-center gap-2 border-b",
+            c ? "justify-center px-2" : "px-4"
+          )}
+        >
           <Logo size={30} />
           {!c && <Wordmark size={18} />}
           {onToggleCollapse && (
@@ -461,25 +537,27 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
               aria-label={c ? "Expand sidebar" : "Collapse sidebar"}
               title={c ? "Expand sidebar" : "Collapse sidebar"}
               className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-all hover:bg-muted hover:text-foreground tp-btn-press",
-                c ? "ml-0" : "ml-auto",
+                "text-muted-foreground hover:bg-muted hover:text-foreground tp-btn-press flex h-7 w-7 items-center justify-center rounded-md transition-all",
+                c ? "ml-0" : "ml-auto"
               )}
             >
-              <ChevronLeft className={cn("h-4 w-4 transition-transform duration-300", c && "rotate-180")} />
+              <ChevronLeft
+                className={cn("h-4 w-4 transition-transform duration-300", c && "rotate-180")}
+              />
             </button>
           )}
         </div>
 
         {/* Nav groups */}
-        <nav className="flex-1 overflow-y-auto scrollbar-thin px-2 py-3">
+        <nav className="scrollbar-thin flex-1 overflow-y-auto px-2 py-3">
           {navGroups.map((group) => (
             <div key={group.group} className={cn(c ? "mb-3" : "mb-4")}>
               {!c && (
-                <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="text-muted-foreground mb-1.5 px-3 text-[11px] font-semibold tracking-wider uppercase">
                   {group.group}
                 </p>
               )}
-              {c && <div className="mx-auto mb-2 h-px w-6 bg-border" aria-hidden />}
+              {c && <div className="bg-border mx-auto mb-2 h-px w-6" aria-hidden />}
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   if (item.cond && !item.cond(user)) return null;
@@ -496,7 +574,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
                         c ? "justify-center px-0 py-2.5" : "gap-3 px-3 py-2",
                         active
                           ? ""
-                          : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                          : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
                       )}
                     >
                       <item.icon className="h-4.5 w-4.5 shrink-0" />
@@ -515,8 +593,8 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
         {/* Footer — licensed-by badge (or dot when collapsed) */}
         <div className="border-t p-2">
           {!c ? (
-            <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground">
-              <p className="font-semibold text-foreground">Turbopay MFB</p>
+            <div className="bg-muted/50 text-muted-foreground rounded-lg p-3 text-xs">
+              <p className="text-foreground font-semibold">Turbopay MFB</p>
               <p className="mt-0.5">Licensed partners · NDPR-aware</p>
             </div>
           ) : (
@@ -531,12 +609,12 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
 
   return (
     <PinDialogProvider>
-      <div className="flex min-h-screen bg-background">
+      <div className="bg-background flex min-h-screen">
         {/* Desktop sidebar — collapses to icon-only (w-16) when `collapsed` is true */}
         <aside
           className={cn(
-            "tp-sidebar-glow sticky top-0 hidden h-screen shrink-0 border-r bg-sidebar transition-all duration-300 lg:block",
-            collapsed ? "w-16" : "w-64",
+            "tp-sidebar-glow bg-sidebar sticky top-0 hidden h-screen shrink-0 border-r transition-all duration-300 lg:block",
+            collapsed ? "w-16" : "w-64"
           )}
         >
           {renderSidebarContent({
@@ -558,7 +636,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
           <header className="tp-header-glass sticky top-0 z-30 flex h-16 items-center gap-3 px-4">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-muted lg:hidden"
+              className="hover:bg-muted flex h-9 w-9 items-center justify-center rounded-lg lg:hidden"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -579,9 +657,9 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
               {minipayMode && celoAddress && (
                 <span
                   title={celoAddress}
-                  className="hidden font-mono text-[10px] text-muted-foreground md:inline"
+                  className="text-muted-foreground hidden font-mono text-[10px] md:inline"
                 >
-                  {celoAddress.slice(0, 6)}…{celoAddress.slice(-4)}
+                  {celoAddress ? `${celoAddress.slice(0, 6)}…${celoAddress.slice(-4)}` : ""}
                 </span>
               )}
             </div>
@@ -591,11 +669,13 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
                 onClick={() => setCmdOpen(true)}
                 aria-label="Open command palette"
                 title="Open command palette (⌘K)"
-                className="hidden h-9 items-center gap-2 rounded-lg border bg-muted/40 px-3 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:inline-flex"
+                className="bg-muted/40 text-muted-foreground hover:bg-muted hover:text-foreground hidden h-9 items-center gap-2 rounded-lg border px-3 text-xs transition-colors lg:inline-flex"
               >
                 <Search className="h-3.5 w-3.5" />
                 <span>Search</span>
-                <kbd className="rounded border bg-background px-1 py-0.5 font-mono text-[10px] shadow-sm">⌘K</kbd>
+                <kbd className="bg-background rounded border px-1 py-0.5 font-mono text-[10px] shadow-sm">
+                  ⌘K
+                </kbd>
               </button>
               <CountrySwitcher />
               <Button size="sm" className="gap-1.5" onClick={() => setView("wallet")}>
@@ -604,11 +684,11 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
               <button
                 onClick={() => setNotifOpen(true)}
                 aria-label={`Notifications${unread > 0 ? `, ${unread} unread` : ""}`}
-                className="relative flex h-9 w-9 items-center justify-center rounded-lg hover:bg-muted tp-btn-press"
+                className="hover:bg-muted tp-btn-press relative flex h-9 w-9 items-center justify-center rounded-lg"
               >
                 <Bell className="h-4.5 w-4.5" />
                 {unread > 0 && (
-                  <span className="tp-badge-pulse absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  <span className="tp-badge-pulse absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
                     {unread > 9 ? "9+" : unread}
                   </span>
                 )}
@@ -619,8 +699,12 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
                 className="tp-theme-toggle"
                 data-theme={mounted && theme === "dark" ? "dark" : "light"}
               >
-                <span className="tp-theme-toggle-icon"><Sun className="h-3.5 w-3.5" /></span>
-                <span className="tp-theme-toggle-icon"><Moon className="h-3.5 w-3.5" /></span>
+                <span className="tp-theme-toggle-icon">
+                  <Sun className="h-3.5 w-3.5" />
+                </span>
+                <span className="tp-theme-toggle-icon">
+                  <Moon className="h-3.5 w-3.5" />
+                </span>
                 <span className="tp-theme-toggle-thumb">
                   {mounted && theme === "dark" ? (
                     <Moon className="h-3.5 w-3.5" />
@@ -631,16 +715,18 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
               </button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 rounded-lg p-1 hover:bg-muted">
+                  <button className="hover:bg-muted flex items-center gap-2 rounded-lg p-1">
                     <Avatar className="h-8 w-8 border">
-                      <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">{initials}</AvatarFallback>
+                      <AvatarFallback className="bg-primary/15 text-primary text-xs font-semibold">
+                        {initials}
+                      </AvatarFallback>
                     </Avatar>
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="px-2 py-1.5">
                     <p className="text-sm font-medium">{user.fullName}</p>
-                    <p className="truncate text-xs text-muted-foreground">@{user.username}</p>
+                    <p className="text-muted-foreground truncate text-xs">@{user.username}</p>
                     <Badge variant="secondary" className="mt-1.5 gap-1 text-[10px]">
                       <ShieldCheck className="h-3 w-3" /> KYC Tier {user.kycTier}
                     </Badge>
@@ -658,7 +744,10 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="text-red-600 focus:text-red-600"
+                  >
                     <LogOut className="mr-2 h-4 w-4" /> Sign out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -683,11 +772,11 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
           {/* Main content */}
           <main className="flex-1 px-4 py-6 pb-24 lg:pb-6">
             <ViewTransition viewKey={view}>
-              <div key={view} className="mx-auto max-w-6xl tp-view-enter">
+              <div key={view} className="tp-view-enter mx-auto max-w-6xl">
                 <React.Suspense
                   fallback={
                     <div className="flex h-64 items-center justify-center">
-                      <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+                      <div className="border-muted border-t-primary h-8 w-8 animate-spin rounded-full border-2" />
                     </div>
                   }
                 >
@@ -700,7 +789,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
           {/* Bottom nav (mobile) */}
           <nav
             aria-label="Primary navigation"
-            className="tp-header-glass fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t bg-background/95 lg:hidden"
+            className="tp-header-glass bg-background/95 fixed right-0 bottom-0 left-0 z-30 grid grid-cols-5 border-t lg:hidden"
           >
             {BOTTOM_NAV.map((item) => {
               const active = view === item.key;
@@ -716,7 +805,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
                   {/* Active top-border indicator (2px emerald line) */}
                   <span
                     aria-hidden
-                    className={`absolute inset-x-3 top-0 h-0.5 rounded-full bg-primary transition-opacity duration-200 ${
+                    className={`bg-primary absolute inset-x-3 top-0 h-0.5 rounded-full transition-opacity duration-200 ${
                       active ? "opacity-100" : "opacity-0"
                     }`}
                   />
@@ -729,7 +818,7 @@ export function AppShell({ user }: { user: NonNullable<ReturnType<typeof useApp.
                   {/* Emerald glow dot under the label (active only) */}
                   <span
                     aria-hidden
-                    className={`absolute bottom-1 h-1.5 w-1.5 rounded-full bg-primary transition-all duration-200 ${
+                    className={`bg-primary absolute bottom-1 h-1.5 w-1.5 rounded-full transition-all duration-200 ${
                       active
                         ? "scale-100 opacity-100 shadow-[0_0_8px_1px_oklch(0.72_0.14_162/0.7)]"
                         : "scale-0 opacity-0"
@@ -792,10 +881,13 @@ function SessionTimeoutDialog({
 
   return (
     <Dialog open={open}>
-      <DialogContent className="max-w-sm gap-0 p-0" onPointerDownOutside={(e) => e.preventDefault()}>
+      <DialogContent
+        className="max-w-sm gap-0 p-0"
+        onPointerDownOutside={(e) => e.preventDefault()}
+      >
         {/* Amber header band */}
         <div
-          className={`flex flex-col items-center gap-3 rounded-t-lg px-6 pb-5 pt-7 text-center ${
+          className={`flex flex-col items-center gap-3 rounded-t-lg px-6 pt-7 pb-5 text-center ${
             urgent
               ? "bg-gradient-to-b from-red-500/15 to-transparent"
               : "bg-gradient-to-b from-amber-500/15 to-transparent"
@@ -843,9 +935,7 @@ function SessionTimeoutDialog({
           </div>
 
           <DialogHeader className="space-y-1.5 p-0">
-            <DialogTitle className="text-base">
-              Your session is about to expire
-            </DialogTitle>
+            <DialogTitle className="text-base">Your session is about to expire</DialogTitle>
             <DialogDescription>
               You&apos;ve been inactive for a while. For your security, we&apos;ll sign you out
               automatically when the timer runs out.
@@ -906,7 +996,7 @@ function NotificationCenterPanel({
       <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-md">
         {/* Header */}
         <SheetHeader className="gap-0 border-b p-0">
-          <div className="flex items-center justify-between px-5 pb-3 pt-5">
+          <div className="flex items-center justify-between px-5 pt-5 pb-3">
             <div className="flex items-center gap-2">
               <SheetTitle className="text-base">Notifications</SheetTitle>
               {unread > 0 && (
@@ -918,7 +1008,7 @@ function NotificationCenterPanel({
             <button
               onClick={onMarkAllRead}
               disabled={unread === 0 || markingAll}
-              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
             >
               <CheckCheck className="h-3.5 w-3.5" />
               {markingAll ? "Marking…" : "Mark all read"}
@@ -982,18 +1072,14 @@ function NotificationCenterPanel({
                     {/* Content */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold leading-tight">
-                          {n.title}
-                        </p>
+                        <p className="text-sm leading-tight font-semibold">{n.title}</p>
                         {!n.read && (
-                          <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                          <span className="bg-primary mt-1 h-2 w-2 shrink-0 rounded-full" />
                         )}
                       </div>
-                      <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                        {n.body}
-                      </p>
+                      <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">{n.body}</p>
                       <div className="mt-1.5 flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground">
+                        <span className="text-muted-foreground text-[11px]">
                           {timeAgo(n.createdAt)}
                         </span>
                         {n.priority === "HIGH" && (
@@ -1003,7 +1089,7 @@ function NotificationCenterPanel({
                           </span>
                         )}
                         {targetView && (
-                          <span className="tp-link-underline text-[11px] font-medium text-primary">
+                          <span className="tp-link-underline text-primary text-[11px] font-medium">
                             View
                           </span>
                         )}
@@ -1020,7 +1106,7 @@ function NotificationCenterPanel({
         <SheetFooter className="border-t p-0">
           <button
             onClick={() => onOpenChange(false)}
-            className="flex w-full items-center justify-center gap-1.5 px-5 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/5"
+            className="text-primary hover:bg-primary/5 flex w-full items-center justify-center gap-1.5 px-5 py-3 text-sm font-medium transition-colors"
           >
             View all
             <ChevronRight className="h-4 w-4" />
@@ -1057,17 +1143,17 @@ function NotificationEmpty({ filter }: { filter: NotifFilter }) {
         : "No notifications";
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-      <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-        <Bell className="h-7 w-7 text-primary" />
+      <div className="bg-primary/10 relative flex h-16 w-16 items-center justify-center rounded-full">
+        <Bell className="text-primary h-7 w-7" />
         {/* Subtle ring around the bell illustration */}
         <span
           aria-hidden
-          className="absolute inset-0 rounded-full border-2 border-dashed border-primary/20"
+          className="border-primary/20 absolute inset-0 rounded-full border-2 border-dashed"
         />
       </div>
       <div>
         <p className="text-sm font-semibold">{msg}</p>
-        <p className="mt-0.5 flex items-center justify-center gap-1 text-xs text-muted-foreground">
+        <p className="text-muted-foreground mt-0.5 flex items-center justify-center gap-1 text-xs">
           <Inbox className="h-3 w-3" />
           New activity will appear here.
         </p>
@@ -1111,12 +1197,12 @@ function FabSpeedDial({ onPick }: { onPick: (v: ViewKey) => void }) {
           aria-hidden
           tabIndex={-1}
           onClick={() => setOpen(false)}
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] animate-in fade-in-0 duration-150"
+          className="animate-in fade-in-0 fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] duration-150"
         />
       )}
 
       {/* Speed-dial stack (sits above the FAB; items stack upward) */}
-      <div className="pointer-events-none fixed bottom-20 right-4 z-50 flex flex-col items-end gap-2.5">
+      <div className="pointer-events-none fixed right-4 bottom-20 z-50 flex flex-col items-end gap-2.5">
         {FAB_ACTIONS.map((a, i) => {
           // Stagger from bottom to top: the last action (topmost) appears last.
           const delay = (FAB_ACTIONS.length - 1 - i) * 45;
@@ -1132,7 +1218,7 @@ function FabSpeedDial({ onPick }: { onPick: (v: ViewKey) => void }) {
             >
               {/* Label pill */}
               <span
-                className={`rounded-lg bg-popover/95 px-2.5 py-1 text-xs font-semibold shadow-md ring-1 ring-border transition-colors ${
+                className={`bg-popover/95 ring-border rounded-lg px-2.5 py-1 text-xs font-semibold shadow-md ring-1 transition-colors ${
                   open ? "scale-100" : "scale-90"
                 }`}
               >
@@ -1156,7 +1242,7 @@ function FabSpeedDial({ onPick }: { onPick: (v: ViewKey) => void }) {
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Close quick actions" : "Open quick actions"}
         aria-expanded={open}
-        className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30 ring-2 ring-white/50 transition-transform duration-300 active:scale-90 lg:hidden"
+        className="fixed right-4 bottom-20 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg ring-2 shadow-emerald-500/30 ring-white/50 transition-transform duration-300 active:scale-90 lg:hidden"
         style={{ transform: open ? "rotate(45deg)" : "rotate(0deg)" }}
       >
         <Plus className="h-6 w-6" />

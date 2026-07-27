@@ -96,7 +96,7 @@
    * variation between sections.") */
   --bg: #ffffff;
   --surface: #ffffff;
-  --surface-warm: var(--surface);     /* alias — Vercel has no warm tier */
+  --surface-warm: var(--surface); /* alias — Vercel has no warm tier */
 
   /* ─── Foreground ramp (4 levels) ──────────────────────────────────
    * Gray 900 → 600 → 500 → 400, the documented neutral scale from
@@ -106,10 +106,10 @@
    * because Vercel genuinely uses four distinct text tiers: heading
    * black, body description gray, tertiary caption gray, and
    * placeholder/disabled gray. */
-  --fg: #171717;                       /* Gray 900 — headings, primary text */
-  --fg-2: #4d4d4d;                     /* Gray 600 — body description */
-  --muted: #666666;                    /* Gray 500 — captions, tertiary text */
-  --meta: #808080;                     /* Gray 400 — placeholder, disabled */
+  --fg: #171717; /* Gray 900 — headings, primary text */
+  --fg-2: #4d4d4d; /* Gray 600 — body description */
+  --muted: #666666; /* Gray 500 — captions, tertiary text */
+  --meta: #808080; /* Gray 400 — placeholder, disabled */
 
   /* ─── Border (2 levels) ──────────────────────────────────────────
    * Shadow-as-border is THE signature: `rgba(0, 0, 0, 0.08)` at 1px
@@ -120,8 +120,8 @@
    * (e.g. image-card top edge per DESIGN.md §4). `--border-soft`
    * drops to 0.04 alpha for inner row separators that should not
    * visually compete with the card edge. */
-  --border: rgba(0, 0, 0, 0.08);       /* signature shadow-as-border alpha */
-  --border-soft: rgba(0, 0, 0, 0.04);  /* inner row separator */
+  --border: rgba(0, 0, 0, 0.08); /* signature shadow-as-border alpha */
+  --border-soft: rgba(0, 0, 0, 0.04); /* inner row separator */
 
   /* ─── Accent ─────────────────────────────────────────────────────
    * The single chromatic move: Vercel/Console Blue. Used in links,
@@ -134,8 +134,8 @@
    * encodes that pattern via `background: var(--fg)` on the primary
    * button, so `--accent` stays reserved for the chromatic moments
    * where blue actually appears. */
-  --accent: #0070f3;                   /* Vercel Blue / Console Blue */
-  --accent-on: #ffffff;                /* white label on saturated blue */
+  --accent: #0070f3; /* Vercel Blue / Console Blue */
+  --accent-on: #ffffff; /* white label on saturated blue */
   --accent-hover: color-mix(in oklab, var(--accent), black 8%);
   --accent-active: color-mix(in oklab, var(--accent), black 14%);
 
@@ -160,20 +160,22 @@
    * marketing site to the product. */
   --font-display: "Geist", "Geist Sans", -apple-system, "Segoe UI", Arial, sans-serif;
   --font-body: "Geist", "Geist Sans", -apple-system, "Segoe UI", Arial, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, "SF Mono", "Roboto Mono", Menlo, Monaco, "Liberation Mono", "DejaVu Sans Mono", "Courier New", monospace;
+  --font-mono:
+    "Geist Mono", ui-monospace, "SF Mono", "Roboto Mono", Menlo, Monaco, "Liberation Mono",
+    "DejaVu Sans Mono", "Courier New", monospace;
 
   /* Type scale (px) — derived from DESIGN.md §3 hierarchy table.
    * The scale tops out at 48px (display hero); Vercel reads BIG
    * because of -0.05em compression on display, not because of a
    * larger px ceiling. */
-  --text-xs: 12px;                     /* caption, metadata, tags */
-  --text-sm: 14px;                     /* button, link, small UI */
-  --text-base: 16px;                   /* body small, navigation */
-  --text-lg: 20px;                     /* body large, introductions */
-  --text-xl: 24px;                     /* card title */
-  --text-2xl: 32px;                    /* sub-heading, large card */
-  --text-3xl: 40px;                    /* section heading */
-  --text-4xl: 48px;                    /* display hero */
+  --text-xs: 12px; /* caption, metadata, tags */
+  --text-sm: 14px; /* button, link, small UI */
+  --text-base: 16px; /* body small, navigation */
+  --text-lg: 20px; /* body large, introductions */
+  --text-xl: 24px; /* card title */
+  --text-2xl: 32px; /* sub-heading, large card */
+  --text-3xl: 40px; /* section heading */
+  --text-4xl: 48px; /* display hero */
 
   /* `--leading-tight` is 1.1 (DESIGN.md says 1.00–1.17 at display),
    * `--leading-body` is 1.5 (the documented 16px / 24px ratio).
@@ -214,10 +216,10 @@
    * 12 (image/featured card), 9999 (badge/pill). The 64px and
    * 100px "navigation pill" radii from DESIGN.md are component-
    * specific and not part of the shared schema. */
-  --radius-sm: 6px;                    /* buttons, inputs, functional */
-  --radius-md: 8px;                    /* cards, modals */
-  --radius-lg: 12px;                   /* image cards, featured */
-  --radius-pill: 9999px;               /* badges, status pills */
+  --radius-sm: 6px; /* buttons, inputs, functional */
+  --radius-md: 8px; /* cards, modals */
+  --radius-lg: 12px; /* image cards, featured */
+  --radius-pill: 9999px; /* badges, status pills */
 
   /* ─── Elevation (3 levels) ───────────────────────────────────────
    * Vercel's depth system is shadow-LED, not blur-led. Three levels:
@@ -237,10 +239,8 @@
   --elev-flat: none;
   --elev-ring: 0 0 0 1px var(--border);
   --elev-raised:
-    0 0 0 1px rgba(0, 0, 0, 0.08),
-    0 2px 2px rgba(0, 0, 0, 0.04),
-    0 8px 8px -8px rgba(0, 0, 0, 0.04),
-    0 0 0 1px #fafafa;
+    0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 2px rgba(0, 0, 0, 0.04),
+    0 8px 8px -8px rgba(0, 0, 0, 0.04), 0 0 0 1px #fafafa;
 
   /* ─── Focus ring ─────────────────────────────────────────────────
    * Vercel's `--ds-focus-color` is `hsla(212, 100%, 48%, 1)`; the

@@ -10,12 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -38,9 +33,24 @@ import { formatMoney, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
 
 const WALLET_PROVIDERS = [
-  { code: "MPESA", name: "M-Pesa", color: "bg-green-500/10 text-green-600 dark:text-green-400", countries: ["KE", "TZ"] },
-  { code: "MTN_MOMO", name: "MTN MoMo", color: "bg-amber-500/10 text-amber-600 dark:text-amber-400", countries: ["GH", "UG", "CI", "CM"] },
-  { code: "AIRTEL_MONEY", name: "Airtel Money", color: "bg-red-500/10 text-red-600 dark:text-red-400", countries: ["KE", "GH", "UG", "TZ"] },
+  {
+    code: "MPESA",
+    name: "M-Pesa",
+    color: "bg-green-500/10 text-green-600 dark:text-green-400",
+    countries: ["KE", "TZ"],
+  },
+  {
+    code: "MTN_MOMO",
+    name: "MTN MoMo",
+    color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+    countries: ["GH", "UG", "CI", "CM"],
+  },
+  {
+    code: "AIRTEL_MONEY",
+    name: "Airtel Money",
+    color: "bg-red-500/10 text-red-600 dark:text-red-400",
+    countries: ["KE", "GH", "UG", "TZ"],
+  },
 ];
 
 interface MomoTx {
@@ -76,7 +86,9 @@ export default function MobileMoneyView() {
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/transactions?type=MOBILE_MONEY&limit=50", { cache: "no-store" });
+      const res = await fetch("/api/transactions?type=MOBILE_MONEY&limit=50", {
+        cache: "no-store",
+      });
       if (res.ok) {
         const json = await res.json();
         setHistory(json.transactions ?? []);
@@ -117,7 +129,8 @@ export default function MobileMoneyView() {
     }
     setBusy(true);
     try {
-      const endpoint = direction === "INBOUND" ? "/api/mobile-money/collect" : "/api/mobile-money/disburse";
+      const endpoint =
+        direction === "INBOUND" ? "/api/mobile-money/collect" : "/api/mobile-money/disburse";
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -135,7 +148,7 @@ export default function MobileMoneyView() {
         return;
       }
       toast.success(
-        direction === "INBOUND" ? `STK push sent to ${phone}` : `Disbursed to ${phone}`,
+        direction === "INBOUND" ? `STK push sent to ${phone}` : `Disbursed to ${phone}`
       );
       setPhone("");
       setAmountInput("");
@@ -148,7 +161,7 @@ export default function MobileMoneyView() {
   }
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="Mobile Money"
         subtitle={`STK push collections & B2C disbursements via ${availableProviders.map((p) => p.name).join(" / ")}.`}
@@ -177,8 +190,9 @@ export default function MobileMoneyView() {
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="p-5 lg:col-span-2">
               <p className="text-sm font-semibold">Collect via STK push</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Send an STK prompt to your customer&apos;s phone. They enter their M-Pesa/MoMo PIN to authorize the payment.
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                Send an STK prompt to your customer&apos;s phone. They enter their M-Pesa/MoMo PIN
+                to authorize the payment.
               </p>
 
               <div className="mt-4 space-y-3">
@@ -215,7 +229,9 @@ export default function MobileMoneyView() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="momo-amount">Amount ({user?.country === "KE" ? "KES" : "GHS"})</Label>
+                  <Label htmlFor="momo-amount">
+                    Amount ({user?.country === "KE" ? "KES" : "GHS"})
+                  </Label>
                   <Input
                     id="momo-amount"
                     inputMode="decimal"
@@ -229,7 +245,7 @@ export default function MobileMoneyView() {
                         key={v}
                         type="button"
                         onClick={() => setAmountInput(String(v))}
-                        className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                        className="border-border bg-background hover:border-primary hover:bg-primary/5 rounded-full border px-2.5 py-1 text-xs font-medium"
                       >
                         {v}
                       </button>
@@ -252,7 +268,11 @@ export default function MobileMoneyView() {
                   onClick={() => submit("INBOUND")}
                   disabled={busy}
                 >
-                  {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ArrowDownLeft className="h-4 w-4" />}
+                  {busy ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ArrowDownLeft className="h-4 w-4" />
+                  )}
                   Send STK push
                 </Button>
               </div>
@@ -261,12 +281,26 @@ export default function MobileMoneyView() {
             <div className="space-y-4">
               <Card className="p-5">
                 <p className="text-sm font-semibold">How STK push works</p>
-                <ol className="mt-3 space-y-2 text-xs text-muted-foreground">
-                  <li className="flex gap-2"><span className="font-bold text-emerald-600">1.</span> Enter customer phone + amount.</li>
-                  <li className="flex gap-2"><span className="font-bold text-emerald-600">2.</span> Confirm with your PIN.</li>
-                  <li className="flex gap-2"><span className="font-bold text-emerald-600">3.</span> Customer gets an STK prompt.</li>
-                  <li className="flex gap-2"><span className="font-bold text-emerald-600">4.</span> They enter their M-Pesa/MoMo PIN.</li>
-                  <li className="flex gap-2"><span className="font-bold text-emerald-600">5.</span> Funds land in your wallet instantly.</li>
+                <ol className="text-muted-foreground mt-3 space-y-2 text-xs">
+                  <li className="flex gap-2">
+                    <span className="font-bold text-emerald-600">1.</span> Enter customer phone +
+                    amount.
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold text-emerald-600">2.</span> Confirm with your PIN.
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold text-emerald-600">3.</span> Customer gets an STK
+                    prompt.
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold text-emerald-600">4.</span> They enter their
+                    M-Pesa/MoMo PIN.
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="font-bold text-emerald-600">5.</span> Funds land in your wallet
+                    instantly.
+                  </li>
                 </ol>
               </Card>
               <Card className="border-amber-500/30 bg-amber-500/10 p-5">
@@ -274,8 +308,9 @@ export default function MobileMoneyView() {
                 <p className="mt-2 text-sm font-medium text-amber-700 dark:text-amber-300">
                   Country-locked
                 </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Mobile Money is georouted. Your country is <strong>{country}</strong>. Switch in Settings to use a different provider.
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  Mobile Money is georouted. Your country is <strong>{country}</strong>. Switch in
+                  Settings to use a different provider.
                 </p>
               </Card>
             </div>
@@ -286,8 +321,9 @@ export default function MobileMoneyView() {
         <TabsContent value="disburse" className="space-y-5">
           <Card className="p-5">
             <p className="text-sm font-semibold">Disburse (B2C payout)</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Send money from your Turbopay wallet directly to a customer&apos;s mobile money wallet.
+            <p className="text-muted-foreground mt-0.5 text-xs">
+              Send money from your Turbopay wallet directly to a customer&apos;s mobile money
+              wallet.
             </p>
 
             <div className="mt-4 space-y-3">
@@ -334,12 +370,12 @@ export default function MobileMoneyView() {
                 />
               </div>
 
-              <Button
-                className="w-full gap-1.5"
-                onClick={() => submit("OUTBOUND")}
-                disabled={busy}
-              >
-                {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ArrowUpRight className="h-4 w-4" />}
+              <Button className="w-full gap-1.5" onClick={() => submit("OUTBOUND")} disabled={busy}>
+                {busy ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ArrowUpRight className="h-4 w-4" />
+                )}
                 Disburse funds
               </Button>
             </div>
@@ -355,7 +391,9 @@ export default function MobileMoneyView() {
             </div>
             {loading ? (
               <div className="space-y-2">
-                {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-16 w-full rounded-xl" />)}
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full rounded-xl" />
+                ))}
               </div>
             ) : history.length === 0 ? (
               <EmptyState
@@ -364,17 +402,19 @@ export default function MobileMoneyView() {
                 description="Your STK collections and B2C disbursements will appear here."
               />
             ) : (
-              <div className="max-h-[60vh] space-y-2 overflow-y-auto scrollbar-thin pr-1">
+              <div className="scrollbar-thin max-h-[60vh] space-y-2 overflow-y-auto pr-1">
                 {history.map((tx) => {
                   const isCredit = tx.direction === "CREDIT";
                   return (
                     <div
                       key={tx.id}
-                      className="flex items-center gap-3 rounded-xl border border-transparent p-3 transition-colors hover:border-border hover:bg-muted/40"
+                      className="hover:border-border hover:bg-muted/40 flex items-center gap-3 rounded-xl border border-transparent p-3 transition-colors"
                     >
                       <div
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                          isCredit ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                          isCredit
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                            : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
                         }`}
                       >
                         <Smartphone className="h-4 w-4" />
@@ -383,15 +423,21 @@ export default function MobileMoneyView() {
                         <p className="truncate text-sm font-medium">
                           {tx.counterpartyName ?? "Mobile money"}
                         </p>
-                        <p className="truncate text-xs text-muted-foreground">
+                        <p className="text-muted-foreground truncate text-xs">
                           {tx.reference} · {tx.provider} · {timeAgo(tx.createdAt)}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className={`text-sm font-semibold tabular-nums ${isCredit ? "text-emerald-600 dark:text-emerald-400" : ""}`}>
-                          {isCredit ? "+" : "−"}{formatMoney(tx.amountKobo, "KES")}
+                        <p
+                          className={`text-sm font-semibold tabular-nums ${isCredit ? "text-emerald-600 dark:text-emerald-400" : ""}`}
+                        >
+                          {isCredit ? "+" : "−"}
+                          {formatMoney(tx.amountKobo, "KES")}
                         </p>
-                        <Badge variant={tx.status === "SUCCESS" ? "secondary" : "outline"} className="text-[10px]">
+                        <Badge
+                          variant={tx.status === "SUCCESS" ? "secondary" : "outline"}
+                          className="text-[10px]"
+                        >
                           {tx.status}
                         </Badge>
                       </div>

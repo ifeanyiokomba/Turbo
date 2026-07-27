@@ -9,6 +9,7 @@ import {
   getUserAgent,
   ServiceError,
 } from "@/lib/api";
+import { rateLimitMiddleware } from "@/lib/rate-limit-helpers";
 import { debitWallet, LedgerError } from "@/lib/ledger";
 import { RefType, TxDirection, TxState, TxStatus, TxType } from "@/lib/constants";
 import { generateReference } from "@/lib/money";
@@ -24,6 +25,8 @@ function normalizePhone(phone: string): string {
 export async function POST(req: Request) {
   try {
     const user = await requireUser();
+    const limited = await rateLimitMiddleware(req, "airtime", user.id);
+    if (limited) return limited;
     const body = await req.json().catch(() => ({}));
 
     const network = String(body?.network ?? "").toUpperCase();

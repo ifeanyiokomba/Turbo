@@ -18,9 +18,12 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     if (!existing) return json({ error: "Route not found" }, 404);
 
     const data: Record<string, unknown> = {};
-    if (body.priority !== undefined) data.priority = Math.max(0, Math.min(100, Number(body.priority) || 0));
-    if (body.weight !== undefined) data.weight = Math.max(0, Math.min(100, Number(body.weight) || 0));
-    if (body.canaryPercent !== undefined) data.canaryPercent = Math.max(0, Math.min(100, Number(body.canaryPercent) || 0));
+    if (body.priority !== undefined)
+      data.priority = Math.max(0, Math.min(100, Number(body.priority) || 0));
+    if (body.weight !== undefined)
+      data.weight = Math.max(0, Math.min(100, Number(body.weight) || 0));
+    if (body.canaryPercent !== undefined)
+      data.canaryPercent = Math.max(0, Math.min(100, Number(body.canaryPercent) || 0));
     if (typeof body.enabled === "boolean") data.enabled = body.enabled;
 
     const updated = await db.providerRoute.update({ where: { id }, data });

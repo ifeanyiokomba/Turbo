@@ -53,7 +53,8 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
       throw new ServiceError("Dispute not found", 404, "NOT_FOUND");
 
     // Optional: include referenced transaction summary (for both roles)
-    let transaction: { id: string; reference: string; type: string; amountKobo: number } | null = null;
+    let transaction: { id: string; reference: string; type: string; amountKobo: number } | null =
+      null;
     if (dispute.transactionId) {
       const tx = await db.transaction.findUnique({
         where: { id: dispute.transactionId },
@@ -75,32 +76,25 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const body = await req.json().catch(() => ({}));
 
     const existing = await db.dispute.findUnique({ where: { id } });
-    if (!existing)
-      throw new ServiceError("Dispute not found", 404, "NOT_FOUND");
+    if (!existing) throw new ServiceError("Dispute not found", 404, "NOT_FOUND");
 
     const data: Record<string, unknown> = {};
     const systemNotes: string[] = [];
 
     if (typeof body.status === "string") {
       const s = body.status.toUpperCase();
-      if (!STATUSES.has(s))
-        throw new ServiceError("Invalid status", 400, "INVALID_STATUS");
+      if (!STATUSES.has(s)) throw new ServiceError("Invalid status", 400, "INVALID_STATUS");
       if (s !== existing.status) {
         data.status = s;
         systemNotes.push(`Status changed to ${s}`);
-        if (
-          s === "RESOLVED_FAVOUR_USER" ||
-          s === "RESOLVED_FAVOUR_PLATFORM" ||
-          s === "CLOSED"
-        ) {
+        if (s === "RESOLVED_FAVOUR_USER" || s === "RESOLVED_FAVOUR_PLATFORM" || s === "CLOSED") {
           data.resolvedAt = new Date();
         }
       }
     }
     if (typeof body.priority === "string") {
       const p = body.priority.toUpperCase();
-      if (!PRIORITIES.has(p))
-        throw new ServiceError("Invalid priority", 400, "INVALID_PRIORITY");
+      if (!PRIORITIES.has(p)) throw new ServiceError("Invalid priority", 400, "INVALID_PRIORITY");
       if (p !== existing.priority) {
         data.priority = p;
         systemNotes.push(`Priority set to ${p}`);
@@ -109,9 +103,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     if (typeof body.assignedTo === "string") {
       data.assignedTo = body.assignedTo.trim() || null;
       systemNotes.push(
-        body.assignedTo.trim()
-          ? `Assigned to ${body.assignedTo.trim()}`
-          : "Assignment cleared",
+        body.assignedTo.trim() ? `Assigned to ${body.assignedTo.trim()}` : "Assignment cleared"
       );
     }
     if (typeof body.resolution === "string") {
@@ -119,8 +111,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       systemNotes.push("Resolution note updated");
     }
 
-    if (Object.keys(data).length === 0)
-      return json({ dispute: existing, unchanged: true });
+    if (Object.keys(data).length === 0) return json({ dispute: existing, unchanged: true });
 
     data.updatedAt = new Date();
 

@@ -94,27 +94,32 @@ export default function OnchainHistoryView() {
   const [cursor, setCursor] = React.useState<string | null>(null);
   const [hasMore, setHasMore] = React.useState(false);
 
-  const load = React.useCallback(async (filterKey: FilterKey, replace = true) => {
-    if (replace) setLoading(true);
-    else setLoadingMore(true);
-    try {
-      const params = new URLSearchParams({ limit: "20" });
-      if (filterKey !== "ALL") params.set("type", filterKey);
-      if (!replace && cursor) params.set("cursor", cursor);
-      const res = await fetch(`/api/celo/transactions?${params.toString()}`, { cache: "no-store" });
-      if (!res.ok) throw new Error("failed");
-      const j = await res.json();
-      const incoming: OnchainTx[] = j.transactions ?? [];
-      setTxs((prev) => (replace ? incoming : [...prev, ...incoming]));
-      setCursor(j.nextCursor ?? null);
-      setHasMore(!!j.hasMore);
-    } catch {
-      toast.error("Couldn't load on-chain transactions");
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [cursor]);
+  const load = React.useCallback(
+    async (filterKey: FilterKey, replace = true) => {
+      if (replace) setLoading(true);
+      else setLoadingMore(true);
+      try {
+        const params = new URLSearchParams({ limit: "20" });
+        if (filterKey !== "ALL") params.set("type", filterKey);
+        if (!replace && cursor) params.set("cursor", cursor);
+        const res = await fetch(`/api/celo/transactions?${params.toString()}`, {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error("failed");
+        const j = await res.json();
+        const incoming: OnchainTx[] = j.transactions ?? [];
+        setTxs((prev) => (replace ? incoming : [...prev, ...incoming]));
+        setCursor(j.nextCursor ?? null);
+        setHasMore(!!j.hasMore);
+      } catch {
+        toast.error("Couldn't load on-chain transactions");
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [cursor]
+  );
 
   React.useEffect(() => {
     load("ALL", true);
@@ -139,7 +144,7 @@ export default function OnchainHistoryView() {
   }
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="On-Chain History"
         subtitle="Every Celo transaction linked to your Turbopay account — deposits, withdrawals, and payments."
@@ -199,7 +204,7 @@ export default function OnchainHistoryView() {
               return (
                 <div
                   key={tx.id}
-                  className="flex flex-col gap-3 p-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center"
+                  className="hover:bg-muted/40 flex flex-col gap-3 p-4 transition-colors sm:flex-row sm:items-center"
                 >
                   <TypeIcon tx={tx} />
                   <div className="min-w-0 flex-1">
@@ -216,13 +221,13 @@ export default function OnchainHistoryView() {
                       </Badge>
                       <StatusBadge status={tx.status} />
                     </div>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                    <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                       <span>{timeAgo(tx.createdAt)}</span>
                       <a
                         href={getExplorerUrl(tx.hash, CELO_MAINNET_CHAIN_ID)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 font-mono text-primary hover:underline"
+                        className="text-primary inline-flex items-center gap-1 font-mono hover:underline"
                       >
                         {truncateAddress(tx.hash)}
                         <ExternalLink className="h-2.5 w-2.5" />
@@ -240,10 +245,11 @@ export default function OnchainHistoryView() {
                       }`}
                     >
                       {isCredit ? "+" : "−"}
-                      {amountNum.toLocaleString(undefined, { maximumFractionDigits: 6 })} {tx.tokenSymbol}
+                      {amountNum.toLocaleString(undefined, { maximumFractionDigits: 6 })}{" "}
+                      {tx.tokenSymbol}
                     </p>
                     {tx.amountKoboEquiv != null && tx.amountKoboEquiv > 0 && (
-                      <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
+                      <p className="text-muted-foreground mt-0.5 text-xs tabular-nums">
                         ≈ {naira(tx.amountKoboEquiv)}
                       </p>
                     )}
@@ -258,12 +264,7 @@ export default function OnchainHistoryView() {
       {/* Pagination */}
       {hasMore && !loading && (
         <div className="flex justify-center">
-          <Button
-            variant="outline"
-            onClick={loadMore}
-            disabled={loadingMore}
-            className="gap-1.5"
-          >
+          <Button variant="outline" onClick={loadMore} disabled={loadingMore} className="gap-1.5">
             {loadingMore ? (
               <RefreshCw className="h-4 w-4 animate-spin" />
             ) : (

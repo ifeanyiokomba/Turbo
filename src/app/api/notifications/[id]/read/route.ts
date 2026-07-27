@@ -15,10 +15,7 @@ import {
  * PATCH /api/notifications/[id]/read
  * Marks a single in-app notification as read (owner-scoped).
  */
-export async function PATCH(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser();
     const { id } = await params;

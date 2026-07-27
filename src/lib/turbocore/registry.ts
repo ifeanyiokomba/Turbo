@@ -21,7 +21,7 @@ class ProviderRegistry {
     contract: ContractName,
     providerCode: string,
     resolver: AsyncResolver,
-    options: { priority?: number; sandbox?: boolean } = {},
+    options: { priority?: number; sandbox?: boolean } = {}
   ): void {
     const key = `${contract}:${providerCode}`;
     if (this.entries.has(key)) return;
@@ -80,7 +80,11 @@ function wrapWithHealthTracking<T extends object>(adapter: T, providerCode: stri
         if (breakerState === "OPEN") {
           return {
             ok: false,
-            error: { code: "PROVIDER_DOWN", message: `${providerCode} circuit open`, retryable: true },
+            error: {
+              code: "PROVIDER_DOWN",
+              message: `${providerCode} circuit open`,
+              retryable: true,
+            },
           };
         }
         const start = Date.now();
@@ -173,7 +177,10 @@ function getCircuitBreaker(providerCode: string) {
   };
 }
 
-export function getBreakerStates(): Record<string, { state: string; failures: number; score: number }> {
+export function getBreakerStates(): Record<
+  string,
+  { state: string; failures: number; score: number }
+> {
   const out: Record<string, { state: string; failures: number; score: number }> = {};
   for (const [code, s] of breakers.entries()) {
     out[code] = { state: s.state, failures: s.failures, score: registry.getHealth(code).score };

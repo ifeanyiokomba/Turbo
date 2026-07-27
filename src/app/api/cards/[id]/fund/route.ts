@@ -39,7 +39,7 @@ export async function POST(req: Request, { params }: Ctx) {
       throw new ServiceError(
         `Card spending limit is ${card.spendingLimitKobo} kobo`,
         400,
-        "LIMIT_EXCEEDED",
+        "LIMIT_EXCEEDED"
       );
 
     await verifyPin(user, pin);

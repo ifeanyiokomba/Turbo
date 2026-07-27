@@ -71,7 +71,7 @@ export async function POST(req: Request) {
 
       const finishedAt = new Date().toISOString();
       console.log(
-        `[cron:stuck-transactions] done at ${finishedAt} — checked=${checked} resolved=${resolved} reversed=${reversed} errors=${errors.length}`,
+        `[cron:stuck-transactions] done at ${finishedAt} — checked=${checked} resolved=${resolved} reversed=${reversed} errors=${errors.length}`
       );
       return { checked, resolved, reversed, errors: errors.length, startedAt, finishedAt };
     });

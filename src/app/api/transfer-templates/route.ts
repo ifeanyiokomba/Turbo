@@ -47,7 +47,12 @@ export async function POST(req: Request) {
     if (!accountNumber)
       throw new ServiceError("Account number is required", 400, "MISSING_ACCOUNT");
     if (type === "BANK") {
-      if (!bankCode) throw new ServiceError("Bank code is required for bank templates", 400, "MISSING_BANK_CODE");
+      if (!bankCode)
+        throw new ServiceError(
+          "Bank code is required for bank templates",
+          400,
+          "MISSING_BANK_CODE"
+        );
       if (!BANKS_BY_CODE[bankCode])
         throw new ServiceError("Unknown bank code", 400, "UNKNOWN_BANK");
     }

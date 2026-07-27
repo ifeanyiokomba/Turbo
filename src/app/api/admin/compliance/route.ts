@@ -5,13 +5,15 @@
 //      Supports optional `?status=` filter on cases.
 
 import { db } from "@/lib/db";
-import { json, handleError, requireAdmin } from "@/lib/api";
+import { json, handleError } from "@/lib/api";
+import { requirePermission } from "@/lib/turbocore/rbac";
+import { Permissions } from "@/lib/turbocore/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    await requireAdmin();
+    await requirePermission(Permissions.COMPLIANCE_VIEW);
     const url = new URL(req.url);
     const statusParam = url.searchParams.get("status")?.trim().toUpperCase();
 
@@ -64,9 +66,7 @@ export async function GET(req: Request) {
           closedAt: c.closedAt,
           userId: c.userId,
           transactionId: c.transactionId,
-          user: u
-            ? { fullName: u.fullName, username: u.username, email: u.email }
-            : null,
+          user: u ? { fullName: u.fullName, username: u.username, email: u.email } : null,
         };
       }),
       screenings: screenings.map((s) => {

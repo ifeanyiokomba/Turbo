@@ -9,14 +9,16 @@
 //       plaintext secrets are NEVER returned — only the version metadata.
 
 import { db } from "@/lib/db";
-import { json, handleError, requireAdmin, audit, getClientIp } from "@/lib/api";
+import { json, handleError, audit, getClientIp } from "@/lib/api";
+import { requirePermission } from "@/lib/turbocore/rbac";
+import { Permissions } from "@/lib/turbocore/rbac/permissions";
 import { encryptSecret } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await requireAdmin();
+    await requirePermission(Permissions.PROVIDERS_CREDENTIALS);
     const rows = await db.providerCredentialVersion.findMany({
       orderBy: [{ providerCode: "asc" }, { version: "desc" }],
     });
@@ -40,9 +42,11 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const user = await requireAdmin();
+    const user = await requirePermission(Permissions.PROVIDERS_CREDENTIALS);
     const body = await req.json().catch(() => ({}));
-    const providerCode = String(body.providerCode ?? "").trim().toLowerCase();
+    const providerCode = String(body.providerCode ?? "")
+      .trim()
+      .toLowerCase();
     const secretsJSON = body.secretsJSON;
     if (!providerCode) return json({ error: "providerCode is required" }, 400);
     if (!secretsJSON || typeof secretsJSON !== "object") {
@@ -104,7 +108,7 @@ export async function POST(req: Request) {
           rotatedAt: result.rotatedAt,
         },
       },
-      201,
+      201
     );
   } catch (e) {
     return handleError(e);

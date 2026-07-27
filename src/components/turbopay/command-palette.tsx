@@ -55,14 +55,29 @@ const NAV_ITEMS: { key: ViewKey; label: string; icon: LucideIcon; keywords?: str
   { key: "qr", label: "QR Pay", icon: QrCode, keywords: "scan code" },
   { key: "airtime", label: "Airtime & Data", icon: Smartphone, keywords: "recharge bundle" },
   { key: "bills", label: "Pay Bills", icon: Receipt, keywords: "electricity utility dstv" },
-  { key: "multi-currency", label: "Multi-Currency Wallets", icon: Globe, keywords: "usd eur ghs forex" },
-  { key: "intl-transfers", label: "International Transfers", icon: Plane, keywords: "wise swift abroad" },
+  {
+    key: "multi-currency",
+    label: "Multi-Currency Wallets",
+    icon: Globe,
+    keywords: "usd eur ghs forex",
+  },
+  {
+    key: "intl-transfers",
+    label: "International Transfers",
+    icon: Plane,
+    keywords: "wise swift abroad",
+  },
   { key: "mobile-money", label: "Mobile Money", icon: Smartphone, keywords: "momo mpesa airtel" },
   { key: "payment-links", label: "Payment Links", icon: LinkIcon, keywords: "request invoice" },
   { key: "cards", label: "Virtual Cards", icon: CreditCard, keywords: "card visa pan" },
   { key: "savings", label: "Savings", icon: PiggyBank, keywords: "goals stash" },
   { key: "investments", label: "Investments", icon: TrendingUp, keywords: "invest returns" },
-  { key: "scheduled-payments", label: "Scheduled Payments", icon: CalendarClock, keywords: "recurring auto" },
+  {
+    key: "scheduled-payments",
+    label: "Scheduled Payments",
+    icon: CalendarClock,
+    keywords: "recurring auto",
+  },
   { key: "history", label: "Transactions", icon: History, keywords: "history statement" },
   { key: "analytics", label: "Analytics", icon: BarChart3, keywords: "insights charts" },
   { key: "kyc", label: "KYC & Limits", icon: ShieldCheck, keywords: "verify nin bvn tier" },
@@ -85,11 +100,41 @@ const QUICK_ACTIONS: {
   view: ViewKey;
   keywords: string;
 }[] = [
-  { label: "Send money", hint: "Transfer to a beneficiary", icon: Send, view: "transfer", keywords: "transfer pay send" },
-  { label: "Buy airtime", hint: "Top up airtime or data", icon: Smartphone, view: "airtime", keywords: "recharge data bundle" },
-  { label: "Pay bills", hint: "Electricity, cable, water", icon: Receipt, view: "bills", keywords: "utility dstv payment" },
-  { label: "Fund wallet", hint: "Add money to wallet", icon: Plus, view: "wallet", keywords: "deposit topup" },
-  { label: "Create card", hint: "Issue a new virtual card", icon: CreditCard, view: "cards", keywords: "visa card issue" },
+  {
+    label: "Send money",
+    hint: "Transfer to a beneficiary",
+    icon: Send,
+    view: "transfer",
+    keywords: "transfer pay send",
+  },
+  {
+    label: "Buy airtime",
+    hint: "Top up airtime or data",
+    icon: Smartphone,
+    view: "airtime",
+    keywords: "recharge data bundle",
+  },
+  {
+    label: "Pay bills",
+    hint: "Electricity, cable, water",
+    icon: Receipt,
+    view: "bills",
+    keywords: "utility dstv payment",
+  },
+  {
+    label: "Fund wallet",
+    hint: "Add money to wallet",
+    icon: Plus,
+    view: "wallet",
+    keywords: "deposit topup",
+  },
+  {
+    label: "Create card",
+    hint: "Issue a new virtual card",
+    icon: CreditCard,
+    view: "cards",
+    keywords: "visa card issue",
+  },
 ];
 
 interface CommandPaletteProps {
@@ -106,7 +151,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
       setView(v);
       onOpenChange(false);
     },
-    [setView, onOpenChange],
+    [setView, onOpenChange]
   );
 
   const handleLogout = React.useCallback(async () => {
@@ -126,7 +171,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
     if (user?.role === "ADMIN") {
       return [
         ...NAV_ITEMS,
-        { key: "admin" as ViewKey, label: "Admin Console", icon: UserCog, keywords: "admin dashboard console" },
+        {
+          key: "admin" as ViewKey,
+          label: "Admin Console",
+          icon: UserCog,
+          keywords: "admin dashboard console",
+        },
       ];
     }
     return NAV_ITEMS;
@@ -154,12 +204,12 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               onSelect={() => go(a.view)}
               className="group rounded-lg data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-700 dark:data-[selected=true]:text-emerald-300"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 transition-colors group-data-[selected=true]:bg-emerald-500/20">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 transition-colors group-data-[selected=true]:bg-emerald-500/20 dark:text-emerald-400">
                 <a.icon className="h-4 w-4" />
               </span>
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className="text-sm font-medium leading-tight">{a.label}</span>
-                <span className="truncate text-[11px] text-muted-foreground">{a.hint}</span>
+                <span className="text-sm leading-tight font-medium">{a.label}</span>
+                <span className="text-muted-foreground truncate text-[11px]">{a.hint}</span>
               </div>
               <CornerDownLeft className="ml-auto h-3.5 w-3.5 opacity-0 transition-opacity group-data-[selected=true]:opacity-100" />
             </CommandItem>
@@ -177,7 +227,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               onSelect={() => go(n.key)}
               className="group rounded-lg data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-700 dark:data-[selected=true]:text-emerald-300"
             >
-              <n.icon className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-data-[selected=true]:text-emerald-600 dark:group-data-[selected=true]:text-emerald-300" />
+              <n.icon className="text-muted-foreground h-4 w-4 shrink-0 transition-colors group-data-[selected=true]:text-emerald-600 dark:group-data-[selected=true]:text-emerald-300" />
               <span className="text-sm">{n.label}</span>
             </CommandItem>
           ))}
@@ -192,7 +242,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             onSelect={() => go("settings")}
             className="group rounded-lg data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-700 dark:data-[selected=true]:text-emerald-300"
           >
-            <Settings className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-data-[selected=true]:text-emerald-600 dark:group-data-[selected=true]:text-emerald-300" />
+            <Settings className="text-muted-foreground h-4 w-4 shrink-0 transition-colors group-data-[selected=true]:text-emerald-600 dark:group-data-[selected=true]:text-emerald-300" />
             <span className="text-sm">Settings</span>
           </CommandItem>
           <CommandItem
@@ -200,7 +250,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             onSelect={() => go("security")}
             className="group rounded-lg data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-700 dark:data-[selected=true]:text-emerald-300"
           >
-            <ShieldCheck className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-data-[selected=true]:text-emerald-600 dark:group-data-[selected=true]:text-emerald-300" />
+            <ShieldCheck className="text-muted-foreground h-4 w-4 shrink-0 transition-colors group-data-[selected=true]:text-emerald-600 dark:group-data-[selected=true]:text-emerald-300" />
             <span className="text-sm">Security</span>
           </CommandItem>
           <CommandItem
@@ -208,7 +258,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             onSelect={() => go("kyc")}
             className="group rounded-lg data-[selected=true]:bg-emerald-500/10 data-[selected=true]:text-emerald-700 dark:data-[selected=true]:text-emerald-300"
           >
-            <ShieldCheck className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-data-[selected=true]:text-emerald-600 dark:group-data-[selected=true]:text-emerald-300" />
+            <ShieldCheck className="text-muted-foreground h-4 w-4 shrink-0 transition-colors group-data-[selected=true]:text-emerald-600 dark:group-data-[selected=true]:text-emerald-300" />
             <span className="text-sm">KYC &amp; Limits</span>
           </CommandItem>
           <CommandItem
@@ -216,39 +266,43 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
             onSelect={handleLogout}
             className="group rounded-lg data-[selected=true]:bg-red-500/10 data-[selected=true]:text-red-600 dark:data-[selected=true]:text-red-400"
           >
-            <LogOut className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-data-[selected=true]:text-red-600 dark:group-data-[selected=true]:text-red-400" />
+            <LogOut className="text-muted-foreground h-4 w-4 shrink-0 transition-colors group-data-[selected=true]:text-red-600 dark:group-data-[selected=true]:text-red-400" />
             <span className="text-sm">Logout</span>
           </CommandItem>
         </CommandGroup>
 
         {/* Footer hint bar — keyboard shortcut legend */}
-        <div className="flex items-center justify-between gap-3 border-t bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
+        <div className="bg-muted/30 text-muted-foreground flex items-center justify-between gap-3 border-t px-3 py-2 text-[11px]">
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1">
-              <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border bg-background px-1 font-mono text-[10px] shadow-sm">
+              <kbd className="bg-background inline-flex h-5 min-w-5 items-center justify-center rounded border px-1 font-mono text-[10px] shadow-sm">
                 <ArrowUp className="h-2.5 w-2.5" />
               </kbd>
-              <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border bg-background px-1 font-mono text-[10px] shadow-sm">
+              <kbd className="bg-background inline-flex h-5 min-w-5 items-center justify-center rounded border px-1 font-mono text-[10px] shadow-sm">
                 <ArrowDown className="h-2.5 w-2.5" />
               </kbd>
               <span className="ml-1">Navigate</span>
             </span>
             <span className="inline-flex items-center gap-1">
-              <kbd className="inline-flex h-5 min-w-5 items-center justify-center rounded border bg-background px-1 font-mono text-[10px] shadow-sm">
+              <kbd className="bg-background inline-flex h-5 min-w-5 items-center justify-center rounded border px-1 font-mono text-[10px] shadow-sm">
                 <CornerDownLeft className="h-2.5 w-2.5" />
               </kbd>
               <span className="ml-1">Select</span>
             </span>
             <span className="inline-flex items-center gap-1">
-              <kbd className="inline-flex h-5 items-center justify-center rounded border bg-background px-1.5 font-mono text-[10px] shadow-sm">
+              <kbd className="bg-background inline-flex h-5 items-center justify-center rounded border px-1.5 font-mono text-[10px] shadow-sm">
                 esc
               </kbd>
               <span className="ml-1">Close</span>
             </span>
           </div>
           <span className="hidden items-center gap-1 sm:inline-flex">
-            <kbd className="rounded border bg-background px-1.5 py-0.5 font-mono text-[10px] shadow-sm">⌘</kbd>
-            <kbd className="rounded border bg-background px-1.5 py-0.5 font-mono text-[10px] shadow-sm">K</kbd>
+            <kbd className="bg-background rounded border px-1.5 py-0.5 font-mono text-[10px] shadow-sm">
+              ⌘
+            </kbd>
+            <kbd className="bg-background rounded border px-1.5 py-0.5 font-mono text-[10px] shadow-sm">
+              K
+            </kbd>
             <span className="ml-1">to toggle</span>
           </span>
         </div>

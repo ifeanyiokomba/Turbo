@@ -134,8 +134,7 @@ export default function WalletInsightsView() {
   const projectionData = React.useMemo(() => {
     if (!data) return [];
     const days: { day: string; balance: number }[] = [];
-    const dailyNet =
-      data.avgMonthlyIncome / 30 - data.avgMonthlyExpense / 30;
+    const dailyNet = data.avgMonthlyIncome / 30 - data.avgMonthlyExpense / 30;
     let bal = data.currentBalance;
     const today = new Date();
     for (let i = 0; i <= 30; i++) {
@@ -160,7 +159,7 @@ export default function WalletInsightsView() {
   const totalIncomeSources = incomePieData.reduce((s, x) => s + x.value, 0);
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="Wallet Insights"
         subtitle="Cash flow forecast, projections and recurring expense detection."
@@ -242,10 +241,10 @@ export default function WalletInsightsView() {
                 data.savingsRatePct === null
                   ? "from-slate-600 to-slate-700"
                   : data.savingsRatePct >= 20
-                  ? "from-emerald-500 to-emerald-700"
-                  : data.savingsRatePct >= 0
-                  ? "from-amber-500 to-amber-700"
-                  : "from-rose-500 to-rose-700"
+                    ? "from-emerald-500 to-emerald-700"
+                    : data.savingsRatePct >= 0
+                      ? "from-amber-500 to-amber-700"
+                      : "from-rose-500 to-rose-700"
               }
               iconBg="bg-white/20 text-white"
               textTone="text-white"
@@ -254,10 +253,10 @@ export default function WalletInsightsView() {
                 data.savingsRatePct === null
                   ? "No income yet"
                   : data.savingsRatePct >= 20
-                  ? "Healthy"
-                  : data.savingsRatePct >= 0
-                  ? "Building up"
-                  : "Spending > income"
+                    ? "Healthy"
+                    : data.savingsRatePct >= 0
+                      ? "Building up"
+                      : "Spending > income"
               }
             />
           </>
@@ -266,11 +265,11 @@ export default function WalletInsightsView() {
 
       {/* Cash flow projection chart + Burn rate side card */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2 p-5">
+        <Card className="p-5 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold">30-day cash flow projection</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Forecast based on your 3-month income & spend rate
               </p>
             </div>
@@ -287,9 +286,7 @@ export default function WalletInsightsView() {
               ) : (
                 <TrendingDown className="mr-1 h-3 w-3" />
               )}
-              {data && data.avgMonthlyIncome >= data.avgMonthlyExpense
-                ? "Growing"
-                : "Declining"}
+              {data && data.avgMonthlyIncome >= data.avgMonthlyExpense ? "Growing" : "Declining"}
             </Badge>
           </div>
           {loading ? (
@@ -302,18 +299,14 @@ export default function WalletInsightsView() {
                     <stop
                       offset="5%"
                       stopColor={
-                        data && data.avgMonthlyIncome >= data.avgMonthlyExpense
-                          ? EMERALD
-                          : AMBER
+                        data && data.avgMonthlyIncome >= data.avgMonthlyExpense ? EMERALD : AMBER
                       }
                       stopOpacity={0.4}
                     />
                     <stop
                       offset="95%"
                       stopColor={
-                        data && data.avgMonthlyIncome >= data.avgMonthlyExpense
-                          ? EMERALD
-                          : AMBER
+                        data && data.avgMonthlyIncome >= data.avgMonthlyExpense ? EMERALD : AMBER
                       }
                       stopOpacity={0}
                     />
@@ -344,11 +337,7 @@ export default function WalletInsightsView() {
                 <Area
                   type="monotone"
                   dataKey="balance"
-                  stroke={
-                    data && data.avgMonthlyIncome >= data.avgMonthlyExpense
-                      ? EMERALD
-                      : AMBER
-                  }
+                  stroke={data && data.avgMonthlyIncome >= data.avgMonthlyExpense ? EMERALD : AMBER}
                   strokeWidth={2.5}
                   fill="url(#balFill)"
                   name="Projected balance"
@@ -364,11 +353,11 @@ export default function WalletInsightsView() {
 
       {/* Recurring expenses + spending trend */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2 p-5">
+        <Card className="p-5 lg:col-span-2">
           <div className="mb-4 flex items-center gap-2">
-            <Repeat className="h-4 w-4 text-primary" />
+            <Repeat className="text-primary h-4 w-4" />
             <p className="text-sm font-semibold">Top recurring expenses</p>
-            <span className="ml-auto text-xs text-muted-foreground">Last 90 days</span>
+            <span className="text-muted-foreground ml-auto text-xs">Last 90 days</span>
           </div>
           {loading ? (
             <div className="space-y-3">
@@ -381,21 +370,19 @@ export default function WalletInsightsView() {
               {data.recurringExpenses.map((r, i) => (
                 <div
                   key={`${r.counterpartyName}-${i}`}
-                  className="flex items-center gap-3 rounded-xl border bg-card p-3 transition-colors hover:bg-muted/40"
+                  className="bg-card hover:bg-muted/40 flex items-center gap-3 rounded-xl border p-3 transition-colors"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
                     <Repeat className="h-4.5 w-4.5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-medium">
-                        {r.counterpartyName}
-                      </p>
+                      <p className="truncate text-sm font-medium">{r.counterpartyName}</p>
                       <p className="text-sm font-semibold tabular-nums">
                         {naira(r.averageAmountKobo)}
                       </p>
                     </div>
-                    <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <div className="text-muted-foreground mt-0.5 flex items-center justify-between gap-2 text-xs">
                       <span>
                         {r.count}× · last {timeAgo(r.lastOccurrence)}
                       </span>
@@ -423,7 +410,7 @@ export default function WalletInsightsView() {
         {/* Spending trend card */}
         <Card className="p-5">
           <div className="mb-3 flex items-center gap-2">
-            <TrendingUp className="h-4 w-4 text-primary" />
+            <TrendingUp className="text-primary h-4 w-4" />
             <p className="text-sm font-semibold">Spending trend</p>
           </div>
           {loading ? (
@@ -437,9 +424,9 @@ export default function WalletInsightsView() {
       {/* Income sources donut */}
       <Card className="p-5">
         <div className="mb-4 flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
+          <Sparkles className="text-primary h-4 w-4" />
           <p className="text-sm font-semibold">Income sources</p>
-          <span className="ml-auto text-xs text-muted-foreground">Last 3 months</span>
+          <span className="text-muted-foreground ml-auto text-xs">Last 3 months</span>
         </div>
         {loading ? (
           <Skeleton className="h-56 w-full rounded-xl" />
@@ -475,9 +462,7 @@ export default function WalletInsightsView() {
             <div className="w-full flex-1 space-y-3">
               {incomePieData.map((s) => {
                 const pct =
-                  totalIncomeSources > 0
-                    ? Math.round((s.value / totalIncomeSources) * 100)
-                    : 0;
+                  totalIncomeSources > 0 ? Math.round((s.value / totalIncomeSources) * 100) : 0;
                 return (
                   <div key={s.type} className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
@@ -487,11 +472,11 @@ export default function WalletInsightsView() {
                           style={{ background: INCOME_COLORS[s.type] ?? SLATE }}
                         />
                         <span className="font-medium">{s.name}</span>
-                        <span className="text-xs text-muted-foreground">({pct}%)</span>
+                        <span className="text-muted-foreground text-xs">({pct}%)</span>
                       </span>
                       <span className="font-semibold tabular-nums">{naira(s.value)}</span>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div className="bg-muted h-1.5 overflow-hidden rounded-full">
                       <div
                         className="h-full rounded-full"
                         style={{
@@ -551,10 +536,8 @@ function GradientStatCard({
   hint?: string;
 }) {
   return (
-    <Card
-      className={`relative overflow-hidden p-5 bg-gradient-to-br ${gradient} border-0`}
-    >
-      <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-white/10 blur-xl" />
+    <Card className={`relative overflow-hidden bg-gradient-to-br p-5 ${gradient} border-0`}>
+      <div className="absolute -top-4 -right-4 h-20 w-20 rounded-full bg-white/10 blur-xl" />
       <div className="relative flex items-center justify-between">
         <p className={`text-xs font-medium ${labelTone}`}>{label}</p>
         <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${iconBg}`}>
@@ -567,13 +550,7 @@ function GradientStatCard({
   );
 }
 
-function BurnRateCard({
-  data,
-  loading,
-}: {
-  data: Insights | null;
-  loading: boolean;
-}) {
+function BurnRateCard({ data, loading }: { data: Insights | null; loading: boolean }) {
   if (loading) {
     return (
       <Card className="p-5">
@@ -591,8 +568,8 @@ function BurnRateCard({
         growing
           ? "border-emerald-500/30 bg-emerald-500/5"
           : days <= 14
-          ? "border-rose-500/30 bg-rose-500/5"
-          : "border-amber-500/30 bg-amber-500/5"
+            ? "border-rose-500/30 bg-rose-500/5"
+            : "border-amber-500/30 bg-amber-500/5"
       }`}
     >
       <div className="mb-3 flex items-center gap-2">
@@ -601,8 +578,8 @@ function BurnRateCard({
             growing
               ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
               : days <= 14
-              ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
-              : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                ? "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
           }`}
         >
           {growing ? <CheckCircle2 className="h-5 w-5" /> : <Flame className="h-5 w-5" />}
@@ -615,9 +592,8 @@ function BurnRateCard({
           <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
             Your wallet is growing
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            On average, you earn more than you spend. Keep it up — your balance is trending
-            upward.
+          <p className="text-muted-foreground mt-1 text-xs">
+            On average, you earn more than you spend. Keep it up — your balance is trending upward.
           </p>
           <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 py-2 text-xs text-emerald-700 dark:text-emerald-300">
             <ArrowUpRight className="h-3.5 w-3.5" />
@@ -628,13 +604,13 @@ function BurnRateCard({
         <div>
           <p className="text-2xl font-bold tabular-nums">
             {days}{" "}
-            <span className="text-base font-medium text-muted-foreground">
+            <span className="text-muted-foreground text-base font-medium">
               {days === 1 ? "day" : "days"}
             </span>
           </p>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="text-muted-foreground mt-1 text-xs">
             At your current spend rate, your wallet will be empty in{" "}
-            <span className="font-medium text-foreground">{days} days</span>.
+            <span className="text-foreground font-medium">{days} days</span>.
           </p>
           <div
             className={`mt-3 flex items-start gap-1.5 rounded-lg px-3 py-2 text-xs ${
@@ -659,7 +635,7 @@ function BurnRateCard({
 function SpendingTrendBlock({ pct }: { pct: number | null }) {
   if (pct === null) {
     return (
-      <p className="py-6 text-center text-sm text-muted-foreground">
+      <p className="text-muted-foreground py-6 text-center text-sm">
         Not enough data to compute a trend.
       </p>
     );
@@ -669,19 +645,15 @@ function SpendingTrendBlock({ pct }: { pct: number | null }) {
   const tone = flat
     ? "text-slate-600 dark:text-slate-300"
     : up
-    ? "text-rose-600 dark:text-rose-400"
-    : "text-emerald-600 dark:text-emerald-400";
+      ? "text-rose-600 dark:text-rose-400"
+      : "text-emerald-600 dark:text-emerald-400";
   const Icon = flat ? TrendingUp : up ? ArrowUpRight : ArrowDownRight;
 
   return (
     <div className="flex flex-col items-center justify-center py-2 text-center">
       <div
         className={`flex h-14 w-14 items-center justify-center rounded-full ${
-          flat
-            ? "bg-slate-500/15"
-            : up
-            ? "bg-rose-500/15"
-            : "bg-emerald-500/15"
+          flat ? "bg-slate-500/15" : up ? "bg-rose-500/15" : "bg-emerald-500/15"
         } ${tone}`}
       >
         <Icon className="h-7 w-7" />
@@ -689,15 +661,13 @@ function SpendingTrendBlock({ pct }: { pct: number | null }) {
       <p className={`mt-3 text-3xl font-bold tabular-nums ${tone}`}>
         {flat ? "0%" : `${up ? "+" : "−"}${Math.abs(pct)}%`}
       </p>
-      <p className="mt-1 text-xs text-muted-foreground">
-        This month vs last month
-      </p>
-      <p className="mt-2 text-[11px] text-muted-foreground">
+      <p className="text-muted-foreground mt-1 text-xs">This month vs last month</p>
+      <p className="text-muted-foreground mt-2 text-[11px]">
         {flat
           ? "Spending is steady"
           : up
-          ? "You're spending more than last month"
-          : "You're spending less than last month"}
+            ? "You're spending more than last month"
+            : "You're spending less than last month"}
       </p>
     </div>
   );

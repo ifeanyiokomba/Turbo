@@ -54,15 +54,15 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
         className={
           isUser
             ? "max-w-[85%] rounded-2xl rounded-br-md bg-gradient-to-br from-emerald-500 to-emerald-600 px-3.5 py-2 text-sm text-white shadow-sm"
-            : "max-w-[85%] rounded-2xl rounded-bl-md border bg-card px-3.5 py-2 text-sm text-card-foreground shadow-sm"
+            : "bg-card text-card-foreground max-w-[85%] rounded-2xl rounded-bl-md border px-3.5 py-2 text-sm shadow-sm"
         }
       >
         {!isUser && (
-          <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+          <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold tracking-wide text-emerald-600 uppercase dark:text-emerald-400">
             <Sparkles className="h-3 w-3" /> Assistant
           </div>
         )}
-        <p className="whitespace-pre-wrap break-words leading-relaxed">{msg.content}</p>
+        <p className="leading-relaxed break-words whitespace-pre-wrap">{msg.content}</p>
       </div>
     </motion.div>
   );
@@ -91,10 +91,8 @@ export default function AiSupport({ user: userProp }: { user?: AppUser | null })
           setMessages(
             parsed.filter(
               (m) =>
-                m &&
-                (m.role === "user" || m.role === "assistant") &&
-                typeof m.content === "string",
-            ),
+                m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string"
+            )
           );
         }
       }
@@ -148,17 +146,14 @@ export default function AiSupport({ user: userProp }: { user?: AppUser | null })
       });
       if (!res.ok) throw new Error("Request failed");
       const data = (await res.json()) as { content?: string };
-      const reply =
-        data.content?.trim() ||
-        "Sorry, I couldn't respond. Please try again later.";
+      const reply = data.content?.trim() || "Sorry, I couldn't respond. Please try again later.";
       setMessages([...next, { role: "assistant", content: reply }]);
     } catch {
       setMessages([
         ...next,
         {
           role: "assistant",
-          content:
-            "Sorry, I couldn't respond right now. Please try again in a moment.",
+          content: "Sorry, I couldn't respond right now. Please try again in a moment.",
         },
       ]);
     } finally {
@@ -189,7 +184,7 @@ export default function AiSupport({ user: userProp }: { user?: AppUser | null })
         type="button"
         aria-label={open ? "Close Turbopay assistant" : "Open Turbopay assistant"}
         onClick={() => setOpen((v) => !v)}
-        className="fixed bottom-20 right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30 transition-transform hover:scale-105 active:scale-95 sm:bottom-6 sm:right-6"
+        className="fixed right-4 bottom-20 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30 transition-transform hover:scale-105 active:scale-95 sm:right-6 sm:bottom-6"
         whileTap={{ scale: 0.92 }}
       >
         {!open && (
@@ -221,9 +216,9 @@ export default function AiSupport({ user: userProp }: { user?: AppUser | null })
           )}
         </AnimatePresence>
         {!open && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5">
+          <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
             <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400" />
-            <span className="relative inline-flex h-3.5 w-3.5 rounded-full border-2 border-background bg-amber-500" />
+            <span className="border-background relative inline-flex h-3.5 w-3.5 rounded-full border-2 bg-amber-500" />
           </span>
         )}
       </motion.button>
@@ -236,21 +231,19 @@ export default function AiSupport({ user: userProp }: { user?: AppUser | null })
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed bottom-40 left-4 right-4 z-50 flex h-[60vh] max-h-[560px] flex-col overflow-hidden rounded-2xl border border-border/60 bg-background/80 shadow-2xl tp-glass sm:bottom-24 sm:left-auto sm:right-6 sm:h-[560px] sm:w-[400px]"
+            className="border-border/60 bg-background/80 tp-glass fixed right-4 bottom-40 left-4 z-50 flex h-[60vh] max-h-[560px] flex-col overflow-hidden rounded-2xl border shadow-2xl sm:right-6 sm:bottom-24 sm:left-auto sm:h-[560px] sm:w-[400px]"
             role="dialog"
             aria-label="Turbopay assistant chat"
           >
             {/* Header */}
-            <div className="flex items-center justify-between gap-2 border-b border-border/60 bg-gradient-to-r from-emerald-500/10 via-transparent to-amber-500/10 px-4 py-3">
+            <div className="border-border/60 flex items-center justify-between gap-2 border-b bg-gradient-to-r from-emerald-500/10 via-transparent to-amber-500/10 px-4 py-3">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-sm">
                   <Sparkles className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold leading-tight">
-                    Turbopay Assistant
-                  </p>
-                  <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <p className="truncate text-sm leading-tight font-semibold">Turbopay Assistant</p>
+                  <p className="text-muted-foreground flex items-center gap-1 text-[11px]">
                     <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
                     Online · AI-powered
                   </p>
@@ -260,7 +253,7 @@ export default function AiSupport({ user: userProp }: { user?: AppUser | null })
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  className="text-muted-foreground hover:text-destructive h-8 w-8"
                   onClick={handleClear}
                   aria-label="Clear conversation"
                   title="Clear conversation"
@@ -283,7 +276,7 @@ export default function AiSupport({ user: userProp }: { user?: AppUser | null })
             {/* Body */}
             <div
               ref={scrollRef}
-              className="flex-1 space-y-3 overflow-y-auto scrollbar-thin px-4 py-4"
+              className="scrollbar-thin flex-1 space-y-3 overflow-y-auto px-4 py-4"
             >
               {showSuggestions ? (
                 <div className="flex h-full flex-col items-center justify-center px-2 text-center">
@@ -293,9 +286,9 @@ export default function AiSupport({ user: userProp }: { user?: AppUser | null })
                   <p className="mt-4 text-sm font-semibold">
                     Hi{user?.fullName ? `, ${user.fullName.split(" ")[0]}` : ""}! 👋
                   </p>
-                  <p className="mt-1 max-w-[260px] text-xs text-muted-foreground">
-                    I&apos;m your Turbopay assistant. Ask me anything about your
-                    wallet, transfers, bills, savings and more.
+                  <p className="text-muted-foreground mt-1 max-w-[260px] text-xs">
+                    I&apos;m your Turbopay assistant. Ask me anything about your wallet, transfers,
+                    bills, savings and more.
                   </p>
                   <div className="mt-5 grid w-full gap-2">
                     {SUGGESTED_PROMPTS.map((p) => (
@@ -303,10 +296,10 @@ export default function AiSupport({ user: userProp }: { user?: AppUser | null })
                         key={p}
                         type="button"
                         onClick={() => sendMessage(p)}
-                        className="group flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-card/60 px-3 py-2.5 text-left text-xs font-medium transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/5"
+                        className="group border-border/60 bg-card/60 flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-medium transition-colors hover:border-emerald-500/40 hover:bg-emerald-500/5"
                       >
                         <span>{p}</span>
-                        <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-emerald-500" />
+                        <Sparkles className="text-muted-foreground h-3.5 w-3.5 shrink-0 transition-colors group-hover:text-emerald-500" />
                       </button>
                     ))}
                   </div>
@@ -318,8 +311,8 @@ export default function AiSupport({ user: userProp }: { user?: AppUser | null })
                   ))}
                   {loading && (
                     <div className="flex justify-start">
-                      <div className="max-w-[85%] rounded-2xl rounded-bl-md border bg-card px-3.5 py-2 shadow-sm">
-                        <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                      <div className="bg-card max-w-[85%] rounded-2xl rounded-bl-md border px-3.5 py-2 shadow-sm">
+                        <div className="mb-1 flex items-center gap-1 text-[10px] font-semibold tracking-wide text-emerald-600 uppercase dark:text-emerald-400">
                           <Sparkles className="h-3 w-3" /> Assistant
                         </div>
                         <TypingDots />
@@ -331,7 +324,7 @@ export default function AiSupport({ user: userProp }: { user?: AppUser | null })
             </div>
 
             {/* Footer */}
-            <div className="border-t border-border/60 bg-background/60 px-3 py-3">
+            <div className="border-border/60 bg-background/60 border-t px-3 py-3">
               <div className="flex items-center gap-2">
                 <Input
                   ref={inputRef}
@@ -340,7 +333,7 @@ export default function AiSupport({ user: userProp }: { user?: AppUser | null })
                   onKeyDown={handleKeyDown}
                   placeholder="Type your message…"
                   disabled={loading}
-                  className="h-10 flex-1 rounded-xl bg-background"
+                  className="bg-background h-10 flex-1 rounded-xl"
                   aria-label="Message"
                 />
                 <Button
@@ -354,7 +347,7 @@ export default function AiSupport({ user: userProp }: { user?: AppUser | null })
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="mt-1.5 px-1 text-[10px] text-muted-foreground">
+              <p className="text-muted-foreground mt-1.5 px-1 text-[10px]">
                 AI-powered responses · Powered by Turbopay AI
               </p>
             </div>

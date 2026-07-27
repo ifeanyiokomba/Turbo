@@ -92,7 +92,7 @@ export function CountrySwitcher() {
         >
           <span className="text-base leading-none">{flag}</span>
           <span className="hidden text-xs font-medium sm:inline">{name}</span>
-          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+          <ChevronDown className="text-muted-foreground h-3.5 w-3.5" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
@@ -111,7 +111,7 @@ export function CountrySwitcher() {
               <span className="text-base leading-none">{c.flagEmoji}</span>
               <div className="flex-1">
                 <p className="text-sm font-medium">{c.name}</p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-muted-foreground text-[10px]">
                   {c.currency} · {c.paymentMethods.length} methods
                 </p>
               </div>

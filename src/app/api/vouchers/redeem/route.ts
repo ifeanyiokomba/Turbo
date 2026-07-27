@@ -42,56 +42,39 @@ export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();
     const body = await req.json().catch(() => ({}));
-    const code = String(body?.code ?? "").trim().toUpperCase();
+    const code = String(body?.code ?? "")
+      .trim()
+      .toUpperCase();
     const pin = String(body?.pin ?? "");
 
-    if (!code)
-      throw new ServiceError("Voucher code is required", 400, "CODE_REQUIRED");
+    if (!code) throw new ServiceError("Voucher code is required", 400, "CODE_REQUIRED");
     if (!/^[A-Z0-9\-]{4,40}$/.test(code))
       throw new ServiceError("Invalid voucher code format", 400, "INVALID_CODE");
     if (!pin) throw new ServiceError("PIN is required", 400, "PIN_REQUIRED");
 
     const voucher = await db.voucher.findUnique({ where: { code } });
-    if (!voucher)
-      throw new ServiceError("Voucher not found", 404, "VOUCHER_NOT_FOUND");
+    if (!voucher) throw new ServiceError("Voucher not found", 404, "VOUCHER_NOT_FOUND");
 
     // Validation
     const now = new Date();
     if (voucher.status !== "ACTIVE")
       throw new ServiceError(
-        voucher.status === "DISABLED"
-          ? "Voucher is disabled"
-          : "Voucher is expired",
+        voucher.status === "DISABLED" ? "Voucher is disabled" : "Voucher is expired",
         400,
-        "VOUCHER_INACTIVE",
+        "VOUCHER_INACTIVE"
       );
     if (voucher.validFrom && voucher.validFrom > now)
-      throw new ServiceError(
-        "Voucher is not yet active",
-        400,
-        "VOUCHER_NOT_STARTED",
-      );
+      throw new ServiceError("Voucher is not yet active", 400, "VOUCHER_NOT_STARTED");
     if (voucher.validUntil && voucher.validUntil < now)
       throw new ServiceError("Voucher has expired", 400, "VOUCHER_EXPIRED");
-    if (
-      voucher.maxRedemptions > 0 &&
-      voucher.redemptionsCount >= voucher.maxRedemptions
-    )
-      throw new ServiceError(
-        "Voucher redemption limit reached",
-        400,
-        "MAX_REDEMPTIONS_REACHED",
-      );
+    if (voucher.maxRedemptions > 0 && voucher.redemptionsCount >= voucher.maxRedemptions)
+      throw new ServiceError("Voucher redemption limit reached", 400, "MAX_REDEMPTIONS_REACHED");
 
     const userRedemptions = await db.voucherRedemption.count({
       where: { voucherId: voucher.id, userId: user.id },
     });
     if (userRedemptions >= Math.max(1, voucher.perUserLimit))
-      throw new ServiceError(
-        "You have already redeemed this voucher",
-        400,
-        "ALREADY_REDEEMED",
-      );
+      throw new ServiceError("You have already redeemed this voucher", 400, "ALREADY_REDEEMED");
 
     // Verify PIN *after* cheap validation, *before* any wallet write
     await verifyPin(user, pin);
@@ -101,11 +84,7 @@ export async function POST(req: NextRequest) {
     let isCashback = false;
     if (voucher.type === "CASHBACK") {
       if (voucher.valueKobo <= 0)
-        throw new ServiceError(
-          "Cashback voucher has no value",
-          400,
-          "VOUCHER_NO_VALUE",
-        );
+        throw new ServiceError("Cashback voucher has no value", 400, "VOUCHER_NO_VALUE");
       valueAppliedKobo = voucher.valueKobo;
       isCashback = true;
     } else if (voucher.type === "FLAT_OFF" || voucher.type === "DISCOUNT") {
@@ -139,7 +118,14 @@ export async function POST(req: NextRequest) {
     // Now create the redemption + transaction record + bump count atomically.
     // On unique-constraint failure (race), reverse the credit.
     let transaction: { id: string; reference: string } | null = null;
-    let redemption: { id: string; voucherId: string; userId: string; valueAppliedKobo: number; status: string; transactionId: string | null } | null = null;
+    let redemption: {
+      id: string;
+      voucherId: string;
+      userId: string;
+      valueAppliedKobo: number;
+      status: string;
+      transactionId: string | null;
+    } | null = null;
 
     try {
       const result = await db.$transaction(async (tx) => {
@@ -148,16 +134,12 @@ export async function POST(req: NextRequest) {
           where: { id: voucher.id },
           select: { redemptionsCount: true, maxRedemptions: true },
         });
-        if (!fresh)
-          throw new ServiceError("Voucher not found", 404, "VOUCHER_NOT_FOUND");
-        if (
-          fresh.maxRedemptions > 0 &&
-          fresh.redemptionsCount >= fresh.maxRedemptions
-        ) {
+        if (!fresh) throw new ServiceError("Voucher not found", 404, "VOUCHER_NOT_FOUND");
+        if (fresh.maxRedemptions > 0 && fresh.redemptionsCount >= fresh.maxRedemptions) {
           throw new ServiceError(
             "Voucher redemption limit reached",
             400,
-            "MAX_REDEMPTIONS_REACHED",
+            "MAX_REDEMPTIONS_REACHED"
           );
         }
 
@@ -173,11 +155,7 @@ export async function POST(req: NextRequest) {
           })
           .catch(() => null);
         if (!r) {
-          throw new ServiceError(
-            "You have already redeemed this voucher",
-            400,
-            "ALREADY_REDEEMED",
-          );
+          throw new ServiceError("You have already redeemed this voucher", 400, "ALREADY_REDEEMED");
         }
         redemption = {
           id: r.id,
@@ -294,7 +272,7 @@ export async function POST(req: NextRequest) {
         newBalance,
         transaction,
       },
-      201,
+      201
     );
   } catch (e) {
     if (e instanceof LedgerError) {

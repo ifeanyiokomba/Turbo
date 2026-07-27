@@ -9,7 +9,9 @@
 //        VARIANT → "\"variantA\""
 
 import { db } from "@/lib/db";
-import { json, handleError, requireAdmin, audit, getClientIp } from "@/lib/api";
+import { json, handleError, audit, getClientIp } from "@/lib/api";
+import { requirePermission } from "@/lib/turbocore/rbac";
+import { Permissions } from "@/lib/turbocore/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +19,7 @@ const VALID_TYPES = new Set(["BOOL", "PERCENT", "VARIANT"]);
 
 export async function GET() {
   try {
-    await requireAdmin();
+    await requirePermission(Permissions.FLAGS_VIEW);
     const [flags, overrides] = await Promise.all([
       db.featureFlag.findMany({ orderBy: { key: "asc" } }),
       db.featureFlagOverride.findMany({ orderBy: { flagKey: "asc" } }),
@@ -49,24 +51,30 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const user = await requireAdmin();
+    const user = await requirePermission(Permissions.FLAGS_MANAGE);
     const body = await req.json().catch(() => ({}));
-    const key = String(body.key ?? "").trim().toUpperCase().replace(/[^A-Z0-9_]/g, "_");
+    const key = String(body.key ?? "")
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9_]/g, "_");
     if (!key) return json({ error: "key is required" }, 400);
     const type = String(body.type ?? "BOOL").toUpperCase();
-    if (!VALID_TYPES.has(type)) return json({ error: "type must be BOOL, PERCENT, or VARIANT" }, 400);
+    if (!VALID_TYPES.has(type))
+      return json({ error: "type must be BOOL, PERCENT, or VARIANT" }, 400);
 
     // Default value depends on type
     let valueJSON: string;
     if (body.valueJSON !== undefined && body.valueJSON !== null) {
-      valueJSON = typeof body.valueJSON === "string" ? body.valueJSON : JSON.stringify(body.valueJSON);
+      valueJSON =
+        typeof body.valueJSON === "string" ? body.valueJSON : JSON.stringify(body.valueJSON);
     } else {
-      valueJSON = type === "BOOL" ? "true" : type === "PERCENT" ? "0" : "\"default\"";
+      valueJSON = type === "BOOL" ? "true" : type === "PERCENT" ? "0" : '"default"';
     }
     // Validate shape
     try {
       const parsed = JSON.parse(valueJSON);
-      if (type === "BOOL" && typeof parsed !== "boolean") return json({ error: "BOOL flag value must be true/false" }, 400);
+      if (type === "BOOL" && typeof parsed !== "boolean")
+        return json({ error: "BOOL flag value must be true/false" }, 400);
       if (type === "PERCENT" && (typeof parsed !== "number" || parsed < 0 || parsed > 1)) {
         return json({ error: "PERCENT flag value must be a number between 0 and 1" }, 400);
       }

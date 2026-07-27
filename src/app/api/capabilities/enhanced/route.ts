@@ -15,7 +15,7 @@ import { ALL_CONTRACTS, type ContractName } from "@/lib/turbocore/result";
 export const dynamic = "force-dynamic";
 
 const ENHANCED_CONTRACTS: ContractName[] = ALL_CONTRACTS.filter(
-  (c): c is ContractName => c !== "NOTIFICATION",
+  (c): c is ContractName => c !== "NOTIFICATION"
 );
 
 export async function GET(req: Request) {
@@ -25,8 +25,14 @@ export async function GET(req: Request) {
     const country = (url.searchParams.get("country") ?? "NG").toUpperCase();
     const currencyParam = (url.searchParams.get("currency") ?? "").toUpperCase();
     const contractFilter = (url.searchParams.get("contract") ?? "").toUpperCase();
-    const amountMinor = Math.max(1_000, Number(url.searchParams.get("amountMinor") ?? 100_000) || 100_000);
-    const direction = (url.searchParams.get("direction") ?? "INBOUND").toUpperCase() === "OUTBOUND" ? "OUTBOUND" : "INBOUND";
+    const amountMinor = Math.max(
+      1_000,
+      Number(url.searchParams.get("amountMinor") ?? 100_000) || 100_000
+    );
+    const direction =
+      (url.searchParams.get("direction") ?? "INBOUND").toUpperCase() === "OUTBOUND"
+        ? "OUTBOUND"
+        : "INBOUND";
 
     const countryConfig = await getCountryConfig(country);
     const currency = currencyParam || countryConfig.currency;
@@ -100,7 +106,7 @@ export async function GET(req: Request) {
             inFailoverChain: failoverChain.includes(s.providerCode),
           })),
         };
-      }),
+      })
     );
 
     return json({

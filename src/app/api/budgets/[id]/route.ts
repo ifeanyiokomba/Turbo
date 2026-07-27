@@ -15,10 +15,7 @@ import {
  * DELETE /api/budgets/[id]
  * Removes a budget owned by the authenticated user.
  */
-export async function DELETE(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser();
     const { id } = await params;

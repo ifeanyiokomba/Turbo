@@ -1,7 +1,5 @@
 {
   "permissions": {
-    "additionalDirectories": [
-      "/Users/huiningli/Documents/AI/openclaw/quiz-mastery"
-    ]
+    "additionalDirectories": ["/Users/huiningli/Documents/AI/openclaw/quiz-mastery"]
   }
 }

@@ -3,7 +3,15 @@
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { requireUser, json, errorJson, audit, handleError, getClientIp, getUserAgent } from "@/lib/api";
+import {
+  requireUser,
+  json,
+  errorJson,
+  audit,
+  handleError,
+  getClientIp,
+  getUserAgent,
+} from "@/lib/api";
 import { isValidAddress, CELO_MAINNET_CHAIN_ID } from "@/lib/minipay";
 
 export const runtime = "nodejs";
@@ -92,11 +100,7 @@ export async function POST(req: NextRequest) {
       where: { address: address },
     });
     if (existingByAddress && existingByAddress.userId !== user.id) {
-      return errorJson(
-        "Wallet address already linked to another account",
-        409,
-        "ADDRESS_TAKEN",
-      );
+      return errorJson("Wallet address already linked to another account", 409, "ADDRESS_TAKEN");
     }
 
     const wallet = await db.celoWallet.upsert({

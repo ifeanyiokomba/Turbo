@@ -49,7 +49,7 @@ export async function POST(req: Request) {
       throw new ServiceError(
         `You don't have a ${from} wallet yet. Open one first.`,
         404,
-        "SOURCE_WALLET_MISSING",
+        "SOURCE_WALLET_MISSING"
       );
     }
 

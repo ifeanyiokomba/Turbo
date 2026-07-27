@@ -19,14 +19,21 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
-import {
-  History, RefreshCw, Loader2, Eye, RotateCcw, Camera, GitBranch,
-} from "lucide-react";
+import { History, RefreshCw, Loader2, Eye, RotateCcw, Camera, GitBranch } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/money";
 import { prettyJSON } from "./shared";
@@ -41,7 +48,15 @@ interface ConfigVersionRow {
   reason: string | null;
 }
 
-const SCOPES = ["PROVIDERS", "CAPABILITIES", "ROUTING", "FX", "FEES", "FEATURE_FLAGS", "WEBHOOKS"] as const;
+const SCOPES = [
+  "PROVIDERS",
+  "CAPABILITIES",
+  "ROUTING",
+  "FX",
+  "FEES",
+  "FEATURE_FLAGS",
+  "WEBHOOKS",
+] as const;
 
 const SCOPE_TONE: Record<string, string> = {
   PROVIDERS: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
@@ -68,7 +83,10 @@ export default function ConfigHistoryTab() {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/config-history", { cache: "no-store" });
-      if (!res.ok) { toast.error("Failed to load config history"); return; }
+      if (!res.ok) {
+        toast.error("Failed to load config history");
+        return;
+      }
       const data = await res.json();
       setVersions(data.versions);
     } finally {
@@ -76,7 +94,9 @@ export default function ConfigHistoryTab() {
     }
   }, []);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => {
+    load();
+  }, [load]);
 
   async function submitSnapshot() {
     setSnapshotting(true);
@@ -106,7 +126,12 @@ export default function ConfigHistoryTab() {
   }
 
   async function rollback(v: ConfigVersionRow) {
-    if (!confirm(`Rollback ${v.scope} to v${v.version}? This will OVERWRITE the live ${v.scope} tables with the snapshot contents.`)) return;
+    if (
+      !confirm(
+        `Rollback ${v.scope} to v${v.version}? This will OVERWRITE the live ${v.scope} tables with the snapshot contents.`
+      )
+    )
+      return;
     setRollingBack(v.id);
     try {
       const res = await fetch(`/api/admin/config-history/${v.id}/rollback`, {
@@ -117,7 +142,9 @@ export default function ConfigHistoryTab() {
         throw new Error(e.error ?? "Failed");
       }
       const data = await res.json();
-      toast.success(`${v.scope} rolled back to v${v.version} (restored ${data.restored} rows). New snapshot v${data.newSnapshotVersion} recorded.`);
+      toast.success(
+        `${v.scope} rolled back to v${v.version} (restored ${data.restored} rows). New snapshot v${data.newSnapshotVersion} recorded.`
+      );
       load();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to rollback");
@@ -132,7 +159,9 @@ export default function ConfigHistoryTab() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-semibold">Config version history</h3>
-            <p className="text-xs text-muted-foreground">Audit trail of every config change with snapshot + rollback capability.</p>
+            <p className="text-muted-foreground text-xs">
+              Audit trail of every config change with snapshot + rollback capability.
+            </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="gap-1.5" onClick={load}>
@@ -148,37 +177,63 @@ export default function ConfigHistoryTab() {
       <Card className="p-5">
         {loading && !versions ? (
           <div className="space-y-2">
-            {[0,1,2,3,4].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-16 rounded-xl" />
+            ))}
           </div>
         ) : versions && versions.length > 0 ? (
-          <ol className="relative space-y-3 before:absolute before:left-[15px] before:top-2 before:bottom-2 before:w-px before:bg-border">
+          <ol className="before:bg-border relative space-y-3 before:absolute before:top-2 before:bottom-2 before:left-[15px] before:w-px">
             {versions.map((v) => (
               <li key={v.id} className="relative flex items-start gap-3 pl-10">
-                <span className={`absolute left-0 top-2 flex h-8 w-8 items-center justify-center rounded-full ${SCOPE_TONE[v.scope] ?? "bg-muted text-muted-foreground"}`}>
+                <span
+                  className={`absolute top-2 left-0 flex h-8 w-8 items-center justify-center rounded-full ${SCOPE_TONE[v.scope] ?? "bg-muted text-muted-foreground"}`}
+                >
                   <GitBranch className="h-3.5 w-3.5" />
                 </span>
-                <div className="flex-1 min-w-0 rounded-xl border p-3 transition-colors hover:bg-muted/40">
+                <div className="hover:bg-muted/40 min-w-0 flex-1 rounded-xl border p-3 transition-colors">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="secondary" className={`text-[10px] ${SCOPE_TONE[v.scope] ?? ""}`}>{v.scope}</Badge>
+                    <Badge
+                      variant="secondary"
+                      className={`text-[10px] ${SCOPE_TONE[v.scope] ?? ""}`}
+                    >
+                      {v.scope}
+                    </Badge>
                     <span className="text-xs font-semibold tabular-nums">v{v.version}</span>
-                    {v.reason && <span className="text-xs text-muted-foreground truncate">· {v.reason}</span>}
-                    <span className="ml-auto text-[10px] text-muted-foreground" title={formatDate(v.changedAt, true)}>{formatDate(v.changedAt, true)}</span>
+                    {v.reason && (
+                      <span className="text-muted-foreground truncate text-xs">· {v.reason}</span>
+                    )}
+                    <span
+                      className="text-muted-foreground ml-auto text-[10px]"
+                      title={formatDate(v.changedAt, true)}
+                    >
+                      {formatDate(v.changedAt, true)}
+                    </span>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Changed by <span className="font-mono">{v.changedBy ?? "system"}</span> · {v.snapshotJSON.length.toLocaleString()} bytes snapshot
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    Changed by <span className="font-mono">{v.changedBy ?? "system"}</span> ·{" "}
+                    {v.snapshotJSON.length.toLocaleString()} bytes snapshot
                   </p>
                   <div className="mt-2 flex items-center gap-1">
-                    <Button size="sm" variant="ghost" className="h-7 px-2 text-xs gap-1" onClick={() => setViewTarget(v)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 gap-1 px-2 text-xs"
+                      onClick={() => setViewTarget(v)}
+                    >
                       <Eye className="h-3.5 w-3.5" /> View
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 px-2 text-xs gap-1 text-amber-700 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/10"
+                      className="h-7 gap-1 border-amber-500/30 px-2 text-xs text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
                       onClick={() => rollback(v)}
                       disabled={rollingBack === v.id}
                     >
-                      {rollingBack === v.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+                      {rollingBack === v.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      )}
                       Rollback
                     </Button>
                   </div>
@@ -188,9 +243,11 @@ export default function ConfigHistoryTab() {
           </ol>
         ) : (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-14 text-center">
-            <History className="h-6 w-6 text-muted-foreground" />
+            <History className="text-muted-foreground h-6 w-6" />
             <p className="mt-3 font-medium">No config snapshots yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">Take your first snapshot to start tracking config history.</p>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Take your first snapshot to start tracking config history.
+            </p>
           </div>
         )}
       </Card>
@@ -199,15 +256,26 @@ export default function ConfigHistoryTab() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Take config snapshot</DialogTitle>
-            <DialogDescription>Captures the live state of the selected scope into a versioned snapshot.</DialogDescription>
+            <DialogDescription>
+              Captures the live state of the selected scope into a versioned snapshot.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
               <Label>Scope</Label>
-              <Select value={snapForm.scope} onValueChange={(v) => setSnapForm({ ...snapForm, scope: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={snapForm.scope}
+                onValueChange={(v) => setSnapForm({ ...snapForm, scope: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
-                  {SCOPES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  {SCOPES.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {s}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -222,9 +290,15 @@ export default function ConfigHistoryTab() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSnapshotOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setSnapshotOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={submitSnapshot} disabled={snapshotting}>
-              {snapshotting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+              {snapshotting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Camera className="h-4 w-4" />
+              )}
               Capture snapshot
             </Button>
           </DialogFooter>
@@ -234,16 +308,21 @@ export default function ConfigHistoryTab() {
       <Dialog open={!!viewTarget} onOpenChange={(o) => !o && setViewTarget(null)}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Snapshot · {viewTarget?.scope} v{viewTarget?.version}</DialogTitle>
+            <DialogTitle>
+              Snapshot · {viewTarget?.scope} v{viewTarget?.version}
+            </DialogTitle>
             <DialogDescription>
-              {viewTarget?.reason ?? "No reason provided"} · captured {viewTarget ? formatDate(viewTarget.changedAt, true) : ""}
+              {viewTarget?.reason ?? "No reason provided"} · captured{" "}
+              {viewTarget ? formatDate(viewTarget.changedAt, true) : ""}
             </DialogDescription>
           </DialogHeader>
-          <pre className="max-h-[60vh] overflow-auto scrollbar-thin rounded-lg border bg-muted/40 p-3 text-[11px] leading-relaxed font-mono">
-{viewTarget ? prettyJSON(viewTarget.snapshotJSON) : ""}
+          <pre className="scrollbar-thin bg-muted/40 max-h-[60vh] overflow-auto rounded-lg border p-3 font-mono text-[11px] leading-relaxed">
+            {viewTarget ? prettyJSON(viewTarget.snapshotJSON) : ""}
           </pre>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setViewTarget(null)}>Close</Button>
+            <Button variant="outline" onClick={() => setViewTarget(null)}>
+              Close
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -18,7 +18,9 @@ export async function POST(req: Request) {
   try {
     const user = await requireUser();
     const body = (await req.json().catch(() => ({}))) as SwitchBody;
-    const country = String(body.country ?? "").toUpperCase().trim();
+    const country = String(body.country ?? "")
+      .toUpperCase()
+      .trim();
 
     if (!country || country.length !== 2) {
       throw new ServiceError("Country code must be a 2-letter ISO code", 400, "INVALID_COUNTRY");
@@ -31,7 +33,7 @@ export async function POST(req: Request) {
       throw new ServiceError(
         `Country ${country} is not supported by Turbopay yet`,
         400,
-        "UNSUPPORTED_COUNTRY",
+        "UNSUPPORTED_COUNTRY"
       );
     }
 

@@ -127,7 +127,7 @@ export default function BeneficiariesView() {
         body: JSON.stringify({
           name: form.name.trim(),
           accountNumber: form.accountNumber.trim(),
-          bankName: form.type === "TURBOPAY" ? "Turbopay MFB" : bank?.name ?? "",
+          bankName: form.type === "TURBOPAY" ? "Turbopay MFB" : (bank?.name ?? ""),
           bankCode: form.type === "TURBOPAY" ? "000" : form.bankCode,
           type: form.type,
         }),
@@ -148,9 +148,7 @@ export default function BeneficiariesView() {
 
   async function toggleFavorite(b: Beneficiary) {
     const next = !b.isFavorite;
-    setList((arr) =>
-      arr.map((x) => (x.id === b.id ? { ...x, isFavorite: next } : x)),
-    );
+    setList((arr) => arr.map((x) => (x.id === b.id ? { ...x, isFavorite: next } : x)));
     try {
       await fetch(`/api/beneficiaries/${b.id}`, {
         method: "PATCH",
@@ -158,9 +156,7 @@ export default function BeneficiariesView() {
         body: JSON.stringify({ isFavorite: next }),
       });
     } catch {
-      setList((arr) =>
-        arr.map((x) => (x.id === b.id ? { ...x, isFavorite: !next } : x)),
-      );
+      setList((arr) => arr.map((x) => (x.id === b.id ? { ...x, isFavorite: !next } : x)));
     }
   }
 
@@ -201,7 +197,7 @@ export default function BeneficiariesView() {
   });
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="Beneficiaries"
         subtitle="Manage your saved recipients for faster transfers."
@@ -210,11 +206,7 @@ export default function BeneficiariesView() {
             <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
               <RefreshCw className="h-4 w-4" /> Refresh
             </Button>
-            <Button
-              size="sm"
-              onClick={() => setAddOpen(true)}
-              className="gap-1.5"
-            >
+            <Button size="sm" onClick={() => setAddOpen(true)} className="gap-1.5">
               <UserPlus className="h-4 w-4" /> Add beneficiary
             </Button>
           </>
@@ -225,7 +217,7 @@ export default function BeneficiariesView() {
         {/* Search */}
         <div className="mb-4 flex items-center gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
             <Input
               placeholder="Search name, account or bank"
               value={query}
@@ -262,11 +254,11 @@ export default function BeneficiariesView() {
             }
           />
         ) : (
-          <div className="max-h-[60vh] space-y-1.5 overflow-y-auto scrollbar-thin pr-1">
+          <div className="scrollbar-thin max-h-[60vh] space-y-1.5 overflow-y-auto pr-1">
             {filtered.map((b) => (
               <div
                 key={b.id}
-                className="group flex items-center gap-3 rounded-xl border border-transparent p-3 transition-colors hover:border-border hover:bg-muted/40"
+                className="group hover:border-border hover:bg-muted/40 flex items-center gap-3 rounded-xl border border-transparent p-3 transition-colors"
               >
                 <button
                   onClick={() => toggleFavorite(b)}
@@ -275,13 +267,11 @@ export default function BeneficiariesView() {
                 >
                   <Star
                     className={`h-4 w-4 ${
-                      b.isFavorite
-                        ? "fill-amber-400 text-amber-400"
-                        : "text-muted-foreground"
+                      b.isFavorite ? "fill-amber-400 text-amber-400" : "text-muted-foreground"
                     }`}
                   />
                 </button>
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <div className="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-full">
                   {b.type === "TURBOPAY" ? (
                     <ArrowLeftRight className="h-4 w-4" />
                   ) : (
@@ -290,7 +280,7 @@ export default function BeneficiariesView() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{b.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="text-muted-foreground truncate text-xs">
                     {b.accountNumber} · {b.bankName}
                   </p>
                 </div>
@@ -308,7 +298,7 @@ export default function BeneficiariesView() {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="shrink-0 h-8 w-8 text-muted-foreground hover:text-destructive"
+                  className="text-muted-foreground hover:text-destructive h-8 w-8 shrink-0"
                   onClick={() => setToDelete(b)}
                   title="Delete"
                 >
@@ -439,11 +429,9 @@ export default function BeneficiariesView() {
                   id="ben-acc-tp"
                   placeholder="@username or account number"
                   value={form.accountNumber}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, accountNumber: e.target.value }))
-                  }
+                  onChange={(e) => setForm((f) => ({ ...f, accountNumber: e.target.value }))}
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Tip: resolve the recipient on the Transfer screen first to verify their name.
                 </p>
               </div>
@@ -467,16 +455,13 @@ export default function BeneficiariesView() {
       </Dialog>
 
       {/* Delete confirmation */}
-      <AlertDialog
-        open={!!toDelete}
-        onOpenChange={(o) => !o && setToDelete(null)}
-      >
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove beneficiary?</AlertDialogTitle>
             <AlertDialogDescription>
-              {toDelete?.name} ({toDelete?.accountNumber}) will be permanently removed.
-              This action cannot be undone.
+              {toDelete?.name} ({toDelete?.accountNumber}) will be permanently removed. This action
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

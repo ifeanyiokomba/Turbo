@@ -8,14 +8,16 @@
 //   - avg latency over the last 10 samples
 
 import { db } from "@/lib/db";
-import { json, handleError, requireAdmin } from "@/lib/api";
+import { json, handleError } from "@/lib/api";
+import { requirePermission } from "@/lib/turbocore/rbac";
+import { Permissions } from "@/lib/turbocore/rbac/permissions";
 import { getBreakerStates, registry } from "@/lib/turbocore/registry";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await requireAdmin();
+    await requirePermission(Permissions.PROVIDERS_HEALTH);
     const configs = await db.providerConfig.findMany({ orderBy: { code: "asc" } });
     const breakers = getBreakerStates();
 
@@ -55,7 +57,7 @@ export async function GET() {
             sampledAt: s.sampledAt,
           })),
         };
-      }),
+      })
     );
 
     return json({ providers: perProvider, generatedAt: new Date().toISOString() });

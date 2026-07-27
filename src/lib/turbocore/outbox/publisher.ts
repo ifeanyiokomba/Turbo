@@ -12,7 +12,11 @@
 
 import { db } from "@/lib/db";
 import { signPayload, TURBOPAY_SIGNATURE_HEADER } from "../webhooks/sign";
+<<<<<<< HEAD
 import { validateOutboundUrl, SsrfError } from "@/lib/security/ssrf";
+=======
+import { validateOutboundUrl } from "@/lib/security/ssrf";
+>>>>>>> ecead5e1765c9674c5c6ba0b7f23bbf8d0791ddf
 
 const BATCH_SIZE = 50;
 
@@ -76,20 +80,29 @@ async function publishOne(event: any, stats: PublishStats): Promise<void> {
     if (event.type === "PAYMENT_SETTLED" && event.aggregateType === "TRANSACTION") {
       const tx = await db.transaction.findUnique({
         where: { id: event.aggregateId },
-        select: { id: true, userId: true, reference: true, amountKobo: true, type: true, direction: true },
+        select: {
+          id: true,
+          userId: true,
+          reference: true,
+          amountKobo: true,
+          type: true,
+          direction: true,
+        },
       });
       if (tx) {
         const incoming = tx.direction === "CREDIT";
-        await db.inAppNotification.create({
-          data: {
-            userId: tx.userId,
-            type: "TRANSACTION",
-            title: incoming ? "Payment received" : "Payment sent",
-            body: `Ref ${tx.reference} • ₦${(tx.amountKobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            priority: "NORMAL",
-            actionUrl: `/history?ref=${tx.reference}`,
-          },
-        }).catch(() => {});
+        await db.inAppNotification
+          .create({
+            data: {
+              userId: tx.userId,
+              type: "TRANSACTION",
+              title: incoming ? "Payment received" : "Payment sent",
+              body: `Ref ${tx.reference} • ₦${(tx.amountKobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              priority: "NORMAL",
+              actionUrl: `/history?ref=${tx.reference}`,
+            },
+          })
+          .catch(() => {});
         stats.inAppDispatched += 1;
       }
     }
@@ -123,6 +136,7 @@ async function publishOne(event: any, stats: PublishStats): Promise<void> {
   let allOk = true;
   for (const ep of endpoints) {
     try {
+<<<<<<< HEAD
       // SSRF guard — validate the webhook endpoint URL before connecting.
       // Merchant-supplied webhook URLs are attacker-controllable, so this is
       // the most important SSRF defense in the system. Blocked: loopback,
@@ -146,10 +160,15 @@ async function publishOne(event: any, stats: PublishStats): Promise<void> {
         continue; // Skip to next endpoint — don't poison the whole event.
       }
 
+=======
+      // SSRF guard — webhook URLs are merchant-controlled and the most
+      // critical SSRF vector. Block private IPs + cloud metadata endpoints.
+      const safeUrl = validateOutboundUrl(ep.url);
+>>>>>>> ecead5e1765c9674c5c6ba0b7f23bbf8d0791ddf
       const signature = signPayload(payloadStr, ep.secretHash);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10_000);
-      const res = await fetch(ep.url, {
+      const res = await fetch(safeUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -160,24 +179,30 @@ async function publishOne(event: any, stats: PublishStats): Promise<void> {
       }).finally(() => clearTimeout(timeout));
 
       if (res.ok) {
-        await db.webhookEndpoint.update({
-          where: { id: ep.id },
-          data: { consecutiveFailures: 0, lastFailedAt: null },
-        }).catch(() => {});
+        await db.webhookEndpoint
+          .update({
+            where: { id: ep.id },
+            data: { consecutiveFailures: 0, lastFailedAt: null },
+          })
+          .catch(() => {});
       } else {
         allOk = false;
-        await db.webhookEndpoint.update({
-          where: { id: ep.id },
-          data: { consecutiveFailures: { increment: 1 }, lastFailedAt: new Date() },
-        }).catch(() => {});
+        await db.webhookEndpoint
+          .update({
+            where: { id: ep.id },
+            data: { consecutiveFailures: { increment: 1 }, lastFailedAt: new Date() },
+          })
+          .catch(() => {});
         console.warn(`[outbox] endpoint ${ep.id} returned ${res.status} for event ${event.id}`);
       }
     } catch (e) {
       allOk = false;
-      await db.webhookEndpoint.update({
-        where: { id: ep.id },
-        data: { consecutiveFailures: { increment: 1 }, lastFailedAt: new Date() },
-      }).catch(() => {});
+      await db.webhookEndpoint
+        .update({
+          where: { id: ep.id },
+          data: { consecutiveFailures: { increment: 1 }, lastFailedAt: new Date() },
+        })
+        .catch(() => {});
       console.warn(`[outbox] endpoint ${ep.id} fetch failed for event ${event.id}:`, e);
     }
   }

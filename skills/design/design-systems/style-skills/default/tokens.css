@@ -52,7 +52,7 @@
    * button bg); default has no third tier and aliases it to surface. */
   --bg: #fafafa;
   --surface: #ffffff;
-  --surface-warm: var(--surface);   /* alias — default has no warm tier */
+  --surface-warm: var(--surface); /* alias — default has no warm tier */
 
   /* ─── Foreground ramp (4 levels — #Gap 1) ───────────────────────
    * Default differentiates only two text levels (primary + muted).
@@ -60,15 +60,15 @@
    * ramps (kami uses near-black / dark-warm / olive / stone). They
    * alias here so components targeting the full ramp resolve. */
   --fg: #111111;
-  --fg-2: var(--fg);                /* alias — default has no secondary tier */
+  --fg-2: var(--fg); /* alias — default has no secondary tier */
   --muted: #6b6b6b;
-  --meta: var(--muted);             /* alias — default has no metadata tier */
+  --meta: var(--muted); /* alias — default has no metadata tier */
 
   /* ─── Border (2 levels — #Gap 3) ────────────────────────────────
    * Default has one border weight; `--border-soft` is a schema slot
    * for brands with row-separator vs card-edge differentiation. */
   --border: #e5e5e5;
-  --border-soft: var(--border);     /* alias — default has no soft tier */
+  --border-soft: var(--border); /* alias — default has no soft tier */
 
   /* ─── Accent ──────────────────────────────────────────────────────
    * Cobalt — primary CTAs, links, ONE hero element per screen.
@@ -186,8 +186,8 @@
    * purposeful transitions (150–250ms) with stable easing". Add a
    * third duration only when a real interaction needs it; do not
    * invent `--motion-slow` speculatively. */
-  --motion-fast: 150ms;            /* hover, focus, micro-states */
-  --motion-base: 200ms;            /* general state changes */
+  --motion-fast: 150ms; /* hover, focus, micro-states */
+  --motion-base: 200ms; /* general state changes */
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
   /* ─── Layout ──────────────────────────────────────────────────────

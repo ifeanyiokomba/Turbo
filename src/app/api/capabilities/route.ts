@@ -25,7 +25,9 @@ export async function GET(req: Request) {
 
     // Resolve country — explicit param > user profile > default NG
     const allCountries = await getAllCountryConfigs();
-    const countries = countryParam ? allCountries.filter((c) => c.code === countryParam) : allCountries;
+    const countries = countryParam
+      ? allCountries.filter((c) => c.code === countryParam)
+      : allCountries;
 
     const capabilityMatrix = await Promise.all(
       countries.map(async (country) => {
@@ -55,7 +57,7 @@ export async function GET(req: Request) {
               outbound: outbound?.providerCode ?? null,
               available: !!(inbound?.providerCode || outbound?.providerCode),
             };
-          }),
+          })
         );
         return {
           country: country.code,
@@ -65,7 +67,7 @@ export async function GET(req: Request) {
           paymentMethods: country.paymentMethods,
           contracts: contractCapabilities,
         };
-      }),
+      })
     );
 
     return json({
