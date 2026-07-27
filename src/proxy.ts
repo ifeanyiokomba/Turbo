@@ -82,9 +82,26 @@ export function proxy(req: NextRequest) {
   }
 
   // --- Build response with all security headers ---
+  const requestHeaders = new Headers(req.headers);
+
+  // --- Tenant resolution (Chapter 11 — "No tenant. No processing.") ---
+  // Resolve the tenant from the request and attach it as a header.
+  // API routes read this header to enforce Row-Level Security.
+  const tenantHeader = req.headers.get("x-tenant-id");
+  const tenantCode = req.headers.get("x-tenant-code");
+  const host = req.headers.get("host") ?? "";
+  if (tenantHeader) {
+    requestHeaders.set("x-resolved-tenant", tenantHeader);
+  } else if (tenantCode) {
+    requestHeaders.set("x-resolved-tenant-code", tenantCode);
+  } else if (host) {
+    // Try to resolve from domain
+    requestHeaders.set("x-tenant-domain", host);
+  }
+
   const res = NextResponse.next({
     request: {
-      headers: new Headers(req.headers),
+      headers: requestHeaders,
     },
   });
 

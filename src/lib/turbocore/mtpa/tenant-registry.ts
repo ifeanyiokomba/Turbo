@@ -13,6 +13,7 @@ import type {
   TenantLifecycle,
   TenantTier,
   TenantEnvironment,
+  TenantResolution,
 } from "./types";
 import { generateId } from "@/lib/turbocore/database/ids";
 
@@ -291,13 +292,7 @@ export function resolveTenant(params: {
   apiKey?: string | null;
   tenantCode?: string | null;
   tenantId?: string | null;
-}): {
-  resolved: boolean;
-  tenantId: string | null;
-  tenantCode: string | null;
-  source: string;
-  error?: string;
-} {
+}): TenantResolution {
   // 1. Direct tenantId
   if (params.tenantId) {
     const tenant = TENANTS.find((t) => t.id === params.tenantId);

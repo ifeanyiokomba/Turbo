@@ -3,3 +3,4 @@
 export * from "./types";
 export * from "./tenant-registry";
 export * from "./tenant-policy-engine";
+export * from "./tenant-context";
