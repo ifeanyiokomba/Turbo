@@ -653,7 +653,7 @@ export function AppShell({
                   title={celoAddress}
                   className="text-muted-foreground hidden font-mono text-[10px] md:inline"
                 >
-                  {celoAddress.slice(0, 6)}…{celoAddress.slice(-4)}
+                  {celoAddress ? `${celoAddress.slice(0, 6)}…${celoAddress.slice(-4)}` : ""}
                 </span>
               )}
             </div>

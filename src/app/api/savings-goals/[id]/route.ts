@@ -149,7 +149,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const goal = await loadOwnedGoal(id, user.id);
     if (!goal) return errorJson("Goal not found", 404, "NOT_FOUND");
     return json({ goal: toDTO(goal) });
-  } catch (e) {
+  } catch (e: any) {
     if (e instanceof ServiceError) return errorJson(e.message, e.statusCode, e.code);
     return handleError(e);
   }
@@ -253,7 +253,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
 
     return json({ goal: toDTO(updated) });
-  } catch (e) {
+  } catch (e: any) {
     if (e instanceof ServiceError) return errorJson(e.message, e.statusCode, e.code);
     return handleError(e);
   }
@@ -347,7 +347,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     });
 
     return json({ ok: true, cancelled: true, refundedKobo: refundKobo });
-  } catch (e) {
+  } catch (e: any) {
     if (e instanceof LedgerError) return errorJson(e.message, 400, "LEDGER_ERROR");
     if (e instanceof ServiceError) return errorJson(e.message, e.statusCode, e.code);
     return handleError(e);

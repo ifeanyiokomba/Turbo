@@ -5,7 +5,7 @@ import { EntryType, RefType } from "@/lib/constants";
 
 export class LedgerError extends Error {}
 
-async function getWalletForUpdate(tx: typeof db, userId: string) {
+async function getWalletForUpdate(tx: any, userId: string) {
   const wallet = await tx.wallet.findUnique({ where: { userId } });
   if (!wallet) throw new LedgerError("Wallet not found");
   if (wallet.status !== "ACTIVE") throw new LedgerError("Wallet is " + wallet.status.toLowerCase());

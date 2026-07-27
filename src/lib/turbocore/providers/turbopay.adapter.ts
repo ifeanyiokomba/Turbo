@@ -98,8 +98,8 @@ export const turbopayBillPayment: IBillPaymentProvider = {
   async listBillers(req) {
     const cats = Object.keys(BILLERS);
     const billers = req.category
-      ? (BILLERS[req.category] ?? [])
-      : cats.flatMap((c) => BILLERS[c] ?? []);
+      ? (BILLERS[req.category] ?? []).map((b) => ({ ...b, category: req.category! }))
+      : cats.flatMap((c) => (BILLERS[c] ?? []).map((b) => ({ ...b, category: c })));
     return ok(
       billers.map((b) => ({ ...b, country: req.country })),
       "mock",
@@ -111,7 +111,9 @@ export const turbopayBillPayment: IBillPaymentProvider = {
   },
   async payBill(req) {
     const token =
-      req.billerCode.startsWith("E") || req.category === "ELECTRICITY"
+      req.billerCode.startsWith("E") ||
+      req.billerCode.includes("EKO") ||
+      req.billerCode.includes("EKEDC")
         ? Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("")
         : undefined;
     return ok({ providerRef: `tp-bill-${req.reference}`, status: "SUCCESS", token }, "mock", 150);
@@ -132,7 +134,11 @@ export const turbopayAirtime: IAirtimeProvider = {
   },
   async listDataPlans(req) {
     return ok(
-      (DATA_PLANS[req.network] ?? []).map((p) => ({ ...p, network: req.network })),
+      (DATA_PLANS[req.network] ?? []).map((p) => ({
+        ...p,
+        network: req.network,
+        amountMinor: p.amountKobo,
+      })),
       "mock",
       12
     );
