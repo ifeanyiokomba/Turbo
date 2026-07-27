@@ -1,8 +1,12 @@
 // TurboCore — Monnify adapter.
 //
-// Implements 2 contracts:
-//   - monnifyVirtualAccount (IVirtualAccountProvider) — reserved accounts
-//   - monnifyCardPayment    (ICardPaymentProvider)     — initialize + verify
+// Implements 6 contracts:
+//   - monnifyVirtualAccount        (IVirtualAccountProvider) — reserved accounts
+//   - monnifyCardPayment           (ICardPaymentProvider)     — initialize + verify
+//   - monnifySubaccounts           (ISplitPaymentProvider)    — subaccounts for split settlement
+//   - monnifyReservedAccountSplit  (extended VA + split)       — reserved account with subAccountCodes
+//   - monnifyInvoice               (IInvoiceProvider)          — create + status + details
+//   - monnifyDirectDebit           (IDirectDebitProvider)      — mandate + status + debit
 //
 // Base URLs:
 //   live:    https://api.monnify.com/v1
@@ -16,10 +20,17 @@
 // "contractCode": "..." }
 
 import { ok, fail } from "../result";
-import type { ICardPaymentProvider, IVirtualAccountProvider } from "../contracts";
+import type {
+  ICardPaymentProvider,
+  IVirtualAccountProvider,
+  ISplitPaymentProvider,
+  IInvoiceProvider,
+  IDirectDebitProvider,
+  ProviderResult,
+} from "../contracts";
 import { requireCreds, loadCreds, http, defaultHttpError, sanitize, mockWarnOnce } from "./_shared";
 import { NIGERIAN_BANKS, UNIQUE_BANKS } from "@/lib/banks";
-import { generateAccountNumber } from "@/lib/money";
+import { generateAccountNumber, generateReference } from "@/lib/money";
 
 const CODE = "monnify";
 const LIVE_BASE = "https://api.monnify.com/v1";
@@ -349,6 +360,519 @@ export const monnifyCardPayment: ICardPaymentProvider = {
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Monnify refund failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+};
+
+// ---------------------------------------------------------------------------
+// 3. Subaccounts (Split payment)
+//    POST /bank-transfer/reserved-accounts/subaccounts
+//    GET  /bank-transfer/reserved-accounts/subaccounts
+// ---------------------------------------------------------------------------
+
+export const monnifySubaccounts: ISplitPaymentProvider = {
+  contract: "SPLIT_PAYMENT",
+
+  async createSubaccount(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      const code = `MNFYSUB-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+      return ok({ subaccountCode: code, subaccountId: code }, "mock", 80);
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Monnify token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/bank-transfer/reserved-accounts/subaccounts`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            currencyCode: req.currency,
+            bankCode: req.bankCode,
+            accountNumber: req.accountNumber,
+            email: req.email,
+            defaultPercentage: req.defaultPercentage ?? 100,
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { responseBody?: { subAccountCode?: string; reference?: string; id?: string | number } }).responseBody;
+      const subaccountCode = data?.subAccountCode ?? data?.reference ?? `MNFYSUB-${Date.now()}`;
+      return ok({ subaccountCode, subaccountId: String(data?.id ?? subaccountCode) }, subaccountCode, 0);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Monnify createSubaccount failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  async listSubaccounts() {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok([
+        {
+          subaccountCode: "MNFYSUB-DEMO1",
+          subaccountId: "1",
+          accountName: "Demo Merchant One",
+          bankCode: "057",
+          accountNumber: "0123456789",
+          defaultPercentage: 80,
+        },
+        {
+          subaccountCode: "MNFYSUB-DEMO2",
+          subaccountId: "2",
+          accountName: "Demo Merchant Two",
+          bankCode: "058",
+          accountNumber: "9876543210",
+          defaultPercentage: 20,
+        },
+      ], "mock", 40);
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Monnify token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/bank-transfer/reserved-accounts/subaccounts`,
+        { method: "GET", headers: bearerHeaders(token) },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const list = (body as { responseBody?: Array<{ subAccountCode?: string; reference?: string; id?: string | number; accountName?: string; accountNumber?: string; bankCode?: string; defaultPercentage?: number; currencyCode?: string }> }).responseBody ?? [];
+      const out = list
+        .filter((s) => s.subAccountCode || s.reference)
+        .map((s) => ({
+          subaccountCode: String(s.subAccountCode ?? s.reference),
+          subaccountId: String(s.id ?? s.subAccountCode ?? s.reference),
+          accountName: s.accountName ?? "",
+          bankCode: s.bankCode ?? "",
+          accountNumber: s.accountNumber ?? "",
+          defaultPercentage: s.defaultPercentage,
+        }));
+      return ok(out, "mn-subaccounts", 0);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Monnify listSubaccounts failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+};
+
+// ---------------------------------------------------------------------------
+// 4. Reserved account with split (extended IVirtualAccountProvider)
+//    POST /bank-transfer/reserved-accounts with subAccountCodes
+//
+//    This is an extension of IVirtualAccountProvider — exposes a single new
+//    method `createReservedAccountWithSplit` that wraps the standard reserved
+//    account creation but accepts an array of subaccount codes to link for
+//    automatic split settlement.
+// ---------------------------------------------------------------------------
+
+export interface MonnifyReservedAccountSplitProvider extends IVirtualAccountProvider {
+  createReservedAccountWithSplit(req: {
+    accountName: string;
+    accountReference: string;
+    currencyCode: string;
+    contractCode: string;
+    customerEmail: string;
+    customerName: string;
+    subAccountCodes: string[];
+  }): Promise<ProviderResult<{ accountNumber: string; bankCode: string; bankName: string; providerRef: string; accounts: Array<{ accountNumber: string; bankCode: string; bankName: string }> }>>;
+}
+
+export const monnifyReservedAccountSplit: MonnifyReservedAccountSplitProvider = {
+  ...monnifyVirtualAccount,
+  contract: "VIRTUAL_ACCOUNT",
+
+  async createReservedAccountWithSplit(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      const acc = generateAccountNumber();
+      return ok(
+        {
+          accountNumber: acc,
+          bankCode: "000",
+          bankName: "Monnify MFB",
+          providerRef: `mn-vasplit-${req.accountReference}`,
+          accounts: [{ accountNumber: acc, bankCode: "000", bankName: "Monnify MFB" }],
+        },
+        "mock",
+        100,
+      );
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Monnify token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/bank-transfer/reserved-accounts`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            accountName: req.accountName,
+            accountReference: req.accountReference,
+            currencyCode: req.currencyCode,
+            contractCode: req.contractCode,
+            customerEmail: req.customerEmail,
+            customerName: req.customerName,
+            subAccountCodes: req.subAccountCodes,
+            getAllAvailableBanks: true,
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as {
+        responseBody?: {
+          accountReference?: string;
+          accounts?: Array<{ accountNumber?: string; bankCode?: string; bankName?: string; bankSlug?: string }>;
+        };
+      }).responseBody;
+      const accounts = (data?.accounts ?? []).map((a) => ({
+        accountNumber: String(a.accountNumber ?? ""),
+        bankCode: String(a.bankCode ?? a.bankSlug ?? ""),
+        bankName: String(a.bankName ?? ""),
+      }));
+      const first = accounts[0];
+      const accountNumber = first?.accountNumber ?? generateAccountNumber();
+      const bankCode = first?.bankCode ?? "000";
+      const bankName = first?.bankName ?? "Monnify MFB";
+      const providerRef = data?.accountReference ?? req.accountReference;
+      return ok({ accountNumber, bankCode, bankName, providerRef, accounts }, providerRef, 0);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Monnify createReservedAccountWithSplit failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+};
+
+// ---------------------------------------------------------------------------
+// 5. Invoice
+//    POST /invoice/create
+//    GET  /invoice/status/:reference
+//    GET  /invoice/details/:reference
+// ---------------------------------------------------------------------------
+
+export const monnifyInvoice: IInvoiceProvider = {
+  contract: "INVOICE",
+
+  async createInvoice(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      const invoiceReference = `MNFYINV-${generateReference("I")}`;
+      return ok(
+        {
+          invoiceReference,
+          checkoutUrl: `${SANDBOX_BASE}/mock/invoice?ref=${invoiceReference}`,
+          status: "PENDING",
+        },
+        "mock",
+        100,
+      );
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Monnify token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    const contractCode = creds.secrets.contractCode;
+    if (!contractCode) return fail("AUTH_FAILED", "Monnify contractCode missing", { providerCode: CODE });
+    try {
+      const { body } = await http(
+        `${base}/invoice/create`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            amount: req.amountMinor / 100, // Monnify uses major units
+            description: req.description,
+            contractCode,
+            customerEmail: req.customerEmail,
+            customerName: req.customerName,
+            expiryDate: req.expiryDate,
+            currencyCode: req.currency ?? "NGN",
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { responseBody?: { invoiceReference?: string; invoiceUrl?: string; checkoutUrl?: string; status?: string } }).responseBody;
+      const invoiceReference = data?.invoiceReference ?? `MNFYINV-${Date.now()}`;
+      return ok(
+        {
+          invoiceReference,
+          checkoutUrl: data?.checkoutUrl ?? data?.invoiceUrl,
+          status: (data?.status ?? "PENDING").toUpperCase(),
+        },
+        invoiceReference,
+        0,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Monnify createInvoice failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  async getInvoiceStatus(invoiceReference) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok({ status: "PENDING" }, "mock", 30);
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Monnify token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/invoice/status/${encodeURIComponent(invoiceReference)}`,
+        { method: "GET", headers: bearerHeaders(token) },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { responseBody?: { invoiceStatus?: string; status?: string; amountPaid?: number } }).responseBody;
+      const status = String(data?.invoiceStatus ?? data?.status ?? "PENDING").toUpperCase();
+      const amountPaidMinor = typeof data?.amountPaid === "number" ? Math.round(data.amountPaid * 100) : undefined;
+      return ok({ status, amountPaidMinor }, invoiceReference, 0);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Monnify getInvoiceStatus failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  async getInvoiceDetails(invoiceReference) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok(
+        {
+          status: "PENDING",
+          amountMinor: 0,
+          customerEmail: "customer@turbopay.ng",
+          description: "Mock invoice",
+          createdAt: new Date().toISOString(),
+        },
+        "mock",
+        30,
+      );
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Monnify token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/invoice/details/${encodeURIComponent(invoiceReference)}`,
+        { method: "GET", headers: bearerHeaders(token) },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as {
+        responseBody?: {
+          invoiceStatus?: string;
+          status?: string;
+          amount?: number;
+          amountPaid?: number;
+          customerEmail?: string;
+          description?: string;
+          createdOn?: string;
+          dateCreated?: string;
+          completedOn?: string;
+          datePaid?: string;
+        };
+      }).responseBody;
+      return ok(
+        {
+          status: String(data?.invoiceStatus ?? data?.status ?? "PENDING").toUpperCase(),
+          amountMinor: typeof data?.amount === "number" ? Math.round(data.amount * 100) : 0,
+          customerEmail: data?.customerEmail ?? "",
+          description: data?.description ?? "",
+          createdAt: data?.createdOn ?? data?.dateCreated ?? new Date().toISOString(),
+          paidAt: data?.completedOn ?? data?.datePaid,
+        },
+        invoiceReference,
+        0,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Monnify getInvoiceDetails failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+};
+
+// ---------------------------------------------------------------------------
+// 6. Direct debit (mandate + status + debit)
+//    POST /direct-debit/mandate
+//    GET  /direct-debit/mandate/:id
+//    POST /direct-debit/debit
+// ---------------------------------------------------------------------------
+
+export const monnifyDirectDebit: IDirectDebitProvider = {
+  contract: "DIRECT_DEBIT",
+
+  async createMandate(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      const mandateId = `MNFYMDT-${generateReference("M")}`;
+      return ok(
+        { mandateId, status: "PENDING", authUrl: `${SANDBOX_BASE}/mock/mandate/auth?id=${mandateId}` },
+        "mock",
+        150,
+      );
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Monnify token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    const contractCode = creds.secrets.contractCode;
+    if (!contractCode) return fail("AUTH_FAILED", "Monnify contractCode missing", { providerCode: CODE });
+    try {
+      const { body } = await http(
+        `${base}/direct-debit/mandate`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            contractCode,
+            mandateType: req.mandateType ?? "RECURRING",
+            payerName: req.payerName,
+            payerEmail: req.payerEmail ?? `${req.payerName.replace(/\s+/g, ".").toLowerCase()}@turbopay.ng`,
+            payerPhone: req.payerPhone,
+            amount: req.amountMinor / 100, // major units
+            currencyCode: req.currency ?? "NGN",
+            startDate: req.startDate,
+            endDate: req.endDate,
+            frequency: req.frequency ?? "MONTHLY",
+            accountNumber: req.accountNumber,
+            bankCode: req.bankCode,
+            narration: req.narration ?? "TurboPay direct debit mandate",
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { responseBody?: { mandateId?: string; reference?: string; status?: string; authUrl?: string; authorizationUrl?: string } }).responseBody;
+      const mandateId = String(data?.mandateId ?? data?.reference ?? `MNFYMDT-${Date.now()}`);
+      return ok(
+        {
+          mandateId,
+          status: String(data?.status ?? "PENDING").toUpperCase(),
+          authUrl: data?.authUrl ?? data?.authorizationUrl,
+        },
+        mandateId,
+        0,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Monnify createMandate failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  async getMandateStatus(mandateId) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok({ status: "ACTIVE", mandateId }, "mock", 30);
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Monnify token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/direct-debit/mandate/${encodeURIComponent(mandateId)}`,
+        { method: "GET", headers: bearerHeaders(token) },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { responseBody?: { mandateId?: string; status?: string; mandateStatus?: string } }).responseBody;
+      return ok(
+        {
+          status: String(data?.mandateStatus ?? data?.status ?? "ACTIVE").toUpperCase(),
+          mandateId: String(data?.mandateId ?? mandateId),
+        },
+        mandateId,
+        0,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Monnify getMandateStatus failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  async debitMandate(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      const providerRef = `MNFYDBT-${generateReference("D")}`;
+      return ok({ providerRef, status: "PENDING" }, "mock", 100);
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Monnify token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/direct-debit/debit`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            mandateId: req.mandateId,
+            amount: req.amountMinor / 100, // major units
+            narration: req.narration ?? "TurboPay mandate debit",
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { responseBody?: { debitReference?: string; transactionReference?: string; status?: string } }).responseBody;
+      const providerRef = String(data?.debitReference ?? data?.transactionReference ?? `MNFYDBT-${Date.now()}`);
+      return ok({ providerRef, status: String(data?.status ?? "PENDING").toUpperCase() }, providerRef, 0);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Monnify debitMandate failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  async stopMandate(mandateId) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok({ status: "STOPPED", mandateId }, "mock", 30);
+    }
+    const token = await getAccessToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Monnify token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/direct-debit/mandate/${encodeURIComponent(mandateId)}/stop`,
+        { method: "POST", headers: bearerHeaders(token) },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { responseBody?: { status?: string; mandateStatus?: string } }).responseBody;
+      return ok(
+        {
+          status: String(data?.mandateStatus ?? data?.status ?? "STOPPED").toUpperCase(),
+          mandateId,
+        },
+        mandateId,
+        0,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Monnify stopMandate failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
     }
   },

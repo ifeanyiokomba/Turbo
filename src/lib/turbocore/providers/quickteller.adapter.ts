@@ -1,8 +1,11 @@
 // TurboCore — Interswitch Quickteller adapter.
 //
-// Implements 2 contracts:
-//   - quicktellerBillPayment (IBillPaymentProvider)
-//   - quicktellerAirtime     (IAirtimeProvider)
+// Implements 5 contracts:
+//   - quicktellerBillPayment       (IBillPaymentProvider)   — basic bill payment
+//   - quicktellerAirtime           (IAirtimeProvider)        — airtime + data
+//   - quicktellerBillers           (extended IBillPaymentProvider) — list categories / billers / payment items
+//   - quicktellerSendBill          (standalone)              — send bill with explicit params
+//   - quicktellerCardTokenization  (ICardTokenizationProvider) — tokenize + charge tokenized card
 //
 // Base URL: https://sandbox.interswitchng.com/api/v2/quickteller (live:
 // https://saturn.interswitchng.com/api/v2/quickteller — same path).
@@ -13,10 +16,11 @@
 // Secrets expected: { "clientId": "...", "secret": "...", "terminalId": "..." }
 
 import { ok, fail } from "../result";
-import type { IBillPaymentProvider, IAirtimeProvider } from "../contracts";
+import type { IBillPaymentProvider, IAirtimeProvider, ICardTokenizationProvider, ProviderResult } from "../contracts";
 import { requireCreds, loadCreds, http, defaultHttpError, sanitize, mockWarnOnce } from "./_shared";
 import { BILLERS, DATA_PLANS } from "@/lib/banks";
 import { NETWORKS } from "@/lib/constants";
+import { generateReference } from "@/lib/money";
 
 const CODE = "quickteller";
 const SANDBOX_BASE = "https://sandbox.interswitchng.com/api/v2/quickteller";
@@ -304,6 +308,319 @@ export const quicktellerAirtime: IAirtimeProvider = {
       return ok({ status: (data.status ?? "PENDING").toUpperCase() }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Quickteller getStatus failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+};
+
+// ---------------------------------------------------------------------------
+// 3. Billers catalog (extended IBillPaymentProvider)
+//    GET /billers/categories            — list biller categories from Interswitch
+//    GET /billers?categoryId=:id        — list billers by category
+//    GET /billers/:billerId/payment-items — get biller payment items
+// ---------------------------------------------------------------------------
+
+export interface QuicktellerBillerCategory {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface QuicktellerPaymentItem {
+  id: string;
+  name: string;
+  amountMinor?: number;
+  currency?: string;
+  category?: string;
+}
+
+export interface QuicktellerBillersProvider extends IBillPaymentProvider {
+  listBillerCategories(): Promise<ProviderResult<QuicktellerBillerCategory[]>>;
+  listBillersByCategory(categoryId: string): Promise<ProviderResult<Array<{ id: string; name: string; category: string }>>>;
+  getBillerPaymentItems(billerId: string): Promise<ProviderResult<QuicktellerPaymentItem[]>>;
+}
+
+export const quicktellerBillers: QuicktellerBillersProvider = {
+  ...quicktellerBillPayment,
+  contract: "BILL_PAYMENT",
+
+  async listBillerCategories() {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      const cats = Object.keys(BILLERS).map((id, i) => ({
+        id,
+        name: id.charAt(0) + id.slice(1).toLowerCase(),
+        description: `Mock category #${i + 1}`,
+      }));
+      return ok(cats, "mock", 25);
+    }
+    const base = pickBase(creds);
+    try {
+      const headers = await authHeaders(creds, "GET", "/billers/categories");
+      const { body } = await http(`${base}/billers/categories`, { method: "GET", headers }, (s, b) =>
+        defaultHttpError(CODE, s, b),
+      );
+      const list = (body as { categories?: Array<{ id?: string; categoryId?: string; name?: string; categoryName?: string; description?: string }> }).categories ?? [];
+      const out = list
+        .filter((c) => c.id || c.categoryId)
+        .map((c) => ({
+          id: String(c.id ?? c.categoryId),
+          name: String(c.name ?? c.categoryName ?? "Unknown"),
+          description: c.description,
+        }));
+      if (!out.length) {
+        const cats = Object.keys(BILLERS).map((id) => ({ id, name: id.charAt(0) + id.slice(1).toLowerCase() }));
+        return ok(cats, "qt-fallback", 0);
+      }
+      return ok(out, "qt-categories", 0);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Quickteller listBillerCategories failed";
+      void msg;
+      const cats = Object.keys(BILLERS).map((id) => ({ id, name: id.charAt(0) + id.slice(1).toLowerCase() }));
+      return ok(cats, "qt-fallback", 0);
+    }
+  },
+
+  async listBillersByCategory(categoryId) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      const billers = (BILLERS[categoryId] ?? []).map((b) => ({ id: b.code, name: b.name, category: categoryId }));
+      return ok(billers, "mock", 25);
+    }
+    const base = pickBase(creds);
+    try {
+      const headers = await authHeaders(creds, "GET", "/billers");
+      const { body } = await http(
+        `${base}/billers?categoryId=${encodeURIComponent(categoryId)}`,
+        { method: "GET", headers },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const list = (body as { billers?: Array<{ billerId?: string; billerName?: string; category?: string }> }).billers ?? [];
+      const out = list
+        .filter((b) => b.billerId && b.billerName)
+        .map((b) => ({
+          id: String(b.billerId),
+          name: String(b.billerName),
+          category: String(b.category ?? categoryId),
+        }));
+      if (!out.length) {
+        const billers = (BILLERS[categoryId] ?? []).map((b) => ({ id: b.code, name: b.name, category: categoryId }));
+        return ok(billers, "qt-fallback", 0);
+      }
+      return ok(out, "qt-billers-by-cat", 0);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Quickteller listBillersByCategory failed";
+      void msg;
+      const billers = (BILLERS[categoryId] ?? []).map((b) => ({ id: b.code, name: b.name, category: categoryId }));
+      return ok(billers, "qt-fallback", 0);
+    }
+  },
+
+  async getBillerPaymentItems(billerId) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok(
+        [
+          { id: `${billerId}-POSTPAID`, name: "Postpaid Bill", amountMinor: 0, currency: "NGN" },
+          { id: `${billerId}-PREPAID`, name: "Prepaid Topup", amountMinor: 0, currency: "NGN" },
+        ],
+        "mock",
+        30,
+      );
+    }
+    const base = pickBase(creds);
+    try {
+      const headers = await authHeaders(creds, "GET", `/billers/${billerId}/payment-items`);
+      const { body } = await http(
+        `${base}/billers/${encodeURIComponent(billerId)}/payment-items`,
+        { method: "GET", headers },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const list = (body as { paymentItems?: Array<{ paymentItemId?: string; paymentItemName?: string; amount?: number; currency?: string; category?: string }> }).paymentItems ?? [];
+      const out = list
+        .filter((p) => p.paymentItemId || p.paymentItemName)
+        .map((p) => ({
+          id: String(p.paymentItemId ?? ""),
+          name: String(p.paymentItemName ?? ""),
+          amountMinor: typeof p.amount === "number" ? Math.round(p.amount * 100) : undefined,
+          currency: p.currency ?? "NGN",
+          category: p.category,
+        }));
+      return ok(out, "qt-payment-items", 0);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Quickteller getBillerPaymentItems failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+};
+
+// ---------------------------------------------------------------------------
+// 4. Send bill (standalone — explicit paymentCode/customerId/amount)
+//    POST /payments/sendbill
+// ---------------------------------------------------------------------------
+
+export const quicktellerSendBill = {
+  async sendBill(req: {
+    paymentCode: string;
+    customerId: string;
+    customerMobile?: string;
+    customerEmail?: string;
+    amountMinor: number;
+    requestReference?: string;
+  }): Promise<ProviderResult<{ providerRef: string; status: string; token?: string; receiptNo?: string }>> {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      const ref = req.requestReference ?? generateReference("QT");
+      return ok({ providerRef: `qt-sendbill-${ref}`, status: "SUCCESS" }, "mock", 150);
+    }
+    const base = pickBase(creds);
+    try {
+      const headers = await authHeaders(creds, "POST", "/payments/sendbill");
+      const ref = req.requestReference ?? generateReference("QT");
+      const { body } = await http(
+        `${base}/payments/sendbill`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            paymentCode: req.paymentCode,
+            customerId: req.customerId,
+            customerMobile: req.customerMobile,
+            customerEmail: req.customerEmail,
+            amount: req.amountMinor, // Quickteller expects minor (kobo)
+            requestReference: ref,
+            terminalId: creds.secrets.terminalId,
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { transactionRef?: string; transactionReference?: string; status?: string; token?: string; receiptNo?: string });
+      return ok(
+        {
+          providerRef: data.transactionRef ?? data.transactionReference ?? `qt-sendbill-${ref}`,
+          status: (data.status ?? "SUCCESS").toUpperCase(),
+          token: data.token,
+          receiptNo: data.receiptNo,
+        },
+        data.transactionRef ?? ref,
+        0,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Quickteller sendBill failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+};
+
+// ---------------------------------------------------------------------------
+// 5. Card tokenization
+//    POST /card-tokenization/tokenize
+//    POST /card-tokenization/charge
+// ---------------------------------------------------------------------------
+
+export const quicktellerCardTokenization: ICardTokenizationProvider = {
+  contract: "CARD_TOKENIZATION",
+
+  async tokenizeCard(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      const token = `QTTOKEN-${generateReference("T")}`;
+      return ok(
+        {
+          token,
+          expiryDate: req.expiryDate,
+          maskedPan: `•••• •••• •••• ${req.pan.slice(-4)}`,
+        },
+        "mock",
+        200,
+      );
+    }
+    const base = pickBase(creds);
+    try {
+      const headers = await authHeaders(creds, "POST", "/card-tokenization/tokenize");
+      const { body } = await http(
+        `${base}/card-tokenization/tokenize`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            pan: req.pan,
+            expiryDate: req.expiryDate,
+            cvv: req.cvv,
+            pin: req.pin,
+            mobileNo: req.mobileNo,
+            terminalId: creds.secrets.terminalId,
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { token?: string; cardToken?: string; tokenReference?: string; expiryDate?: string; maskedPan?: string; panLast4?: string });
+      const token = String(data.token ?? data.cardToken ?? data.tokenReference ?? "");
+      if (!token) {
+        return fail("UPSTREAM_ERROR", "Quickteller tokenizeCard returned no token", { providerCode: CODE, raw: sanitize(body) });
+      }
+      return ok(
+        {
+          token,
+          expiryDate: data.expiryDate ?? req.expiryDate,
+          maskedPan: data.maskedPan ?? (data.panLast4 ? `•••• •••• •••• ${data.panLast4}` : undefined),
+        },
+        token,
+        0,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Quickteller tokenizeCard failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  async chargeTokenizedCard(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      const ref = req.requestReference ?? generateReference("QT");
+      return ok({ providerRef: `qt-token-charge-${ref}`, status: "SUCCESS" }, "mock", 200);
+    }
+    const base = pickBase(creds);
+    try {
+      const headers = await authHeaders(creds, "POST", "/card-tokenization/charge");
+      const { body } = await http(
+        `${base}/card-tokenization/charge`,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            token: req.token,
+            amount: req.amountMinor, // minor units (kobo)
+            currency: req.currency,
+            requestReference: req.requestReference,
+            terminalId: creds.secrets.terminalId,
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { transactionRef?: string; transactionReference?: string; status?: string });
+      const providerRef = String(data.transactionRef ?? data.transactionReference ?? `qt-token-charge-${req.requestReference}`);
+      return ok({ providerRef, status: (data.status ?? "SUCCESS").toUpperCase() }, providerRef, 0);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Quickteller chargeTokenizedCard failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
     }
   },

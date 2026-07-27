@@ -1262,3 +1262,131 @@ Stage Summary:
 - Remaining from punch list: Smart Cash (blocked on external portal access), confirm Stripe/Wise park (done via feature flags), Nigeria routing to Smart Cash (depends on Smart Cash)
 - Lint: 0 errors, 0 warnings
 - Dev server running on :3000, all verified
+
+---
+Task ID: DEEP-3
+Agent: full-stack-developer (Mobile money deep)
+Task: Deep API services for M-Pesa, MTN MoMo, Airtel Money, Smartcash
+
+Work Log:
+- Read worklog PROV-RESEARCH section (lines 1845-2027) for M-Pesa Daraja, MTN MoMo, Airtel Money, Smartcash gap analysis; read contracts.ts, result.ts, _shared.ts, all 4 adapter files, providers/index.ts, api.ts, db.ts, credentials.ts, paga.adapter.ts (for IMobileMoneyProvider + IBillPaymentProvider multi-contract pattern).
+- Extended `src/lib/turbocore/contracts.ts` — added 16 optional deep methods to `IMobileMoneyProvider`. M-Pesa: `reverseTransaction`, `getB2CStatus`, `registerC2BUrl`, `simulateC2B`, `getAccountBalance`, `getTransactionStatus`. MTN MoMo: `createPreApproval`, `sendDeliveryNotification`, `getAccountHolderBasicInfo`, `isAccountHolderActive`, `disburseTransfer`, `getDisbursementTransferStatus`, `getDisbursementAccountBalance`. Airtel: `verifyKyc`, `refundTransaction`, `merchantPayment`, `getTransactionStatus`, `getAccountBalance`. Smartcash: `transferWallet`, `verifyAccount`, `getTransactionHistory`. Made `commandID/partyA/identifierType` optional on `getB2CStatus`/`getAccountBalance`/`getTransactionStatus` so the same contract serves both M-Pesa (requires them) and Airtel (doesn't).
+- `src/lib/turbocore/providers/mpesa.adapter.ts` — added 6 deep methods. All SecurityCredential-requiring endpoints (reversal, B2C status, account balance, transaction status) fall back to mock when `initiatorName`/`securityCredential` is missing in non-prod; return `fail("AUTH_FAILED", ...)` in prod. C2B registration only needs OAuth. C2B simulate enforces sandbox-only (`fail("NOT_SUPPORTED", ...)` in prod). STK query (`getStatus`) left as-is — already parses ResultCode (0=SUCCESS, 1032/1037=FAILED).
+- `src/lib/turbocore/providers/mtn-momo.adapter.ts` — added 7 deep methods. Collection-v2 endpoints (`preapproval`, `deliverynotification`, `accountholder/.../basicuserinfo`, `accountholder/.../active`) use the existing `getCollectToken()`. Disbursement-v2 endpoints (`disbursement/v2_0/transfer`, `transfer/:id`, `account/balance`) use the existing `getDisburseToken()` — separate subscription key from collection per MTN's API design. `isAccountHolderActive` swallows 404s as `{ active: false }` so callers can pre-validate before disburse.
+- `src/lib/turbocore/providers/airtel-money.adapter.ts` — added 5 deep methods. `verifyKyc` returns KYC level (FULL_KYC/LIMITED_KYC/UNVERIFIED). `refundTransaction` POSTs to `/merchant/v1/payments/:id/refund`. `merchantPayment` POSTs to `/merchant/v1/payments` (alternative collect flow with explicit subscriber/transaction shape). `getTransactionStatus` deep query parses full `{ status, data: { transaction: { id, status, amount, currency, reference } } }` response. `getAccountBalance` deep method guarantees currency is returned.
+- `src/lib/turbocore/providers/smartcash.adapter.ts` — added 3 deep methods to `smartcashProvider` (wallet transfer, account verify, transaction history) and 3 NEW contract exports: `smartcashBankTransfer` (IBankTransferProvider) — POST `/v1/transfers/bank`, NG-only, listBanks returns local NG bank directory; `smartcashAirtime` (IAirtimeProvider) — POST `/v1/airtime`, NG-only, listNetworks + listDataPlans return local catalogues; `smartcashBillPayment` (IBillPaymentProvider) — POST `/v1/bills/pay`, returns token for electricity billers, listBillers falls back to local BILLERS directory from `@/lib/banks`. `verifyAccount` swallows 404s as `{ valid: false }`.
+- `src/lib/turbocore/providers/index.ts` — registered Smartcash under BANK_TRANSFER, AIRTIME, BILL_PAYMENT contracts (alongside existing MOBILE_MONEY).
+- Ran `bun run lint` → 0 errors, 0 warnings. Ran `npx tsc --noEmit` → 0 errors in my modified files (pre-existing errors in savings-goals/app-shell/settings/ledger/etc. untouched). No schema changes; no `db:push`.
+
+Stage Summary:
+- Modified: `src/lib/turbocore/contracts.ts`, `src/lib/turbocore/providers/mpesa.adapter.ts`, `src/lib/turbocore/providers/mtn-momo.adapter.ts`, `src/lib/turbocore/providers/airtel-money.adapter.ts`, `src/lib/turbocore/providers/smartcash.adapter.ts`, `src/lib/turbocore/providers/index.ts`.
+- Created: `src/agent-ctx/DEEP-3-full-stack-developer.md` (work record).
+- No new routes, no schema changes, no `db:push`.
+
+---
+Task ID: DEEP-4
+Agent: full-stack-developer (Dojah + Termii + Resend + Wise deep)
+Task: Deep API services for Dojah, Termii, Resend, Wise
+
+Work Log:
+- Read worklog.md (especially PROV-RESEARCH sections for Dojah #12, Termii #13, Resend #14, Wise #15) + foundation files (contracts.ts, result.ts, _shared.ts, dojah/termii/resend/wise adapters, providers/index.ts, api.ts, db.ts, auth.ts) to understand existing provider pattern: `requireCreds` → `loadCreds` → mock fallback → real HTTP via `http()` helper → `ok()`/`fail()` shape.
+- Added 6 new contract interfaces to `src/lib/turbocore/contracts.ts`:
+  - `IAMLProvider` (screenName, screenTransaction, getAMLPeps, getAMLSanctions)
+  - `IBusinessKYCProvider` (verifyRCNumber, verifyTIN, verifyBusinessName)
+  - `IFraudScreeningProvider` (screenPhone, screenEmail, screenIP, checkBIN)
+  - `IOTPProvider` (sendOTP, verifyOTP, sendVoiceOTP, sendWhatsAppOTP)
+  - `IRecipientProvider` (createRecipient, listRecipients, getRecipient, updateRecipient, deleteRecipient)
+  - `IMultiCurrencyBalanceProvider` (getBalances, getBalance)
+  - Plus 4 shared types (AMLMatch, BusinessMatch, RecipientSummary, BalanceSummary) and extended `AnyContract` union.
+- Added 6 new entries to `ContractName` enum in `src/lib/turbocore/result.ts`: AML, BUSINESS_KYC, FRAUD_SCREENING, OTP, RECIPIENT, MULTI_CURRENCY_BALANCE.
+- Extended `src/lib/turbocore/providers/dojah.adapter.ts` with 4 new exports:
+  - `dojahAdditionalKYC` (interface DojahAdditionalKYC) — 6 methods: verifyDriversLicense, verifyVotersCard, verifyPassport, verifyNINSlip, verifyBVNAdvanced, verifyAccountNumber.
+  - `dojahAML` (IAMLProvider) — 4 methods: screenName, screenTransaction, getAMLPeps, getAMLSanctions.
+  - `dojahBusinessKYC` (IBusinessKYCProvider) — 3 methods: verifyRCNumber, verifyTIN, verifyBusinessName.
+  - `dojahFraudScreening` (IFraudScreeningProvider) — 4 methods: screenPhone, screenEmail, screenIP, checkBIN.
+  - All methods use the `requireCreds → loadCreds → mockWarnOnce+ok → authHeaders check → http() → defaultHttpError → ok()/fail()` pattern. Dojah's response envelope is `entity` (BVN/NIN) or `data` (KRA/Ghana) — adapters probe both.
+- Extended `src/lib/turbocore/providers/termii.adapter.ts`:
+  - Added `TermiiNotificationExtensions` interface + extended `termiiNotification` (now `INotificationProvider & TermiiNotificationExtensions`) with 7 new methods: sendVoice, sendWhatsApp, requestSenderID, listSenderIDs, addTemplate, listTemplates, sendTemplate.
+  - Added new `termiiOTP` (IOTPProvider) export with 4 methods: sendOTP, verifyOTP, sendVoiceOTP, sendWhatsAppOTP.
+  - Termii auth is body-based (`api_key` in JSON body, not headers) — all calls serialize apiKey into the request payload.
+- Extended `src/lib/turbocore/providers/resend.adapter.ts`:
+  - Added `ResendNotificationExtensions` interface + extended `resendNotification` (now `INotificationProvider & ResendNotificationExtensions`) with 11 new methods: sendBatch (POST /emails/batch up to 100 emails), createDomain, listDomains, getDomain, verifyDomain, createContact, listContacts, createWebhookEndpoint, listWebhookEndpoints, saveTemplate (in-process Map store with 100-entry soft cap), listTemplates, sendTemplate (renders {{var}} placeholders, dispatches via /emails).
+  - All HTTP requests now send `User-Agent: Turbopay/1.0` header (Resend returns 403 without it).
+  - Templates: implemented as a lightweight in-process store (Map<id, StoredTemplate>) since Resend's Templates API is gated behind their Broadcasts product. Render via regex replace of `{{var}}` placeholders against a data map.
+- Extended `src/lib/turbocore/providers/wise.adapter.ts`:
+  - Added `WiseTransferExtensions` interface + extended `wiseIntl` (now `IInternationalTransferProvider & WiseTransferExtensions`) with 4 new methods: createQuote (POST /v2/quotes with targetType+targetAccount), createTransfer (POST /v1/transfers), fundTransfer (POST /v3/profiles/:id/transfers/:id/payments), estimateTransferTime (GET /v1/delivery-estimates).
+  - Added new `wiseRecipients` (IRecipientProvider) export with 5 methods: createRecipient (POST /v1/recipients), listRecipients (GET /v1/recipients?profileId=), getRecipient (GET /v1/recipients/:id, parses bankDetails as remaining non-meta fields), updateRecipient (PATCH /v1/recipients/:id), deleteRecipient (DELETE /v1/recipients/:id).
+  - Added new `wiseBalances` (IMultiCurrencyBalanceProvider) export with 2 methods: getBalances (GET /v1/balances?profileId=), getBalance (GET /v1/balances/:id, parses Wise's nested `{amount: {value, currency}}` shape).
+  - Added new `wiseProfiles` (WiseProfiles extension) export with 2 methods: createProfile (POST /v1/profiles, supports PERSONAL or BUSINESS with address details), getProfiles (GET /v1/profiles).
+  - All Wise methods use `pickBase(creds)` to switch between live (api.wise.com) and sandbox (api.sandbox.transferwise.tech) base URLs based on `ProviderConfig.sandbox` flag.
+- Updated `src/lib/turbocore/providers/index.ts` REAL_PROVIDERS registry:
+  - dojah: added AML, BUSINESS_KYC, FRAUD_SCREENING contracts (alongside existing KYC).
+  - termii: added OTP contract (alongside existing NOTIFICATION).
+  - wise: added RECIPIENT, MULTI_CURRENCY_BALANCE contracts (alongside existing INTERNATIONAL_TRANSFER, EXCHANGE_RATE).
+  - Extension methods (dojahAdditionalKYC, wiseProfiles, resend/termii extension methods) are exported from their adapter files so callers can import them directly — they're not registered as separate contracts since they extend existing contract surfaces.
+- Wrote `agent-ctx/DEEP-4-full-stack-developer.md` work record.
+- Ran `bun run lint` → 0 errors, 0 warnings.
+- Ran `npx tsc --noEmit` → 0 errors in my files (contracts.ts, result.ts, providers/index.ts, dojah/termii/resend/wise adapters). Pre-existing TS errors in other files (ledger.ts, savings-goals routes, examples/websocket, minipay.ts) are not mine. Unstaged WIP changes to flutterwave.adapter.ts and stripe.adapter.ts reference not-yet-added contracts (ISplitPaymentProvider, ICustomerProvider, etc.) — those TS errors are from a parallel DEEP agent.
+- Committed all changes.
+
+Stage Summary:
+Files modified:
+- src/lib/turbocore/contracts.ts — 6 new contract interfaces + 4 shared types + extended AnyContract union
+- src/lib/turbocore/result.ts — 6 new ContractName entries (AML, BUSINESS_KYC, FRAUD_SCREENING, OTP, RECIPIENT, MULTI_CURRENCY_BALANCE)
+- src/lib/turbocore/providers/dojah.adapter.ts — added dojahAdditionalKYC (6 methods), dojahAML (4 methods), dojahBusinessKYC (3 methods), dojahFraudScreening (4 methods) = 17 new methods
+- src/lib/turbocore/providers/termii.adapter.ts — extended termiiNotification with 7 new methods (sendVoice, sendWhatsApp, requestSenderID, listSenderIDs, addTemplate, listTemplates, sendTemplate); added termiiOTP (4 methods) = 11 new methods
+- src/lib/turbocore/providers/resend.adapter.ts — extended resendNotification with 11 new methods (sendBatch, createDomain, listDomains, getDomain, verifyDomain, createContact, listContacts, createWebhookEndpoint, listWebhookEndpoints, saveTemplate, listTemplates, sendTemplate) + in-process template store
+- src/lib/turbocore/providers/wise.adapter.ts — extended wiseIntl with 4 new methods (createQuote, createTransfer, fundTransfer, estimateTransferTime); added wiseRecipients (5 methods), wiseBalances (2 methods), wiseProfiles (2 methods) = 13 new methods
+- src/lib/turbocore/providers/index.ts — registered 6 new contract/provider entries (dojah AML/BUSINESS_KYC/FRAUD_SCREENING, termii OTP, wise RECIPIENT/MULTI_CURRENCY_BALANCE)
+Lint: 0 errors, 0 warnings. Total: 52 new provider methods across 4 adapters, backed by 6 new contracts.
+
+---
+Task ID: DEEP-2
+Agent: full-stack-developer (Monnify + Remita + Quickteller + Baxi + Paga deep)
+Task: Deep API services for Monnify, Remita, Quickteller, Baxi, Paga
+
+Work Log:
+- Read worklog.md (PROV-RESEARCH sections for Monnify #5, Remita #6, Quickteller #7, Baxi #8, Paga #9) and foundation files (contracts.ts, result.ts, _shared.ts, all 5 adapter files, providers/index.ts, api.ts, db.ts, money.ts, credentials.ts) to understand existing adapter pattern: requireCreds → loadCreds → mockWarnOnce+ok fallback in non-prod / AUTH_FAILED in prod → real HTTP via http() helper → defaultHttpError → ok()/fail() shape.
+- Verified the new contracts (ISplitPaymentProvider, IInvoiceProvider, IDirectDebitProvider, ICardTokenizationProvider) and ContractName entries (SPLIT_PAYMENT, INVOICE, DIRECT_DEBIT, CARD_TOKENIZATION) were already present in contracts.ts and result.ts (added by a parallel DEEP agent). Re-exported `ProviderResult` from contracts.ts so adapter files can import everything from a single module path.
+- Monnify adapter (`src/lib/turbocore/providers/monnify.adapter.ts`) — added 4 new exports:
+  - `monnifySubaccounts` (ISplitPaymentProvider): createSubaccount (POST /bank-transfer/reserved-accounts/subaccounts) and listSubaccounts (GET). Mock returns two demo subaccounts (MNFYSUB-DEMO1/2) with split percentages.
+  - `monnifyReservedAccountSplit` (extended IVirtualAccountProvider via local MonnifyReservedAccountSplitProvider interface): createReservedAccountWithSplit (POST /bank-transfer/reserved-accounts with subAccountCodes array). Spreads monnifyVirtualAccount for the base IVirtualAccountProvider methods and adds the split-aware create method.
+  - `monnifyInvoice` (IInvoiceProvider): createInvoice (POST /invoice/create with contractCode), getInvoiceStatus (GET /invoice/status/:ref), getInvoiceDetails (GET /invoice/details/:ref). All amount conversions use major units (amountMinor/100) per Monnify convention.
+  - `monnifyDirectDebit` (IDirectDebitProvider): createMandate (POST /direct-debit/mandate), getMandateStatus (GET /direct-debit/mandate/:id), debitMandate (POST /direct-debit/debit), stopMandate (POST /direct-debit/mandate/:id/stop). Mandate supports mandateType, frequency, startDate, endDate, accountNumber, bankCode per Monnify direct debit spec.
+- Remita adapter (`src/lib/turbocore/providers/remita.adapter.ts`) — added 3 new exports:
+  - `remitaRRR` (extended IBillPaymentProvider via local RemitaRRRProvider interface): generateRRR (POST /payments/v1/rrr/generate), getRRRStatus (GET /payments/v1/rrr/:rrr/status), getRRRDetails (GET /payments/v1/rrr/:rrr/details). RRR status parsing handles Remita's statuscode convention (00=SUCCESS, 01=FAILED).
+  - `remitaMandate` (IDirectDebitProvider): createMandate (POST /mandate/setup), getMandateStatus (GET /mandate/:id/status), debitMandate (POST /mandate/:id/debit), stopMandate (POST /mandate/:id/stop). Supports mandateType, payer details, frequency, date range, bank account for Nigerian TSA-style recurring debits.
+  - `remitaPaymentNotification` (standalone): sendPaymentNotification (POST /payments/v1/payment-notification with rrr + channel).
+- Quickteller adapter (`src/lib/turbocore/providers/quickteller.adapter.ts`) — added 3 new exports:
+  - `quicktellerBillers` (extended IBillPaymentProvider via local QuicktellerBillersProvider interface): listBillerCategories (GET /billers/categories), listBillersByCategory (GET /billers?categoryId=:id), getBillerPaymentItems (GET /billers/:billerId/payment-items). All degrade to the local BILLERS directory on upstream failure so the UI stays functional.
+  - `quicktellerSendBill` (standalone): sendBill (POST /payments/sendbill with explicit paymentCode, customerId, customerMobile, customerEmail, amount, requestReference). Uses Quickteller's HMAC-SHA-512 signature via the existing authHeaders() helper.
+  - `quicktellerCardTokenization` (ICardTokenizationProvider): tokenizeCard (POST /card-tokenization/tokenize with PAN, expiry, CVV, optional pin/mobileNo) and chargeTokenizedCard (POST /card-tokenization/charge with token, amount, currency, requestReference). Tokenization returns maskedPan + expiryDate alongside the token; mock mode generates a QTTOKEN- reference.
+- Baxi adapter (`src/lib/turbocore/providers/baxi.adapter.ts`) — added 4 new exports:
+  - `baxiBillers` (extended IBillPaymentProvider via local BaxiBillersProvider interface): listBillerCategories (GET /billers/categories), listBillersByCategory (GET /billers/:category), getBillerProducts (GET /billers/:billerId/products), validateBill (POST /billers/validate with service_type + account_number).
+  - `baxiDataBundles` (extended IAirtimeProvider via local BaxiDataBundlesProvider interface): listDataBundles (GET /data/bundles/:network) and buyData (POST /data/request with network, phone, plan_id, amount, reference).
+  - `baxiCableTV` (standalone): listCableTVProviders (GET /cable-tv/providers), validateCableTV (POST /cable-tv/validate with service_type + smartcard_number), payCableTV (POST /cable-tv/pay). Mock returns DStv, GOtv, StarTimes, Showmax.
+  - `baxiElectricity` (standalone): listElectricityDiscos (GET /electricity/discos), validateMeter (POST /electricity/validate with disco + meter_number + meter_type), payElectricity (POST /electricity/pay). Mock generates a 20-digit token for PREPAID meter type; postpaid returns no token. Mock discos: IKEDC, EKEDC, AEDC, PHED, IBEDC, KAEDCO, JED.
+- Paga adapter (`src/lib/turbocore/providers/paga.adapter.ts`) — added 5 new exports:
+  - `pagaBankTransfer` (IBankTransferProvider): full implementation with listBanks (local NG directory), resolveAccountName (POST /resolveaccount), initiateTransfer (POST /transfer with recipientBankAccount, recipientBankCode, recipientName — bank account recipient, not just Paga wallet), getTransferStatus (POST /transactionstatus), reverseTransfer (POST /reversal).
+  - `pagaAirtime` (IAirtimeProvider): full implementation — listNetworks (local NETWORKS directory), listDataPlans (local DATA_PLANS), purchase (POST /airtime with phoneNumber, network, type, planCode, callbackUrl), getStatus (POST /transactionstatus).
+  - `pagaMerchantPayment` (standalone): payMerchant (POST /merchant/pay with merchantAccount, merchantPhoneNumber, amount, currency, reference, callbackUrl).
+  - `pagaAccountBalance` (standalone, improved): getAccountBalance (POST /accountbalance with explicit accountNumber param). Parses both string and numeric balance/availableBalance from Paga's response, returns balanceMinor + currency + optional availableBalanceMinor.
+  - `pagaTransactionStatus` (standalone, improved): getTransactionStatus (POST /transactionstatus with explicit transactionReference param). Returns status + transactionReference + optional amountMinor + currency.
+- Fixed pre-existing TypeScript errors in paga.adapter.ts pagaBillPayment: (1) listBillers now includes `category: req.category ?? "OTHERS"` in all BILLERS fallback branches (Biller type requires category); (2) payBill mock branch replaced `req.category === "ELECTRICITY"` (not in IBillPaymentProvider.payBill request type) with `/^elec/i.test(req.billerCode)` regex check.
+- Updated `src/lib/turbocore/providers/index.ts` REAL_PROVIDERS registry:
+  - monnify: added SPLIT_PAYMENT (monnifySubaccounts), INVOICE (monnifyInvoice), DIRECT_DEBIT (monnifyDirectDebit) alongside existing VIRTUAL_ACCOUNT + CARD_PAYMENT.
+  - remita: added DIRECT_DEBIT (remitaMandate) alongside existing BILL_PAYMENT.
+  - quickteller: added CARD_TOKENIZATION (quicktellerCardTokenization) alongside existing BILL_PAYMENT + AIRTIME.
+  - paga: added BANK_TRANSFER (pagaBankTransfer) + AIRTIME (pagaAirtime) alongside existing MOBILE_MONEY + BILL_PAYMENT.
+- Ran `bun run lint` → 0 errors, 0 warnings. Ran `bunx tsc --noEmit` → 0 errors in my files (contracts.ts, result.ts, providers/index.ts, monnify/remita/quickteller/baxi/paga adapters). Pre-existing TS errors in other files (ledger.ts, savings-goals routes, examples/websocket, minipay.ts, compliance/screen.ts, orchestrator.ts) are not mine.
+
+Stage Summary:
+Files modified:
+- src/lib/turbocore/contracts.ts — re-exported ProviderResult for adapter convenience (parallel DEEP agents added the 4 new contract interfaces: ISplitPaymentProvider, IInvoiceProvider, IDirectDebitProvider, ICardTokenizationProvider)
+- src/lib/turbocore/providers/monnify.adapter.ts — added monnifySubaccounts (2 methods), monnifyReservedAccountSplit (1 method), monnifyInvoice (3 methods), monnifyDirectDebit (4 methods) = 10 new methods
+- src/lib/turbocore/providers/remita.adapter.ts — added remitaRRR (3 methods), remitaMandate (4 methods), remitaPaymentNotification (1 method) = 8 new methods
+- src/lib/turbocore/providers/quickteller.adapter.ts — added quicktellerBillers (3 methods), quicktellerSendBill (1 method), quicktellerCardTokenization (2 methods) = 6 new methods
+- src/lib/turbocore/providers/baxi.adapter.ts — added baxiBillers (4 methods), baxiDataBundles (2 methods), baxiCableTV (3 methods), baxiElectricity (3 methods) = 12 new methods
+- src/lib/turbocore/providers/paga.adapter.ts — added pagaBankTransfer (5 methods), pagaAirtime (4 methods), pagaMerchantPayment (1 method), pagaAccountBalance (1 method), pagaTransactionStatus (1 method) + fixed 2 pre-existing TS errors = 12 new methods
+- src/lib/turbocore/providers/index.ts — registered 7 new contract/provider entries (monnify SPLIT_PAYMENT/INVOICE/DIRECT_DEBIT, remita DIRECT_DEBIT, quickteller CARD_TOKENIZATION, paga BANK_TRANSFER/AIRTIME)
+Lint: 0 errors, 0 warnings. Total: 48 new provider methods across 5 adapters, backed by 4 new contracts.

@@ -29,6 +29,19 @@ const REAL_PROVIDERS: { code: string; file: string; contracts: { name: ContractN
       { name: ContractName.BANK_TRANSFER, exportName: "paystackBankTransfer" },
       { name: ContractName.VIRTUAL_ACCOUNT, exportName: "paystackVirtualAccount" },
       { name: ContractName.KYC, exportName: "paystackKyc" },
+      // Deep services (Task DEEP-1)
+      { name: ContractName.SPLIT_PAYMENT, exportName: "paystackSubaccounts" },
+      // RECURRING_BILLING is registered under paystackSubscriptions; paystackPlans
+      // (also implements IRecurringBillingProvider) is exported from the adapter
+      // module but NOT registered separately — the registry only allows one
+      // resolver per `${contract}:${providerCode}`. Callers needing plan CRUD
+      // can `import { paystackPlans } from "./paystack.adapter"` directly.
+      { name: ContractName.RECURRING_BILLING, exportName: "paystackSubscriptions" },
+      { name: ContractName.CHECKOUT, exportName: "paystackPaymentPages" },
+      { name: ContractName.USSD, exportName: "paystackUssd" },
+      { name: ContractName.REFUND, exportName: "paystackRefunds" },
+      { name: ContractName.SETTLEMENT, exportName: "paystackSettlements" },
+      { name: ContractName.APPLE_PAY, exportName: "paystackApplePay" },
     ],
   },
   {
@@ -39,6 +52,13 @@ const REAL_PROVIDERS: { code: string; file: string; contracts: { name: ContractN
       { name: ContractName.BANK_TRANSFER, exportName: "flutterwaveBankTransfer" },
       { name: ContractName.INTERNATIONAL_TRANSFER, exportName: "flutterwaveIntl" },
       { name: ContractName.MOBILE_MONEY, exportName: "flutterwaveMobileMoney" },
+      // Deep services (Task DEEP-1)
+      { name: ContractName.SPLIT_PAYMENT, exportName: "flutterwaveSubaccounts" },
+      { name: ContractName.RECURRING_BILLING, exportName: "flutterwavePaymentPlans" },
+      { name: ContractName.VIRTUAL_CARD_MGMT, exportName: "flutterwaveVirtualCards" },
+      { name: ContractName.BULK_TRANSFER, exportName: "flutterwaveTransfersToBank" },
+      { name: ContractName.BILL_PAYMENT, exportName: "flutterwaveBillsPayment" },
+      { name: ContractName.CHARGEBACK, exportName: "flutterwaveChargebacks" },
     ],
   },
   {
@@ -47,6 +67,9 @@ const REAL_PROVIDERS: { code: string; file: string; contracts: { name: ContractN
     contracts: [
       { name: ContractName.VIRTUAL_ACCOUNT, exportName: "monnifyVirtualAccount" },
       { name: ContractName.CARD_PAYMENT, exportName: "monnifyCardPayment" },
+      { name: ContractName.SPLIT_PAYMENT, exportName: "monnifySubaccounts" },
+      { name: ContractName.INVOICE, exportName: "monnifyInvoice" },
+      { name: ContractName.DIRECT_DEBIT, exportName: "monnifyDirectDebit" },
     ],
   },
   {
@@ -80,7 +103,10 @@ const REAL_PROVIDERS: { code: string; file: string; contracts: { name: ContractN
   {
     code: "remita",
     file: "./remita.adapter",
-    contracts: [{ name: ContractName.BILL_PAYMENT, exportName: "remitaBillPayment" }],
+    contracts: [
+      { name: ContractName.BILL_PAYMENT, exportName: "remitaBillPayment" },
+      { name: ContractName.DIRECT_DEBIT, exportName: "remitaMandate" },
+    ],
   },
   {
     code: "quickteller",
@@ -88,6 +114,7 @@ const REAL_PROVIDERS: { code: string; file: string; contracts: { name: ContractN
     contracts: [
       { name: ContractName.BILL_PAYMENT, exportName: "quicktellerBillPayment" },
       { name: ContractName.AIRTIME, exportName: "quicktellerAirtime" },
+      { name: ContractName.CARD_TOKENIZATION, exportName: "quicktellerCardTokenization" },
     ],
   },
   {
@@ -96,6 +123,8 @@ const REAL_PROVIDERS: { code: string; file: string; contracts: { name: ContractN
     contracts: [
       { name: ContractName.MOBILE_MONEY, exportName: "pagaMobileMoney" },
       { name: ContractName.BILL_PAYMENT, exportName: "pagaBillPayment" },
+      { name: ContractName.BANK_TRANSFER, exportName: "pagaBankTransfer" },
+      { name: ContractName.AIRTIME, exportName: "pagaAirtime" },
     ],
   },
   {
@@ -104,6 +133,8 @@ const REAL_PROVIDERS: { code: string; file: string; contracts: { name: ContractN
     contracts: [
       { name: ContractName.INTERNATIONAL_TRANSFER, exportName: "wiseIntl" },
       { name: ContractName.EXCHANGE_RATE, exportName: "wiseExchangeRate" },
+      { name: ContractName.RECIPIENT, exportName: "wiseRecipients" },
+      { name: ContractName.MULTI_CURRENCY_BALANCE, exportName: "wiseBalances" },
     ],
   },
   {
@@ -112,17 +143,36 @@ const REAL_PROVIDERS: { code: string; file: string; contracts: { name: ContractN
     contracts: [
       { name: ContractName.CARD_PAYMENT, exportName: "stripeCardPayment" },
       { name: ContractName.VIRTUAL_CARD_ISSUER, exportName: "stripeIssuing" },
+      // Deep services (Task DEEP-1)
+      { name: ContractName.CUSTOMER, exportName: "stripeCustomers" },
+      // RECURRING_BILLING is registered under stripeSubscriptions; stripePrices
+      // (also implements IPriceProvider — separate contract) is registered under
+      // PRICE separately. Stripe has no plan CRUD equivalent.
+      { name: ContractName.RECURRING_BILLING, exportName: "stripeSubscriptions" },
+      { name: ContractName.PRODUCT, exportName: "stripeProducts" },
+      { name: ContractName.PRICE, exportName: "stripePrices" },
+      { name: ContractName.PAYOUT, exportName: "stripePayouts" },
+      { name: ContractName.REFUND, exportName: "stripeRefunds" },
+      { name: ContractName.WEBHOOK_ENDPOINT, exportName: "stripeWebhookEndpoints" },
     ],
   },
   {
     code: "dojah",
     file: "./dojah.adapter",
-    contracts: [{ name: ContractName.KYC, exportName: "dojahKyc" }],
+    contracts: [
+      { name: ContractName.KYC, exportName: "dojahKyc" },
+      { name: ContractName.AML, exportName: "dojahAML" },
+      { name: ContractName.BUSINESS_KYC, exportName: "dojahBusinessKYC" },
+      { name: ContractName.FRAUD_SCREENING, exportName: "dojahFraudScreening" },
+    ],
   },
   {
     code: "termii",
     file: "./termii.adapter",
-    contracts: [{ name: ContractName.NOTIFICATION, exportName: "termiiNotification" }],
+    contracts: [
+      { name: ContractName.NOTIFICATION, exportName: "termiiNotification" },
+      { name: ContractName.OTP, exportName: "termiiOTP" },
+    ],
   },
   {
     code: "resend",

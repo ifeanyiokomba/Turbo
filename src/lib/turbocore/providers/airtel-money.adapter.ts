@@ -214,4 +214,256 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
     }
   },
+
+  // ─── Deep methods ──────────────────────────────────────────────────────────
+
+  /**
+   * POST /merchant/v1/kyc/verify — verify the KYC of an Airtel customer.
+   * Returns the customer's KYC level (e.g. "FULL_KYC", "LIMITED_KYC") and a
+   * verified flag. Useful for Airtel-issued SIM KYC enrichment.
+   */
+  async verifyKyc(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok(
+        { verified: true, kycLevel: "FULL_KYC", msisdn: req.msisdn },
+        "mock", 80,
+      );
+    }
+    const token = await getToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/merchant/v1/kyc/verify`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            msisdn: req.msisdn,
+            first_name: req.first_name ?? "",
+            last_name: req.last_name ?? "",
+            address: req.address ?? "",
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { status?: { success?: boolean; response_code?: string; code?: string }; data?: { kyc_level?: string; is_verified?: boolean; msisdn?: string } });
+      const verified = Boolean(data?.status?.success ?? data?.data?.is_verified ?? false);
+      const kycLevel = data?.data?.kyc_level ?? (verified ? "FULL_KYC" : "UNVERIFIED");
+      return ok(
+        { verified, kycLevel, msisdn: data?.data?.msisdn ?? req.msisdn },
+        `airtel-kyc-${req.msisdn}`, 0,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Airtel Money KYC verification failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  /**
+   * POST /merchant/v1/payments/:id/refund — refund a completed Airtel payment.
+   * Full or partial refund; if refund_amountMinor is omitted, Airtel refunds
+   * the full original amount.
+   */
+  async refundTransaction(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok(
+        { refundId: `airtel-refund-${req.payment_id}`, status: "PENDING" },
+        "mock", 100,
+      );
+    }
+    const token = await getToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/merchant/v1/payments/${encodeURIComponent(req.payment_id)}/refund`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            refund_amount: req.refund_amountMinor != null ? Number((req.refund_amountMinor / 100).toFixed(2)) : undefined,
+            reference: req.reference ?? `refund-${req.payment_id}`.slice(0, 32),
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { status?: { success?: boolean; response_code?: string }; data?: { refund_id?: string; id?: string; status?: string } });
+      const refundId = data?.data?.refund_id ?? data?.data?.id ?? `airtel-refund-${req.payment_id}`;
+      const st = String(data?.data?.status ?? "").toUpperCase();
+      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      return ok({ refundId, status }, refundId, 0);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Airtel Money refund failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  /**
+   * POST /merchant/v1/payments — merchant collect from customer (alternative
+   * to the standard collect flow). This is the same endpoint as the existing
+   * collect() but exposed via the deep method surface so it can be called
+   * with the explicit { reference, subscriber, transaction } shape.
+   */
+  async merchantPayment(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok(
+        { providerRef: req.transaction.id, status: "PENDING" },
+        "mock", 200,
+      );
+    }
+    const token = await getToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/merchant/v1/payments`,
+        {
+          method: "POST",
+          headers: bearerHeaders(token),
+          body: JSON.stringify({
+            reference: req.reference.slice(0, 32),
+            subscriber: {
+              country: req.subscriber.country,
+              currency: req.subscriber.currency,
+              msisdn: req.subscriber.msisdn,
+            },
+            transaction: {
+              amount: Number((req.transaction.amountMinor / 100).toFixed(2)),
+              country: req.transaction.country,
+              currency: req.transaction.currency,
+              id: req.transaction.id,
+            },
+          }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { status?: { success?: boolean; response_code?: string }; data?: { id?: string; status?: string } });
+      const providerRef = data?.data?.id ?? req.transaction.id;
+      const st = String(data?.data?.status ?? "").toUpperCase();
+      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : "PENDING";
+      return ok({ providerRef, status }, providerRef, 0);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Airtel Money merchant payment failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  /**
+   * GET /standard/v1/payments/:paymentId — deep transaction status query with
+   * full response parsing. Returns the raw Airtel status, transaction id, and
+   * amount alongside the normalized status.
+   */
+  async getTransactionStatus(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok(
+        { status: "SUCCESS", conversationId: `airtel-tx-status-${req.transactionID}` },
+        "mock", 50,
+      );
+    }
+    const token = await getToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/standard/v1/payments/${encodeURIComponent(req.transactionID)}`,
+        { method: "GET", headers: bearerHeaders(token) },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      // Full response shape: { status: {...}, data: { transaction: { id, status, amount, currency, ... }, ... } }
+      const data = (body as {
+        status?: { success?: boolean; response_code?: string; code?: string; result_code?: string };
+        data?: {
+          transaction?: {
+            id?: string;
+            status?: string;
+            amount?: string | number;
+            currency?: string;
+            reference?: string;
+          };
+          payment?: { id?: string; status?: string; amount?: string | number };
+        };
+      });
+      const txStatus = String(data?.data?.transaction?.status ?? data?.data?.payment?.status ?? "").toUpperCase();
+      const status = txStatus === "SUCCESS" || txStatus === "SUCCESSFUL" ? "SUCCESS" : txStatus === "FAILED" ? "FAILED" : "PENDING";
+      return ok(
+        {
+          status,
+          conversationId: data?.data?.transaction?.id ?? data?.data?.payment?.id ?? req.transactionID,
+          originatorConversationId: data?.data?.transaction?.reference,
+        },
+        req.transactionID, 0,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Airtel Money deep transaction status failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
+
+  /**
+   * GET /standard/v1/users/balance — deep account balance query that ensures
+   * the currency is always returned alongside the balance. Mirrors the
+   * existing getBalance() but is exposed via the deep method surface.
+   */
+  async getAccountBalance(req) {
+    const blocked = await requireCreds(CODE);
+    if (blocked) return blocked;
+    const creds = await loadCreds(CODE);
+    if (!creds) {
+      mockWarnOnce(CODE);
+      return ok(
+        {
+          conversationId: `airtel-acct-bal-${req.partyA ?? "self"}`,
+          responseCode: "0",
+          responseDescription: "Mock balance query accepted",
+          balanceMinor: 0,
+          currency: "UGX",
+        },
+        "mock", 50,
+      );
+    }
+    const token = await getToken(creds);
+    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
+    try {
+      const { body } = await http(
+        `${base}/standard/v1/users/balance`,
+        { method: "GET", headers: bearerHeaders(token) },
+        (s, b) => defaultHttpError(CODE, s, b),
+      );
+      const data = (body as { status?: { success?: boolean; response_code?: string }; data?: { balance?: string | number; currency?: string } });
+      const bal = Number(data?.data?.balance ?? 0) * 100;
+      const currency = data?.data?.currency ?? "UGX";
+      const responseCode = String(data?.status?.response_code ?? "0");
+      return ok(
+        {
+          conversationId: `airtel-acct-bal-${Date.now()}`,
+          responseCode,
+          responseDescription: responseCode === "0" ? "Balance query accepted" : "Balance query failed",
+          balanceMinor: Math.round(bal),
+          currency,
+        },
+        `airtel-acct-bal-${Date.now()}`, 0,
+      );
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Airtel Money deep account balance failed";
+      return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
+    }
+  },
 };
