@@ -49,6 +49,7 @@ export const baxiManifest: ProviderManifest = {
   liveBaseUrl: "https://api.baxibox.com/v1",
   authType: "BEARER",
   webhookSupported: false,
+  supportsSandbox: true,
   webhookSignatureScheme: "NONE",
   settlementCycle: "INSTANT",
   healthCheckUrl: "https://api.baxibox.com/v1",

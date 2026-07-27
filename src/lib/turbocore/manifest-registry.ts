@@ -63,6 +63,7 @@ export interface ProviderManifest {
 
   // Settlement
   settlementCycle: "INSTANT" | "T_PLUS_1" | "T_PLUS_2" | "WEEKLY" | "MONTHLY";
+  supportsSandbox: boolean;
 
   // Health
   healthCheckUrl?: string;

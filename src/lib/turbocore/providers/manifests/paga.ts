@@ -52,6 +52,7 @@ export const pagaManifest: ProviderManifest = {
   liveBaseUrl: "https://www.mypaga.com/pagawebservices/rest/paga/servlets/transaction",
   authType: "HMAC",
   webhookSupported: true,
+  supportsSandbox: true,
   webhookSignatureScheme: "HMAC_SHA512",
   settlementCycle: "INSTANT",
   healthCheckUrl: "https://www.mypaga.com/pagawebservices/rest/paga/servlets/transaction",

@@ -72,6 +72,7 @@ export const wiseManifest: ProviderManifest = {
   liveBaseUrl: "https://api.wise.com",
   authType: "BEARER",
   webhookSupported: true,
+  supportsSandbox: true,
   webhookSignatureScheme: "HMAC_SHA256",
   settlementCycle: "T_PLUS_2",
   healthCheckUrl: "https://api.wise.com/v1/profiles",

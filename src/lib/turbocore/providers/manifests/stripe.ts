@@ -73,6 +73,7 @@ export const stripeManifest: ProviderManifest = {
   liveBaseUrl: "https://api.stripe.com/v1",
   authType: "BEARER",
   webhookSupported: true,
+  supportsSandbox: true,
   webhookSignatureScheme: "HMAC_SHA256",
   settlementCycle: "T_PLUS_2",
   healthCheckUrl: "https://api.stripe.com/v1/balance",

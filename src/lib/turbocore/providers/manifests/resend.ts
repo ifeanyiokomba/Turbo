@@ -47,6 +47,7 @@ export const resendManifest: ProviderManifest = {
   liveBaseUrl: "https://api.resend.com",
   authType: "BEARER",
   webhookSupported: true,
+  supportsSandbox: true,
   webhookSignatureScheme: "HMAC_SHA256",
   settlementCycle: "INSTANT",
   healthCheckUrl: "https://api.resend.com/domains",

@@ -51,6 +51,7 @@ export const quicktellerManifest: ProviderManifest = {
   liveBaseUrl: "https://saturn.interswitchng.com/api/v2/quickteller",
   authType: "HMAC",
   webhookSupported: false,
+  supportsSandbox: true,
   webhookSignatureScheme: "NONE",
   settlementCycle: "INSTANT",
   healthCheckUrl: "https://saturn.interswitchng.com/api/v2/quickteller",

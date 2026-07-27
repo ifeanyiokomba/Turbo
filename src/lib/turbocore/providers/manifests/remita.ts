@@ -48,6 +48,7 @@ export const remitaManifest: ProviderManifest = {
   liveBaseUrl: "https://remita.net/api/v1",
   authType: "API_KEY",
   webhookSupported: true,
+  supportsSandbox: true,
   webhookSignatureScheme: "HMAC_SHA512",
   settlementCycle: "INSTANT",
   healthCheckUrl: "https://remita.net/api/v1",

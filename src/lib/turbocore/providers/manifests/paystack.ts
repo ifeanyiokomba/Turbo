@@ -106,6 +106,7 @@ export const paystackManifest: ProviderManifest = {
   liveBaseUrl: "https://api.paystack.co",
   authType: "BEARER",
   webhookSupported: true,
+  supportsSandbox: true,
   webhookSignatureScheme: "HMAC_SHA512",
   settlementCycle: "T_PLUS_1",
   healthCheckUrl: "https://api.paystack.co/transaction/export",

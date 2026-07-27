@@ -48,6 +48,7 @@ export const mpesaManifest: ProviderManifest = {
   liveBaseUrl: "https://api.safaricom.co.ke",
   authType: "OAUTH2",
   webhookSupported: true,
+  supportsSandbox: true,
   webhookSignatureScheme: "NONE",
   settlementCycle: "INSTANT",
   healthCheckUrl: "https://api.safaricom.co.ke/oauth/v1/generate",

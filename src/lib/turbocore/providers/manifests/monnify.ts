@@ -50,6 +50,7 @@ export const monnifyManifest: ProviderManifest = {
   liveBaseUrl: "https://api.monnify.com/v1",
   authType: "BASIC",
   webhookSupported: true,
+  supportsSandbox: true,
   webhookSignatureScheme: "HMAC_SHA512",
   settlementCycle: "T_PLUS_1",
   healthCheckUrl: "https://api.monnify.com/v1/auth/login",

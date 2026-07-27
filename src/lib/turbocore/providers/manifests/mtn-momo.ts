@@ -66,6 +66,7 @@ export const mtnMomoManifest: ProviderManifest = {
   liveBaseUrl: "https://momodeveloper.mtn.com",
   authType: "OAUTH2",
   webhookSupported: true,
+  supportsSandbox: true,
   webhookSignatureScheme: "NONE",
   settlementCycle: "INSTANT",
   healthCheckUrl: "https://momodeveloper.mtn.com/collection/v1_0/requesttopay",

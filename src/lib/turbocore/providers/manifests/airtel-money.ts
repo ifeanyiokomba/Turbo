@@ -59,6 +59,7 @@ export const airtelMoneyManifest: ProviderManifest = {
   liveBaseUrl: "https://open.airtel.africa",
   authType: "OAUTH2",
   webhookSupported: true,
+  supportsSandbox: true,
   webhookSignatureScheme: "NONE",
   settlementCycle: "INSTANT",
   healthCheckUrl: "https://open.airtel.africa/auth/oauth2/token",

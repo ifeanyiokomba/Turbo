@@ -72,6 +72,7 @@ export const dojahManifest: ProviderManifest = {
   liveBaseUrl: "https://api.dojah.co/api/v1",
   authType: "API_KEY",
   webhookSupported: false,
+  supportsSandbox: true,
   webhookSignatureScheme: "NONE",
   settlementCycle: "INSTANT",
   healthCheckUrl: "https://api.dojah.co/api/v1",

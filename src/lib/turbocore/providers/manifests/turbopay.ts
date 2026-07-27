@@ -63,6 +63,7 @@ export const turbopayManifest: ProviderManifest = {
   liveBaseUrl: "https://turbopay.ng/api",
   authType: "BEARER",
   webhookSupported: false,
+  supportsSandbox: true,
   webhookSignatureScheme: "NONE",
   settlementCycle: "INSTANT",
   healthCheckUrl: "https://turbopay.ng/api/health",

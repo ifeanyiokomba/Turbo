@@ -105,6 +105,7 @@ export const flutterwaveManifest: ProviderManifest = {
   liveBaseUrl: "https://api.flutterwave.com/v3",
   authType: "BEARER",
   webhookSupported: true,
+  supportsSandbox: true,
   webhookSignatureScheme: "HMAC_SHA256",
   settlementCycle: "T_PLUS_1",
   healthCheckUrl: "https://api.flutterwave.com/v3/transfers/fee",

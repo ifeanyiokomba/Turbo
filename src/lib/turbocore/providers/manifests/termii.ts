@@ -48,6 +48,7 @@ export const termiiManifest: ProviderManifest = {
   liveBaseUrl: "https://api.termii.com/api",
   authType: "API_KEY",
   webhookSupported: false,
+  supportsSandbox: true,
   webhookSignatureScheme: "NONE",
   settlementCycle: "INSTANT",
   healthCheckUrl: "https://api.termii.com/api/sms/balance",

@@ -50,6 +50,7 @@ export const smartcashManifest: ProviderManifest = {
   liveBaseUrl: "https://api.smartcashpsb.ng",
   authType: "API_KEY",
   webhookSupported: true,
+  supportsSandbox: true,
   webhookSignatureScheme: "NONE",
   settlementCycle: "INSTANT",
   healthCheckUrl: "https://api.smartcashpsb.ng/v1/transactions",
