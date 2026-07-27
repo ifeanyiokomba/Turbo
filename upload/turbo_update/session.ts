@@ -99,8 +99,6 @@ export async function createSession(opts: CreateSessionOpts) {
   });
 
   // 2. JWT access token.
-  // Apply defaults directly at the call site — don't rely on control-flow
-  // narrowing of `role`/`kycTier` across the function boundary.
   const accessToken = await signAccessToken({
     userId: opts.userId,
     role: role ?? "USER",
@@ -243,8 +241,8 @@ export async function refreshSession() {
 
   const newAccessToken = await signAccessToken({
     userId: user.id,
-    role: user.role ?? "USER",
-    kycTier: user.kycTier ?? 1,
+    role: user.role,
+    kycTier: user.kycTier,
     sid: sessionId,
   });
   const newRefreshToken = await signRefreshToken({ userId: user.id });

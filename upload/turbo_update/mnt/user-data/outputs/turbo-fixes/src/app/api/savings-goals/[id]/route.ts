@@ -266,9 +266,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
  * CANCELLED (not physically deleted) so the audit + contribution history is preserved.
  */
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  // Hoist the ledger import above the try block so LedgerError is in scope
-  // for the catch block below. (Previously imported inside try → different
-  // scope → catch couldn't see it.)
   const { creditWallet, LedgerError } = await import("@/lib/ledger");
   try {
     const user = await requireUser();
@@ -351,14 +348,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     return json({ ok: true, cancelled: true, refundedKobo: refundKobo });
   } catch (e: any) {
-    if (LedgerError && e instanceof LedgerError) return errorJson(e.message, 400, "LEDGER_ERROR");
-    if (
-      e &&
-      typeof e === "object" &&
-      "message" in e &&
-      (e as any).message?.includes("Insufficient")
-    )
-      return errorJson(e.message, 400, "LEDGER_ERROR");
+    if (e instanceof LedgerError) return errorJson(e.message, 400, "LEDGER_ERROR");
     if (e instanceof ServiceError) return errorJson(e.message, e.statusCode, e.code);
     return handleError(e);
   }

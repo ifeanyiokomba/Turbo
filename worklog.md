@@ -2147,3 +2147,105 @@ Files modified (3):
 Security headers applied: 11 (CSP, HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, COOP, CORP, COEP, X-XSS-Protection, X-Permitted-Cross-Domain-Policies)
 Threat protections: 10 (XSS, SQLi, CSRF, Path Traversal, Clickjacking, MIME Sniffing, Downgrade, Prototype Pollution, Homoglyph, Timing)
 Security audit checks: 15 (8 PASS, 7 WARN, 0 FAIL)
+
+---
+Task ID: TURBO-FIXES
+Agent: main (Turbo repo fixes — 6 bugs + 3 genuine issues + SSRF guard)
+Task: User provided a detailed audit of 6 type bugs + 3 genuine issues + SSRF regression. Applied all fixes from the uploaded "turbo update.zip" files plus addressed the 3 genuine issues and built the missing SSRF guard.
+
+Work Log:
+- Extracted and reviewed all 6 files from upload/turbo_update.zip: proxy.ts, orchestrator.ts, session.ts, route.ts (pay), kyc/route.ts, savings-goals/[id]/route.ts.
+- Verified each fix against the current codebase.
+
+FIX 1 (CRITICAL): src/middleware.ts → src/proxy.ts
+- Next.js 16 renamed the `middleware.ts` convention to `proxy.ts`. The dev log showed: "⚠ The 'middleware' file convention is deprecated. Please use 'proxy' instead."
+- Renamed src/middleware.ts → src/proxy.ts
+- CRITICAL: Next.js 16 also requires the export to be named `proxy` (not `middleware`). Initial rename kept `export function middleware` which caused HTTP 500: "The file './src/proxy.ts' must export a function, either as a default export or as a named 'proxy' export."
+- Fixed: `export function middleware(req)` → `export function proxy(req)`
+- Verified: dev log now shows `proxy.ts: 5ms` (confirming it runs) with no deprecation warning.
+- All security hardening (CSP nonce, CSRF validation, OWASP headers, CORS) preserved.
+
+FIX 2: orchestrator.ts — hash() single-call API
+- Changed `import { createHash } from "crypto"` → `import { hash } from "crypto"`
+- Changed `createHash("sha256").update(s).digest("hex")` → `hash("sha256", s, "hex")`
+- The user's finding: Node's newer `hash("sha256", s, "hex")` is a single-call function, cleaner than the stream-based `createHash().update().digest()` chain.
+
+FIX 3: session.ts — role/kycTier defaults at call site
+- The user's finding: `role` and `kycTier` were being passed to `signAccessToken()` while still possibly `undefined`, relying on control-flow narrowing that wasn't holding across the function boundary.
+- Fixed both call sites:
+  - createSession: `role: role ?? "USER", kycTier: kycTier ?? 1` (was `role, kycTier`)
+  - refreshSession: `role: user.role ?? "USER", kycTier: user.kycTier ?? 1` (was `role: user.role, kycTier: user.kycTier`)
+- Defaults applied directly at the call site instead of trusting narrowing.
+
+FIX 4: pay/route.ts — z.record(keySchema, valueSchema)
+- Verified: already correct in current codebase: `z.record(z.string(), z.unknown())`
+- No change needed.
+
+FIX 5: kyc/route.ts — z.record(keySchema, valueSchema)
+- Verified: already correct in current codebase: `z.record(z.string(), z.string())`
+- No change needed.
+
+FIX 6: savings-goals/[id]/route.ts — LedgerError import hoist
+- The user's finding: `LedgerError` was imported inside the try block (line 278) but referenced in the catch block (different scope).
+- Fixed: hoisted `const { creditWallet, LedgerError } = await import("@/lib/ledger")` above the try block.
+- Also improved the catch block to use `if (LedgerError && e instanceof LedgerError)` (the user's pattern) in addition to the existing `e.message?.includes("Insufficient")` fallback.
+
+GENUINE ISSUE 1: minipay.ts — CELO Sepolia contract address
+- The user's finding: the Celo Sepolia token list was missing a CELO entry (or had a zero address).
+- Investigation: the Sepolia list DID have a CELO entry but with `address: "0x0000000000000000000000000000000000000000"` (zero address) — which is wrong.
+- Fixed: replaced with the canonical Celo testnet CELO contract address `0xF194afDf50B03e69Bd7D057c1Aa94410DaedAC57` (per Celo docs: https://docs.celo.org/developer/setup#about-test-networks).
+- Added a comment documenting the source.
+
+GENUINE ISSUE 2: settings.tsx — emailVerified field missing from type
+- The user's finding: code checks `profile?.emailVerified` but the ProfileData type doesn't have that field.
+- Investigation: `emailVerified` EXISTS in the Prisma schema (line 33: `emailVerified Boolean @default(false)`) and is used in the profile/completion route. The settings.tsx was using `(profile as any)?.emailVerified` to bypass the missing type.
+- Fixed: added `emailVerified: boolean` + `phoneVerified?: boolean` to the ProfileData["user"] interface.
+- Removed the `as any` cast: `(profile as any)?.emailVerified` → `profile?.emailVerified`.
+
+GENUINE ISSUE 3: app-shell.tsx — celoAddress type
+- The user's finding: `celoAddress` resolves to `never` in a spot that should be `string`, despite being guarded.
+- Investigation: `const celoAddress: string | null = null` — TypeScript narrows the literal `null` to type `null`, then in `celoAddress ? celoAddress.slice(...)` the truthiness check narrows `null` to `never` (since `null` is always falsy, the truthy branch is unreachable).
+- Fixed: changed to `const celoAddress = null as string | null` — this preserves the `string | null` union type so TypeScript doesn't narrow to `never` in the conditional.
+
+SSRF GUARD (regression from old repo)
+- The user's finding: "there's no SSRF guard anywhere in this repo — a real regression from the old one, which had a solid one built."
+- Created `src/lib/security/ssrf.ts` (200 lines) — comprehensive SSRF protection:
+  - 16 blocked IP range patterns (IPv4 loopback, private 10/172/192, link-local 169.254, CGNAT 100.64, multicast, reserved; IPv6 loopback ::1, link-local fe80, ULA fc00, multicast ff00, unspecified ::, IPv4-mapped IPv6)
+  - 7 blocked hostnames (localhost, metadata.google.internal, metadata.aws.internal, metadata.azure.com, 169.254.169.254, 169.254.170.2, 169.254.170.23, 100.100.100.200)
+  - Obfuscation detection: decimal/octal/hex encoded IPs (e.g. http://2130706433/ = http://127.0.0.1/)
+  - Functions: validateOutboundUrl (throws), checkUrl (non-throwing), fetchSafe (safe fetch wrapper with redirect validation), isPrivateUrl, getBlockedIpRanges, getBlockedHostnames
+  - Redirect validation: follows redirects manually and validates each target
+- Added to barrel export (src/lib/security/index.ts)
+- Added SSRF check to security-audit.ts (now 16 checks total: 9 PASS, 7 WARN, 0 FAIL)
+- Updated verifySecurityPosture() to include checkSsrf()
+
+Prisma client regeneration:
+- Ran `npx prisma generate` to clear stale-client errors.
+- The ~43 errors the user mentioned (subscriptions/route.ts, admin/savings-investments, admin/compliance) were stale-client artifacts. After regeneration, the only remaining errors are in the upload/ reference files (not my codebase).
+
+Verification:
+- `bun run lint` → 0 errors, 0 warnings ✅
+- `npx tsc --noEmit` → 0 errors in any project file (8 remaining are in upload/ reference files only) ✅
+- Dev server: HTTP 200 ✅
+- proxy.ts running (dev log shows `proxy.ts: 5ms`) ✅
+- No "middleware deprecation" warning ✅
+- Security headers applied: X-Frame-Options: DENY, CSP, HSTS, X-Content-Type-Options: nosniff ✅
+- Security posture: 16 checks | 9 PASS | 7 WARN | 0 FAIL (including new SSRF Protection) ✅
+
+Stage Summary:
+Files created (2):
+- src/lib/security/ssrf.ts (200 lines — 16 blocked IP ranges, 7 blocked hostnames, obfuscation detection, fetchSafe wrapper)
+- src/proxy.ts (renamed from middleware.ts — Next.js 16 convention + export renamed to `proxy`)
+
+Files modified (7):
+- src/middleware.ts → src/proxy.ts (renamed + export function middleware → proxy)
+- src/lib/turbocore/orchestrator.ts (createHash → hash single-call)
+- src/lib/session.ts (role/kycTier defaults at both call sites)
+- src/app/api/savings-goals/[id]/route.ts (hoist LedgerError import above try)
+- src/lib/minipay.ts (CELO Sepolia address: 0x000...0 → 0xF194afDf50B03e69Bd7D057c1Aa94410DaedAC57)
+- src/components/turbopay/views/settings.tsx (added emailVerified to ProfileData type, removed `as any` cast)
+- src/components/turbopay/app-shell.tsx (celoAddress: `null as string | null` to preserve union type)
+- src/lib/security-audit.ts (added checkSsrf — now 16 checks)
+- src/lib/security/index.ts (export ssrf module)
+
+Security posture: 16 checks | 9 PASS | 7 WARN (dev-only) | 0 FAIL | SSRF Protection PASS

@@ -66,6 +66,8 @@ interface ProfileData {
     bio: string | null;
     avatarUrl: string | null;
     hasPin: boolean;
+    emailVerified: boolean;
+    phoneVerified?: boolean;
   };
 }
 
@@ -518,7 +520,7 @@ export default function SettingsView() {
                     {initials(profile?.fullName ?? user?.fullName ?? "")}
                   </AvatarFallback>
                 </Avatar>
-                {(profile as any)?.emailVerified ? (
+                {profile?.emailVerified ? (
                   <Badge
                     variant="secondary"
                     className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"

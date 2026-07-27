@@ -27,7 +27,7 @@ function getAllowedOrigins(): string[] {
 // State-changing methods that require CSRF validation
 const STATE_CHANGING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const origin = req.headers.get("origin");
   const allowedOrigins = getAllowedOrigins();
   const isApiRoute = req.nextUrl.pathname.startsWith("/api");

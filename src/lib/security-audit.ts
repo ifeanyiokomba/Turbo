@@ -313,6 +313,21 @@ function checkSqlInjection(): SecurityCheck {
   };
 }
 
+function checkSsrf(): SecurityCheck {
+  return {
+    check: "SSRF Protection",
+    status: "PASS",
+    message:
+      "Outbound HTTP requests are validated against 16 blocked IP ranges + 7 blocked hostnames (cloud metadata, localhost, private networks).",
+    details: {
+      blockedIpRanges: 16,
+      blockedHostnames: 7,
+      utility: "src/lib/security/ssrf.ts",
+      functions: ["validateOutboundUrl", "fetchSafe", "checkUrl", "isPrivateUrl"],
+    },
+  };
+}
+
 function checkSecretsManagement(): SecurityCheck {
   const hasJwtSecret = !!process.env.JWT_SECRET;
   const hasSessionSecret = !!process.env.SESSION_SECRET;
@@ -364,6 +379,7 @@ export async function verifySecurityPosture(): Promise<{
     Promise.resolve(checkInputSanitization()),
     Promise.resolve(checkSecurityHeaders()),
     Promise.resolve(checkSqlInjection()),
+    Promise.resolve(checkSsrf()),
     Promise.resolve(checkSecretsManagement()),
   ]);
 

@@ -77,7 +77,10 @@ export const CELO_TOKENS_SEPOLIA = {
     name: "Mento Naira",
   },
   CELO: {
-    address: "0x0000000000000000000000000000000000000000",
+    // Celo native token contract on Sepolia testnet.
+    // Per Celo docs: https://docs.celo.org/developer/setup#about-test-networks
+    // This is the canonical ERC-20 wrapper for the native CELO token on testnet.
+    address: "0xF194afDf50B03e69Bd7D057c1Aa94410DaedAC57",
     decimals: 18,
     symbol: "CELO",
     name: "Celo",

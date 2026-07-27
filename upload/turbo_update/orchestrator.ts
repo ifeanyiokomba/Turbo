@@ -11,22 +11,6 @@ import { route, persistDecision } from "./routing-engine";
 import type { RoutingDecision } from "./routing-engine";
 import { registry } from "./registry";
 import type { ContractName, ProviderResult } from "./result";
-import { publishPaymentEvent, EventTypes } from "./event-bus";
-import { storeExplanation, createRoutingExplanation } from "./routing-explainability";
-import {
-  classifyFailure,
-  getRetryDecision,
-  checkCompliance,
-  assessRisk,
-  resolveCountries,
-} from "./pie";
-import {
-  CorrelationContext,
-  sendToDLQ,
-  withTimeout,
-  recordObservability,
-  UPLEventTypes,
-} from "./upl";
 
 export interface OrchestrateRequest {
   userId: string;
@@ -58,8 +42,6 @@ export interface OrchestrateResult {
 
 export async function orchestratePayment(req: OrchestrateRequest): Promise<OrchestrateResult> {
   const requestId = generateReference("REQ");
-  const correlationId = CorrelationContext.generate();
-  const orchestratorStart = Date.now();
 
   // 1. Idempotency check
   const idKey = req.idempotencyKey ?? hashKey(req);
@@ -141,88 +123,11 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       provider: decision.providerCode,
       metadata: JSON.stringify({
         requestId,
-        correlationId,
         decision: { reason: decision.reason, scores: decision.scores },
       }),
     },
   });
-
-  // Publish PAYMENT.VALIDATED event
-  await publishPaymentEvent(UPLEventTypes.PAYMENT_VALIDATED, tx.id, {
-    reference: tx.reference,
-    userId: req.userId,
-    correlationId,
-  });
-
   await persistDecision(decision, requestId, tx.id);
-
-  // Publish PAYMENT.ROUTED event
-  await publishPaymentEvent(UPLEventTypes.PAYMENT_ROUTED, tx.id, {
-    reference: tx.reference,
-    provider: decision.providerCode,
-    reason: decision.reason,
-    alternatives: decision.alternatives,
-    correlationId,
-  });
-
-  // Store routing explanation for audit (explainable routing)
-  if (decision.scores.length > 0) {
-    const winner = decision.scores.find((s) => s.providerCode === decision.providerCode);
-    if (winner) {
-      storeExplanation(
-        createRoutingExplanation(
-          {
-            contract: req.contract,
-            country: req.country,
-            currency: req.currency,
-            amountMinor: req.amountMinor,
-            direction: req.direction,
-            service: req.service,
-            preferredProvider: req.preferredProvider,
-          },
-          decision.scores.map((s) => ({
-            provider: s.providerCode,
-            eligible: s.circuit !== "OPEN" && s.successRate >= 30,
-            scores: {
-              health: s.health,
-              cost: s.charge,
-              speed: s.speed,
-              capability: 100,
-              total: s.score,
-            },
-            circuitState: s.circuit,
-            preferred: s.preferred,
-          })),
-          decision.providerCode,
-          decision.reason,
-          decision.alternatives,
-          {
-            health: winner.health,
-            cost: winner.charge,
-            speed: winner.speed,
-            capability: 100,
-            total: winner.score,
-          },
-          {
-            amlPassed: true,
-            sanctionsPassed: true,
-            kycTierSufficient: true,
-            featureFlagEnabled: true,
-          },
-          0
-        )
-      );
-    }
-  }
-
-  // Publish PAYMENT.CREATED event
-  await publishPaymentEvent(EventTypes.PAYMENT_CREATED, tx.id, {
-    reference: tx.reference,
-    type: req.contract,
-    amount: req.amountMinor,
-    provider: decision.providerCode,
-  });
-
   await db.paymentFlowLog.create({
     data: {
       transactionId: tx.id,
@@ -269,15 +174,6 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
   //    decision.alternatives if the primary returns a retryable error.
   //    Up to MAX_ATTEMPTS total provider calls (1 primary + 2 failovers).
   const providerRef = generateReference("PRV");
-
-  // Publish PAYMENT.INITIATED event
-  await publishPaymentEvent(UPLEventTypes.PAYMENT_INITIATED, tx.id, {
-    reference: tx.reference,
-    provider: decision.providerCode,
-    providerRef,
-    correlationId,
-  });
-
   const {
     result,
     providerCode: actualProviderCode,
@@ -332,19 +228,6 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       },
     });
 
-    // Publish PAYMENT.COMPLETED or PAYMENT.PENDING via event bus
-    await publishPaymentEvent(
-      result.data.status === "SUCCESS" ? EventTypes.PAYMENT_COMPLETED : EventTypes.PAYMENT_PENDING,
-      tx.id,
-      {
-        reference: tx.reference,
-        amount: req.amountMinor,
-        provider: actualProviderCode,
-        status: result.data.status,
-        failovers: failovers.length,
-      }
-    );
-
     if (req.onConfirm) {
       try {
         await req.onConfirm(tx);
@@ -369,17 +252,6 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       data: { responseBody: JSON.stringify(tx), status: 200, completedAt: new Date() },
     });
 
-    // Record observability
-    recordObservability({
-      correlationId,
-      provider: actualProviderCode,
-      country: req.country,
-      currency: req.currency,
-      amount: req.amountMinor,
-      latencyMs: Date.now() - orchestratorStart,
-      stages: failovers.map((f: any) => ({ name: "FAILOVER", durationMs: 0, status: f.reason })),
-    });
-
     return {
       ok: true,
       transaction: tx,
@@ -389,19 +261,6 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
   }
 
   // AUTO-REVERSE — all attempts (primary + failovers) failed.
-  // Send failed event to Dead Letter Queue for retry processing
-  sendToDLQ({
-    eventType: UPLEventTypes.PAYMENT_COMPLETED,
-    aggregateType: "TRANSACTION",
-    aggregateId: tx.id,
-    payload: {
-      reference: tx.reference,
-      provider: actualProviderCode,
-      error: !result.ok ? result.error : "Unknown",
-    },
-    error: !result.ok ? (result.error?.message ?? "Unknown failure") : "Unknown failure",
-    maxAttempts: 3,
-  });
   if (holdDebitId) {
     try {
       await creditWallet({
@@ -439,15 +298,6 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       }),
     },
   });
-
-  // Publish PAYMENT.REVERSED via event bus
-  await publishPaymentEvent(EventTypes.PAYMENT_REVERSED, tx.id, {
-    reference: tx.reference,
-    reason: result.ok ? result.data : result.error,
-    provider: actualProviderCode,
-    failovers: failovers.length,
-  });
-
   await audit({
     userId: req.userId,
     action: `${req.contract}_REVERSED`,
@@ -555,19 +405,7 @@ async function tryWithFailover(
 
     let result: ProviderResult<any>;
     try {
-      // Wrap provider call with stage-specific timeout
-      result = (await withTimeout(
-        req.providerCall(adapter, providerRef),
-        "PROCESS",
-        30_000 // 30s timeout for provider calls
-      ).catch((e: any) => ({
-        ok: false as const,
-        error: {
-          code: "PROVIDER_TIMEOUT" as const,
-          message: e?.message ?? "Provider call timed out",
-          retryable: true,
-        },
-      }))) as ProviderResult<any>;
+      result = await req.providerCall(adapter, providerRef);
     } catch (e: any) {
       // Defensive: providerCall should never throw (adapters return ProviderResult),
       // but if it does we treat it as a retryable UPSTREAM_ERROR.
@@ -595,61 +433,10 @@ async function tryWithFailover(
     lastResult = result;
     lastProviderCode = providerCode;
 
-    // Failure-aware failover: use PIE's classifyFailure + getRetryDecision
-    // instead of blind retryable check.
-    if (!result.ok) {
-      const failureCategory = classifyFailure(result.error.code);
-      const retryDecision = getRetryDecision(failureCategory, i);
-
-      // Log the failure classification for audit
-      await db.paymentFlowLog.create({
-        data: {
-          transactionId: txId,
-          step: "FAILURE_CLASSIFIED",
-          status: failureCategory,
-          providerCode,
-          payloadJSON: JSON.stringify({
-            category: failureCategory,
-            shouldRetry: retryDecision.shouldRetry,
-            shouldFailover: retryDecision.shouldFailover,
-            action: retryDecision.action,
-          }),
-        },
-      });
-
-      // If we should retry the SAME provider (e.g., TIMEOUT with backoff)
-      if (retryDecision.shouldRetry && retryDecision.retrySameProvider && i === 0) {
-        await new Promise((r) => setTimeout(r, retryDecision.backoffMs));
-        // Retry same provider
-        try {
-          const retryResult = await req.providerCall(adapter, providerRef);
-          await db.paymentFlowLog.create({
-            data: {
-              transactionId: txId,
-              step: "RETRY_SAME_PROVIDER",
-              status: retryResult.ok ? "SUCCESS" : "FAILED",
-              providerCode,
-              payloadJSON: JSON.stringify(retryResult.ok ? retryResult.data : retryResult.error),
-            },
-          });
-          if (retryResult.ok || !retryResult.error.retryable) {
-            return { result: retryResult, providerCode, failovers };
-          }
-          lastResult = retryResult;
-        } catch {}
-      }
-
-      // If not retryable and not failover, short-circuit (permanent failure)
-      if (!retryDecision.shouldFailover) {
-        return { result, providerCode, failovers };
-      }
-
-      // Otherwise continue to next provider in the failover chain
-      continue;
+    // Short-circuit on success or non-retryable failure.
+    if (result.ok || !result.error.retryable) {
+      return { result, providerCode, failovers };
     }
-
-    // Success — short-circuit
-    return { result, providerCode, failovers };
   }
 
   return { result: lastResult, providerCode: lastProviderCode, failovers };
