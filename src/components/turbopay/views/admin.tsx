@@ -105,6 +105,15 @@ const DatabaseTab = dynamic(() => import("./admin/database-tab").then((m) => m.d
     </div>
   ),
 });
+// Event Bus tab (Chapter 9) — the nervous system.
+const EventBusTab = dynamic(() => import("./admin/event-bus-tab").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+    </div>
+  ),
+});
 // Security Center tab — lazy-loaded. Surfaces runtime security posture
 // (CSP, CSRF, XSS, headers, cookies, sanitizers). Kept lazy so the heavy
 // sanitizer live-tester + headers inspector only load when an admin clicks
@@ -606,6 +615,10 @@ export default function AdminView() {
           <TabsTrigger value="database" className="min-w-[110px] flex-1 gap-1">
             <Database className="h-3.5 w-3.5" />
             Database
+          </TabsTrigger>
+          <TabsTrigger value="event-bus" className="min-w-[110px] flex-1 gap-1">
+            <Zap className="h-3.5 w-3.5" />
+            Event Bus
           </TabsTrigger>
           <TabsTrigger value="security" className="min-w-[100px] flex-1 gap-1">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -1485,6 +1498,11 @@ export default function AdminView() {
         {/* Database Architecture (Chapter 8) */}
         <TabsContent value="database" className="mt-5">
           <DatabaseTab />
+        </TabsContent>
+
+        {/* Event Bus (Chapter 9) — the nervous system */}
+        <TabsContent value="event-bus" className="mt-5">
+          <EventBusTab />
         </TabsContent>
 
         {/* Security Center — technical security posture (CSP/CSRF/XSS/headers) */}
