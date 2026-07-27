@@ -41,7 +41,10 @@ export async function GET(req: NextRequest) {
 
   try {
     const googleUser = await exchangeGoogleCode(code);
-    const { user, isNew, linked } = await createOrLinkGoogleUser(googleUser);
+    const result = await createOrLinkGoogleUser(googleUser);
+    const user = { id: result.userId, role: "USER" as string, kycTier: 0 as number };
+    const isNew = result.isNew;
+    const linked = !result.isNew;
 
     const ip = getClientIp(req);
     const ua = getUserAgent(req);

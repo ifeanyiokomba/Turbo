@@ -58,20 +58,6 @@ export async function screenEntity(req: {
     if (score > best.score) best = { score, matchedEntryId: entry.id };
   }
   const hit = best.score >= 0.85;
-<<<<<<< HEAD
-  await db.screeningResult.create({
-    data: {
-      entityType: req.entityType ?? "TRANSACTION",
-      entityName: req.name,
-      transactionId: req.transactionId ?? null,
-      userId: req.userId ?? null,
-      hit,
-      score: best.score,
-      matchedEntryId: best.matchedEntryId ?? null,
-    },
-  }).catch(() => {});
-  return { hit, ...best };
-=======
   await db.screeningResult
     .create({
       data: {
@@ -85,8 +71,7 @@ export async function screenEntity(req: {
       },
     })
     .catch(() => {});
-  return { hit, score: best.score, matchedEntryId: best.matchedEntryId };
->>>>>>> ecead5e1765c9674c5c6ba0b7f23bbf8d0791ddf
+  return { hit, ...best };
 }
 
 // --- AML rules ---

@@ -78,14 +78,10 @@ export async function http(
   await validateOutboundUrl(url);
 
   const { timeoutMs = 20_000, ...rest } = init;
-  // SSRF guard — block requests to private/internal IPs before fetching.
-  // Provider base URLs are allowlisted in manifest-registry, but the guard
-  // defends against any future misconfiguration or redirect attack.
-  const safeUrl = validateOutboundUrl(url);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(safeUrl, { ...rest, signal: controller.signal });
+    const res = await fetch(url, { ...rest, signal: controller.signal });
     let body: unknown = null;
     const text = await res.text();
     if (text) {

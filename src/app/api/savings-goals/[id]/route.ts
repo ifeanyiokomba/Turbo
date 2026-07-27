@@ -149,7 +149,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const goal = await loadOwnedGoal(id, user.id);
     if (!goal) return errorJson("Goal not found", 404, "NOT_FOUND");
     return json({ goal: toDTO(goal) });
-  } catch (e: any) {
+  } catch (e) {
     if (e instanceof ServiceError) return errorJson(e.message, e.statusCode, e.code);
     return handleError(e);
   }
@@ -253,7 +253,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     });
 
     return json({ goal: toDTO(updated) });
-  } catch (e: any) {
+  } catch (e) {
     if (e instanceof ServiceError) return errorJson(e.message, e.statusCode, e.code);
     return handleError(e);
   }
@@ -265,21 +265,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
  * current amount and a withdrawal contribution is recorded. The goal is then marked
  * CANCELLED (not physically deleted) so the audit + contribution history is preserved.
  */
-<<<<<<< HEAD
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  // Hoist ledger import above try so LedgerError is in scope for catch
-  const ledgerMod = await import("@/lib/ledger").catch(() => ({ creditWallet: null as any, LedgerError: null as any }));
-  const { creditWallet, LedgerError } = ledgerMod;
-=======
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  // Hoist the ledger import above the try block so LedgerError is in scope
-  // for the catch block below. (Previously imported inside try → different
-  // scope → catch couldn't see it.)
-  const { creditWallet, LedgerError } = await import("@/lib/ledger");
->>>>>>> ecead5e1765c9674c5c6ba0b7f23bbf8d0791ddf
+  // Hoist ledger import above try so LedgerError is in scope for catch
+  const ledgerMod = await import("@/lib/ledger").catch(() => ({
+    creditWallet: null as any,
+    LedgerError: null as any,
+  }));
+  const { creditWallet, LedgerError } = ledgerMod;
   try {
     const user = await requireUser();
     const { id } = await params;
@@ -289,6 +281,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (existing.status === "CANCELLED")
       return json({ ok: true, cancelled: true, alreadyCancelled: true });
 
+    const { creditWallet, LedgerError } = await import("@/lib/ledger");
     const { RefType, TxType, TxDirection, TxStatus, TxState } = await import("@/lib/constants");
     const { generateReference } = await import("@/lib/money");
 
@@ -360,22 +353,11 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     });
 
     return json({ ok: true, cancelled: true, refundedKobo: refundKobo });
-<<<<<<< HEAD
   } catch (e) {
-    if (LedgerError && e instanceof LedgerError) return errorJson((e as any).message, 400, "LEDGER_ERROR");
-    if (e instanceof ServiceError) return errorJson((e as any).message, (e as any).statusCode, (e as any).code);
-=======
-  } catch (e: any) {
-    if (LedgerError && e instanceof LedgerError) return errorJson(e.message, 400, "LEDGER_ERROR");
-    if (
-      e &&
-      typeof e === "object" &&
-      "message" in e &&
-      (e as any).message?.includes("Insufficient")
-    )
-      return errorJson(e.message, 400, "LEDGER_ERROR");
-    if (e instanceof ServiceError) return errorJson(e.message, e.statusCode, e.code);
->>>>>>> ecead5e1765c9674c5c6ba0b7f23bbf8d0791ddf
+    if (LedgerError && e instanceof LedgerError)
+      return errorJson((e as any).message, 400, "LEDGER_ERROR");
+    if (e instanceof ServiceError)
+      return errorJson((e as any).message, (e as any).statusCode, (e as any).code);
     return handleError(e);
   }
 }

@@ -501,12 +501,6 @@ export function AppShell({
     .toUpperCase();
   // MiniPay nav items are dormant (standalone mode) — minipayMode is always false.
   const minipayMode = false;
-<<<<<<< HEAD
-=======
-  // celoAddress is null because MiniPay mode is disabled. When MiniPay is
-  // enabled, this would be populated from the connected wallet. Using a
-  // proper `string | null` type without a cast — null is a valid value.
->>>>>>> ecead5e1765c9674c5c6ba0b7f23bbf8d0791ddf
   const celoAddress = null as string | null;
   // Compute nav groups — when minipayMode is on, inject the MiniPay nav items
   // into the Financial group so they appear in the sidebar.

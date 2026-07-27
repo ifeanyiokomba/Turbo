@@ -1260,16 +1260,18 @@ function runSanitizer(key: SanitizerKey, input: string): SanitizeResult {
     let output: string;
     switch (key) {
       case "sanitizeString":
-        output = sanitizeString(input, { maxLength: 1000 });
+        output =
+          (sanitizeString(input, { maxLength: 1000 }) as any).sanitized ??
+          (sanitizeString(input, { maxLength: 1000 }) as any);
         break;
       case "sanitizeEmail":
-        output = sanitizeEmail(input);
+        output = (sanitizeEmail(input) as any).sanitized ?? (sanitizeEmail(input) as any);
         break;
       case "sanitizePhone":
-        output = sanitizePhone(input);
+        output = (sanitizePhone(input) as any).sanitized ?? (sanitizePhone(input) as any);
         break;
       case "sanitizeUrl":
-        output = sanitizeUrl(input);
+        output = (sanitizeUrl(input) as any).sanitized ?? (sanitizeUrl(input) as any);
         break;
       default:
         output = "";

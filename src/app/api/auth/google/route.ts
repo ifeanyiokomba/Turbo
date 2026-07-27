@@ -30,7 +30,7 @@ export async function GET() {
     }
 
     const state = randomBytes(16).toString("hex");
-    const authUrl = getGoogleAuthUrl(state);
+    const authUrl = await getGoogleAuthUrl(state);
 
     const res = NextResponse.redirect(authUrl);
     res.cookies.set(STATE_COOKIE, state, {

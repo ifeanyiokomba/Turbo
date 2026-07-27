@@ -66,12 +66,7 @@ interface ProfileData {
     bio: string | null;
     avatarUrl: string | null;
     hasPin: boolean;
-<<<<<<< HEAD
     emailVerified?: boolean;
-=======
-    emailVerified: boolean;
-    phoneVerified?: boolean;
->>>>>>> ecead5e1765c9674c5c6ba0b7f23bbf8d0791ddf
   };
 }
 

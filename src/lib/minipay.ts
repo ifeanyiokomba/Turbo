@@ -52,13 +52,6 @@ export const CELO_TOKENS_MAINNET = {
 
 // Token addresses — Celo SEPOLIA testnet (chain 11142220)
 export const CELO_TOKENS_SEPOLIA = {
-<<<<<<< HEAD
-  USDm: { address: "0xdE9e4C3ce781b4bA68120d6261cbad65ce0aB00b", decimals: 18, symbol: "USDm", name: "Mento Dollar" },
-  USDC: { address: "0x01C5C0122039549AD1493B8220cABEdD739BC44E", decimals: 6, symbol: "USDC", name: "USD Coin" },
-  USDT: { address: "0xd077A400968890Eacc75cdc901F0356c943e4fDb", decimals: 6, symbol: "USDT", name: "Tether USD" },
-  NGNm: { address: "0x3d5ae86F34E2a82771496D140daFAEf3789dF888", decimals: 18, symbol: "NGNm", name: "Mento Naira" },
-  CELO: { address: "0xF194afDf50B03e69Bd7D057c1Aa94410DaedAC57", decimals: 18, symbol: "CELO", name: "Celo" },
-=======
   USDm: {
     address: "0xdE9e4C3ce781b4bA68120d6261cbad65ce0aB00b",
     decimals: 18,
@@ -84,15 +77,11 @@ export const CELO_TOKENS_SEPOLIA = {
     name: "Mento Naira",
   },
   CELO: {
-    // Celo native token contract on Sepolia testnet.
-    // Per Celo docs: https://docs.celo.org/developer/setup#about-test-networks
-    // This is the canonical ERC-20 wrapper for the native CELO token on testnet.
     address: "0xF194afDf50B03e69Bd7D057c1Aa94410DaedAC57",
     decimals: 18,
     symbol: "CELO",
     name: "Celo",
   },
->>>>>>> ecead5e1765c9674c5c6ba0b7f23bbf8d0791ddf
 } as const;
 
 export type CeloTokenSymbol = keyof typeof CELO_TOKENS_MAINNET;
