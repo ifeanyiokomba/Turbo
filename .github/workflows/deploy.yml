@@ -1,12 +1,5 @@
 name: Deploy
 
-# Disabled until Vercel secrets are configured.
-# To re-enable: change `if: false` to `if: github.ref == 'refs/heads/main'`
-# and set these secrets in GitHub repo settings:
-#   - VERCEL_TOKEN
-#   - VERCEL_ORG_ID
-#   - VERCEL_PROJECT_ID
-
 on:
   push:
     branches: [main]
@@ -14,7 +7,7 @@ on:
 jobs:
   deploy-vercel:
     runs-on: ubuntu-latest
-    if: false # Disabled — no Vercel secrets configured yet
+    if: github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
       - uses: amondnet/vercel-action@v25

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "bun run db:generate && bun run build",
+  "installCommand": "bun install",
+  "env": {
+    "NEXT_PUBLIC_APP_URL": "https://turbopay.vercel.app"
+  },
+  "github": {
+    "silent": false
+  },
+  "crons": [
+    {
+      "path": "/api/cron/session-cleanup",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/interest-accrue",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/stuck-transactions",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/provider-sync",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/cron/outbox-publisher",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/health-flush",
+      "schedule": "*/2 * * * *"
+    },
+    {
+      "path": "/api/cron/scheduled-payments",
+      "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/sanctions-fetch",
+      "schedule": "0 0 * * 1"
+    }
+  ]
+}
