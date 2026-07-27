@@ -12,6 +12,7 @@
 import type { ProviderResult, ProviderErrorCode } from "../result";
 import { fail } from "../result";
 import { getCredentials, type ProviderCredentials } from "./credentials";
+import { validateOutboundUrl } from "@/lib/security/ssrf";
 
 const mockLogged = new Set<string>();
 
@@ -57,6 +58,8 @@ export async function loadCreds(code: string): Promise<ProviderCredentials | nul
 
 /**
  * fetch() wrapper that:
+ *   - validates the destination URL with the SSRF guard (blocks private IPs,
+ *     loopback, link-local, CGNAT, metadata endpoints, and obfuscated IPs),
  *   - applies a 20s timeout (PROVIDER_TIMEOUT on abort),
  *   - parses JSON response (or returns {} if body is empty/non-JSON),
  *   - on non-2xx calls `onHttpError(status, body)` to map to a ProviderResult.
@@ -69,6 +72,13 @@ export async function http(
   init: RequestInit & { timeoutMs?: number },
   onHttpError: (status: number, body: unknown) => ProviderResult<never>,
 ): Promise<{ status: number; body: unknown }> {
+  // SSRF guard — runs BEFORE the network call so we never even establish a
+  // TCP connection to an internal address. The original SsrfError is re-
+  // thrown so the caller's existing try/catch (which treats any thrown
+  // Error as a network failure and maps it via `fail("UPSTREAM_ERROR", ...)`)
+  // preserves the human-readable block reason in the error message.
+  await validateOutboundUrl(url);
+
   const { timeoutMs = 20_000, ...rest } = init;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);

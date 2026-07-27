@@ -188,14 +188,14 @@ export const pagaBillPayment: IBillPaymentProvider = {
       // Fall back to local directory
       const { BILLERS } = await import("@/lib/banks");
       const billers = req.category ? BILLERS[req.category] ?? [] : Object.values(BILLERS).flat();
-      return ok(billers.map((b) => ({ ...b, country: req.country })), "local-fallback", 5);
+      return ok(billers.map((b: any) => ({ code: String(b.code), name: String(b.name), category: String(req.category ?? "UNCATEGORIZED"), country: String(req.country), refLabel: String(b.refLabel), refType: String(b.refType) })) as any, "local-fallback", 5);
     }
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
       const { BILLERS } = await import("@/lib/banks");
       const billers = req.category ? BILLERS[req.category] ?? [] : Object.values(BILLERS).flat();
-      return ok(billers.map((b) => ({ ...b, country: req.country })), "mock", 10);
+      return ok(billers.map((b: any) => ({ code: String(b.code), name: String(b.name), category: String(req.category ?? "UNCATEGORIZED"), country: String(req.country), refLabel: String(b.refLabel), refType: String(b.refType) })) as any, "mock", 10);
     }
     const base = creds.sandbox ? STAGING_BASE : LIVE_BASE;
     try {
@@ -257,7 +257,7 @@ export const pagaBillPayment: IBillPaymentProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      const token = req.billerCode.startsWith("E") || req.category === "ELECTRICITY"
+      const token = req.billerCode.startsWith("E")
         ? Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("")
         : undefined;
       return ok({ providerRef: `paga-bill-${req.reference}`, status: "SUCCESS", token }, "mock", 150);

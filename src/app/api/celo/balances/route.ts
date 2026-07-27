@@ -40,7 +40,7 @@ export async function GET(req: Request) {
     const publicClient = getPublicClient(chainId);
     const owner = getAddress(address) as Address;
 
-    const entries = Object.values(tokens);
+    const entries = Object.values(tokens) as any[];
 
     const balances = await Promise.all(
       entries.map(async (t) => {

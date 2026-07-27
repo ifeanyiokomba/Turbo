@@ -976,3 +976,67 @@ Stage Summary:
 - MiniPay/Celo foundation kept dormant for future blockchain features
 - Lint: 0 errors, 0 warnings
 - Dev server running on :3000, all verified with agent-browser
+
+---
+Task ID: SECURITY-RESTORE
+Agent: full-stack-developer (Security infrastructure restoration)
+Task: Restore all security files lost during git merge
+
+Work Log:
+- Read worklog.md (978 lines) to understand existing Turbopay architecture: Next.js 16 + Turbopack, Prisma/SQLite, double-entry ledger, TurboCore provider registry with 16 adapters + outbox publisher + webhooks. Confirmed no prior security layer existed (no proxy.ts / no middleware.ts / no src/lib/security).
+- Inspected touched files: providers.tsx (WagmiProvider root), _shared.ts (provider http() wrapper used by every adapter), outbox/publisher.ts (cron-driven webhook dispatcher), confirmed no src/lib/oauth/ existed — created google.ts fresh.
+- Created `src/lib/security/csp.ts` (Edge Runtime compatible — no Node imports):
+  * `generateCspNonce()` — Web Crypto `globalThis.crypto.getRandomValues(18 bytes)` → 24-char base64 via `btoa()`.
+  * `buildCspHeader(nonce, isProduction)` — prod: `script-src 'self' 'nonce-X' 'strict-dynamic'` (no unsafe-inline/eval); dev: relaxed for Turbopack HMR (`'unsafe-inline' 'unsafe-eval'` + `ws: wss:` connect-src).
+  * `buildSecurityHeaders(nonce?)` — emits all 11 OWASP headers (CSP, HSTS 2y+preload, X-Frame-Options DENY, X-Content-Type-Options nosniff, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy camera/mic/geo/payment off, COOP same-origin, CORP same-origin, COEP credentialless, X-XSS-Protection 1;mode=block, plus Cache-Control on demand).
+  * `buildCorsHeaders(origin, allowedOrigins)` — reflects allowed origins with Vary: Origin + credentials; `buildCorsPreflightHeaders` for OPTIONS.
+- Created `src/lib/security/csrf.ts` (Edge Runtime compatible):
+  * `generateCsrfToken()` — `globalThis.crypto.getRandomValues(32 bytes)` → 64-char hex via manual byte→hex (no Buffer).
+  * `safeCompare(a, b)` — XOR-based constant-time comparison; walks max-length so timing can't leak prefix.
+  * `validateCsrfToken(req)` — checks X-CSRF-Token header against tp_csrf cookie only on POST/PUT/PATCH/DELETE; returns `{ok, reason}`.
+  * `isCsrfExempt(req)` + `CSRF_EXEMPT_PATTERNS` — skips webhooks (HMAC-signed), /api/auth/login, /api/auth/register (no session yet), /api/cron/* (scheduler-invoked).
+- Created `src/lib/security/sanitize.ts` (Node Runtime — uses `crypto.createHash` for fingerprints):
+  * 20 XSS patterns: script/iframe/object/embed/svg/img-on/body-on/inline-on*/javascript:/vbscript:/data:text-html/data:application-x/meta-http-equiv/link-import/base/form/style/document.cookie/expression().
+  * 12 SQLi patterns: OR-tautology (single + numeric), UNION SELECT, stacked DDL/DML, --//** comments, WAITFOR DELAY, SLEEP(), BENCHMARK(), information_schema, xp_cmdshell, LOAD_FILE(), INTO OUTFILE/DUMPFILE.
+  * 4 path-traversal patterns: ../, %2e%2e%2f, mixed-encoded, absolute-path escape.
+  * Functions: sanitizeString (coerce→strip-null→NFKC→detect→truncate), sanitizeEmail (RFC-ish strict), sanitizePhone (E.164), sanitizeUrl (http/https only), sanitizeId (alphanumeric+_-), sanitizeObject (recursive, depth-capped 10, strips __proto__/constructor/prototype), sanitizeBody (JSON-or-string body), detectMalicious (returns {type,label}), fingerprint (SHA-256 16-char for safe logging).
+- Created `src/lib/security/ssrf.ts` (Node Runtime — uses `dns.lookup` + `crypto.createHash`):
+  * 16 blocked CIDR ranges: IPv4 (0.0.0.0/8, 10/8, 100.64/10 CGNAT, 127/8 loopback, 169.254/16 link-local, 172.16/12, 192.0.0/24, 192.0.2/24 TEST-NET-1, 192.168/16, 198.18/15 benchmark, 198.51.100/24 TEST-NET-2, 224/4 multicast, 240/4 reserved) + IPv6 (::1 loopback, fc00::/7 ULA, fe80::/10 link-local).
+  * 7 blocked hostnames: localhost, ip6-localhost, ip6-loopback, metadata.google.internal, metadata.azure.com, 169.254.169.254 (AWS/Azure/GCP IMDS), metadata.tencentyun.com.
+  * Obfuscation detection: decimal (16843009→1.1.1.1), octal (0177.0.0.1→127.0.0.1), hex octet (0x7f.0.0.1), pure-hex (0x7f000001), pure-decimal integers.
+  * `validateOutboundUrl(input)` — throws SsrfError; runs scheme-check → hostname blocklist → obfuscation check → IP-literal CIDR check → DNS resolution with `all:true, verbatim:true` + per-address CIDR check (defends against DNS rebinding).
+  * `checkUrl(input)` — non-throwing variant returning `{ok, reason, resolvedIp}`.
+  * `isPrivateUrl(input)` — boolean convenience.
+  * `fetchSafe(input, init?)` — drop-in fetch wrapper: validates initial URL, sets `redirect:"manual"`, re-validates each Location hop (capped at 5 hops), strips Authorization+Cookie on cross-origin redirects.
+  * IPv6-mapped IPv4 unwrapping (::ffff:a.b.c.d → re-check against IPv4 ranges).
+- Created `src/lib/security/client.ts` (browser only):
+  * `getCsrfToken()` — reads tp_csrf cookie from document.cookie (URL-decoded).
+  * `csrfFetch(input, init?)` — drop-in fetch replacement; auto-injects X-CSRF-Token on same-origin POST/PUT/PATCH/DELETE; preserves caller-provided token; skips cross-origin.
+  * `installCsrfInterceptor()` — monkey-patches window.fetch ONCE (idempotent via `window.__tpCsrfInterceptorInstalled` flag); same-origin only; never overwrites caller's X-CSRF-Token; SSR-safe (guards `typeof window`).
+- Created `src/lib/security/index.ts` — barrel re-export of all 5 modules, with comments noting Edge-safe vs Node-only vs browser-only.
+- Created `src/proxy.ts` (Next.js 16 middleware — Edge Runtime):
+  * Exports `proxy` function (NOT `middleware` — Next.js 16 rename). Also aliases `export { proxy as middleware }` defensively for legacy tooling.
+  * `config.matcher` excludes _next/static, _next/image, favicon.ico, robots.txt, sitemap.xml, logo.svg.
+  * Per-request pipeline: (1) OPTIONS → 204 with CORS preflight headers (403 if origin not allowed); (2) generate CSP nonce via Web Crypto; (3) build all 11 OWASP security headers; (4) CSRF validation on POST/PUT/PATCH/DELETE /api/* (skipping exempt routes — returns 403 with `{error,code:"CSRF_INVALID",reason}` on failure); (5) inject nonce into request headers as `x-csp-nonce` so server components can read it; (6) apply CORS headers to response; (7) auto-set/refresh tp_csrf cookie on same-origin GET/HEAD (httpOnly:false, sameSite:lax, 24h maxAge, secure in prod).
+  * CORS_ALLOWED_ORIGINS env var support with dev default of localhost:3000.
+- Updated `src/components/turbopay/providers.tsx` — added `useEffect(() => installCsrfInterceptor(), [])` to mount the global fetch monkey-patch before any app code issues a mutating request.
+- Wired SSRF guard into 3 outbound-HTTP call sites:
+  * `src/lib/turbocore/providers/_shared.ts` `http()` — calls `validateOutboundUrl(url)` BEFORE fetch; SsrfError propagates through adapter try/catch as UPSTREAM_ERROR with the block reason in the message.
+  * `src/lib/turbocore/outbox/publisher.ts` — per-endpoint `validateOutboundUrl(ep.url)` before webhook delivery; on block, increments endpoint's consecutiveFailures, logs reason, and `continue`s so one bad endpoint doesn't poison the whole event.
+  * `src/lib/oauth/google.ts` (new file) — full Google OAuth helper: `buildAuthorizeUrl`, `exchangeCodeForTokens` (calls validateOutboundUrl before POST to oauth2.googleapis.com/token), `fetchUserInfo` (calls validateOutboundUrl before GET to googleapis.com/oauth2/v3/userinfo). Snake_case→camelCase field mapping for userinfo response.
+- Fixed lint warnings: removed unused eslint-disable directives (no-control-regex in sanitize.ts, no-constant-condition in ssrf.ts — converted `while(true)` to `for(;;)`).
+- Fixed TypeScript errors: removed unused `SsrfError` import in _shared.ts after refactoring to re-throw pattern; fixed `fail()` call to use `raw` field instead of unknown `url`/`reason` keys; fixed Google userinfo response typing (snake_case fields accessed via `Record<string, unknown>` cast).
+
+Stage Summary:
+- 9 files created (proxy.ts, lib/security/{csp,csrf,sanitize,ssrf,client,index}.ts, lib/oauth/google.ts) + 3 existing files modified (providers.tsx, _shared.ts, publisher.ts).
+- Verification:
+  * `bun run lint` → 0 errors, 0 warnings.
+  * `npx tsc --noEmit 2>&1 | grep "security/"` → 0 errors.
+  * `proxy.ts` confirmed to export `proxy` function (line 101: `export function proxy(req: NextRequest): NextResponse`).
+  * Pre-existing TS errors in unrelated files (turbopay.adapter.ts module paths, upload/ artifacts, kyc/savings-goals routes) are unchanged by this work.
+- Security guarantees restored:
+  * Every HTTP response carries 11 OWASP headers with a per-request CSP nonce (prod: strict-dynamic, no unsafe-inline/eval).
+  * Every mutating API request requires a valid double-submit CSRF token (constant-time compared), with exemptions only for signature-authenticated webhooks, public auth, and scheduler-invoked cron.
+  * Every outbound HTTP call from provider adapters, webhook outbox delivery, and Google OAuth passes through the SSRF guard — blocks loopback/private/link-local/CGNAT/multicast/reserved IPv4 + IPv6 ULA/loopback/link-local, cloud metadata endpoints (169.254.169.254 etc.), and decimal/octal/hex IP obfuscation; `fetchSafe` re-validates every redirect hop.
+  * Client-side fetch monkey-patch (installed once on app mount) auto-injects X-CSRF-Token on every same-origin mutating request — no app code needs to think about CSRF.
+  * Sanitization utilities available for any API route that touches user input — 36 detection patterns covering XSS/SQLi/path-traversal, plus prototype-pollution stripping, NFKC normalization, and null-byte removal.

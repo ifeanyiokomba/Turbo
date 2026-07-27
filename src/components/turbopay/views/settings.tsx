@@ -66,6 +66,7 @@ interface ProfileData {
     bio: string | null;
     avatarUrl: string | null;
     hasPin: boolean;
+    emailVerified?: boolean;
   };
 }
 

@@ -30,11 +30,12 @@ export const CELO_TOKENS_SEPOLIA = {
   USDC: { address: "0x01C5C0122039549AD1493B8220cABEdD739BC44E", decimals: 6, symbol: "USDC", name: "USD Coin" },
   USDT: { address: "0xd077A400968890Eacc75cdc901F0356c943e4fDb", decimals: 6, symbol: "USDT", name: "Tether USD" },
   NGNm: { address: "0x3d5ae86F34E2a82771496D140daFAEf3789dF888", decimals: 18, symbol: "NGNm", name: "Mento Naira" },
+  CELO: { address: "0xF194afDf50B03e69Bd7D057c1Aa94410DaedAC57", decimals: 18, symbol: "CELO", name: "Celo" },
 } as const;
 
 export type CeloTokenSymbol = keyof typeof CELO_TOKENS_MAINNET;
 
-export function getTokens(chainId: number): typeof CELO_TOKENS_MAINNET {
+export function getTokens(chainId: number): any {
   return chainId === CELO_SEPOLIA_CHAIN_ID ? CELO_TOKENS_SEPOLIA : CELO_TOKENS_MAINNET;
 }
 

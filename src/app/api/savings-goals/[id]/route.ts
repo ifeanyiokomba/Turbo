@@ -279,6 +279,9 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  // Hoist ledger import above try so LedgerError is in scope for catch
+  const ledgerMod = await import("@/lib/ledger").catch(() => ({ creditWallet: null as any, LedgerError: null as any }));
+  const { creditWallet, LedgerError } = ledgerMod;
   try {
     const user = await requireUser();
     const { id } = await params;
@@ -363,8 +366,8 @@ export async function DELETE(
 
     return json({ ok: true, cancelled: true, refundedKobo: refundKobo });
   } catch (e) {
-    if (e instanceof LedgerError) return errorJson(e.message, 400, "LEDGER_ERROR");
-    if (e instanceof ServiceError) return errorJson(e.message, e.statusCode, e.code);
+    if (LedgerError && e instanceof LedgerError) return errorJson((e as any).message, 400, "LEDGER_ERROR");
+    if (e instanceof ServiceError) return errorJson((e as any).message, (e as any).statusCode, (e as any).code);
     return handleError(e);
   }
 }

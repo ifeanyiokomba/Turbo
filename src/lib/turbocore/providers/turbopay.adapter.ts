@@ -1,7 +1,7 @@
 // TurboCore mock "turbopay" provider — implements all 11 contracts in sandbox/demo mode.
 // Used as fallback when no real provider is configured, and for development.
 
-import { ok, fail, type ProviderResult } from "../../result";
+import { ok, fail, type ProviderResult } from "../result";
 import type {
   IVirtualAccountProvider,
   ICardPaymentProvider,
@@ -14,8 +14,9 @@ import type {
   IMobileMoneyProvider,
   IExchangeRateProvider,
   IVirtualCardIssuer,
-} from "../../contracts";
-import { generateAccountNumber, generatePan, generateExpiry, encryptSecret } from "@/lib/auth";
+} from "../contracts";
+import { encryptSecret } from "@/lib/auth";
+import { generateAccountNumber, generatePan, generateExpiry } from "@/lib/money";
 import { NIGERIAN_BANKS, BILLERS, DATA_PLANS, UNIQUE_BANKS } from "@/lib/banks";
 import { NETWORKS } from "@/lib/constants";
 
@@ -80,13 +81,13 @@ export const turbopayBillPayment: IBillPaymentProvider = {
   async listBillers(req) {
     const cats = Object.keys(BILLERS);
     const billers = req.category ? BILLERS[req.category] ?? [] : cats.flatMap((c) => BILLERS[c] ?? []);
-    return ok(billers.map((b) => ({ ...b, country: req.country })), "mock", 20);
+    return ok(billers.map((b: any) => ({ code: b.code, name: b.name, category: req.category ?? "UNCATEGORIZED", country: req.country, refLabel: b.refLabel, refType: b.refType })), "mock", 20);
   },
   async validateCustomer(req) {
     return ok({ customerName: `CUSTOMER ${req.customerRef.slice(-4)}`, valid: true }, "mock", 40);
   },
   async payBill(req) {
-    const token = req.billerCode.startsWith("E") || req.category === "ELECTRICITY" ? Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("") : undefined;
+    const token = req.billerCode.startsWith("E") ? Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("") : undefined;
     return ok({ providerRef: `tp-bill-${req.reference}`, status: "SUCCESS", token }, "mock", 150);
   },
   async queryBillPayment(ref) {
@@ -100,7 +101,7 @@ export const turbopayAirtime: IAirtimeProvider = {
     return ok(NETWORKS.map((n) => ({ id: n.id, name: n.name, country })), "mock", 10);
   },
   async listDataPlans(req) {
-    return ok((DATA_PLANS[req.network] ?? []).map((p) => ({ ...p, network: req.network })), "mock", 12);
+    return ok((DATA_PLANS[req.network] ?? []).map((p: any) => ({ id: p.id, name: p.name, amountMinor: p.amountKobo, validity: p.validity, network: req.network })), "mock", 12);
   },
   async purchase(req) {
     return ok({ providerRef: `tp-air-${req.reference}`, status: "SUCCESS" }, "mock", 120);

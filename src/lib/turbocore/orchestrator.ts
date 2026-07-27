@@ -379,5 +379,5 @@ async function tryWithFailover(
 
 function hashKey(req: OrchestrateRequest): string {
   const s = `${req.userId}:${req.contract}:${req.amountMinor}:${req.counterpartyAccount ?? ""}:${req.direction}`;
-  return hash("sha256").update(s).digest("hex");
+  return hash("sha256", s, "hex");
 }

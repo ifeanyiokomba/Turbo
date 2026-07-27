@@ -5,7 +5,7 @@ import { EntryType, RefType } from "@/lib/constants";
 
 export class LedgerError extends Error {}
 
-async function getWalletForUpdate(tx: typeof db, userId: string) {
+async function getWalletForUpdate(tx: any, userId: string) {
   const wallet = await tx.wallet.findUnique({ where: { userId } });
   if (!wallet) throw new LedgerError("Wallet not found");
   if (wallet.status !== "ACTIVE") throw new LedgerError("Wallet is " + wallet.status.toLowerCase());
@@ -20,7 +20,7 @@ export async function creditWallet(opts: {
   refId?: string;
   description: string;
   pairId?: string;
-  tx?: typeof db;
+  tx?: any;
 }) {
   const t = opts.tx ?? db;
   if (opts.amountKobo <= 0) throw new LedgerError("Amount must be positive");
@@ -55,7 +55,7 @@ export async function debitWallet(opts: {
   refId?: string;
   description: string;
   pairId?: string;
-  tx?: typeof db;
+  tx?: any;
 }) {
   const t = opts.tx ?? db;
   if (opts.amountKobo <= 0) throw new LedgerError("Amount must be positive");

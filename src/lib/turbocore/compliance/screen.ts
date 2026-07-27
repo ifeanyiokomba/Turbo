@@ -69,7 +69,7 @@ export async function screenEntity(req: {
       matchedEntryId: best.matchedEntryId ?? null,
     },
   }).catch(() => {});
-  return best;
+  return { hit, ...best };
 }
 
 // --- AML rules ---

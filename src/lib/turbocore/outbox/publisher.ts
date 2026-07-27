@@ -12,6 +12,7 @@
 
 import { db } from "@/lib/db";
 import { signPayload, TURBOPAY_SIGNATURE_HEADER } from "../webhooks/sign";
+import { validateOutboundUrl, SsrfError } from "@/lib/security/ssrf";
 
 const BATCH_SIZE = 50;
 
@@ -122,6 +123,29 @@ async function publishOne(event: any, stats: PublishStats): Promise<void> {
   let allOk = true;
   for (const ep of endpoints) {
     try {
+      // SSRF guard — validate the webhook endpoint URL before connecting.
+      // Merchant-supplied webhook URLs are attacker-controllable, so this is
+      // the most important SSRF defense in the system. Blocked: loopback,
+      // private ranges, link-local, CGNAT, metadata endpoints, and
+      // obfuscated IP encodings.
+      try {
+        await validateOutboundUrl(ep.url);
+      } catch (ssrfErr) {
+        allOk = false;
+        const reason =
+          ssrfErr instanceof SsrfError
+            ? ssrfErr.message
+            : "SSRF validation failed";
+        await db.webhookEndpoint.update({
+          where: { id: ep.id },
+          data: { consecutiveFailures: { increment: 1 }, lastFailedAt: new Date() },
+        }).catch(() => {});
+        console.warn(
+          `[outbox] endpoint ${ep.id} blocked by SSRF guard (${reason}) for event ${event.id}`,
+        );
+        continue; // Skip to next endpoint — don't poison the whole event.
+      }
+
       const signature = signPayload(payloadStr, ep.secretHash);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10_000);
