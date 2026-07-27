@@ -111,7 +111,11 @@ export const eventBus = new EventBus();
 // These match the TurboCoreEventType from models/index.ts
 
 export const EventTypes = {
+  // UPL lifecycle events (Chapter 6)
   PAYMENT_CREATED: "PAYMENT.CREATED",
+  PAYMENT_VALIDATED: "PAYMENT.VALIDATED",
+  PAYMENT_ROUTED: "PAYMENT.ROUTED",
+  PAYMENT_INITIATED: "PAYMENT.INITIATED",
   PAYMENT_PENDING: "PAYMENT.PENDING",
   PAYMENT_PROCESSING: "PAYMENT.PROCESSING",
   PAYMENT_AUTHORIZED: "PAYMENT.AUTHORIZED",
