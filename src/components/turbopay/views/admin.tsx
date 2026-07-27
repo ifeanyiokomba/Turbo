@@ -163,6 +163,15 @@ const PidaTab = dynamic(() => import("./admin/pida-tab").then((m) => m.default),
     </div>
   ),
 });
+// TCQAF Testing & Quality Assurance (Chapter 14).
+const TcqafTab = dynamic(() => import("./admin/tcqaf-tab").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+    </div>
+  ),
+});
 // Security Center tab — lazy-loaded. Surfaces runtime security posture
 // (CSP, CSRF, XSS, headers, cookies, sanitizers). Kept lazy so the heavy
 // sanitizer live-tester + headers inspector only load when an admin clicks
@@ -688,6 +697,10 @@ export default function AdminView() {
           <TabsTrigger value="pida" className="min-w-[110px] flex-1 gap-1">
             <Rocket className="h-3.5 w-3.5" />
             Deployment
+          </TabsTrigger>
+          <TabsTrigger value="tcqaf" className="min-w-[110px] flex-1 gap-1">
+            <Shield className="h-3.5 w-3.5" />
+            QA & Cert
           </TabsTrigger>
           <TabsTrigger value="security" className="min-w-[100px] flex-1 gap-1">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -1597,6 +1610,11 @@ export default function AdminView() {
         {/* PIDA Production Infrastructure (Chapter 13) */}
         <TabsContent value="pida" className="mt-5">
           <PidaTab />
+        </TabsContent>
+
+        {/* TCQAF Testing & Quality Assurance (Chapter 14) */}
+        <TabsContent value="tcqaf" className="mt-5">
+          <TcqafTab />
         </TabsContent>
 
         {/* Security Center — technical security posture (CSP/CSRF/XSS/headers) */}
