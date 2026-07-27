@@ -1238,3 +1238,102 @@ model TransactionEvent {
   @@index([transactionId, createdAt])
   @@index([eventType])
 }
+
+// ===== Chapter 5: Financial Ledger Engine (FLE) =====
+
+model LedgerAccount {
+  id            String   @id @default(cuid())
+  code          String   @unique // e.g., "PAYSTACK_CLEARING", "FEE_REVENUE", "CUST_WALLET_NGN_userId"
+  name          String
+  type          String   // ASSET | LIABILITY | REVENUE | EXPENSE
+  subType       String   // CASH | PROVIDER_CLEARING | CUSTOMER_WALLET | MERCHANT_WALLET | FEE_REVENUE | TAX_HOLDING | FX_REVENUE | CHARGEBACK_RESERVE | OPERATIONAL_RESERVE
+  currency      String   @default("NGN")
+  ownerId       String?  // userId or merchantId or providerCode
+  providerCode  String?  // for provider clearing accounts
+  availableBalance Int   @default(0)
+  pendingBalance  Int    @default(0)
+  reservedBalance Int    @default(0)
+  settlementBalance Int @default(0)
+  feeBalance      Int    @default(0)
+  status        String   @default("ACTIVE") // ACTIVE | FROZEN | CLOSED
+  version       Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  entries       JournalEntry[]
+  @@index([type, subType])
+  @@index([ownerId])
+  @@index([providerCode])
+}
+
+model JournalEntry {
+  id            String   @id @default(cuid())
+  journalType   String   // DEPOSIT | WITHDRAWAL | TRANSFER | REFUND | REVERSAL | SETTLEMENT | CHARGEBACK | FEE | FX | ESCROW | INTEREST | ADJUSTMENT
+  accountId     String
+  account       LedgerAccount @relation(fields: [accountId], references: [id])
+  transactionId String?
+  reference     String
+  currency      String
+  amount        Int      // always positive
+  debitCredit   String   // DEBIT | CREDIT
+  pairId        String?  // links the debit+credit pair
+  source        String?  // origin: PROVIDER | USER | SYSTEM | ADMIN
+  destination   String?  // target account code
+  provider      String?
+  status        String   @default("POSTED") // POSTED | PENDING | REVERSED
+  accountingPeriodId String?
+  metadata      String?  // JSON
+  createdAt     DateTime @default(now())
+  @@index([accountId, createdAt])
+  @@index([transactionId])
+  @@index([journalType])
+  @@index([pairId])
+}
+
+model BalanceSnapshot {
+  id            String   @id @default(cuid())
+  accountId     String
+  currency      String
+  availableBalance Int
+  pendingBalance  Int
+  reservedBalance Int
+  settlementBalance Int
+  feeBalance      Int
+  snapshotDate  DateTime
+  createdAt     DateTime @default(now())
+  @@unique([accountId, snapshotDate])
+  @@index([snapshotDate])
+}
+
+model AccountingPeriod {
+  id            String   @id @default(cuid())
+  name          String   // "2026-07" or "2026-07-25"
+  type          String   // DAILY | MONTHLY | FISCAL_YEAR
+  startDate     DateTime
+  endDate       DateTime
+  status        String   @default("OPEN") // OPEN | CLOSED | LOCKED
+  closedAt      DateTime?
+  closedBy      String?
+  createdAt     DateTime @default(now())
+  @@unique([type, startDate])
+}
+
+model ReconciliationRun {
+  id            String   @id @default(cuid())
+  providerCode  String?
+  periodStart   DateTime
+  periodEnd     DateTime
+  source        String   // PROVIDER_REPORT | BANK_STATEMENT | SETTLEMENT_REPORT
+  totalChecked  Int      @default(0)
+  matched       Int      @default(0)
+  missing       Int      @default(0)
+  duplicate     Int      @default(0)
+  amountMismatch Int     @default(0)
+  currencyMismatch Int   @default(0)
+  referenceMismatch Int  @default(0)
+  settlementDelay Int    @default(0)
+  feeDifference Int      @default(0)
+  status        String   @default("PENDING") // PENDING | COMPLETED | ALERT
+  metadata      String?  // JSON
+  createdAt     DateTime @default(now())
+  @@index([providerCode, periodStart])
+}
