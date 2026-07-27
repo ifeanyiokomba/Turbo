@@ -11,6 +11,7 @@
 //   tp_refresh  → refresh JWT (30d,  path=/api/auth/refresh)
 
 import { SignJWT, jwtVerify } from "jose";
+import { randomUUID } from "crypto";
 
 const ACCESS_TOKEN_TTL_SECONDS = 15 * 60; // 15 minutes
 const REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days
@@ -150,7 +151,14 @@ export async function verifyAccessTokenFull(token: string): Promise<AccessTokenC
  * the RefreshToken table, and a new one is issued.
  */
 export async function signRefreshToken(payload: { userId: string }): Promise<string> {
-  return new SignJWT({ userId: payload.userId, type: "refresh" })
+  return new SignJWT({
+    userId: payload.userId,
+    type: "refresh",
+    // Random JWT ID guarantees uniqueness across two refresh tokens issued for
+    // the same user within the same second (otherwise iat+exp+userId would be
+    // identical and the SHA-256 tokenHash would collide in the DB).
+    jti: randomUUID(),
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${REFRESH_TOKEN_TTL_SECONDS}s`)

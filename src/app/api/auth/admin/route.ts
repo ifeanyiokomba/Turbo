@@ -21,7 +21,7 @@ import { decryptMfaSecret } from "@/lib/mfa";
 import { json, errorJson, handleError, audit, getClientIp, getUserAgent } from "@/lib/api";
 import { rateLimitMiddleware } from "@/lib/rate-limit-helpers";
 import { ensureSeed } from "@/lib/seed";
-import { issueOtp } from "@/lib/otp-cache";
+import { issueAdminOtp } from "@/lib/admin-otp-cache";
 import { logSecurityEvent } from "@/lib/security-log";
 import { z } from "zod";
 
@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
       : user.emailVerified
         ? "EMAIL"
         : "SMS";
-    const issued = issueOtp(user.id, 0, channel);
+    const issued = issueAdminOtp(user.id, channel);
 
     if (process.env.NODE_ENV !== "production") {
       console.log(`[admin-login] Step-up OTP for ${user.username} (${channel}): ${issued.code}`);

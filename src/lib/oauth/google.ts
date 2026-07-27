@@ -180,19 +180,15 @@ export async function exchangeGoogleCode(code: string): Promise<GoogleUserInfo> 
 export async function createOrLinkGoogleUser(
   googleUser: GoogleUserInfo
 ): Promise<CreateOrLinkResult> {
-  // 1. Existing link?
-  const existingLink = await db.oauthAccount.findUnique({
-    where: {
-      provider_providerAccountId: {
-        provider: "google",
-        providerAccountId: googleUser.sub,
-      },
-    },
-    include: { user: true },
+  // 1. Existing link? (providerAccountId is globally unique in our schema.)
+  const existingLink = await db.oAuthAccount.findUnique({
+    where: { providerAccountId: googleUser.sub },
   });
   if (existingLink) {
+    const user = await db.user.findUnique({ where: { id: existingLink.userId } });
+    if (!user) throw new Error("OAuth link references missing user");
     return {
-      user: publicUser(existingLink.user),
+      user: publicUser(user),
       isNew: false,
       linked: false,
     };
@@ -206,7 +202,7 @@ export async function createOrLinkGoogleUser(
 
   if (existingUser) {
     // Link OAuthAccount to the existing user.
-    await db.oauthAccount.create({
+    await db.oAuthAccount.create({
       data: {
         userId: existingUser.id,
         provider: "google",
@@ -282,7 +278,7 @@ export async function createOrLinkGoogleUser(
   });
 
   // Link the OAuth account.
-  await db.oauthAccount.create({
+  await db.oAuthAccount.create({
     data: {
       userId: user.id,
       provider: "google",

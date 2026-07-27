@@ -17,7 +17,7 @@ import { json, errorJson, handleError, audit, getClientIp, getUserAgent } from "
 import { rateLimitMiddleware } from "@/lib/rate-limit-helpers";
 import { ensureSeed } from "@/lib/seed";
 import { verifyTotp, decryptMfaSecret } from "@/lib/mfa";
-import { verifyOtp } from "@/lib/otp-cache";
+import { verifyAdminOtp } from "@/lib/admin-otp-cache";
 import { trackDevice } from "@/lib/device";
 import { logSecurityEvent } from "@/lib/security-log";
 import { z } from "zod";
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
         reason = "mfa-decrypt-failed";
       }
     } else {
-      const result = verifyOtp(user.id, otp);
+      const result = verifyAdminOtp(user.id, otp);
       if (result.ok) {
         verified = true;
       } else {

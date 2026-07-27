@@ -50,8 +50,10 @@ export async function POST(req: NextRequest) {
     // Optionally the body can carry an explicit { fingerprint } to trust a
     // different device; otherwise trust the current one.
     const body = await req.json().catch(() => ({}));
-    const fingerprint: string | undefined =
-      typeof body?.fingerprint === "string" ? body.fingerprint : device.fingerprint;
+    const fingerprint: string =
+      typeof body?.fingerprint === "string" && body.fingerprint.length > 0
+        ? body.fingerprint
+        : device.fingerprint;
 
     const trusted = await trustDevice(user.id, fingerprint);
     if (!trusted) {

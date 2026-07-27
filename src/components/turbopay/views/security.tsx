@@ -894,6 +894,228 @@ function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () =
   );
 }
 
+// === Devices subsection ===
+
+interface DeviceInfo {
+  id: string;
+  deviceName: string | null;
+  deviceType: string;
+  os: string | null;
+  browser: string | null;
+  ip: string | null;
+  trusted: boolean;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  isCurrent?: boolean;
+  fingerprint?: string;
+}
+
+function deviceTypeIcon(type: string): React.ReactNode {
+  const t = (type || "").toLowerCase();
+  if (t === "mobile" || t === "tablet") return <Smartphone className="h-4 w-4" />;
+  if (t === "desktop") return <Monitor className="h-4 w-4" />;
+  return <Monitor className="h-4 w-4" />;
+}
+
+function DevicesSection() {
+  const [list, setList] = React.useState<DeviceInfo[] | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [busy, setBusy] = React.useState<string | null>(null); // device id being mutated
+  const [confirmRevoke, setConfirmRevoke] = React.useState<DeviceInfo | null>(null);
+
+  const load = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/devices", { cache: "no-store" });
+      if (!res.ok) {
+        toast.error("Failed to load devices");
+        return;
+      }
+      const data = await res.json();
+      setList(data.devices ?? []);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    load();
+  }, [load]);
+
+  async function trustCurrent() {
+    setBusy("current");
+    try {
+      const res = await fetch("/api/auth/devices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to trust device");
+        return;
+      }
+      toast.success("This device is now trusted");
+      await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function revokeDevice(device: DeviceInfo) {
+    setBusy(device.id);
+    try {
+      const res = await fetch(`/api/auth/devices/${device.id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data.error ?? "Failed to revoke device");
+        return;
+      }
+      toast.success("Device revoked");
+      setConfirmRevoke(null);
+      await load();
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const current = list?.find((d) => d.isCurrent);
+  const showTrustCurrent = !!current && !current.trusted;
+
+  return (
+    <Card className="p-5 sm:p-6">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Monitor className="text-primary h-5 w-5" />
+          <div>
+            <h2 className="text-base font-semibold">Devices</h2>
+            <p className="text-muted-foreground text-xs">
+              Devices that have signed in to your account.
+            </p>
+          </div>
+        </div>
+        {showTrustCurrent && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            onClick={trustCurrent}
+            disabled={busy === "current"}
+          >
+            {busy === "current" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            Trust this device
+          </Button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-16 rounded-xl" />
+          <Skeleton className="h-16 rounded-xl" />
+        </div>
+      ) : list && list.length > 0 ? (
+        <ul className="scrollbar-thin max-h-96 space-y-2 overflow-y-auto pr-1">
+          {list.map((d) => (
+            <li
+              key={d.id}
+              className={`flex items-center gap-3 rounded-xl border p-3 ${
+                d.isCurrent ? "border-emerald-500/40 bg-emerald-500/5" : ""
+              }`}
+            >
+              <div className="bg-muted text-muted-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+                {deviceTypeIcon(d.deviceType)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
+                  {d.deviceName ?? "Unknown device"}
+                  {d.isCurrent && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    >
+                      This device
+                    </Badge>
+                  )}
+                  {d.trusted && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    >
+                      <ShieldCheck className="mr-1 h-3 w-3" /> Trusted
+                    </Badge>
+                  )}
+                </p>
+                <p className="text-muted-foreground truncate text-xs">
+                  {[d.os, d.browser, d.ip].filter(Boolean).join(" · ")} · {timeAgo(d.lastSeenAt)}
+                </p>
+              </div>
+              {!d.isCurrent && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground h-8 w-8 p-0 hover:bg-red-500/10 hover:text-red-600"
+                  onClick={() => setConfirmRevoke(d)}
+                  aria-label="Revoke device"
+                  disabled={busy === d.id}
+                >
+                  {busy === d.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <EmptyState
+          icon={Monitor}
+          title="No devices tracked yet"
+          description="Sign in to start tracking your devices."
+        />
+      )}
+
+      <AlertDialog open={!!confirmRevoke} onOpenChange={(o) => !o && setConfirmRevoke(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke this device?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmRevoke ? (
+                <>
+                  The device{" "}
+                  <span className="font-medium">
+                    {confirmRevoke.deviceName ?? "Unknown device"}
+                  </span>{" "}
+                  {confirmRevoke.ip ? `at ${confirmRevoke.ip}` : ""} will be removed from your
+                  device list and un-trusted.
+                </>
+              ) : (
+                "This device will be removed from your device list."
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!busy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmRevoke && revokeDevice(confirmRevoke)}
+              disabled={!!busy}
+              className="gap-1.5 bg-red-600 hover:bg-red-700"
+            >
+              {!!busy && <Loader2 className="h-4 w-4 animate-spin" />}
+              Revoke device
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  );
+}
+
 export default function SecurityView() {
   const { setView } = useApp();
   const [data, setData] = React.useState<SecurityData | null>(null);
@@ -1119,6 +1341,9 @@ export default function SecurityView() {
 
           {/* MFA */}
           <MfaSection mfa={mfa} onChanged={load} />
+
+          {/* Devices */}
+          <DevicesSection />
 
           {/* Recent security events */}
           <Card className="p-5 sm:p-6">

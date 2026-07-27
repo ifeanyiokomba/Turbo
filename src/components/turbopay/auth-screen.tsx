@@ -24,6 +24,8 @@ import {
   ShieldCheck,
   RotateCcw,
   ArrowLeft,
+  Store,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "./store";
@@ -53,7 +55,15 @@ const COUNTRIES = [
   { code: "US", name: "United States", dial: "+1", flag: "🇺🇸" },
 ];
 
-export function AuthScreen({ onBack }: { onBack: () => void }) {
+export function AuthScreen({
+  onBack,
+  onShowBusiness,
+  onShowAdmin,
+}: {
+  onBack: () => void;
+  onShowBusiness?: () => void;
+  onShowAdmin?: () => void;
+}) {
   const router = useRouter();
   const { setUser } = useApp();
   const [tab, setTab] = React.useState<"login" | "register">("login");
@@ -648,7 +658,11 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
           <Button
             variant="outline"
             className="mt-4 w-full"
-            onClick={() => toast.info("Google sign-in coming soon")}
+            onClick={() => {
+              // Initiate the Google OAuth flow — server sets a state cookie
+              // and redirects to Google's consent screen.
+              window.location.href = "/api/auth/google";
+            }}
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24">
               <path
@@ -675,6 +689,29 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
             Demo admin: <span className="text-foreground font-mono">admin@turbopay.ng</span> /{" "}
             <span className="text-foreground font-mono">Admin@1234</span>
           </p>
+
+          {(onShowBusiness || onShowAdmin) && (
+            <div className="text-muted-foreground mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs">
+              {onShowBusiness && (
+                <button
+                  type="button"
+                  onClick={onShowBusiness}
+                  className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
+                >
+                  <Store className="h-3 w-3" /> Sign in as Business
+                </button>
+              )}
+              {onShowAdmin && (
+                <button
+                  type="button"
+                  onClick={onShowAdmin}
+                  className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 transition-colors"
+                >
+                  <ShieldAlert className="h-3 w-3" /> Admin Console
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

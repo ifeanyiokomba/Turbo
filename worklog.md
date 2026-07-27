@@ -1484,3 +1484,71 @@ Files modified:
 Files NOT modified (per task rules): prisma/schema.prisma, src/lib/* foundation (auth.ts, money.ts, screen.ts, db.ts, etc.), existing API routes, existing views.
 
 Verification: format:check ✅ | lint ✅ (0 errors, 1 pre-existing warning in another agent's file) | test ✅ 22/22 pass | typecheck ❌ only pre-existing errors in other agents' lib/* files (my files compile clean)
+
+---
+Task ID: AUTH
+Agent: full-stack-developer (Auth modules)
+Task: JWT, refresh tokens, device tracking, Google OAuth, business login, admin login, security logs
+
+Work Log:
+- Read worklog (R2-A, R2-B, R2-FINAL, R3-A, R3-B) + foundation files (session.ts, auth.ts, passkey.ts, mfa.ts, rate-limit.ts, rate-limit-helpers.ts, rbac/roles.ts, rbac/permissions.ts, rbac/index.ts, api.ts, otp-cache.ts, schema.prisma for Device/OAuthAccount/RefreshToken/Passkey/MfaSecret/Merchant models) + existing auth routes (login, register, logout, passkey/*, mfa/*, step-up/*, security/sessions/[id]) + auth-screen.tsx + security.tsx to understand existing patterns (requireUser/audit/json helpers, scrypt password hashing, WebAuthn + TOTP MFA, in-memory OTP cache with TTL+lockout, shadcn/ui dialog/input-otp/alert-dialog, sonner toasts).
+- Created `src/lib/jwt.ts` — jose HS256 JWT helpers. Access tokens (15min, payload {userId, role, kycTier, sid}). Refresh tokens (30d, payload {userId, type:"refresh"}). Added random `jti` (JWT ID) claim to refresh tokens to prevent tokenHash collisions when two tokens are issued for the same user within the same second (without `jti`, iat+exp+userId would be identical → identical JWT → identical SHA-256 hash → unique-constraint violation in RefreshToken table). Throws if JWT_SECRET missing in prod; uses dev-default with warning in dev.
+- Rewrote `src/lib/session.ts`: createSession now (1) creates DB Session row (for Security Center list + per-session revocation), (2) signs JWT access token with sid=sessionId, (3) signs JWT refresh token, (4) persists RefreshToken row with hash, (5) sets tp_session cookie (15min, path=/) + tp_refresh cookie (30d, path=/api/auth/refresh). getSession verifies JWT, looks up user (no DB session lookup — stateless). refreshSession verifies refresh JWT + DB row not revoked, revokes old, issues new access + new refresh, persists new RefreshToken row, sets cookies. destroySession revokes refresh token + DB Session, clears cookies. Added getAccessToken() returning decoded JWT payload. Backward-compatible: role/kycTier/deviceId are optional in createSession (looks up from DB if omitted).
+- Created `src/lib/device.ts`: getDeviceFingerprint (SHA-256 of UA + IP /24 subnet), getDeviceInfo (parses UA for OS/browser/deviceType/deviceName), trackDevice (upsert on userId+fingerprint, updates lastSeenAt), listDevices, trustDevice, revokeDevice, deleteDevice, isTrustedDevice.
+- Created `src/lib/security-log.ts`: logSecurityEvent({userId?, type, ip?, userAgent?, metadata?, severity?}) wraps audit() with category="SECURITY" + 20 structured event types (LOGIN_SUCCESS, LOGIN_FAILED, LOGOUT, SESSION_EXPIRED, PASSKEY_REGISTERED/USED/DELETED, MFA_ENABLED/DISABLED/FAILED, PASSWORD_CHANGED/RESET, DEVICE_TRUSTED/REVOKED, OAUTH_LINKED/UNLINKED, SUSPICIOUS_ACTIVITY, RATE_LIMITED, ADMIN_LOGIN/ACCESS_DENIED) with default severity per type.
+- Created `src/lib/oauth/google.ts`: getGoogleAuthUrl (CSRF state param), exchangeGoogleCode (POST token endpoint + GET userinfo), createOrLinkGoogleUser (find-by-providerAccountId → find-by-email → create new user with wallet + virtual account + OAuthAccount link). Used `db.oAuthAccount` (Prisma camelCases `OAuthAccount` model name → `oAuthAccount`).
+- Created `src/lib/admin-otp-cache.ts`: parallel OTP cache for admin step-up. Uses `globalThis.__tpAdminOtpStore` to persist across Turbopack dev-mode module re-evaluations. Discovered that the existing `otp-cache.ts` module-scoped Map was being duplicated per route bundle in Turbopack dev — verified with a debug log showing `result= { ok: false, reason: 'no-otp' }` in /api/auth/admin/verify even immediately after issueOtp was called in /api/auth/admin. The existing /api/auth/step-up flow works (same module shared between step-up + step-up/verify), but admin routes were in a different bundle. globalThis is shared across all module instances, so this is dev-safe and prod-safe.
+- Created 8 new API routes: /api/auth/refresh (POST), /api/auth/devices (GET list + POST trust current), /api/auth/devices/[id] (DELETE revoke + remove, ownership-checked), /api/auth/google (GET redirects to Google consent with state cookie), /api/auth/google/callback (GET verifies state, exchanges code, creates/links user, tracks device, creates session, redirects to /), /api/auth/business (POST email+password, checks Merchant row OR admin role), /api/auth/admin (POST identifier+password, returns requiresMFA or requiresOTP), /api/auth/admin/verify (POST identifier+otp, verifies TOTP or admin-otp-cache OTP, creates admin session).
+- Modified 9 existing auth routes to add `trackDevice()` calls on each auth event + `logSecurityEvent()` for structured security logging: login, register, passkey/authenticate/verify, passkey/register/verify, passkey/[id] (DELETE), mfa/verify (enable), mfa/disable (with MFA_FAILED on wrong password), logout, security/sessions/[id] (also revokes matching refresh tokens for the revoked session's UA/IP).
+- Modified `src/components/turbopay/auth-screen.tsx`: Google button now does `window.location.href = "/api/auth/google"` (was a toast placeholder). Added Store + ShieldAlert icons. Added optional onShowBusiness / onShowAdmin props + "Sign in as Business" / "Admin Console" links under the demo admin hint.
+- Modified `src/components/turbopay/views/security.tsx`: added DevicesSection component (rendered between MfaSection and Recent security events). Lists devices with name/type/OS/browser/IP/last-seen + trusted badge + "This device" badge for current. "Trust this device" button for current un-trusted device. "Revoke" button per non-current device with AlertDialog confirmation.
+- Created `src/components/turbopay/views/business-login.tsx`: separate business login screen. Email + password only. Emerald+amber brand panel with "For Businesses" badge + merchant benefits list. Calls POST /api/auth/business, sets view to "merchant-dashboard" on success.
+- Created `src/components/turbopay/views/admin-login.tsx`: separate admin login screen. Two-step flow: step 1 (identifier + password) → if requiresMFA/requiresOTP, opens step-up dialog (InputOTP 6-digit). Dark slate background + amber accent for "elevated access" feel. Security notice card. Calls POST /api/auth/admin then POST /api/auth/admin/verify, sets view to "admin" on success.
+- Modified `src/app/page.tsx`: added `authMode` state ("default" | "business" | "admin"). AuthScreen's onShowBusiness/onShowAdmin callbacks switch authMode. When authMode is "business" or "admin", render BusinessLoginScreen or AdminLoginScreen instead of AuthScreen.
+- Modified `.env.example`: added GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI under new "Google OAuth (social login)" section.
+- End-to-end smoke tests via curl (admin@turbopay.ng / Admin@1234):
+  • POST /api/auth/login → 200, sets tp_session + tp_refresh cookies (both JWTs).
+  • GET /api/auth/me → 200 (verifies getSession works with JWT).
+  • GET /api/auth/devices → 200, returns 1 device (desktop, isCurrent=true, trusted=false).
+  • POST /api/auth/refresh → 200, rotates tokens. Old refresh cookie now 401, new refresh cookie 200, post-logout refresh 401.
+  • POST /api/auth/business → 200 with businessMode: true.
+  • POST /api/auth/admin → 200 with requiresOTP + devCode. POST /api/auth/admin/verify with correct code → 200 adminMode: true. Wrong code → 401.
+  • GET /api/auth/google (no env vars) → 503 "Google OAuth is not configured".
+- Ran `bun run lint` → 0 errors, 0 warnings. Ran `npx tsc --noEmit` → all my touched files compile cleanly (remaining errors are pre-existing in other agents' files: ledger.ts, savings-goals routes, app-shell.tsx, settings.tsx, turbocore adapters, examples, skills).
+- Wrote `agent-ctx/AUTH-full-stack-developer.md` work record.
+
+Stage Summary:
+Files created:
+- src/lib/jwt.ts (jose HS256 JWT helpers — access 15min, refresh 30d with jti for uniqueness)
+- src/lib/device.ts (fingerprint, trackDevice, listDevices, trustDevice, revokeDevice, deleteDevice, isTrustedDevice)
+- src/lib/security-log.ts (logSecurityEvent wrapper with 20 structured event types)
+- src/lib/oauth/google.ts (Google OAuth: getGoogleAuthUrl, exchangeGoogleCode, createOrLinkGoogleUser)
+- src/lib/admin-otp-cache.ts (globalThis-backed admin step-up OTP cache — Turbopack dev-safe)
+- src/app/api/auth/refresh/route.ts (POST — rotate access + refresh tokens)
+- src/app/api/auth/devices/route.ts (GET list, POST trust current)
+- src/app/api/auth/devices/[id]/route.ts (DELETE revoke + remove, ownership-checked)
+- src/app/api/auth/google/route.ts (GET — initiates Google OAuth with state cookie)
+- src/app/api/auth/google/callback/route.ts (GET — verifies state, exchanges code, creates/links user)
+- src/app/api/auth/business/route.ts (POST — business login with Merchant/admin eligibility check)
+- src/app/api/auth/admin/route.ts (POST — admin login step 1: returns requiresMFA or requiresOTP)
+- src/app/api/auth/admin/verify/route.ts (POST — admin login step 2: verifies TOTP or OTP)
+- src/components/turbopay/views/business-login.tsx (separate business login screen)
+- src/components/turbopay/views/admin-login.tsx (separate admin login screen with two-step flow)
+
+Files modified:
+- src/lib/session.ts (rewritten: JWT access + rotating refresh tokens, getSession/refreshSession/destroySession/getAccessToken)
+- src/app/api/auth/login/route.ts (trackDevice + logSecurityEvent, passes role/kycTier/deviceId to createSession)
+- src/app/api/auth/register/route.ts (trackDevice + logSecurityEvent)
+- src/app/api/auth/passkey/authenticate/verify/route.ts (trackDevice + logSecurityEvent PASSKEY_USED)
+- src/app/api/auth/passkey/register/verify/route.ts (logSecurityEvent PASSKEY_REGISTERED)
+- src/app/api/auth/passkey/[id]/route.ts (logSecurityEvent PASSKEY_DELETED)
+- src/app/api/auth/mfa/verify/route.ts (logSecurityEvent MFA_ENABLED)
+- src/app/api/auth/mfa/disable/route.ts (logSecurityEvent MFA_DISABLED + MFA_FAILED on wrong password)
+- src/app/api/auth/logout/route.ts (logSecurityEvent LOGOUT)
+- src/app/api/security/sessions/[id]/route.ts (logSecurityEvent DEVICE_REVOKED + revokes matching refresh tokens)
+- src/components/turbopay/auth-screen.tsx (Google button redirects to /api/auth/google, added Business/Admin login links)
+- src/components/turbopay/views/security.tsx (added DevicesSection with trust/revoke actions)
+- src/app/page.tsx (authMode state for business/admin login screens)
+- .env.example (added GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI)
+
+Lint: 0 errors, 0 warnings

@@ -198,14 +198,19 @@ export async function refreshSession() {
   const tokenHash = hashToken(refreshToken);
   const stored = await db.refreshToken.findUnique({
     where: { tokenHash },
-    include: { user: true },
   });
 
   if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
     clearAuthCookies(cookieStore);
     return null;
   }
-  if (stored.user.status !== "ACTIVE") {
+  // Look up the user separately (RefreshToken has no relation defined).
+  const user = await db.user.findUnique({ where: { id: stored.userId } });
+  if (!user) {
+    clearAuthCookies(cookieStore);
+    return null;
+  }
+  if (user.status !== "ACTIVE") {
     clearAuthCookies(cookieStore);
     return null;
   }
@@ -216,7 +221,6 @@ export async function refreshSession() {
     data: { revokedAt: new Date() },
   });
 
-  const user = stored.user;
   const sessionId = randomUUID();
   const sessionTokenSeed = randomBytes(32).toString("hex");
   const now = Date.now();
