@@ -2,96 +2,99 @@
 
 import * as React from "react";
 import { useApp } from "../store";
-import { PageHeader, StatCard } from "../parts/layout";
+import { PageHeader, StatCard, EmptyState } from "../parts/layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ShieldCheck,
-  ShieldAlert,
-  IdCard,
-  Fingerprint,
-  CheckCircle2,
-  RefreshCw,
+  Check,
+  AlertCircle,
+  Loader2,
+  Globe,
   TrendingUp,
   Wallet,
-  ArrowLeftRight,
-  Lock,
+  Award,
 } from "lucide-react";
-import { naira, formatDate } from "@/lib/money";
-import { KYC_TIER_LIMITS } from "@/lib/constants";
+import { naira, nairaCompact, formatDate } from "@/lib/money";
 import { toast } from "sonner";
 
-interface KycLimits {
+interface IdTypeField {
+  name: string;
   label: string;
-  singleTxLimitKobo: number;
-  dailyLimitKobo: number;
-  maxBalanceKobo: number;
+  required: boolean;
+  type?: string;
 }
 
-interface Verification {
-  id: string;
-  tier: number;
-  status: string;
-  provider: string;
-  verifiedAt: string | null;
-  createdAt: string;
+interface IdTypeConfig {
+  type: string;
+  label: string;
+  description: string;
+  fields: IdTypeField[];
 }
 
-interface KycData {
-  kycTier: number;
+interface TierConfig {
+  label: string;
+  idTypes: IdTypeConfig[];
+  limits: { singleTx: number; daily: number; maxBalance: number };
+}
+
+interface CountryInfo {
+  code: string;
+  name: string;
+  currency: string;
+  flagEmoji: string;
+  tier2: TierConfig;
+  tier3: TierConfig;
+}
+
+interface KycStatus {
+  country: string;
+  currentTier: number;
   kycStatus: string;
-  nin: string | null;
-  bvn: string | null;
-  limits: KycLimits;
-  verifications: Verification[];
-}
-
-const TIER_LABELS: Record<number, string> = {
-  1: "Starter",
-  2: "Verified",
-  3: "Premium",
-};
-
-const TIER_DESCRIPTIONS: Record<number, string> = {
-  1: "Default tier — perfect for everyday spending.",
-  2: "Verify with NIN to unlock higher limits.",
-  3: "Verify with BVN for premium limits and features.",
-};
-
-function maxBalanceLabel(kobo: number): string {
-  if (kobo >= Number.MAX_SAFE_INTEGER || kobo > 1_000_000_000_000) return "Unlimited";
-  return naira(kobo);
+  countryConfig: { code: string; name: string; currency: string; flagEmoji: string } | null;
+  availableUpgrades: {
+    tier: 2 | 3;
+    idTypes: IdTypeConfig[];
+    label: string;
+    limits: { singleTx: number; daily: number; maxBalance: number };
+  }[];
+  verificationHistory: {
+    id: string;
+    tier: number;
+    status: string;
+    provider: string;
+    createdAt: string;
+    verifiedAt: string | null;
+  }[];
 }
 
 export default function KycView() {
-  const { setUser, user } = useApp();
-  const [data, setData] = React.useState<KycData | null>(null);
+  const { user, setUser } = useApp();
+  const [status, setStatus] = React.useState<KycStatus | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [busy, setBusy] = React.useState(false);
-
-  // forms
-  const [nin, setNin] = React.useState("");
-  const [bvn, setBvn] = React.useState("");
+  const [verifyModal, setVerifyModal] = React.useState<{
+    tier: 2 | 3;
+    idType: IdTypeConfig;
+  } | null>(null);
+  const [verifying, setVerifying] = React.useState(false);
+  const [formValues, setFormValues] = React.useState<Record<string, string>>({});
 
   const load = React.useCallback(async () => {
-    setLoading(true);
     try {
       const res = await fetch("/api/kyc", { cache: "no-store" });
-      if (res.ok) setData(await res.json());
-      else if (res.status === 401) toast.error("Session expired. Please log in again.");
-      else toast.error("Failed to load KYC status.");
+      if (res.ok) setStatus(await res.json());
     } finally {
       setLoading(false);
     }
@@ -101,354 +104,409 @@ export default function KycView() {
     load();
   }, [load]);
 
-  async function refreshUser() {
+  async function handleVerify() {
+    if (!verifyModal) return;
+    setVerifying(true);
     try {
-      const res = await fetch("/api/auth/me", { cache: "no-store" });
-      if (res.ok) {
-        const j = await res.json();
-        if (j?.user) setUser(j.user);
+      const idValue = formValues[verifyModal.idType.fields[0]?.name ?? "idValue"] ?? "";
+      const additionalFields: Record<string, string> = {};
+      for (const f of verifyModal.idType.fields) {
+        if (f.name !== verifyModal.idType.fields[0]?.name && formValues[f.name]) {
+          additionalFields[f.name] = formValues[f.name];
+        }
       }
-    } catch {
-      /* ignore */
-    }
-  }
 
-  async function submitTier(tier: 2 | 3) {
-    const identifier = tier === 2 ? nin : bvn;
-    const label = tier === 2 ? "NIN" : "BVN";
-    if (identifier.length !== 11) {
-      toast.error(`${label} must be 11 digits`);
-      return;
-    }
-    setBusy(true);
-    try {
       const res = await fetch("/api/kyc", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(tier === 2 ? { tier: 2, nin } : { tier: 3, bvn }),
+        body: JSON.stringify({
+          tier: verifyModal.tier,
+          idType: verifyModal.idType.type,
+          idValue,
+          additionalFields,
+        }),
       });
-      const j = await res.json();
-      if (!res.ok) {
-        toast.error(j?.error ?? "Verification failed");
-        return;
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(`KYC Tier ${verifyModal.tier} verified!`);
+        // Refresh user
+        const meRes = await fetch("/api/auth/me", { cache: "no-store" });
+        if (meRes.ok) {
+          const meData = await meRes.json();
+          if (meData.user) setUser(meData.user);
+        }
+        setVerifyModal(null);
+        setFormValues({});
+        load();
+      } else {
+        toast.error(data.error || "Verification failed");
       }
-      toast.success(`Tier ${tier} verified — ${TIER_LABELS[tier]} unlocked!`);
-      if (tier === 2) setNin("");
-      else setBvn("");
-      if (j?.user) setUser(j.user);
-      await refreshUser();
-      load();
+    } catch {
+      toast.error("Verification failed");
     } finally {
-      setBusy(false);
+      setVerifying(false);
     }
   }
 
-  const tier = data?.kycTier ?? user?.kycTier ?? 1;
-  const status = data?.kycStatus ?? user?.kycStatus ?? "UNVERIFIED";
-  const limits = data?.limits ?? KYC_TIER_LIMITS[tier] ?? KYC_TIER_LIMITS[1];
-  const verified = status === "VERIFIED";
-  const canApplyTier2 = tier < 2;
-  const canApplyTier3 = tier < 3;
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-muted h-8 w-48 animate-pulse rounded-lg" />
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="bg-muted h-24 animate-pulse rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!status) {
+    return (
+      <EmptyState
+        icon={ShieldCheck}
+        title="Unable to load KYC status"
+        description="Please try again later."
+      />
+    );
+  }
+
+  const country = status.countryConfig;
+  const isVerified = status.kycStatus === "VERIFIED";
 
   return (
-    <div className="tp-fade-rise space-y-6">
+    <div className="space-y-6">
       <PageHeader
-        title="KYC & Limits"
-        subtitle="Verify your identity to unlock higher transaction limits."
-        actions={
-          <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-1.5">
-            <RefreshCw className={loading ? "h-4 w-4 animate-spin" : "h-4 w-4"} /> Refresh
-          </Button>
+        title="KYC & Identity Verification"
+        subtitle={
+          country
+            ? `${country.flagEmoji} ${country.name} — ${country.currency}`
+            : "Complete verification to unlock higher limits"
         }
       />
 
-      {loading ? (
+      {/* Current status */}
+      <Card className="overflow-hidden p-0">
+        <div className={`px-6 py-5 ${isVerified ? "bg-emerald-500/10" : "bg-amber-500/10"}`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-xl ${isVerified ? "bg-emerald-500/20 text-emerald-600" : "bg-amber-500/20 text-amber-600"}`}
+              >
+                {isVerified ? (
+                  <ShieldCheck className="h-6 w-6" />
+                ) : (
+                  <AlertCircle className="h-6 w-6" />
+                )}
+              </div>
+              <div>
+                <p className="text-lg font-bold">
+                  Tier {status.currentTier} — {status.kycStatus}
+                </p>
+                <p className="text-muted-foreground text-sm">
+                  {isVerified
+                    ? "Your identity is verified"
+                    : "Verify your identity to unlock higher limits"}
+                </p>
+              </div>
+            </div>
+            {country && (
+              <Badge variant="secondary" className="gap-1.5 text-sm">
+                <Globe className="h-3.5 w-3.5" /> {country.flagEmoji} {country.name}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Current tier limits */}
+      {status.currentTier > 1 && (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard
+            label="Per Transaction"
+            value={nairaCompact(
+              status.availableUpgrades.length > 0
+                ? status.currentTier === 2
+                  ? 50_000_000
+                  : 500_000_000
+                : 50_000_000
+            )}
+            icon={TrendingUp}
+            tone="success"
+          />
+          <StatCard
+            label="Daily Limit"
+            value={nairaCompact(status.currentTier === 2 ? 200_000_000 : 2_000_000_000)}
+            icon={Wallet}
+            tone="default"
+          />
+          <StatCard
+            label="Max Balance"
+            value={nairaCompact(status.currentTier === 2 ? 500_000_000 : 10_000_000_000)}
+            icon={Award}
+            tone="warning"
+          />
+        </div>
+      )}
+
+      {/* Available upgrades */}
+      {status.availableUpgrades.length > 0 && (
         <div className="space-y-4">
-          <Skeleton className="h-40 rounded-2xl" />
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} className="h-28 rounded-xl" />
+          <h2 className="text-lg font-semibold">Available Upgrades</h2>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {status.availableUpgrades.map((upgrade) => (
+              <Card key={upgrade.tier} className="tp-card-hover p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-semibold">Tier {upgrade.tier}</h3>
+                      <Badge variant="secondary">{upgrade.label}</Badge>
+                    </div>
+                    <p className="text-muted-foreground mt-0.5 text-xs">
+                      Per tx: {nairaCompact(upgrade.limits.singleTx)} · Daily:{" "}
+                      {nairaCompact(upgrade.limits.daily)} · Balance:{" "}
+                      {nairaCompact(upgrade.limits.maxBalance)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Choose an ID type:</p>
+                  {upgrade.idTypes.map((idType) => (
+                    <div
+                      key={idType.type}
+                      className="flex items-center justify-between rounded-xl border p-3"
+                    >
+                      <div>
+                        <p className="text-sm font-medium">{idType.label}</p>
+                        <p className="text-muted-foreground text-xs">{idType.description}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setVerifyModal({ tier: upgrade.tier, idType });
+                          setFormValues({});
+                        }}
+                      >
+                        Verify
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </Card>
             ))}
           </div>
         </div>
-      ) : (
-        <>
-          {/* Current status */}
-          <Card className="overflow-hidden p-0">
-            <div
-              className={`flex flex-wrap items-center justify-between gap-4 p-6 ${
-                verified
-                  ? "bg-gradient-to-br from-emerald-500/10 via-emerald-500/5 to-transparent"
-                  : "bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent"
-              }`}
-            >
-              <div className="flex items-center gap-4">
+      )}
+
+      {/* Verification history */}
+      {status.verificationHistory.length > 0 && (
+        <div>
+          <h2 className="mb-3 text-lg font-semibold">Verification History</h2>
+          <Card className="p-4">
+            <div className="space-y-2">
+              {status.verificationHistory.map((v) => (
                 <div
-                  className={`flex h-14 w-14 items-center justify-center rounded-2xl ${
-                    verified
-                      ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                      : "bg-amber-500/20 text-amber-600 dark:text-amber-400"
-                  }`}
+                  key={v.id}
+                  className="flex items-center justify-between border-b pb-2 last:border-0"
                 >
-                  {verified ? (
-                    <ShieldCheck className="h-7 w-7" />
-                  ) : (
-                    <ShieldAlert className="h-7 w-7" />
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-lg font-bold">
-                      Tier {tier} · {TIER_LABELS[tier]}
-                    </p>
-                    <Badge
-                      className={
-                        verified
-                          ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                          : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                      }
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`flex h-8 w-8 items-center justify-center rounded-lg ${v.status === "VERIFIED" ? "bg-emerald-500/15 text-emerald-600" : "bg-red-500/15 text-red-600"}`}
                     >
-                      {status}
-                    </Badge>
+                      {v.status === "VERIFIED" ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">
+                        Tier {v.tier} — {v.status}
+                      </p>
+                      <p className="text-muted-foreground text-xs">
+                        via {v.provider} · {formatDate(v.createdAt, true)}
+                      </p>
+                    </div>
                   </div>
-                  <p className="text-muted-foreground mt-0.5 text-sm">{TIER_DESCRIPTIONS[tier]}</p>
-                </div>
-              </div>
-              {data?.verifications && data.verifications.length > 0 && (
-                <div className="text-right">
-                  <p className="text-muted-foreground text-xs">Last verified</p>
-                  <p className="text-sm font-semibold">
-                    {data.verifications[0].verifiedAt
-                      ? formatDate(data.verifications[0].verifiedAt, true)
-                      : "—"}
-                  </p>
-                  {data.nin && (
-                    <p className="text-muted-foreground mt-0.5 text-xs">
-                      NIN ••••{data.nin.slice(-3)}
-                    </p>
-                  )}
-                  {data.bvn && (
-                    <p className="text-muted-foreground text-xs">BVN ••••{data.bvn.slice(-3)}</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Current tier limits */}
-          <div>
-            <h2 className="mb-3 text-sm font-semibold">Current tier limits</h2>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <StatCard
-                label="Single transaction"
-                value={naira(limits.singleTxLimitKobo)}
-                icon={ArrowLeftRight}
-                tone="success"
-              />
-              <StatCard
-                label="Daily limit"
-                value={naira(limits.dailyLimitKobo)}
-                icon={TrendingUp}
-                tone="warning"
-              />
-              <StatCard
-                label="Max wallet balance"
-                value={maxBalanceLabel(limits.maxBalanceKobo)}
-                icon={Wallet}
-              />
-            </div>
-          </div>
-
-          {/* Tier comparison table */}
-          <Card className="overflow-hidden p-0">
-            <div className="border-b p-5">
-              <h2 className="text-sm font-semibold">Tier comparison</h2>
-              <p className="text-muted-foreground mt-0.5 text-xs">
-                Compare limits across all three tiers. Verify to unlock more.
-              </p>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="pl-5">Tier</TableHead>
-                  <TableHead>Single tx</TableHead>
-                  <TableHead>Daily limit</TableHead>
-                  <TableHead>Max balance</TableHead>
-                  <TableHead className="pr-5 text-right">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Object.entries(KYC_TIER_LIMITS).map(([t, cfg]) => {
-                  const tNum = Number(t);
-                  const isCurrent = tNum === tier;
-                  const isUnlocked = tNum <= tier;
-                  return (
-                    <TableRow key={t} className={isCurrent ? "bg-emerald-500/5" : undefined}>
-                      <TableCell className="pl-5 font-medium">
-                        <div className="flex items-center gap-2">
-                          Tier {tNum}
-                          <Badge variant="outline" className="text-xs">
-                            {cfg.label}
-                          </Badge>
-                          {isCurrent && (
-                            <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                              Current
-                            </Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="tabular-nums">{naira(cfg.singleTxLimitKobo)}</TableCell>
-                      <TableCell className="tabular-nums">{naira(cfg.dailyLimitKobo)}</TableCell>
-                      <TableCell className="tabular-nums">
-                        {maxBalanceLabel(cfg.maxBalanceKobo)}
-                      </TableCell>
-                      <TableCell className="pr-5 text-right">
-                        {isUnlocked ? (
-                          <CheckCircle2 className="ml-auto h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        ) : (
-                          <Lock className="text-muted-foreground ml-auto h-4 w-4" />
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </Card>
-
-          {/* Verification forms */}
-          <div className="grid gap-4 lg:grid-cols-2">
-            {/* Tier 2 — NIN */}
-            <Card className="flex flex-col p-5">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-500/15 text-violet-600 dark:text-violet-400">
-                  <IdCard className="h-5 w-5" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold">Tier 2 · NIN Verification</p>
-                    {tier >= 2 && (
-                      <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                        <CheckCircle2 className="mr-1 h-3 w-3" /> Verified
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-muted-foreground mt-0.5 text-xs">
-                    Enter your 11-digit National Identification Number. Verification is instant.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 space-y-2">
-                <Label htmlFor="nin">NIN (11 digits)</Label>
-                <Input
-                  id="nin"
-                  inputMode="numeric"
-                  placeholder="12345678901"
-                  maxLength={11}
-                  value={nin}
-                  onChange={(e) => setNin(e.target.value.replace(/\D+/g, ""))}
-                  disabled={!canApplyTier2 || busy}
-                />
-                <p className="text-muted-foreground text-[10px]">
-                  We never store your NIN in plaintext. Verification is via NIMC (mock).
-                </p>
-              </div>
-              <Button
-                className="mt-4 w-full gap-1.5"
-                disabled={!canApplyTier2 || nin.length !== 11 || busy}
-                onClick={() => submitTier(2)}
-              >
-                {busy ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <ShieldCheck className="h-4 w-4" />
-                )}
-                {canApplyTier2 ? "Verify NIN" : "Already verified"}
-              </Button>
-            </Card>
-
-            {/* Tier 3 — BVN */}
-            <Card className="flex flex-col p-5">
-              <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
-                  <Fingerprint className="h-5 w-5" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold">Tier 3 · BVN Verification</p>
-                    {tier >= 3 && (
-                      <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
-                        <CheckCircle2 className="mr-1 h-3 w-3" /> Verified
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-muted-foreground mt-0.5 text-xs">
-                    Enter your 11-digit Bank Verification Number for premium limits.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-4 space-y-2">
-                <Label htmlFor="bvn">BVN (11 digits)</Label>
-                <Input
-                  id="bvn"
-                  inputMode="numeric"
-                  placeholder="12345678901"
-                  maxLength={11}
-                  value={bvn}
-                  onChange={(e) => setBvn(e.target.value.replace(/\D+/g, ""))}
-                  disabled={!canApplyTier3 || busy}
-                />
-                <p className="text-muted-foreground text-[10px]">
-                  Requires Tier 2 first. Verification is via NIBSS (mock).
-                </p>
-              </div>
-              <Button
-                className="mt-4 w-full gap-1.5"
-                disabled={!canApplyTier3 || bvn.length !== 11 || busy}
-                onClick={() => submitTier(3)}
-              >
-                {busy ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Fingerprint className="h-4 w-4" />
-                )}
-                {canApplyTier3 ? "Verify BVN" : "Already verified"}
-              </Button>
-            </Card>
-          </div>
-
-          {/* Verification history */}
-          {data?.verifications && data.verifications.length > 0 && (
-            <Card className="p-5">
-              <h2 className="text-sm font-semibold">Verification history</h2>
-              <div className="mt-3 space-y-2">
-                {data.verifications.map((v) => (
-                  <div
-                    key={v.id}
-                    className="bg-muted/30 flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm"
+                  <Badge
+                    variant={v.status === "VERIFIED" ? "default" : "destructive"}
+                    className="text-xs"
                   >
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                      <span className="font-medium">
-                        Tier {v.tier} · {TIER_LABELS[v.tier]}
-                      </span>
-                    </div>
-                    <div className="text-muted-foreground text-right text-xs">
-                      <p>
-                        {v.verifiedAt
-                          ? formatDate(v.verifiedAt, true)
-                          : formatDate(v.createdAt, true)}
-                      </p>
-                      <p>
-                        {v.provider} · {v.status}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                    {v.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Tier comparison */}
+      <TierComparison country={country} status={status} />
+
+      {/* Verification dialog */}
+      {verifyModal && (
+        <Dialog open onOpenChange={() => !verifying && setVerifyModal(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Verify with {verifyModal.idType.label}</DialogTitle>
+              <DialogDescription>
+                {verifyModal.idType.description}. Your data is encrypted and verified securely.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              {verifyModal.idType.fields.map((field) => (
+                <div key={field.name} className="space-y-1.5">
+                  <Label htmlFor={field.name}>
+                    {field.label}
+                    {field.required && " *"}
+                  </Label>
+                  <Input
+                    id={field.name}
+                    type={field.type === "date" ? "date" : "text"}
+                    value={formValues[field.name] ?? ""}
+                    onChange={(e) =>
+                      setFormValues((prev) => ({ ...prev, [field.name]: e.target.value }))
+                    }
+                    placeholder={field.label}
+                  />
+                </div>
+              ))}
+              <div className="rounded-lg bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400">
+                <ShieldCheck className="mb-1 inline h-3.5 w-3.5" /> Your ID is encrypted
+                (AES-256-GCM) and verified through our secure provider. We never store raw ID
+                documents.
               </div>
-            </Card>
-          )}
-        </>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setVerifyModal(null)} disabled={verifying}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleVerify}
+                disabled={verifying || !formValues[verifyModal.idType.fields[0]?.name ?? ""]}
+              >
+                {verifying ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...
+                  </>
+                ) : (
+                  "Verify Identity"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+function TierComparison({
+  country,
+  status,
+}: {
+  country: { code: string; name: string; currency: string; flagEmoji: string } | null;
+  status: KycStatus;
+}) {
+  const [countries, setCountries] = React.useState<CountryInfo[]>([]);
+  const [selectedCountry, setSelectedCountry] = React.useState(country?.code ?? "NG");
+
+  React.useEffect(() => {
+    fetch("/api/kyc/countries", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => setCountries(d.countries ?? []))
+      .catch(() => {});
+  }, []);
+
+  const cfg = countries.find((c) => c.code === selectedCountry);
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Tier Comparison</h2>
+        <select
+          value={selectedCountry}
+          onChange={(e) => setSelectedCountry(e.target.value)}
+          className="border-input rounded-md border bg-transparent px-3 py-1.5 text-sm"
+        >
+          {countries.map((c) => (
+            <option key={c.code} value={c.code}>
+              {c.flagEmoji} {c.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {cfg && (
+        <div className="grid gap-4 sm:grid-cols-3">
+          {[
+            {
+              tier: 1,
+              label: "Starter",
+              limits: { singleTx: 5_000_000, daily: 15_000_000, maxBalance: 30_000_000 },
+              idTypes: [{ type: "PHONE", label: "Phone only", description: "No ID required" }],
+            },
+            {
+              tier: 2,
+              label: cfg.tier2.label,
+              limits: cfg.tier2.limits,
+              idTypes: cfg.tier2.idTypes,
+            },
+            {
+              tier: 3,
+              label: cfg.tier3.label,
+              limits: cfg.tier3.limits,
+              idTypes: cfg.tier3.idTypes,
+            },
+          ].map((t) => {
+            const isCurrent = status.currentTier === t.tier;
+            return (
+              <Card
+                key={t.tier}
+                className={`p-5 ${isCurrent ? "border-primary ring-primary/20 ring-2" : ""}`}
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold">Tier {t.tier}</h3>
+                    {isCurrent && <Badge className="text-[10px]">Current</Badge>}
+                  </div>
+                  <span className="text-muted-foreground text-xs">{t.label}</span>
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Per tx:</span>
+                    <span className="font-medium tabular-nums">
+                      {nairaCompact(t.limits.singleTx)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Daily:</span>
+                    <span className="font-medium tabular-nums">{nairaCompact(t.limits.daily)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Max balance:</span>
+                    <span className="font-medium tabular-nums">
+                      {nairaCompact(t.limits.maxBalance)}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 border-t pt-3">
+                  <p className="text-muted-foreground mb-1 text-[10px] font-semibold uppercase">
+                    Required ID:
+                  </p>
+                  {t.idTypes.map((id) => (
+                    <p key={id.type} className="text-xs">
+                      {id.label}
+                    </p>
+                  ))}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </div>
   );

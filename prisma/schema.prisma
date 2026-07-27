@@ -1222,3 +1222,19 @@ model RefreshToken {
   @@index([userId])
   @@index([tokenHash])
 }
+
+// ===== Phase 8: Transaction Event Engine (immutable append-only) =====
+
+model TransactionEvent {
+  id            String   @id @default(cuid())
+  transactionId String
+  eventType     String   // CREATED | AUTHORIZED | PROCESSING | SETTLED | COMPLETED | FAILED | REVERSED | REFUNDED
+  status        String   // PENDING | SUCCESS | FAILED
+  actor         String   @default("SYSTEM") // SYSTEM | USER | ADMIN | PROVIDER
+  actorId       String?
+  payload       String   @default("{}") // JSON — immutable snapshot at this point
+  metadata      String   @default("{}") // JSON — additional context
+  createdAt     DateTime @default(now())
+  @@index([transactionId, createdAt])
+  @@index([eventType])
+}
