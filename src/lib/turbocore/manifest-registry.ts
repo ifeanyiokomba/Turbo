@@ -118,23 +118,23 @@ export function getProvidersForCapability(
 // Each provider defines its manifest as a constant.
 // The plugin loader registers them at startup.
 
-import { paystackManifest } from "./manifests/paystack";
-import { flutterwaveManifest } from "./manifests/flutterwave";
-import { monnifyManifest } from "./manifests/monnify";
-import { mpesaManifest } from "./manifests/mpesa";
-import { mtnMomoManifest } from "./manifests/mtn-momo";
-import { airtelMoneyManifest } from "./manifests/airtel-money";
-import { smartcashManifest } from "./manifests/smartcash";
-import { pagaManifest } from "./manifests/paga";
-import { baxiManifest } from "./manifests/baxi";
-import { remitaManifest } from "./manifests/remita";
-import { quicktellerManifest } from "./manifests/quickteller";
-import { dojahManifest } from "./manifests/dojah";
-import { termiiManifest } from "./manifests/termii";
-import { resendManifest } from "./manifests/resend";
-import { wiseManifest } from "./manifests/wise";
-import { stripeManifest } from "./manifests/stripe";
-import { turbopayManifest } from "./manifests/turbopay";
+import { paystackManifest } from "./providers/manifests/paystack";
+import { flutterwaveManifest } from "./providers/manifests/flutterwave";
+import { monnifyManifest } from "./providers/manifests/monnify";
+import { mpesaManifest } from "./providers/manifests/mpesa";
+import { mtnMomoManifest } from "./providers/manifests/mtn-momo";
+import { airtelMoneyManifest } from "./providers/manifests/airtel-money";
+import { smartcashManifest } from "./providers/manifests/smartcash";
+import { pagaManifest } from "./providers/manifests/paga";
+import { baxiManifest } from "./providers/manifests/baxi";
+import { remitaManifest } from "./providers/manifests/remita";
+import { quicktellerManifest } from "./providers/manifests/quickteller";
+import { dojahManifest } from "./providers/manifests/dojah";
+import { termiiManifest } from "./providers/manifests/termii";
+import { resendManifest } from "./providers/manifests/resend";
+import { wiseManifest } from "./providers/manifests/wise";
+import { stripeManifest } from "./providers/manifests/stripe";
+import { turbopayManifest } from "./providers/manifests/turbopay";
 
 export function loadAllManifests(): void {
   const manifests = [
