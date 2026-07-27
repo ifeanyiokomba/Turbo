@@ -398,6 +398,132 @@ export default function ZtsaTab() {
               ))}
             </div>
           </Card>
+
+          {/* Security Layers diagram (Chapter 10 spec) */}
+          <Card className="p-4">
+            <h3 className="mb-3 text-sm font-semibold">
+              Security Layers — Every Request Passes Through
+            </h3>
+            <div className="bg-muted/50 overflow-x-auto rounded-lg p-4 font-mono text-xs leading-relaxed">
+              <pre className="whitespace-pre">{`Internet
+    ↓
+Edge Protection (HSTS, CSP, CORS, SSRF Guard)
+    ↓
+API Gateway (Rate Limiting, Input Validation)
+    ↓
+Authentication (JWT + Session + MFA + Passkeys)
+    ↓
+Authorization (RBAC + ABAC Policy Engine)
+    ↓
+Risk Engine (Velocity, Fraud Score, Device Trust)
+    ↓
+Business Services (Orchestrator, Ledger, Wallet)
+    ↓
+Database (Encrypted at Rest, Soft-Delete, Audit)
+    ↓
+Audit (Immutable Audit Logs)
+    ↓
+Monitoring (Security Command Center)`}</pre>
+            </div>
+          </Card>
+
+          {/* Real Monitoring Metrics (Chapter 10 — Monitoring) */}
+          <Card className="p-4">
+            <h3 className="mb-3 text-sm font-semibold">Security Monitoring (Last 24 Hours)</h3>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border p-3">
+                <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                  <XCircle className="h-3 w-3 text-rose-500" /> Failed Logins
+                </div>
+                <div className="mt-1 text-xl font-bold text-rose-600">
+                  {data.monitoring.failedLogins24h}
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                  <ShieldAlert className="h-3 w-3 text-amber-500" /> Permission Changes
+                </div>
+                <div className="mt-1 text-xl font-bold text-amber-600">
+                  {data.monitoring.permissionChanges24h}
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                  <Server className="h-3 w-3 text-rose-500" /> Provider Auth Failures
+                </div>
+                <div className="mt-1 text-xl font-bold text-rose-600">
+                  {data.monitoring.providerAuthFailures24h}
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                  <AlertTriangle className="h-3 w-3 text-amber-500" /> Webhook Failures
+                </div>
+                <div className="mt-1 text-xl font-bold text-amber-600">
+                  {data.monitoring.webhookFailures24h}
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                  <AlertTriangle className="h-3 w-3 text-rose-500" /> Suspicious Transfers
+                </div>
+                <div className="mt-1 text-xl font-bold text-rose-600">
+                  {data.monitoring.suspiciousTransfers24h}
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                  <Globe className="h-3 w-3 text-amber-500" /> High-Risk Country Access
+                </div>
+                <div className="mt-1 text-xl font-bold text-amber-600">
+                  {data.monitoring.highRiskCountryAccess24h}
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                  <Shield className="h-3 w-3 text-emerald-500" /> API Abuse Blocked
+                </div>
+                <div className="mt-1 text-xl font-bold text-emerald-600">
+                  {data.monitoring.apiAbuseBlocked24h}
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                  <Key className="h-3 w-3 text-amber-500" /> Token Revocations
+                </div>
+                <div className="mt-1 text-xl font-bold text-amber-600">
+                  {data.monitoring.tokenRevocations24h}
+                </div>
+              </div>
+            </div>
+            <Separator className="my-3" />
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border p-3">
+                <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                  <Activity className="h-3 w-3 text-emerald-500" /> Active Sessions
+                </div>
+                <div className="mt-1 text-xl font-bold text-emerald-600">
+                  {data.monitoring.activeSessions}
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                  <Lock className="h-3 w-3 text-blue-500" /> MFA Enrollments
+                </div>
+                <div className="mt-1 text-xl font-bold text-blue-600">
+                  {data.monitoring.mfaEnrollments}
+                </div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                  <Fingerprint className="h-3 w-3 text-violet-500" /> Passkey Enrollments
+                </div>
+                <div className="mt-1 text-xl font-bold text-violet-600">
+                  {data.monitoring.passkeyEnrollments}
+                </div>
+              </div>
+            </div>
+          </Card>
         </div>
       )}
 
