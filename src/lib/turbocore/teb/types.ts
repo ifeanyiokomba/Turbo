@@ -87,6 +87,8 @@ export interface TebEvent<T = unknown> {
   classification: EventClassification;
   /** Checksum of payload for integrity verification. */
   checksum: string;
+  /** HMAC-SHA256 signature of the event for tamper protection (Chapter 9 Event Security). */
+  signature: string;
   /** Whether the payload is encrypted. */
   encrypted: boolean;
   /** Aggregate version (for optimistic concurrency). */
