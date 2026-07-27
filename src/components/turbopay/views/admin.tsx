@@ -52,6 +52,7 @@ import {
   Network,
   Plug,
   Cpu,
+  Building2,
 } from "lucide-react";
 import { naira, nairaCompact, formatDate, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
@@ -117,6 +118,15 @@ const EventBusTab = dynamic(() => import("./admin/event-bus-tab").then((m) => m.
 });
 // ZTSA Security Command Center (Chapter 10) — Zero Trust architecture.
 const ZtsaTab = dynamic(() => import("./admin/ztsa-tab").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+    </div>
+  ),
+});
+// MTPA Multi-Tenant Platform (Chapter 11) — one TurboCore, unlimited businesses.
+const MtpaTab = dynamic(() => import("./admin/mtpa-tab").then((m) => m.default), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center py-20">
@@ -633,6 +643,10 @@ export default function AdminView() {
           <TabsTrigger value="ztsa" className="min-w-[120px] flex-1 gap-1">
             <Shield className="h-3.5 w-3.5" />
             Zero Trust
+          </TabsTrigger>
+          <TabsTrigger value="mtpa" className="min-w-[110px] flex-1 gap-1">
+            <Building2 className="h-3.5 w-3.5" />
+            Tenants
           </TabsTrigger>
           <TabsTrigger value="security" className="min-w-[100px] flex-1 gap-1">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -1522,6 +1536,11 @@ export default function AdminView() {
         {/* ZTSA Security Command Center (Chapter 10) */}
         <TabsContent value="ztsa" className="mt-5">
           <ZtsaTab />
+        </TabsContent>
+
+        {/* MTPA Multi-Tenant Platform (Chapter 11) */}
+        <TabsContent value="mtpa" className="mt-5">
+          <MtpaTab />
         </TabsContent>
 
         {/* Security Center — technical security posture (CSP/CSRF/XSS/headers) */}
