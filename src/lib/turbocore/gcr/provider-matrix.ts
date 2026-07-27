@@ -91,7 +91,10 @@ const MANIFEST_TO_GCR: Record<
   LIVENESS: [{ id: "identity.liveness", direction: "INBOUND" }],
   FACE_MATCH: [{ id: "identity.face_match", direction: "INBOUND" }],
   DOC_OCR: [{ id: "identity.doc_ocr", direction: "INBOUND" }],
-  INTERNATIONAL_TRANSFER: [{ id: "disbursements.international", direction: "OUTBOUND" }],
+  INTERNATIONAL_TRANSFER: [
+    { id: "disbursements.international", direction: "OUTBOUND" },
+    { id: "disbursements.cross_border", direction: "OUTBOUND" },
+  ],
   EXCHANGE_RATE: [
     { id: "fx.rates", direction: "INBOUND" },
     { id: "fx.quote", direction: "INBOUND" },
@@ -107,9 +110,16 @@ const MANIFEST_TO_GCR: Record<
   SUBSCRIPTION: [{ id: "merchant.subscription", direction: "INBOUND" }],
   REFUND: [{ id: "cards.refund", direction: "OUTBOUND" }],
   CHARGEBACK: [{ id: "collections.cards", direction: "INBOUND" }],
-  PAYOUT: [{ id: "disbursements.bank_transfer", direction: "OUTBOUND" }],
+  PAYOUT: [
+    { id: "disbursements.bank_transfer", direction: "OUTBOUND" },
+    { id: "disbursements.card_payout", direction: "OUTBOUND" },
+    { id: "disbursements.cash_pickup", direction: "OUTBOUND" },
+  ],
   BULK_TRANSFER: [{ id: "disbursements.bulk", direction: "OUTBOUND" }],
-  SETTLEMENT: [{ id: "settlement.merchant", direction: "OUTBOUND" }],
+  SETTLEMENT: [
+    { id: "settlement.merchant", direction: "OUTBOUND" },
+    { id: "disbursements.merchant_settlement", direction: "OUTBOUND" },
+  ],
   SUBACCOUNT: [{ id: "merchant.split", direction: "INBOUND" }],
   VIRTUAL_CARD: [{ id: "cards.tokenization", direction: "INBOUND" }],
   VIRTUAL_CARD_ISSUER: [{ id: "cards.tokenization", direction: "INBOUND" }],

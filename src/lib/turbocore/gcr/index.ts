@@ -10,6 +10,7 @@ export {
   CAPABILITIES,
   CAPABILITY_GROUPS,
   getCapability,
+  getCapabilityWithProviders,
   getCapabilitiesByGroup,
   getGroup,
 } from "./capability-tree";

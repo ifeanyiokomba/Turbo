@@ -1758,3 +1758,129 @@ Files modified (1):
 Lint: 0 errors, 0 warnings ✅
 Typecheck: 0 errors in GCR files ✅
 GCR stats: 22 groups | 198 capabilities | 284 features | 35 dependencies | 204 versions | 239 certification tests | 9 countries | 14 providers | 9 flags | 35 certification records
+
+---
+Task ID: CH7-GCR-FIX
+Agent: main (Chapter 7 spec compliance audit + fixes)
+Task: Re-read the Chapter 7 spec word by word, identify every gap between the spec and the implementation, then strategically fix all errors and missing functionalities.
+
+Work Log:
+- Re-read the entire Chapter 7 spec line by line. Catalogued every capability group with its expected capability count from the spec:
+  - Collections (17), Disbursements (11), Wallets (14), Identity (17), FX (8), Merchant (12), Cards (11), Mobile Money (14), Virtual Accounts (10), Banking (9), Risk (10), Compliance (9), Settlement (8), Analytics (10), Developer (11), Treasury (4), Subscriptions (5), Invoices (7), QR (4), Crypto (4), Stablecoins (4), Notifications (6)
+  - TOTAL EXPECTED: 205 capabilities
+- Queried the live API (/api/admin/gcr/tree) and compared actual vs expected counts per group. Found 2 groups with gaps:
+  - Collections: had 14, needed 17 (missing Samsung Pay, Wallet Funding, Cash Deposit)
+  - Disbursements: had 7, needed 11 (missing Card Payout, Merchant Settlement, Cash Pickup, Cross Border Transfer)
+  - All other 20 groups matched the spec exactly.
+- Identified 3 additional spec compliance gaps from re-reading the spec:
+  1. The spec's Collection Capability Object shows `providers[]` as a field: "Providers are attached. Not embedded." My Capability type was missing this field entirely.
+  2. The spec's Capability Dependencies section shows deep chains:
+     - Subscription → Requires → Recurring Payment → Requires → Card Tokenization → Requires → Card Collection
+     - Cross-border Payout → Requires → FX Quote → Requires → Destination Compliance → Requires → Identity Verification
+     My knowledge graph had shallow chains (subscription → tokenization only, no card collection link).
+  3. The spec's Capability Testing section shows capability-specific certification tests:
+     - Refund Capability: Full Refund, Partial Refund, Duplicate Refund, Currency Validation, Settlement Validation
+     My certification tests were generic ("execute_success", "idempotency") for all card capabilities.
+
+FIX 1: Added 3 missing Collection capabilities to capability-tree.ts:
+- collections.samsung_pay (Samsung Pay) — BETA, ZA/GB/US, ZAR/GBP/USD; deps: collections.cards; cert: device_verified, token_charge
+- collections.wallet_funding (Wallet Funding) — STABLE, ALL/ALL; deps: wallets.deposit; cert: instant_credit, duplicate_prevention; features: card_funding, bank_funding, mm_funding, instant_credit
+- collections.cash_deposit (Cash Deposit) — BETA, NG/KE/GH; deps: wallets.deposit; cert: agent_verified, amount_match; features: agent_network, branch_deposit, receipt
+
+FIX 2: Added 4 missing Disbursement capabilities to capability-tree.ts:
+- disbursements.card_payout (Card Payout / OCT) — BETA; deps: cards.tokenization + banking.account_verification; cert: card_valid, oct_success, fast_funds_eligible; features: oct, fast_funds, card_verification
+- disbursements.merchant_settlement (Merchant Settlement) — STABLE; deps: settlement.schedule + settlement.fee_calc; cert: reconcile_match, schedule_fire, statement_generated; features: schedule, reconciliation, split, statement; 2 versions (T+1, Instant)
+- disbursements.cash_pickup (Cash Pickup) — BETA, NG/KE/GH; deps: none; cert: code_unique, code_verified, expiry_enforced; features: pickup_code, agent_network, expiry
+- disbursements.cross_border (Cross Border Transfer) — STABLE; deps: fx.quote + compliance.travel_rule + compliance.sanctions + banking.beneficiary (RECOMMENDS); cert: fx_lock_honored, travel_rule, sanctions_pass, beneficiary_verified, purpose_code_valid; features: fx_lock, correspondent, purpose_code, beneficiary_verify, tracking; 2 versions (Correspondent Banking, Multi-rail)
+
+FIX 3: Added `providers` field to the Capability type (types.ts):
+- New field: `providers: string[]` with JSDoc explaining "Providers are attached. Not embedded."
+- Updated the `cap()` helper to accept optional `providers` (defaults to [])
+- Added `getCapabilityWithProviders(id)` function that lazy-loads the provider-matrix via `require()` (with eslint-disable for no-require-imports since it's a synchronous lazy load to avoid circular dependency) and populates the `providers` field at query time
+- The catalogue itself NEVER hardcodes provider names (AI Agent Rule #2) — providers are resolved dynamically from the provider-matrix
+- Updated the capabilities API route to use `getCapabilityWithProviders()` for single-capability detail mode
+- Updated the barrel export (index.ts) to export `getCapabilityWithProviders`
+- Verified: cards.refund now returns `providers: ['paystack', 'stripe']`
+
+FIX 4: Deepened the knowledge graph with multi-hop dependency chains:
+- cards.tokenization → collections.cards (REQUIRES) — "Tokenization requires the card collection capability"
+- cards.recurring → cards.tokenization + cards.saved_cards (both REQUIRES) — "Recurring billing needs a tokenized card" + "Recurring billing needs a saved card-on-file"
+- cards.capture → cards.authorization (REQUIRES) — "Capture requires a prior authorization"
+- cards.void → cards.authorization (REQUIRES) — "Void requires a prior authorization"
+- cards.network_tokens → cards.tokenization (REQUIRES) — "Network tokens build on tokenization"
+- cards.card_updater → cards.saved_cards (REQUIRES) — "Card updater maintains saved cards"
+- merchant.subscription → cards.tokenization + cards.recurring + cards.saved_cards (all REQUIRES) — full chain from spec
+- merchant.split → wallets.sub_wallet (REQUIRES)
+- merchant.marketplace → merchant.split + wallets.escrow (both REQUIRES) — "Marketplace needs split payment" + "Marketplace needs escrow for buyer protection"
+- merchant.escrow → wallets.escrow (REQUIRES)
+- stablecoins.bridge → compliance.aml + compliance.travel_rule (both REQUIRES)
+- stablecoins.mint → compliance.kyb + compliance.aml (both REQUIRES)
+- stablecoins.redeem → compliance.aml + banking.account_verification (both REQUIRES)
+- stablecoins.transfer → compliance.travel_rule (RECOMMENDS)
+- collections.stablecoins → stablecoins.bridge + compliance.aml + risk.fraud_scoring (RECOMMENDS)
+- cards.refund → collections.cards (REQUIRES) — added reason: "Refund requires a prior card payment"
+- Result: dependencies grew from 35 → 69 edges (60 REQUIRES + 9 RECOMMENDS), matching the spec's knowledge graph vision
+
+FIX 5: Made certification tests capability-specific for the Cards group:
+- cards.refund: Full Refund, Partial Refund, Duplicate Refund, Currency Validation, Settlement Validation (EXACT match to spec example)
+- cards.authorization: Successful Authorization, Declined Authorization, 3DS Validation, Duplicate Authorization, PCI Scope Validation
+- cards.tokenization: Token Unique, Detokenize, PCI Scope Validation
+- cards.capture: Full Capture, Partial Capture, Overcapture Rejected
+- cards.recurring: Scheduled Charge, Dunning Retry, Cancel Stops
+- cards.void: Void Before Capture, Void After Capture Rejected
+- Other card caps (verification, installments, saved_cards, network_tokens, card_updater): kept generic execute_success + idempotency
+- Result: certification tests grew from 239 → 268
+
+FIX 6: Updated country-matrix.ts to include the 7 new capabilities:
+- NG: added collections.samsung_pay (BETA), collections.wallet_funding (FULL), collections.cash_deposit (BETA), disbursements.cross_border (BETA), disbursements.card_payout (BETA), disbursements.merchant_settlement (FULL), disbursements.cash_pickup (BETA)
+- KE: added collections.wallet_funding (FULL), collections.cash_deposit (BETA), disbursements.cross_border (BETA), disbursements.merchant_settlement (FULL), disbursements.cash_pickup (BETA)
+- GH: added collections.wallet_funding (FULL), collections.cash_deposit (BETA), disbursements.cross_border (BETA), disbursements.merchant_settlement (FULL)
+- ZA: added collections.samsung_pay (BETA), collections.wallet_funding (FULL), disbursements.cross_border (FULL), disbursements.card_payout (BETA), disbursements.merchant_settlement (FULL)
+- GB: added collections.samsung_pay (BETA), collections.wallet_funding (FULL), disbursements.cross_border (FULL), disbursements.card_payout (FULL), disbursements.merchant_settlement (FULL)
+- US: added collections.samsung_pay (BETA), collections.wallet_funding (FULL), disbursements.cross_border (FULL), disbursements.card_payout (FULL), disbursements.merchant_settlement (FULL)
+
+FIX 7: Updated provider-matrix.ts MANIFEST_TO_GCR mapping:
+- INTERNATIONAL_TRANSFER: added disbursements.cross_border (in addition to disbursements.international)
+- PAYOUT: added disbursements.card_payout + disbursements.cash_pickup (in addition to disbursements.bank_transfer)
+- SETTLEMENT: added disbursements.merchant_settlement (in addition to settlement.merchant)
+
+FIX 8: Fixed circular dependency issue:
+- Initial attempt had getCapability() calling require("./provider-matrix") which calls getCapability() from capability-tree.ts → stack overflow
+- Fixed by splitting into two functions:
+  - getCapability(id) — pure catalogue lookup, no provider-matrix (used by resolution engine, knowledge graph, etc.)
+  - getCapabilityWithProviders(id) — enriches with providers field (used by API layer only)
+
+Verification:
+- `bun run lint` → 0 errors, 0 warnings ✅
+- `npx tsc --noEmit` → 0 errors in any gcr/* file ✅
+- /api/admin/gcr → totalCapabilities: 205 (was 198) ✅
+- /api/admin/gcr/tree → ALL 22 GROUPS MATCH SPEC ✅
+  - collections: 17 ✓ | disbursements: 11 ✓ | wallets: 14 ✓ | identity: 17 ✓ | fx: 8 ✓
+  - merchant: 12 ✓ | cards: 11 ✓ | mobile_money: 14 ✓ | virtual_accounts: 10 ✓ | banking: 9 ✓
+  - risk: 10 ✓ | compliance: 9 ✓ | settlement: 8 ✓ | analytics: 10 ✓ | developer: 11 ✓
+  - treasury: 4 ✓ | subscriptions: 5 ✓ | invoices: 7 ✓ | qr: 4 ✓ | crypto: 4 ✓
+  - stablecoins: 4 ✓ | notifications: 6 ✓
+- /api/admin/gcr/resolve?country=NG&capability=collections.cards → resolved: true, failover: [turbopay, paystack, flutterwave, monnify], deps: compliance.kyc ✓ + risk.fraud_scoring ✓ ✅
+- /api/admin/gcr/resolve?country=NG&capability=disbursements.cross_border → resolved: true, deps: fx.quote ✓ + compliance.travel_rule ✓ + compliance.sanctions ✓ + banking.beneficiary ✓ ✅
+- /api/admin/gcr/knowledge-graph → 205 nodes, 69 edges (60 REQUIRES + 9 RECOMMENDS), 0 nodes with unsatisfied deps ✅
+- /api/admin/gcr/capabilities?id=cards.refund → providers: ['paystack', 'stripe'], 5 cert tests: Full Refund, Partial Refund, Duplicate Refund, Currency Validation, Settlement Validation ✅
+- /api/admin/gcr/capabilities?id=cards.authorization → 5 cert tests: Successful Authorization, Declined Authorization, 3DS Validation, Duplicate Authorization, PCI Scope Validation ✅
+
+Stage Summary:
+Files modified (5):
+- src/lib/turbocore/gcr/types.ts (added `providers: string[]` field to Capability interface with JSDoc)
+- src/lib/turbocore/gcr/capability-tree.ts (added 7 capabilities + providers field + getCapabilityWithProviders + deepened deps + capability-specific certification)
+- src/lib/turbocore/gcr/country-matrix.ts (added 7 new capabilities to NG/KE/GH/ZA/GB/US profiles)
+- src/lib/turbocore/gcr/provider-matrix.ts (updated MANIFEST_TO_GCR: INTERNATIONAL_TRANSFER, PAYOUT, SETTLEMENT)
+- src/lib/turbocore/gcr/index.ts (exported getCapabilityWithProviders)
+- src/app/api/admin/gcr/capabilities/route.ts (use getCapabilityWithProviders for detail mode)
+
+Spec compliance: 100% — all 22 groups match the spec's capability counts exactly (205 total). The Capability object now has the `providers[]` field from the spec. Knowledge graph has deep multi-hop chains. Certification tests are capability-specific matching the spec's Refund example.
+
+Stats before → after:
+- Capabilities: 198 → 205 (+7)
+- Features: 284 → 308 (+24)
+- Dependencies: 35 → 69 (+34, deeper knowledge graph)
+- Certification tests: 239 → 268 (+29, capability-specific)
+- Countries profiled: 9 (unchanged, but all updated with new capabilities)
+- Providers mapped: 14 (unchanged, but mapping expanded to new capabilities)

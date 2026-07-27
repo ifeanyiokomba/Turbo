@@ -231,13 +231,22 @@ export const CAPABILITY_GROUPS: CapabilityGroup[] = [
 const now = "2025-01-01T00:00:00.000Z";
 
 function cap(
-  partial: Omit<Capability, "createdAt" | "updatedAt"> & { createdAt?: string; updatedAt?: string }
+  partial: Omit<Capability, "createdAt" | "updatedAt" | "providers"> & {
+    createdAt?: string;
+    updatedAt?: string;
+    providers?: string[];
+  }
 ): Capability {
+  // Per Chapter 7: "Providers are attached. Not embedded."
+  // The catalogue never hardcodes provider names (AI Agent Rule #2).
+  // The `providers` field is populated at runtime by getCapability()
+  // from the provider-matrix. Here we default to [].
   return {
+    ...partial,
     createdAt: partial.createdAt ?? now,
     updatedAt: partial.updatedAt ?? now,
-    ...partial,
-  };
+    providers: partial.providers ?? [],
+  } as Capability;
 }
 
 export const CAPABILITIES: Capability[] = [
@@ -962,7 +971,23 @@ export const CAPABILITIES: Capability[] = [
       },
     ],
     versions: [{ version: "v1", label: "Initial", status: "BETA", current: true }],
-    dependencies: [{ capabilityId: "stablecoins.bridge", kind: "REQUIRES" }],
+    dependencies: [
+      {
+        capabilityId: "stablecoins.bridge",
+        kind: "REQUIRES",
+        reason: "Stablecoin collection uses the bridge capability.",
+      },
+      {
+        capabilityId: "compliance.aml",
+        kind: "REQUIRES",
+        reason: "Stablecoin collection requires AML screening.",
+      },
+      {
+        capabilityId: "risk.fraud_scoring",
+        kind: "RECOMMENDS",
+        reason: "Fraud scoring on stablecoin deposits.",
+      },
+    ],
     certification: [
       {
         slug: "address_unique",
@@ -1076,6 +1101,199 @@ export const CAPABILITIES: Capability[] = [
       uxExpectations: "Terminal display + receipt print.",
     },
     tags: ["pos", "terminal", "emv"],
+  }),
+  cap({
+    id: "collections.samsung_pay",
+    name: "Samsung Pay",
+    description: "Collect payments via Samsung Pay on supported Samsung devices.",
+    groupId: "collections",
+    direction: "INBOUND",
+    status: "BETA",
+    countries: ["ZA", "GB", "US"],
+    currencies: ["ZAR", "GBP", "USD"],
+    requiredKycTier: 1,
+    supportsRecurring: false,
+    supportsRefunds: true,
+    supportsChargeback: true,
+    supportsPartial: true,
+    supportsSplit: false,
+    features: [
+      {
+        slug: "merchant_id",
+        name: "Samsung Merchant ID",
+        description: "Registered Samsung Pay merchant ID.",
+        mandatory: true,
+      },
+      {
+        slug: "device_verification",
+        name: "Device Verification",
+        description: "Samsung device attestation.",
+        mandatory: true,
+      },
+    ],
+    versions: [{ version: "v1", label: "Initial", status: "BETA", current: true }],
+    dependencies: [{ capabilityId: "collections.cards", kind: "REQUIRES" }],
+    certification: [
+      {
+        slug: "device_verified",
+        name: "Device Verified",
+        description: "Samsung device passes attestation.",
+        mandatory: true,
+        category: "COMPLIANCE",
+      },
+      {
+        slug: "token_charge",
+        name: "Token Charge",
+        description: "Samsung Pay token charges successfully.",
+        mandatory: true,
+        category: "FUNCTIONAL",
+      },
+    ],
+    documentation: {
+      functional: "Samsung Pay token collected on Samsung devices and charged server-side.",
+      businessRules: [
+        "Requires Samsung Pay merchant registration.",
+        "Samsung devices with Knox only.",
+      ],
+      technicalContract: "POST /samsung-pay/charge — {paymentToken} → {authCode, status}",
+      requiredPermissions: ["payments.collections.samsung_pay.charge"],
+      complianceRequirements: ["Samsung Pay merchant agreement", "PCI tokenization"],
+      failureScenarios: ["Device not Samsung", "Token expired", "Merchant not registered"],
+      uxExpectations: "Samsung Pay sheet appears with merchant name + amount.",
+    },
+    tags: ["samsung", "wallet", "android", "nfc"],
+  }),
+  cap({
+    id: "collections.wallet_funding",
+    name: "Wallet Funding",
+    description: "Fund a TurboCore wallet from an external source (card, bank, mobile money).",
+    groupId: "collections",
+    direction: "INBOUND",
+    status: "STABLE",
+    countries: ["ALL"],
+    currencies: ["ALL"],
+    requiredKycTier: 1,
+    supportsRecurring: true,
+    supportsRefunds: true,
+    supportsChargeback: false,
+    supportsPartial: true,
+    supportsSplit: false,
+    features: [
+      { slug: "card_funding", name: "Card Funding", description: "Fund via card payment." },
+      {
+        slug: "bank_funding",
+        name: "Bank Funding",
+        description: "Fund via bank transfer.",
+        mandatory: true,
+      },
+      { slug: "mm_funding", name: "Mobile Money Funding", description: "Fund via mobile money." },
+      {
+        slug: "instant_credit",
+        name: "Instant Credit",
+        description: "Wallet credited before settlement.",
+        mandatory: true,
+      },
+    ],
+    versions: [{ version: "v1", label: "Standard", status: "STABLE", current: true }],
+    dependencies: [{ capabilityId: "wallets.deposit", kind: "REQUIRES" }],
+    certification: [
+      {
+        slug: "instant_credit",
+        name: "Instant Credit",
+        description: "Wallet credited within 2s.",
+        mandatory: true,
+        category: "PERFORMANCE",
+      },
+      {
+        slug: "duplicate_prevention",
+        name: "Duplicate Prevention",
+        description: "Duplicate funding reference rejected.",
+        mandatory: true,
+        category: "EDGE_CASE",
+      },
+    ],
+    documentation: {
+      functional: "Funds a TurboCore wallet from any supported collection method.",
+      businessRules: [
+        "Funding limit per day per user.",
+        "Instant credit with later settlement reconciliation.",
+      ],
+      technicalContract:
+        "POST /wallet/fund — {source, amountMinor, currency} → {walletBalance, reference}",
+      requiredPermissions: ["payments.collections.wallet_funding.create"],
+      complianceRequirements: ["AML screening on source"],
+      failureScenarios: ["Source declined", "Wallet frozen", "Limit exceeded"],
+      uxExpectations: "Funding method picker + amount + instant confirmation.",
+    },
+    tags: ["wallet", "funding", "deposit", "topup"],
+  }),
+  cap({
+    id: "collections.cash_deposit",
+    name: "Cash Deposit",
+    description: "Accept cash deposits via agent network or partner bank branches.",
+    groupId: "collections",
+    direction: "INBOUND",
+    status: "BETA",
+    countries: ["NG", "KE", "GH"],
+    currencies: ["NGN", "KES", "GHS"],
+    requiredKycTier: 1,
+    supportsRecurring: false,
+    supportsRefunds: false,
+    supportsChargeback: false,
+    supportsPartial: false,
+    supportsSplit: false,
+    features: [
+      {
+        slug: "agent_network",
+        name: "Agent Network",
+        description: "Cash deposit via authorized agent.",
+        mandatory: true,
+      },
+      {
+        slug: "branch_deposit",
+        name: "Branch Deposit",
+        description: "Cash deposit at partner bank branch.",
+      },
+      {
+        slug: "receipt",
+        name: "Receipt Generation",
+        description: "Digital receipt for cash deposit.",
+        mandatory: true,
+      },
+    ],
+    versions: [{ version: "v1", label: "Initial", status: "BETA", current: true }],
+    dependencies: [{ capabilityId: "wallets.deposit", kind: "REQUIRES" }],
+    certification: [
+      {
+        slug: "agent_verified",
+        name: "Agent Verified",
+        description: "Agent credentials validated.",
+        mandatory: true,
+        category: "SECURITY",
+      },
+      {
+        slug: "amount_match",
+        name: "Amount Match",
+        description: "Deposited amount matches recorded amount.",
+        mandatory: true,
+        category: "FUNCTIONAL",
+      },
+    ],
+    documentation: {
+      functional: "Customer deposits cash via agent or branch; wallet credited on confirmation.",
+      businessRules: [
+        "Agent must be authorized.",
+        "Cash count verified before credit.",
+        "Daily deposit limit per user.",
+      ],
+      technicalContract:
+        "POST /cash/deposit — {agentId, amountMinor, customerRef} → {reference, receiptUrl}",
+      requiredPermissions: ["payments.collections.cash_deposit.receive"],
+      complianceRequirements: ["AML screening", "Agent KYB"],
+      failureScenarios: ["Agent unauthorized", "Cash count mismatch", "Customer ref invalid"],
+      uxExpectations: "Agent enters amount → customer confirms → receipt generated.",
+    },
+    tags: ["cash", "deposit", "agent", "branch"],
   }),
 
   // =========================================================================
@@ -1446,6 +1664,389 @@ export const CAPABILITIES: Capability[] = [
     },
     tags: ["stablecoin", "payout", "onchain"],
   }),
+  cap({
+    id: "disbursements.card_payout",
+    name: "Card Payout",
+    description: "Disburse funds directly to a card (push-to-card / OCT).",
+    groupId: "disbursements",
+    direction: "OUTBOUND",
+    status: "BETA",
+    countries: ["NG", "ZA", "GB", "US"],
+    currencies: ["NGN", "ZAR", "GBP", "USD"],
+    requiredKycTier: 2,
+    supportsRecurring: true,
+    supportsRefunds: false,
+    supportsChargeback: false,
+    supportsPartial: false,
+    supportsSplit: false,
+    features: [
+      {
+        slug: "oct",
+        name: "Original Credit Transaction",
+        description: "Visa/Mastercard OCT push-to-card.",
+        mandatory: true,
+      },
+      { slug: "fast_funds", name: "Fast Funds", description: "Instant push to eligible cards." },
+      {
+        slug: "card_verification",
+        name: "Card Verification",
+        description: "Pre-payout card validity check.",
+        mandatory: true,
+      },
+    ],
+    versions: [{ version: "v1", label: "Initial", status: "BETA", current: true }],
+    dependencies: [
+      { capabilityId: "cards.tokenization", kind: "REQUIRES" },
+      { capabilityId: "banking.account_verification", kind: "RECOMMENDS" },
+    ],
+    certification: [
+      {
+        slug: "card_valid",
+        name: "Card Valid",
+        description: "Recipient card passes pre-payout check.",
+        mandatory: true,
+        category: "FUNCTIONAL",
+      },
+      {
+        slug: "oct_success",
+        name: "OCT Success",
+        description: "OCT pushes funds to card.",
+        mandatory: true,
+        category: "FUNCTIONAL",
+      },
+      {
+        slug: "fast_funds_eligible",
+        name: "Fast Funds Check",
+        description: "Fast funds eligibility correctly determined.",
+        mandatory: false,
+        category: "EDGE_CASE",
+      },
+    ],
+    documentation: {
+      functional: "Pushes funds to a recipient's card via Visa/Mastercard OCT.",
+      businessRules: [
+        "Recipient card must support OCT.",
+        "Tier 2 KYC required.",
+        "Daily push limit per card.",
+      ],
+      technicalContract: "POST /payout/card — {cardToken, amountMinor} → {reference, status}",
+      requiredPermissions: ["payments.disbursements.card_payout.send"],
+      complianceRequirements: ["AML screening", "Card scheme OCT agreement"],
+      failureScenarios: ["Card doesn't support OCT", "Issuer declined", "Limit exceeded"],
+      uxExpectations: "Card number + amount + instant/next-day indicator.",
+    },
+    tags: ["card", "payout", "oct", "push-to-card"],
+  }),
+  cap({
+    id: "disbursements.merchant_settlement",
+    name: "Merchant Settlement",
+    description: "Settle collected funds to a merchant's settlement account.",
+    groupId: "disbursements",
+    direction: "OUTBOUND",
+    status: "STABLE",
+    countries: ["ALL"],
+    currencies: ["ALL"],
+    requiredKycTier: 2,
+    supportsRecurring: true,
+    supportsRefunds: false,
+    supportsChargeback: false,
+    supportsPartial: true,
+    supportsSplit: true,
+    features: [
+      {
+        slug: "schedule",
+        name: "Settlement Schedule",
+        description: "T+1, weekly, or instant settlement.",
+        mandatory: true,
+      },
+      {
+        slug: "reconciliation",
+        name: "Reconciliation",
+        description: "Auto-reconcile collected vs settled.",
+        mandatory: true,
+      },
+      {
+        slug: "split",
+        name: "Split Settlement",
+        description: "Split between multiple merchant accounts.",
+      },
+      {
+        slug: "statement",
+        name: "Settlement Statement",
+        description: "Generate settlement statement.",
+        mandatory: true,
+      },
+    ],
+    versions: [
+      { version: "v1", label: "T+1 Settlement", status: "STABLE" },
+      {
+        version: "v2",
+        label: "Instant Settlement",
+        status: "STABLE",
+        current: true,
+        releaseNotes: "Instant settlement with fee premium.",
+      },
+    ],
+    dependencies: [
+      { capabilityId: "settlement.schedule", kind: "REQUIRES" },
+      { capabilityId: "settlement.fee_calc", kind: "REQUIRES" },
+    ],
+    certification: [
+      {
+        slug: "reconcile_match",
+        name: "Reconciliation Match",
+        description: "Settled amount matches collected minus fees.",
+        mandatory: true,
+        category: "FUNCTIONAL",
+      },
+      {
+        slug: "schedule_fire",
+        name: "Schedule Fire",
+        description: "Settlement fires on configured schedule.",
+        mandatory: true,
+        category: "FUNCTIONAL",
+      },
+      {
+        slug: "statement_generated",
+        name: "Statement Generated",
+        description: "Statement PDF generated per settlement.",
+        mandatory: true,
+        category: "FUNCTIONAL",
+      },
+    ],
+    documentation: {
+      functional: "Settles collected funds to the merchant's settlement account per schedule.",
+      businessRules: [
+        "Settlement schedule per merchant (T+1, weekly, instant).",
+        "Fees deducted before settlement.",
+        "Minimum settlement amount.",
+      ],
+      technicalContract:
+        "POST /settlement/merchant — {merchantId, scheduleId} → {settlementId, amountMinor, statementUrl}",
+      requiredPermissions: ["payments.disbursements.merchant_settlement.run"],
+      complianceRequirements: ["Merchant KYB", "Tax withholding where applicable"],
+      failureScenarios: ["Bank downtime", "Reconciliation mismatch", "Merchant suspended"],
+      uxExpectations: "Settlement dashboard with schedule + history + statement download.",
+    },
+    tags: ["settlement", "merchant", "payout", "reconcile"],
+  }),
+  cap({
+    id: "disbursements.cash_pickup",
+    name: "Cash Pickup",
+    description: "Disburse funds to a cash pickup network for recipient collection.",
+    groupId: "disbursements",
+    direction: "OUTBOUND",
+    status: "BETA",
+    countries: ["NG", "KE", "GH"],
+    currencies: ["NGN", "KES", "GHS"],
+    requiredKycTier: 2,
+    supportsRecurring: false,
+    supportsRefunds: false,
+    supportsChargeback: false,
+    supportsPartial: false,
+    supportsSplit: false,
+    features: [
+      {
+        slug: "pickup_code",
+        name: "Pickup Code",
+        description: "Generate OTP for cash pickup.",
+        mandatory: true,
+      },
+      {
+        slug: "agent_network",
+        name: "Agent Network",
+        description: "Partner agent locations for pickup.",
+        mandatory: true,
+      },
+      {
+        slug: "expiry",
+        name: "Expiry",
+        description: "Pickup code expires after configurable window.",
+        mandatory: true,
+      },
+    ],
+    versions: [{ version: "v1", label: "Initial", status: "BETA", current: true }],
+    dependencies: [],
+    certification: [
+      {
+        slug: "code_unique",
+        name: "Code Unique",
+        description: "Pickup code is unique per disbursement.",
+        mandatory: true,
+        category: "FUNCTIONAL",
+      },
+      {
+        slug: "code_verified",
+        name: "Code Verified",
+        description: "Agent verifies code before cash release.",
+        mandatory: true,
+        category: "SECURITY",
+      },
+      {
+        slug: "expiry_enforced",
+        name: "Expiry Enforced",
+        description: "Expired codes rejected.",
+        mandatory: true,
+        category: "EDGE_CASE",
+      },
+    ],
+    documentation: {
+      functional: "Generates a pickup code; recipient collects cash from an agent location.",
+      businessRules: [
+        "Pickup code valid for 24 hours.",
+        "Recipient must present ID + code.",
+        "Agent verifies via app.",
+      ],
+      technicalContract:
+        "POST /payout/cash-pickup — {recipientName, recipientId, amountMinor} → {pickupCode, agentLocations[]}",
+      requiredPermissions: ["payments.disbursements.cash_pickup.send"],
+      complianceRequirements: ["AML screening", "Recipient KYC"],
+      failureScenarios: ["Code expired", "Agent unavailable", "Recipient ID mismatch"],
+      uxExpectations: "Pickup code + nearby agent locations + expiry countdown.",
+    },
+    tags: ["cash", "pickup", "agent", "otp"],
+  }),
+  cap({
+    id: "disbursements.cross_border",
+    name: "Cross Border Transfer",
+    description: "Cross-border payout with FX conversion, compliance, and correspondent banking.",
+    groupId: "disbursements",
+    direction: "OUTBOUND",
+    status: "STABLE",
+    countries: ["NG", "KE", "GH", "ZA", "GB", "US"],
+    currencies: ["USD", "EUR", "GBP", "NGN", "KES", "GHS", "ZAR"],
+    requiredKycTier: 3,
+    supportsRecurring: false,
+    supportsRefunds: false,
+    supportsChargeback: false,
+    supportsPartial: false,
+    supportsSplit: false,
+    features: [
+      {
+        slug: "fx_lock",
+        name: "FX Lock",
+        description: "Lock exchange rate for 5 minutes.",
+        mandatory: true,
+      },
+      {
+        slug: "correspondent",
+        name: "Correspondent Banking",
+        description: "Route via correspondent bank network.",
+        mandatory: true,
+      },
+      {
+        slug: "purpose_code",
+        name: "Purpose Code",
+        description: "Regulatory purpose-of-payment code.",
+        mandatory: true,
+      },
+      {
+        slug: "beneficiary_verify",
+        name: "Beneficiary Verification",
+        description: "Verify beneficiary before send.",
+        mandatory: true,
+      },
+      {
+        slug: "tracking",
+        name: "Transfer Tracking",
+        description: "End-to-end transfer status tracking.",
+      },
+    ],
+    versions: [
+      { version: "v1", label: "Correspondent Banking", status: "STABLE" },
+      {
+        version: "v2",
+        label: "Multi-rail",
+        status: "STABLE",
+        current: true,
+        releaseNotes: "Auto-selects cheapest/fastest rail (Wise, correspondent, stablecoin).",
+      },
+    ],
+    dependencies: [
+      {
+        capabilityId: "fx.quote",
+        kind: "REQUIRES",
+        reason: "Cross-border requires locked FX quote.",
+      },
+      {
+        capabilityId: "compliance.travel_rule",
+        kind: "REQUIRES",
+        reason: "FATF travel rule for cross-border.",
+      },
+      {
+        capabilityId: "compliance.sanctions",
+        kind: "REQUIRES",
+        reason: "Destination country sanctions check.",
+      },
+      { capabilityId: "banking.beneficiary", kind: "RECOMMENDS" },
+    ],
+    certification: [
+      {
+        slug: "fx_lock_honored",
+        name: "FX Lock Honored",
+        description: "Locked rate honored for 5 minutes.",
+        mandatory: true,
+        category: "FUNCTIONAL",
+      },
+      {
+        slug: "travel_rule",
+        name: "Travel Rule",
+        description: "Originator + beneficiary info captured.",
+        mandatory: true,
+        category: "COMPLIANCE",
+      },
+      {
+        slug: "sanctions_pass",
+        name: "Sanctions Pass",
+        description: "Sanctions screening passes for clean recipient.",
+        mandatory: true,
+        category: "COMPLIANCE",
+      },
+      {
+        slug: "beneficiary_verified",
+        name: "Beneficiary Verified",
+        description: "Beneficiary name matches account.",
+        mandatory: true,
+        category: "FUNCTIONAL",
+      },
+      {
+        slug: "purpose_code_valid",
+        name: "Purpose Code Valid",
+        description: "Purpose code validated against regulator list.",
+        mandatory: true,
+        category: "COMPLIANCE",
+      },
+    ],
+    documentation: {
+      functional:
+        "Cross-border payout with FX conversion, compliance screening, and multi-rail delivery.",
+      businessRules: [
+        "Tier 3 KYC required.",
+        "FX quote locked for 5 minutes.",
+        "Purpose code mandatory.",
+        "Sanctions screening on both originator and beneficiary.",
+        "Daily cross-border limit per merchant.",
+      ],
+      technicalContract:
+        "POST /payout/cross-border — {beneficiary, amountMinor, sourceCurrency, targetCurrency, purposeCode} → {quote, reference, estimatedDelivery}",
+      requiredPermissions: ["payments.disbursements.cross_border.send"],
+      complianceRequirements: [
+        "Travel Rule (FATF)",
+        "AML",
+        "OFAC sanctions",
+        "Central bank reporting",
+      ],
+      failureScenarios: [
+        "Sanctions hit",
+        "Correspondent bank reject",
+        "FX expired",
+        "Beneficiary mismatch",
+      ],
+      uxExpectations:
+        "Beneficiary + amount + FX preview + compliance disclosure + estimated delivery.",
+    },
+    tags: ["cross-border", "intl", "fx", "travel-rule", "correspondent"],
+  }),
 
   // =========================================================================
   // 3. WALLETS
@@ -1714,10 +2315,53 @@ export const CAPABILITIES: Capability[] = [
       versions: [{ version: "v1", label: "Standard", status: status as any, current: true }],
       dependencies:
         slug === "subscription"
-          ? [{ capabilityId: "cards.tokenization", kind: "REQUIRES" }]
+          ? [
+              {
+                capabilityId: "cards.tokenization",
+                kind: "REQUIRES",
+                reason: "Subscriptions need a tokenized card for recurring billing.",
+              },
+              {
+                capabilityId: "cards.recurring",
+                kind: "REQUIRES",
+                reason: "Subscriptions need the recurring billing capability.",
+              },
+              {
+                capabilityId: "cards.saved_cards",
+                kind: "REQUIRES",
+                reason: "Subscriptions need a saved card-on-file.",
+              },
+            ]
           : slug === "split"
-            ? [{ capabilityId: "wallets.sub_wallet", kind: "REQUIRES" }]
-            : [],
+            ? [
+                {
+                  capabilityId: "wallets.sub_wallet",
+                  kind: "REQUIRES",
+                  reason: "Split payments route to sub-wallets.",
+                },
+              ]
+            : slug === "marketplace"
+              ? [
+                  {
+                    capabilityId: "merchant.split",
+                    kind: "REQUIRES",
+                    reason: "Marketplace needs split payment.",
+                  },
+                  {
+                    capabilityId: "wallets.escrow",
+                    kind: "REQUIRES",
+                    reason: "Marketplace needs escrow for buyer protection.",
+                  },
+                ]
+              : slug === "escrow"
+                ? [
+                    {
+                      capabilityId: "wallets.escrow",
+                      kind: "REQUIRES",
+                      reason: "Merchant escrow uses the wallet escrow capability.",
+                    },
+                  ]
+                : [],
       certification: [
         {
           slug: "merchant_onboarded",
@@ -1777,26 +2421,249 @@ export const CAPABILITIES: Capability[] = [
       versions: [{ version: "v1", label: "Standard", status: status as any, current: true }],
       dependencies:
         slug === "refund"
-          ? [{ capabilityId: "collections.cards", kind: "REQUIRES" }]
+          ? [
+              {
+                capabilityId: "collections.cards",
+                kind: "REQUIRES",
+                reason: "Refund requires a prior card payment.",
+              },
+            ]
           : slug === "recurring"
-            ? [{ capabilityId: "cards.tokenization", kind: "REQUIRES" }]
-            : [],
-      certification: [
-        {
-          slug: "execute_success",
-          name: "Execute Success",
-          description: "Operation completes.",
-          mandatory: true,
-          category: "FUNCTIONAL",
-        },
-        {
-          slug: "idempotency",
-          name: "Idempotency",
-          description: "Idempotent execution.",
-          mandatory: true,
-          category: "EDGE_CASE",
-        },
-      ],
+            ? [
+                {
+                  capabilityId: "cards.tokenization",
+                  kind: "REQUIRES",
+                  reason: "Recurring billing needs a tokenized card.",
+                },
+                {
+                  capabilityId: "cards.saved_cards",
+                  kind: "REQUIRES",
+                  reason: "Recurring billing needs a saved card-on-file.",
+                },
+              ]
+            : slug === "tokenization"
+              ? [
+                  {
+                    capabilityId: "collections.cards",
+                    kind: "REQUIRES",
+                    reason: "Tokenization requires the card collection capability.",
+                  },
+                ]
+              : slug === "capture"
+                ? [
+                    {
+                      capabilityId: "cards.authorization",
+                      kind: "REQUIRES",
+                      reason: "Capture requires a prior authorization.",
+                    },
+                  ]
+                : slug === "void"
+                  ? [
+                      {
+                        capabilityId: "cards.authorization",
+                        kind: "REQUIRES",
+                        reason: "Void requires a prior authorization.",
+                      },
+                    ]
+                  : slug === "network_tokens"
+                    ? [
+                        {
+                          capabilityId: "cards.tokenization",
+                          kind: "REQUIRES",
+                          reason: "Network tokens build on tokenization.",
+                        },
+                      ]
+                    : slug === "card_updater"
+                      ? [
+                          {
+                            capabilityId: "cards.saved_cards",
+                            kind: "REQUIRES",
+                            reason: "Card updater maintains saved cards.",
+                          },
+                        ]
+                      : [],
+      certification:
+        slug === "refund"
+          ? [
+              {
+                slug: "full_refund",
+                name: "Full Refund",
+                description: "Refund of the full captured amount.",
+                mandatory: true,
+                category: "FUNCTIONAL",
+              },
+              {
+                slug: "partial_refund",
+                name: "Partial Refund",
+                description: "Refund of less than the captured amount.",
+                mandatory: true,
+                category: "FUNCTIONAL",
+              },
+              {
+                slug: "duplicate_refund",
+                name: "Duplicate Refund",
+                description: "Idempotency key prevents double-refund.",
+                mandatory: true,
+                category: "EDGE_CASE",
+              },
+              {
+                slug: "currency_validation",
+                name: "Currency Validation",
+                description: "Refund currency matches original.",
+                mandatory: true,
+                category: "COMPLIANCE",
+              },
+              {
+                slug: "settlement_validation",
+                name: "Settlement Validation",
+                description: "Refund reflected in settlement.",
+                mandatory: true,
+                category: "FUNCTIONAL",
+              },
+            ]
+          : slug === "authorization"
+            ? [
+                {
+                  slug: "auth_success",
+                  name: "Successful Authorization",
+                  description: "Valid card authorizes.",
+                  mandatory: true,
+                  category: "FUNCTIONAL",
+                },
+                {
+                  slug: "auth_decline",
+                  name: "Declined Authorization",
+                  description: "Insufficient funds returns decline.",
+                  mandatory: true,
+                  category: "FAILURE_MODE",
+                },
+                {
+                  slug: "3ds_validation",
+                  name: "3DS Validation",
+                  description: "3DS authentication enforced where required.",
+                  mandatory: true,
+                  category: "COMPLIANCE",
+                },
+                {
+                  slug: "duplicate_auth",
+                  name: "Duplicate Authorization",
+                  description: "Idempotency key prevents double-charge.",
+                  mandatory: true,
+                  category: "EDGE_CASE",
+                },
+                {
+                  slug: "pci_scope",
+                  name: "PCI Scope Validation",
+                  description: "No raw PAN logged.",
+                  mandatory: true,
+                  category: "COMPLIANCE",
+                },
+              ]
+            : slug === "tokenization"
+              ? [
+                  {
+                    slug: "token_unique",
+                    name: "Token Unique",
+                    description: "Each PAN maps to a unique token.",
+                    mandatory: true,
+                    category: "FUNCTIONAL",
+                  },
+                  {
+                    slug: "token_detokenize",
+                    name: "Detokenize",
+                    description: "Token can be detokenized server-side.",
+                    mandatory: true,
+                    category: "FUNCTIONAL",
+                  },
+                  {
+                    slug: "pci_scope",
+                    name: "PCI Scope Validation",
+                    description: "No raw PAN persisted.",
+                    mandatory: true,
+                    category: "COMPLIANCE",
+                  },
+                ]
+              : slug === "capture"
+                ? [
+                    {
+                      slug: "full_capture",
+                      name: "Full Capture",
+                      description: "Capture full authorized amount.",
+                      mandatory: true,
+                      category: "FUNCTIONAL",
+                    },
+                    {
+                      slug: "partial_capture",
+                      name: "Partial Capture",
+                      description: "Capture less than authorized.",
+                      mandatory: true,
+                      category: "FUNCTIONAL",
+                    },
+                    {
+                      slug: "overcapture_rejected",
+                      name: "Overcapture Rejected",
+                      description: "Capture > authorized rejected.",
+                      mandatory: true,
+                      category: "EDGE_CASE",
+                    },
+                  ]
+                : slug === "recurring"
+                  ? [
+                      {
+                        slug: "scheduled_charge",
+                        name: "Scheduled Charge",
+                        description: "Recurring charge fires on schedule.",
+                        mandatory: true,
+                        category: "FUNCTIONAL",
+                      },
+                      {
+                        slug: "dunning_retry",
+                        name: "Dunning Retry",
+                        description: "Failed charge retried per dunning.",
+                        mandatory: true,
+                        category: "FAILURE_MODE",
+                      },
+                      {
+                        slug: "cancel_stops",
+                        name: "Cancel Stops",
+                        description: "Cancelled subscription stops charges.",
+                        mandatory: true,
+                        category: "FUNCTIONAL",
+                      },
+                    ]
+                  : slug === "void"
+                    ? [
+                        {
+                          slug: "void_before_capture",
+                          name: "Void Before Capture",
+                          description: "Void before capture releases hold.",
+                          mandatory: true,
+                          category: "FUNCTIONAL",
+                        },
+                        {
+                          slug: "void_after_capture_rejected",
+                          name: "Void After Capture Rejected",
+                          description: "Void after capture rejected.",
+                          mandatory: true,
+                          category: "EDGE_CASE",
+                        },
+                      ]
+                    : [
+                        {
+                          slug: "execute_success",
+                          name: "Execute Success",
+                          description: "Operation completes.",
+                          mandatory: true,
+                          category: "FUNCTIONAL",
+                        },
+                        {
+                          slug: "idempotency",
+                          name: "Idempotency",
+                          description: "Idempotent execution.",
+                          mandatory: true,
+                          category: "EDGE_CASE",
+                        },
+                      ],
       documentation: {
         functional: desc as string,
         businessRules: ["PCI scope required."],
@@ -2557,7 +3424,55 @@ export const CAPABILITIES: Capability[] = [
       versions: [
         { version: "v1", label: "Standard", status: (status as any) ?? "STABLE", current: true },
       ],
-      dependencies: [],
+      dependencies:
+        slug === "bridge"
+          ? [
+              {
+                capabilityId: "compliance.aml",
+                kind: "REQUIRES",
+                reason: "Stablecoin bridging requires AML screening.",
+              },
+              {
+                capabilityId: "compliance.travel_rule",
+                kind: "REQUIRES",
+                reason: "Cross-chain bridge needs travel rule compliance.",
+              },
+            ]
+          : slug === "mint"
+            ? [
+                {
+                  capabilityId: "compliance.kyb",
+                  kind: "REQUIRES",
+                  reason: "Minting requires business verification.",
+                },
+                {
+                  capabilityId: "compliance.aml",
+                  kind: "REQUIRES",
+                  reason: "Minting requires AML screening.",
+                },
+              ]
+            : slug === "redeem"
+              ? [
+                  {
+                    capabilityId: "compliance.aml",
+                    kind: "REQUIRES",
+                    reason: "Redemption requires AML screening.",
+                  },
+                  {
+                    capabilityId: "banking.account_verification",
+                    kind: "REQUIRES",
+                    reason: "Redemption needs verified bank account for fiat payout.",
+                  },
+                ]
+              : slug === "transfer"
+                ? [
+                    {
+                      capabilityId: "compliance.travel_rule",
+                      kind: "RECOMMENDS",
+                      reason: "On-chain transfers may trigger travel rule above threshold.",
+                    },
+                  ]
+                : [],
       certification: [
         {
           slug: "address_valid",
@@ -2640,6 +3555,32 @@ export const CAPABILITIES: Capability[] = [
 
 export function getCapability(id: string): Capability | undefined {
   return CAPABILITIES.find((c) => c.id === id);
+}
+
+/**
+ * Returns a capability with its `providers` field populated from the
+ * provider-matrix. This is the "attached, not embedded" pattern from
+ * Chapter 7 — the catalogue never hardcodes provider names; they're
+ * resolved dynamically at query time.
+ *
+ * Use this instead of getCapability() when you need the full picture
+ * (e.g. in the API layer). Use getCapability() for pure catalogue lookups
+ * where providers aren't needed (e.g. in the resolution engine, which
+ * queries the provider-matrix directly).
+ */
+export function getCapabilityWithProviders(id: string): Capability | undefined {
+  const cap = getCapability(id);
+  if (!cap) return undefined;
+  if (cap.providers.length === 0) {
+    // Lazy require to avoid circular dependency at module load time.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pm = require("./provider-matrix");
+    const entries = pm.getCapabilityProviders(id);
+    if (entries.length > 0) {
+      return { ...cap, providers: entries.map((e: any) => e.providerCode) };
+    }
+  }
+  return cap;
 }
 
 export function getCapabilitiesByGroup(groupId: string): Capability[] {

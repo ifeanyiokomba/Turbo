@@ -23,7 +23,7 @@ export async function GET(req: Request) {
     // Single-capability detail mode
     if (id) {
       const {
-        getCapability,
+        getCapabilityWithProviders,
         getDirectDependencies,
         getDependents,
         areHardDependenciesSatisfied,
@@ -35,7 +35,7 @@ export async function GET(req: Request) {
         getCertification,
       } = await import("@/lib/turbocore/gcr");
 
-      const cap = getCapability(id);
+      const cap = getCapabilityWithProviders(id);
       if (!cap) return json({ error: "Capability not found" }, 404);
 
       const dependencies = getDirectDependencies(id);

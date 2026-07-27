@@ -136,6 +136,18 @@ export interface Capability {
   supportsChargeback: boolean;
   supportsPartial: boolean;
   supportsSplit: boolean;
+  /**
+   * Providers that implement this capability — ATTACHED, not embedded.
+   *
+   * The spec is explicit: "Providers are attached. Not embedded." This field
+   * is a list of provider codes (e.g. ["paystack", "flutterwave", "stripe"])
+   * that the provider-matrix declares as implementing this capability. It is
+   * populated at runtime by the provider-matrix — the catalogue itself never
+   * hardcodes provider names (AI Agent Rule #2).
+   *
+   * When empty, the capability has no declared providers yet (PLANNED state).
+   */
+  providers: string[];
   /** Sub-features. */
   features: CapabilityFeature[];
   /** Declared versions. */
