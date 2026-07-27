@@ -61,7 +61,7 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
   const correlationId = CorrelationContext.generate();
   const orchestratorStart = Date.now();
 
-  // 1. Idempotency check
+  // 1. Idempotency check — race-safe via unique constraint + create-then-catch
   const idKey = req.idempotencyKey ?? hashKey(req);
   const existing = await db.idempotencyRecord.findUnique({ where: { key: idKey } });
   if (existing?.completedAt) {
@@ -73,17 +73,26 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
   if (existing && !existing.completedAt && Date.now() - existing.createdAt.getTime() < 30_000) {
     return { ok: false, error: { code: "DUPLICATE_REF", message: "Request in flight" } };
   }
-  await db.idempotencyRecord.upsert({
-    where: { key: idKey },
-    create: {
-      key: idKey,
-      userId: req.userId,
-      endpoint: req.contract,
-      requestBody: JSON.stringify({ a: req.amountMinor }),
-      status: 202,
-    },
-    update: {},
-  });
+
+  // Race-safe insert: try CREATE, catch P2002 (unique violation) = another
+  // request won the race — re-read as in-flight and reject.
+  try {
+    await db.idempotencyRecord.create({
+      data: {
+        key: idKey,
+        userId: req.userId,
+        endpoint: req.contract,
+        requestBody: JSON.stringify({ a: req.amountMinor }),
+        status: 202,
+      },
+    });
+  } catch (e: any) {
+    if (e?.code === "P2002") {
+      // Another concurrent request with the same key got there first.
+      return { ok: false, error: { code: "DUPLICATE_REF", message: "Request in flight" } };
+    }
+    throw e;
+  }
 
   // 2. Load user + PIN verify
   const user = await db.user.findUnique({ where: { id: req.userId } });

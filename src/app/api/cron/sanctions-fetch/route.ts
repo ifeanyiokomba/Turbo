@@ -155,6 +155,10 @@ export async function POST(req: Request) {
 }
 
 async function fetchTextWithTimeout(url: string): Promise<string> {
+  // SSRF guard — defense-in-depth even for hardcoded government URLs
+  const { validateOutboundUrl } = await import("@/lib/security/ssrf");
+  await validateOutboundUrl(url);
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
