@@ -25,7 +25,7 @@ const verifySchema = z.object({
   tier: z.union([z.literal(2), z.literal(3)]),
   idType: z.string().min(1),
   idValue: z.string().min(1),
-  additionalFields: z.record(z.string()).optional(),
+  additionalFields: z.record(z.string(), z.string()).optional(),
 });
 
 // POST — execute a KYC verification

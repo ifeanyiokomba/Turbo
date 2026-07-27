@@ -76,11 +76,17 @@ export const CELO_TOKENS_SEPOLIA = {
     symbol: "NGNm",
     name: "Mento Naira",
   },
+  CELO: {
+    address: "0x0000000000000000000000000000000000000000",
+    decimals: 18,
+    symbol: "CELO",
+    name: "Celo",
+  },
 } as const;
 
 export type CeloTokenSymbol = keyof typeof CELO_TOKENS_MAINNET;
 
-export function getTokens(chainId: number): typeof CELO_TOKENS_MAINNET {
+export function getTokens(chainId: number): any {
   return chainId === CELO_SEPOLIA_CHAIN_ID ? CELO_TOKENS_SEPOLIA : CELO_TOKENS_MAINNET;
 }
 

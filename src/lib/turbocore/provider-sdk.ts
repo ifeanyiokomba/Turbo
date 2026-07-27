@@ -10,7 +10,7 @@
 // Rule Zero: Never build features around providers.
 //            Build features around payment capabilities.
 
-import type { ProviderResult } from "../result";
+import type { ProviderResult } from "./result";
 
 // ===== The Provider Plugin Interface =====
 //

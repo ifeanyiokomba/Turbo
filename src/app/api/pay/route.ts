@@ -42,7 +42,7 @@ const paySchema = z.object({
   productId: z.string().optional(),
   note: z.string().optional(),
   reference: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function POST(req: NextRequest) {

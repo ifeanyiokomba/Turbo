@@ -2,7 +2,7 @@
 // Every money-moving endpoint calls orchestratePayment().
 
 import { db } from "@/lib/db";
-import { hash } from "crypto";
+import { createHash } from "crypto";
 import { debitWallet, creditWallet, transferBetweenWallets } from "@/lib/ledger";
 import { audit } from "@/lib/api";
 import { verifyPin } from "@/lib/auth";
@@ -444,5 +444,5 @@ async function tryWithFailover(
 
 function hashKey(req: OrchestrateRequest): string {
   const s = `${req.userId}:${req.contract}:${req.amountMinor}:${req.counterpartyAccount ?? ""}:${req.direction}`;
-  return hash("sha256").update(s).digest("hex");
+  return createHash("sha256").update(s).digest("hex");
 }

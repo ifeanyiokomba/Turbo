@@ -532,9 +532,7 @@ const EVENT_MAP: Record<string, TurboCoreEventType> = {
   "dispute.create": "PAYMENT.DISPUTED",
   // Flutterwave
   "charge.completed": "PAYMENT.COMPLETED",
-  "charge.failed": "PAYMENT.FAILED",
   "transfer.completed": "TRANSFER.COMPLETED",
-  "transfer.failed": "TRANSFER.FAILED",
   // Stripe
   "payment_intent.succeeded": "PAYMENT.COMPLETED",
   "payment_intent.payment_failed": "PAYMENT.FAILED",

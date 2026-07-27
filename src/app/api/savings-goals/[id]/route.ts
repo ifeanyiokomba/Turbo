@@ -348,7 +348,13 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     return json({ ok: true, cancelled: true, refundedKobo: refundKobo });
   } catch (e: any) {
-    if (e instanceof LedgerError) return errorJson(e.message, 400, "LEDGER_ERROR");
+    if (
+      e &&
+      typeof e === "object" &&
+      "message" in e &&
+      (e as any).message?.includes("Insufficient")
+    )
+      return errorJson(e.message, 400, "LEDGER_ERROR");
     if (e instanceof ServiceError) return errorJson(e.message, e.statusCode, e.code);
     return handleError(e);
   }
