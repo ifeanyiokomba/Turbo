@@ -134,6 +134,15 @@ const MtpaTab = dynamic(() => import("./admin/mtpa-tab").then((m) => m.default),
     </div>
   ),
 });
+// OMO Observability & Operations (Chapter 12) — the 5 pillars.
+const OmoTab = dynamic(() => import("./admin/omo-tab").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+    </div>
+  ),
+});
 // Security Center tab — lazy-loaded. Surfaces runtime security posture
 // (CSP, CSRF, XSS, headers, cookies, sanitizers). Kept lazy so the heavy
 // sanitizer live-tester + headers inspector only load when an admin clicks
@@ -647,6 +656,10 @@ export default function AdminView() {
           <TabsTrigger value="mtpa" className="min-w-[110px] flex-1 gap-1">
             <Building2 className="h-3.5 w-3.5" />
             Tenants
+          </TabsTrigger>
+          <TabsTrigger value="omo" className="min-w-[100px] flex-1 gap-1">
+            <Activity className="h-3.5 w-3.5" />
+            Observability
           </TabsTrigger>
           <TabsTrigger value="security" className="min-w-[100px] flex-1 gap-1">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -1541,6 +1554,11 @@ export default function AdminView() {
         {/* MTPA Multi-Tenant Platform (Chapter 11) */}
         <TabsContent value="mtpa" className="mt-5">
           <MtpaTab />
+        </TabsContent>
+
+        {/* OMO Observability & Operations (Chapter 12) */}
+        <TabsContent value="omo" className="mt-5">
+          <OmoTab />
         </TabsContent>
 
         {/* Security Center — technical security posture (CSP/CSRF/XSS/headers) */}
