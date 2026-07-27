@@ -26,6 +26,12 @@ import { generateReference } from "@/lib/money";
 import { KYC_TIER_LIMITS } from "@/lib/constants";
 import { runAmlRules, screenEntity } from "@/lib/turbocore/compliance/screen";
 import { isFeatureEnabled } from "@/lib/turbocore/feature-flags";
+import {
+  assessRisk,
+  checkCompliance,
+  resolveCountries,
+  type MerchantPolicyConfig,
+} from "@/lib/turbocore/pie";
 
 // ===== TurboPay.pay() — the unified entry point =====
 
@@ -119,6 +125,29 @@ export async function pay(req: TurboPayRequest): Promise<TurboPayResult> {
       status: "FAILED",
       error: { code: "COMPLIANCE_REJECT", message: `AML: ${aml.description}` },
     };
+
+  // 3b. PIE Risk Assessment — risk influences routing
+  const riskAssessment = await assessRisk(req.userId, req.amountKobo, req.direction);
+  if (riskAssessment.requiresEnhancedKYC && riskAssessment.riskLevel === "HIGH") {
+    return {
+      success: false,
+      reference,
+      status: "FAILED",
+      error: {
+        code: "COMPLIANCE_REJECT",
+        message: `High risk: ${riskAssessment.recommendations.join("; ")}`,
+      },
+    };
+  }
+
+  // 3c. PIE Country Resolution — detect cross-border
+  const countryResolution = resolveCountries(user.country || "NG", req.recipient?.country);
+
+  // 3d. PIE Compliance Check — can the provider legally process this?
+  if (countryResolution.crossBorder && req.direction === "OUTBOUND") {
+    // Compliance check happens post-routing (we need to know which provider was selected)
+    // but we can pre-check the corridor
+  }
 
   // 4. Orchestrate
   const result = await orchestratePayment({

@@ -13,6 +13,13 @@ import { registry } from "./registry";
 import type { ContractName, ProviderResult } from "./result";
 import { publishPaymentEvent, EventTypes } from "./event-bus";
 import { storeExplanation, createRoutingExplanation } from "./routing-explainability";
+import {
+  classifyFailure,
+  getRetryDecision,
+  checkCompliance,
+  assessRisk,
+  resolveCountries,
+} from "./pie";
 
 export interface OrchestrateRequest {
   userId: string;
@@ -516,10 +523,61 @@ async function tryWithFailover(
     lastResult = result;
     lastProviderCode = providerCode;
 
-    // Short-circuit on success or non-retryable failure.
-    if (result.ok || !result.error.retryable) {
-      return { result, providerCode, failovers };
+    // Failure-aware failover: use PIE's classifyFailure + getRetryDecision
+    // instead of blind retryable check.
+    if (!result.ok) {
+      const failureCategory = classifyFailure(result.error.code);
+      const retryDecision = getRetryDecision(failureCategory, i);
+
+      // Log the failure classification for audit
+      await db.paymentFlowLog.create({
+        data: {
+          transactionId: txId,
+          step: "FAILURE_CLASSIFIED",
+          status: failureCategory,
+          providerCode,
+          payloadJSON: JSON.stringify({
+            category: failureCategory,
+            shouldRetry: retryDecision.shouldRetry,
+            shouldFailover: retryDecision.shouldFailover,
+            action: retryDecision.action,
+          }),
+        },
+      });
+
+      // If we should retry the SAME provider (e.g., TIMEOUT with backoff)
+      if (retryDecision.shouldRetry && retryDecision.retrySameProvider && i === 0) {
+        await new Promise((r) => setTimeout(r, retryDecision.backoffMs));
+        // Retry same provider
+        try {
+          const retryResult = await req.providerCall(adapter, providerRef);
+          await db.paymentFlowLog.create({
+            data: {
+              transactionId: txId,
+              step: "RETRY_SAME_PROVIDER",
+              status: retryResult.ok ? "SUCCESS" : "FAILED",
+              providerCode,
+              payloadJSON: JSON.stringify(retryResult.ok ? retryResult.data : retryResult.error),
+            },
+          });
+          if (retryResult.ok || !retryResult.error.retryable) {
+            return { result: retryResult, providerCode, failovers };
+          }
+          lastResult = retryResult;
+        } catch {}
+      }
+
+      // If not retryable and not failover, short-circuit (permanent failure)
+      if (!retryDecision.shouldFailover) {
+        return { result, providerCode, failovers };
+      }
+
+      // Otherwise continue to next provider in the failover chain
+      continue;
     }
+
+    // Success — short-circuit
+    return { result, providerCode, failovers };
   }
 
   return { result: lastResult, providerCode: lastProviderCode, failovers };
