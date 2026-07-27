@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Snowflake,
   ShieldAlert,
+  Shield,
   RefreshCw,
   Search,
   Loader2,
@@ -107,6 +108,15 @@ const DatabaseTab = dynamic(() => import("./admin/database-tab").then((m) => m.d
 });
 // Event Bus tab (Chapter 9) — the nervous system.
 const EventBusTab = dynamic(() => import("./admin/event-bus-tab").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+    </div>
+  ),
+});
+// ZTSA Security Command Center (Chapter 10) — Zero Trust architecture.
+const ZtsaTab = dynamic(() => import("./admin/ztsa-tab").then((m) => m.default), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center py-20">
@@ -619,6 +629,10 @@ export default function AdminView() {
           <TabsTrigger value="event-bus" className="min-w-[110px] flex-1 gap-1">
             <Zap className="h-3.5 w-3.5" />
             Event Bus
+          </TabsTrigger>
+          <TabsTrigger value="ztsa" className="min-w-[120px] flex-1 gap-1">
+            <Shield className="h-3.5 w-3.5" />
+            Zero Trust
           </TabsTrigger>
           <TabsTrigger value="security" className="min-w-[100px] flex-1 gap-1">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -1503,6 +1517,11 @@ export default function AdminView() {
         {/* Event Bus (Chapter 9) — the nervous system */}
         <TabsContent value="event-bus" className="mt-5">
           <EventBusTab />
+        </TabsContent>
+
+        {/* ZTSA Security Command Center (Chapter 10) */}
+        <TabsContent value="ztsa" className="mt-5">
+          <ZtsaTab />
         </TabsContent>
 
         {/* Security Center — technical security posture (CSP/CSRF/XSS/headers) */}

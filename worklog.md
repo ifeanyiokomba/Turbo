@@ -2560,3 +2560,100 @@ Files modified (2):
 - src/lib/turbocore/teb/event-bus.ts (4 fixes: persistToEventStore, signEvent, sortQueueByPriority, monitoring metrics)
 
 All 24 Chapter 9 spec requirements are now fully implemented. The TEB is a complete event-driven messaging backbone with: 31 event contracts, 9 streams, HMAC-SHA256 event signing, DB persistence, priority-based queue processing, exponential backoff retry, DLQ with replay, inbox idempotency, and full monitoring (consumer lag, avg processing time, events/sec, retry rate).
+
+---
+Task ID: CH10-ZTSA
+Agent: main (Chapter 10 — Zero Trust Security & Trust Architecture)
+Task: Build the ZTSA — "Never Trust. Always Verify." Security is not a module; security is the architecture. Implements: Feature Risk Engine, ABAC Policy Engine, Zero Trust Verifier, Compliance Targets, Incident Runbooks, Security Command Center.
+
+Work Log:
+- Audited existing security infrastructure: RBAC (roles + permissions), JWT + sessions, MFA + Passkeys, device tracking, rate limiting, audit logging, webhook verification, security-audit module (16 checks) — all exist. Missing: ABAC, Policy Engine, Feature Risk Engine, Security Command Center.
+
+- Created `src/lib/turbocore/ztsa/types.ts` (170 lines):
+  - IdentityType (4): HUMAN, MERCHANT, PROVIDER, SERVICE
+  - RiskLevel (4): LOW, MEDIUM, HIGH, CRITICAL
+  - AuthRequirement (5): NONE, SESSION, MFA, STEP_UP, HARDWARE_KEY
+  - FeatureRiskProfile: feature, riskLevel, requiredAuth, requiredPermissions, requiredKycTier, maxRequestsPerMinute
+  - AbacContext: userId, role, kycTier, country, department, riskScore, deviceTrusted, resourceType, resourceId, resourceOwnerId, timestamp, ipAddress, timeOfDay, isBusinessHours, action
+  - AbacPolicy: id, name, effect (ALLOW/DENY), conditions, priority, enabled
+  - AbacCondition: field, operator (EQ/NE/GT/LT/GTE/LTE/IN/NOT_IN/BETWEEN), value
+  - PolicyEvaluationResult, ZeroTrustCheck, ZeroTrustResult, ComplianceTarget, IncidentRunbook, SecurityMonitoringMetrics
+
+- Created `src/lib/turbocore/ztsa/feature-risk-engine.ts` (280 lines):
+  - 27 feature risk profiles across 4 risk levels:
+    - LOW (5): dashboard.view, wallet.balance, transactions.history, beneficiaries.list, profile.view
+    - MEDIUM (6): profile.update, wallet.fund, airtime.purchase, bills.pay, payment_link.create, beneficiaries.add
+    - HIGH (8): wallet.transfer, wallet.withdraw, payment.initiate, card.virtual.create, savings.withdraw, intl.transfer, pin.change, password.change
+    - CRITICAL (8): provider.keys.rotate, provider.config.update, merchant.approve, feature_flag.toggle, routing_rule.update, capability.disable, ledger.export, audit.export
+  - Each profile: riskLevel, requiredAuth (SESSION/MFA/STEP_UP), requiredPermissions, requiredKycTier, maxRequestsPerMinute
+  - Auth requirements scale with risk: LOW→SESSION, MEDIUM→SESSION+KYC, HIGH→MFA, CRITICAL→STEP_UP
+
+- Created `src/lib/turbocore/ztsa/policy-engine.ts` (230 lines) — centralized ABAC:
+  - 8 seeded policies (4 DENY, 4 ALLOW):
+    - DENY: high-risk countries, untrusted device for critical ops, high risk score >80, outside business hours for finance
+    - ALLOW: own resources, admin full access, merchant own resources, compliance audit access
+  - Condition evaluation: 8 operators (EQ, NE, GT, LT, GTE, LTE, IN, NOT_IN, BETWEEN)
+  - Context variable resolution ($ prefix): e.g. {field: "resourceOwnerId", value: "$userId"}
+  - Policy evaluation: sorts by priority (highest first), DENY always wins, default DENY (Zero Trust)
+  - CRUD API: addPolicy, updatePolicy, deletePolicy, togglePolicy
+
+- Created `src/lib/turbocore/ztsa/zero-trust.ts` (200 lines):
+  - verifyZeroTrust() — 7 checks per request:
+    1. Authentication (is user logged in?)
+    2. Feature Registration (is feature in risk registry?)
+    3. Authorization/RBAC (does user have required permissions?)
+    4. KYC Tier (does user meet required tier?)
+    5. Auth Level (SESSION/MFA/STEP_UP — is auth sufficient for feature risk?)
+    6. Device Trust (for HIGH/CRITICAL: is device trusted?)
+    7. ABAC Policy (does context satisfy policies?)
+  - All checks must pass (Zero Trust: deny by default)
+  - 5 compliance targets: PCI DSS (PARTIAL), ISO 27001 (IN_PROGRESS), SOC 2 (IN_PROGRESS), GDPR (COMPLIANT), NDPR (COMPLIANT)
+  - 311 total controls, 217 implemented (70% compliance)
+
+- Created `src/lib/turbocore/ztsa/incident-runbooks.ts` (100 lines):
+  - 6 incident runbooks: credential leak, provider outage, fraud spike, webhook bombing, DDoS attack, unauthorized access
+  - Each runbook: trigger, severity, steps (automated/manual, owner)
+
+- Created `src/lib/turbocore/ztsa/index.ts` — barrel export.
+
+- Created 3 API endpoints:
+  - GET /api/admin/ztsa — returns feature risk profiles, ABAC policies, compliance targets, incident runbooks, security posture, monitoring metrics
+  - GET/POST /api/admin/ztsa/policy — list policies, toggle/add/delete
+  - POST /api/admin/ztsa/verify — Zero Trust verifier (test access decisions)
+
+- Created `src/components/turbopay/views/admin/ztsa-tab.tsx` (550 lines) — Security Command Center with 6 sub-tabs:
+  1. Overview: 4 stat cards (pass/warn/fail/compliance), 3 info cards (features/policies/compliance), security posture checks
+  2. Feature Risk: 27 profiles with risk badges + auth requirements
+  3. Policies (ABAC): 8 policies with toggle switches (enable/disable)
+  4. Compliance: 5 standards (PCI DSS, ISO 27001, SOC 2, GDPR, NDPR) with expandable gaps
+  5. Incidents: 6 runbooks with expandable step-by-step procedures
+  6. Zero Trust Verifier: interactive form (feature, role, KYC tier, MFA, device trust) → shows all 7 checks
+
+- Wired ZtsaTab into admin.tsx: lazy-loaded dynamic import, new `<TabsTrigger value="ztsa">` with Shield icon, `<TabsContent value="ztsa"><ZtsaTab /></TabsContent>`.
+
+Verification:
+- `bun run lint` → 0 errors, 0 warnings ✅
+- `npx tsc --noEmit` → 0 errors in ZTSA files ✅
+- /api/admin/ztsa → 200 with:
+  - 27 feature risk profiles (5 LOW, 6 MEDIUM, 8 HIGH, 8 CRITICAL) ✅
+  - 8 ABAC policies (7 enabled, 4 ALLOW, 4 DENY) ✅
+  - 5 compliance standards (217/311 controls, 70%) ✅
+  - 6 incident runbooks ✅
+  - Security posture: 9 PASS, 7 WARN, 0 FAIL ✅
+- Dev server: HTTP 200 ✅
+
+Stage Summary:
+Files created (8):
+- src/lib/turbocore/ztsa/types.ts (170 lines)
+- src/lib/turbocore/ztsa/feature-risk-engine.ts (280 lines — 27 feature profiles)
+- src/lib/turbocore/ztsa/policy-engine.ts (230 lines — 8 ABAC policies)
+- src/lib/turbocore/ztsa/zero-trust.ts (200 lines — 7-check verifier + 5 compliance targets)
+- src/lib/turbocore/ztsa/incident-runbooks.ts (100 lines — 6 runbooks)
+- src/lib/turbocore/ztsa/index.ts (barrel export)
+- src/app/api/admin/ztsa/route.ts + policy/route.ts + verify/route.ts (3 API endpoints)
+- src/components/turbopay/views/admin/ztsa-tab.tsx (550 lines — 6 sub-tabs)
+
+Files modified (1):
+- src/components/turbopay/views/admin.tsx (lazy-loaded ZtsaTab + Shield icon + TabsTrigger + TabsContent)
+
+ZTSA stats: 27 feature risk profiles | 8 ABAC policies | 5 compliance standards (70%) | 6 incident runbooks | 7-check Zero Trust verifier | Security posture: 9 PASS / 7 WARN / 0 FAIL
