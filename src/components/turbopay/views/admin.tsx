@@ -49,6 +49,8 @@ import {
   CircuitBoard,
   ShieldCheck,
   Network,
+  Plug,
+  Cpu,
 } from "lucide-react";
 import { naira, nairaCompact, formatDate, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
@@ -63,6 +65,26 @@ import FeatureFlagsTab from "./admin/feature-flags-tab";
 import ConfigHistoryTab from "./admin/config-history-tab";
 import TeamTab from "./admin/team-tab";
 import RolesTab from "./admin/roles-tab";
+// Plug-and-Play Onboarding wizard (3-step: verify → discover → finalize).
+// Lazy-loaded — only needed when an admin clicks the "Onboarding" tab.
+const OnboardingTab = dynamic(() => import("./admin/onboarding-tab").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+    </div>
+  ),
+});
+// Architecture Compliance dashboard (spec mapping + flow diagram).
+// Lazy-loaded — only needed when an admin clicks the "Architecture" tab.
+const ArchitectureTab = dynamic(() => import("./admin/architecture-tab").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+    </div>
+  ),
+});
 // GCR tab is lazy-loaded to keep the admin initial bundle lean — the GCR
 // catalogue is large (~2000 lines) and only needed when an admin clicks the
 // "GCR" tab. dynamic() with ssr:false prevents server-side evaluation.
@@ -541,6 +563,10 @@ export default function AdminView() {
             <Server className="h-3.5 w-3.5" />
             Providers
           </TabsTrigger>
+          <TabsTrigger value="onboarding" className="min-w-[110px] flex-1 gap-1">
+            <Plug className="h-3.5 w-3.5" />
+            Onboarding
+          </TabsTrigger>
           <TabsTrigger value="capabilities" className="min-w-[110px] flex-1 gap-1">
             <Settings2 className="h-3.5 w-3.5" />
             Capabilities
@@ -584,6 +610,10 @@ export default function AdminView() {
           <TabsTrigger value="security" className="min-w-[100px] flex-1 gap-1">
             <ShieldCheck className="h-3.5 w-3.5" />
             Security
+          </TabsTrigger>
+          <TabsTrigger value="architecture" className="min-w-[120px] flex-1 gap-1">
+            <Cpu className="h-3.5 w-3.5" />
+            Architecture
           </TabsTrigger>
         </TabsList>
 
@@ -1402,6 +1432,11 @@ export default function AdminView() {
           <ProvidersTab />
         </TabsContent>
 
+        {/* Plug-and-Play Onboarding wizard */}
+        <TabsContent value="onboarding" className="mt-5">
+          <OnboardingTab />
+        </TabsContent>
+
         {/* Capabilities */}
         <TabsContent value="capabilities" className="mt-5">
           <CapabilitiesTab />
@@ -1455,6 +1490,11 @@ export default function AdminView() {
         {/* Security Center — technical security posture (CSP/CSRF/XSS/headers) */}
         <TabsContent value="security" className="mt-5">
           <SecurityCenterTab />
+        </TabsContent>
+
+        {/* Architecture Compliance dashboard (spec mapping + flow diagram) */}
+        <TabsContent value="architecture" className="mt-5">
+          <ArchitectureTab />
         </TabsContent>
       </Tabs>
     </div>
