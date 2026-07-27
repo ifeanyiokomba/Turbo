@@ -203,6 +203,7 @@ const REAL_PROVIDERS: {
     file: "./dojah.adapter",
     contracts: [
       { name: ContractName.KYC, exportName: "dojahKyc" },
+      { name: ContractName.KYC, exportName: "dojahAdditionalKYC" },
       { name: ContractName.AML, exportName: "dojahAML" },
       { name: ContractName.BUSINESS_KYC, exportName: "dojahBusinessKYC" },
       { name: ContractName.FRAUD_SCREENING, exportName: "dojahFraudScreening" },
