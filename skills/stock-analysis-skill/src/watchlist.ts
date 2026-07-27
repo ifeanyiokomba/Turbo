@@ -33,10 +33,12 @@ async function fetchCurrentPrice(ticker: string): Promise<number | null> {
   try {
     const zai = await ZAI.create();
     const completion = await zai.chat.completions.create({
-      messages: [{
-        role: "user",
-        content: `查询 ${ticker} 当前股价，只返回一个 JSON：{"price": 数字}，不要其他内容。`,
-      }],
+      messages: [
+        {
+          role: "user",
+          content: `查询 ${ticker} 当前股价，只返回一个 JSON：{"price": 数字}，不要其他内容。`,
+        },
+      ],
       thinking: { type: "disabled" },
     });
     const raw = completion.choices[0]?.message?.content ?? "{}";
@@ -68,7 +70,11 @@ export async function addToWatchlist(
   const currentPrice = await fetchCurrentPrice(ticker);
 
   if (currentPrice === null) {
-    return { success: false, action: "error", message: `无法获取 ${ticker} 的价格，请确认代码正确` };
+    return {
+      success: false,
+      action: "error",
+      message: `无法获取 ${ticker} 的价格，请确认代码正确`,
+    };
   }
 
   const watchlist = await loadWatchlist();
@@ -84,7 +90,12 @@ export async function addToWatchlist(
     watchlist[existingIdx] = existing;
     await saveWatchlist(watchlist);
 
-    return { success: true, action: "updated", message: `已更新 ${ticker} 的自选股设置`, item: existing };
+    return {
+      success: true,
+      action: "updated",
+      message: `已更新 ${ticker} 的自选股设置`,
+      item: existing,
+    };
   }
 
   // 新增
@@ -108,10 +119,13 @@ export async function addToWatchlist(
     opts.targetPrice ? `目标价 $${opts.targetPrice}` : null,
     opts.stopPrice ? `止损价 $${opts.stopPrice}` : null,
     opts.alertOnSignal ? "信号变化提醒" : null,
-  ].filter(Boolean).join("，");
+  ]
+    .filter(Boolean)
+    .join("，");
 
   return {
-    success: true, action: "added",
+    success: true,
+    action: "added",
     message: `已添加 ${ticker} 到自选股（当前价 $${currentPrice}${alertDesc ? `，设置了：${alertDesc}` : ""}）`,
     item,
   };
@@ -137,34 +151,41 @@ export async function removeFromWatchlist(
 // ── 查看自选股列表 ────────────────────────────────────────
 
 export async function listWatchlist(): Promise<{
-  items: Array<WatchlistItem & {
-    currentPrice: number | null;
-    changePct: number | null;
-    toTargetPct: number | null;
-    toStopPct: number | null;
-  }>;
+  items: Array<
+    WatchlistItem & {
+      currentPrice: number | null;
+      changePct: number | null;
+      toTargetPct: number | null;
+      toStopPct: number | null;
+    }
+  >;
   count: number;
 }> {
   const watchlist = await loadWatchlist();
   if (!watchlist.length) return { items: [], count: 0 };
 
-  const items = await Promise.all(watchlist.map(async (item) => {
-    const currentPrice = await fetchCurrentPrice(item.ticker);
+  const items = await Promise.all(
+    watchlist.map(async (item) => {
+      const currentPrice = await fetchCurrentPrice(item.ticker);
 
-    const changePct = currentPrice && item.priceAtAdd
-      ? parseFloat((((currentPrice - item.priceAtAdd) / item.priceAtAdd) * 100).toFixed(2))
-      : null;
+      const changePct =
+        currentPrice && item.priceAtAdd
+          ? parseFloat((((currentPrice - item.priceAtAdd) / item.priceAtAdd) * 100).toFixed(2))
+          : null;
 
-    const toTargetPct = currentPrice && item.targetPrice
-      ? parseFloat((((item.targetPrice - currentPrice) / currentPrice) * 100).toFixed(2))
-      : null;
+      const toTargetPct =
+        currentPrice && item.targetPrice
+          ? parseFloat((((item.targetPrice - currentPrice) / currentPrice) * 100).toFixed(2))
+          : null;
 
-    const toStopPct = currentPrice && item.stopPrice
-      ? parseFloat((((item.stopPrice - currentPrice) / currentPrice) * 100).toFixed(2))
-      : null;
+      const toStopPct =
+        currentPrice && item.stopPrice
+          ? parseFloat((((item.stopPrice - currentPrice) / currentPrice) * 100).toFixed(2))
+          : null;
 
-    return { ...item, currentPrice, changePct, toTargetPct, toStopPct };
-  }));
+      return { ...item, currentPrice, changePct, toTargetPct, toStopPct };
+    })
+  );
 
   return { items, count: items.length };
 }
@@ -245,12 +266,16 @@ export function formatWatchlistMarkdown(data: Awaited<ReturnType<typeof listWatc
 
   for (const item of data.items) {
     const price = item.currentPrice ? `$${item.currentPrice.toFixed(2)}` : "暂缺";
-    const change = item.changePct !== null
-      ? `${item.changePct > 0 ? "🟢+" : "🔴"}${item.changePct.toFixed(2)}%`
-      : "—";
+    const change =
+      item.changePct !== null
+        ? `${item.changePct > 0 ? "🟢+" : "🔴"}${item.changePct.toFixed(2)}%`
+        : "—";
     const target = item.targetPrice ? `$${item.targetPrice}` : "—";
     const stop = item.stopPrice ? `$${item.stopPrice}` : "—";
-    const toTarget = item.toTargetPct !== null ? `${item.toTargetPct > 0 ? "+" : ""}${item.toTargetPct.toFixed(1)}%` : "—";
+    const toTarget =
+      item.toTargetPct !== null
+        ? `${item.toTargetPct > 0 ? "+" : ""}${item.toTargetPct.toFixed(1)}%`
+        : "—";
     const signal = item.lastSignal ?? "—";
 
     md += `| ${item.ticker} | ${price} | ${change} | ${target} | ${stop} | ${toTarget} | ${signal} |\n`;
@@ -258,8 +283,9 @@ export function formatWatchlistMarkdown(data: Awaited<ReturnType<typeof listWatc
 
   // 已触发的提醒
   const triggered = data.items.filter(
-    (i) => (i.targetPrice && i.currentPrice && i.currentPrice >= i.targetPrice) ||
-            (i.stopPrice && i.currentPrice && i.currentPrice <= i.stopPrice)
+    (i) =>
+      (i.targetPrice && i.currentPrice && i.currentPrice >= i.targetPrice) ||
+      (i.stopPrice && i.currentPrice && i.currentPrice <= i.stopPrice)
   );
 
   if (triggered.length > 0) {

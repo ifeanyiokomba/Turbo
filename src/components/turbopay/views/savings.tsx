@@ -86,10 +86,25 @@ interface SavingsData {
   estInterest: number;
 }
 
-const TYPE_BADGE: Record<string, { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }> = {
-  FLEXIBLE: { label: "Flexible", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400", icon: Sparkles },
-  LOCKED: { label: "Locked", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400", icon: Lock },
-  TARGET: { label: "Target", cls: "bg-violet-500/15 text-violet-600 dark:text-violet-400", icon: Target },
+const TYPE_BADGE: Record<
+  string,
+  { label: string; cls: string; icon: React.ComponentType<{ className?: string }> }
+> = {
+  FLEXIBLE: {
+    label: "Flexible",
+    cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+    icon: Sparkles,
+  },
+  LOCKED: {
+    label: "Locked",
+    cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+    icon: Lock,
+  },
+  TARGET: {
+    label: "Target",
+    cls: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+    icon: Target,
+  },
 };
 
 function interestPct(bps: number): string {
@@ -198,7 +213,7 @@ export default function SavingsView() {
       toast.success(
         modal.mode === "DEPOSIT"
           ? `Deposited ${naira(amountKobo)} to ${modal.product.name}`
-          : `Withdrew ${naira(amountKobo)} from ${modal.product.name}`,
+          : `Withdrew ${naira(amountKobo)} from ${modal.product.name}`
       );
       setModal(null);
       setAmountInput("");
@@ -209,7 +224,7 @@ export default function SavingsView() {
   }
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="Savings"
         subtitle="Grow your money with flexible, locked and target plans."
@@ -269,7 +284,9 @@ export default function SavingsView() {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Savings products</h2>
-          <span className="text-xs text-muted-foreground">{data?.products.length ?? 0} available</span>
+          <span className="text-muted-foreground text-xs">
+            {data?.products.length ?? 0} available
+          </span>
         </div>
         {loading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -287,32 +304,32 @@ export default function SavingsView() {
                 <Card key={p.id} className="flex flex-col p-5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <div className="bg-primary/10 text-primary flex h-10 w-10 items-center justify-center rounded-xl">
                         <Icon className="h-5 w-5" />
                       </div>
                       <div>
                         <p className="text-sm font-semibold">{p.name}</p>
-                        <p className="text-xs text-muted-foreground">{meta.label}</p>
+                        <p className="text-muted-foreground text-xs">{meta.label}</p>
                       </div>
                     </div>
                     <Badge className={meta.cls}>{interestPct(p.interestBps)}</Badge>
                   </div>
-                  <p className="mt-3 line-clamp-2 text-xs text-muted-foreground">
+                  <p className="text-muted-foreground mt-3 line-clamp-2 text-xs">
                     {p.description ?? "Earn competitive returns on your savings."}
                   </p>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg bg-muted/40 p-2">
+                    <div className="bg-muted/40 rounded-lg p-2">
                       <p className="text-muted-foreground">Min. amount</p>
                       <p className="font-semibold tabular-nums">{naira(p.minAmountKobo)}</p>
                     </div>
-                    <div className="rounded-lg bg-muted/40 p-2">
+                    <div className="bg-muted/40 rounded-lg p-2">
                       <p className="text-muted-foreground">Lock period</p>
                       <p className="font-semibold">{lockLabel(p.lockDays)}</p>
                     </div>
                   </div>
                   <div className="mt-auto pt-4">
                     {mine ? (
-                      <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-2 text-xs">
+                      <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-2 text-xs">
                         <div>
                           <p className="text-muted-foreground">Your balance</p>
                           <p className="font-semibold tabular-nums">{naira(mine.balanceKobo)}</p>
@@ -347,7 +364,9 @@ export default function SavingsView() {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold">My savings</h2>
-          <span className="text-xs text-muted-foreground">{data?.mySavings.length ?? 0} active</span>
+          <span className="text-muted-foreground text-xs">
+            {data?.mySavings.length ?? 0} active
+          </span>
         </div>
         {loading ? (
           <div className="space-y-3">
@@ -365,35 +384,46 @@ export default function SavingsView() {
                 <Card key={s.product.id} className="p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${meta.cls}`}>
+                      <div
+                        className={`flex h-11 w-11 items-center justify-center rounded-xl ${meta.cls}`}
+                      >
                         <PiggyBank className="h-5 w-5" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="font-semibold">{s.product.name}</p>
-                          <Badge variant="outline" className={meta.cls}>{meta.label}</Badge>
+                          <Badge variant="outline" className={meta.cls}>
+                            {meta.label}
+                          </Badge>
                           {isLocked && (
-                            <Badge variant="outline" className="gap-1 bg-amber-500/10 text-amber-600">
+                            <Badge
+                              variant="outline"
+                              className="gap-1 bg-amber-500/10 text-amber-600"
+                            >
                               <Clock className="h-3 w-3" /> Until {formatDate(s.lockedUntil!)}
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                           {s.product.interestBps / 100}% p.a. · last activity{" "}
                           {s.lastActivityAt ? timeAgo(s.lastActivityAt) : "—"}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-muted-foreground">Current balance</p>
+                      <p className="text-muted-foreground text-xs">Current balance</p>
                       <p className="text-xl font-bold tabular-nums">{naira(s.balanceKobo)}</p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-muted-foreground text-[10px]">
                         Est. {naira(totalInterest)}/yr
                       </p>
                     </div>
                   </div>
                   <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <Button size="sm" onClick={() => openDeposit(s.product, s.balanceKobo, false)} className="gap-1.5">
+                    <Button
+                      size="sm"
+                      onClick={() => openDeposit(s.product, s.balanceKobo, false)}
+                      className="gap-1.5"
+                    >
                       <Plus className="h-4 w-4" /> Deposit
                     </Button>
                     <Button
@@ -446,13 +476,17 @@ export default function SavingsView() {
           {modal && (
             <div className="space-y-3 py-1">
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-lg bg-muted/40 p-2">
-                  <p className="text-muted-foreground">{modal.mode === "DEPOSIT" ? "Min. deposit" : "Available"}</p>
+                <div className="bg-muted/40 rounded-lg p-2">
+                  <p className="text-muted-foreground">
+                    {modal.mode === "DEPOSIT" ? "Min. deposit" : "Available"}
+                  </p>
                   <p className="font-semibold tabular-nums">
-                    {naira(modal.mode === "DEPOSIT" ? modal.product.minAmountKobo : modal.currentBalance)}
+                    {naira(
+                      modal.mode === "DEPOSIT" ? modal.product.minAmountKobo : modal.currentBalance
+                    )}
                   </p>
                 </div>
-                <div className="rounded-lg bg-muted/40 p-2">
+                <div className="bg-muted/40 rounded-lg p-2">
                   <p className="text-muted-foreground">Rate</p>
                   <p className="font-semibold">{interestPct(modal.product.interestBps)} p.a.</p>
                 </div>
@@ -473,7 +507,7 @@ export default function SavingsView() {
                         key={amt}
                         type="button"
                         onClick={() => setAmountInput(String(amt))}
-                        className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                        className="border-border bg-background hover:border-primary hover:bg-primary/5 rounded-full border px-2.5 py-1 text-xs font-medium"
                       >
                         ₦{amt.toLocaleString()}
                       </button>
@@ -484,25 +518,33 @@ export default function SavingsView() {
                   <button
                     type="button"
                     onClick={() => setAmountInput(String(modal.currentBalance / 100))}
-                    className="text-xs text-primary hover:underline"
+                    className="text-primary text-xs hover:underline"
                   >
                     Withdraw all ({naira(modal.currentBalance)})
                   </button>
                 )}
               </div>
               {amountKobo > 0 && (
-                <div className="rounded-xl border bg-muted/40 p-3 text-sm">
+                <div className="bg-muted/40 rounded-xl border p-3 text-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">New savings balance</span>
                     <span className="font-semibold tabular-nums">
-                      {naira(modal.currentBalance + (modal.mode === "DEPOSIT" ? amountKobo : -amountKobo))}
+                      {naira(
+                        modal.currentBalance + (modal.mode === "DEPOSIT" ? amountKobo : -amountKobo)
+                      )}
                     </span>
                   </div>
                   {modal.mode === "DEPOSIT" && (
                     <div className="mt-1 flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Est. annual interest</span>
-                      <span className="font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
-                        +{naira(Math.round(((modal.currentBalance + amountKobo) * modal.product.interestBps) / 10_000))}
+                      <span className="font-medium text-emerald-600 tabular-nums dark:text-emerald-400">
+                        +
+                        {naira(
+                          Math.round(
+                            ((modal.currentBalance + amountKobo) * modal.product.interestBps) /
+                              10_000
+                          )
+                        )}
                       </span>
                     </div>
                   )}
@@ -511,9 +553,15 @@ export default function SavingsView() {
             </div>
           )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setModal(null)} disabled={busy}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setModal(null)} disabled={busy}>
+              Cancel
+            </Button>
             <Button onClick={submit} disabled={busy || amountKobo <= 0} className="gap-1.5">
-              {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {busy ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
               {modal?.mode === "DEPOSIT" ? "Deposit" : "Withdraw"}
             </Button>
           </DialogFooter>
@@ -529,7 +577,7 @@ export default function SavingsView() {
               {txModal?.transactions.length ?? 0} transactions on this plan.
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-96 overflow-y-auto scrollbar-thin">
+          <div className="scrollbar-thin max-h-96 overflow-y-auto">
             {txModal && txModal.transactions.length > 0 ? (
               <div className="space-y-1">
                 {txModal.transactions.map((t) => {
@@ -537,7 +585,7 @@ export default function SavingsView() {
                   return (
                     <div
                       key={t.id}
-                      className="flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-muted/60"
+                      className="hover:bg-muted/60 flex items-center gap-3 rounded-xl px-2 py-2.5"
                     >
                       <div
                         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
@@ -554,7 +602,7 @@ export default function SavingsView() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium">{t.type}</p>
-                        <p className="text-xs text-muted-foreground">{timeAgo(t.createdAt)}</p>
+                        <p className="text-muted-foreground text-xs">{timeAgo(t.createdAt)}</p>
                       </div>
                       <div className="text-right">
                         <p
@@ -565,7 +613,7 @@ export default function SavingsView() {
                           {isDeposit ? "+" : "−"}
                           {naira(t.amountKobo)}
                         </p>
-                        <p className="text-[10px] text-muted-foreground tabular-nums">
+                        <p className="text-muted-foreground text-[10px] tabular-nums">
                           Bal {naira(t.balanceAfterKobo)}
                         </p>
                       </div>
@@ -574,7 +622,9 @@ export default function SavingsView() {
                 })}
               </div>
             ) : (
-              <div className="py-10 text-center text-sm text-muted-foreground">No transactions yet.</div>
+              <div className="text-muted-foreground py-10 text-center text-sm">
+                No transactions yet.
+              </div>
             )}
           </div>
         </DialogContent>
@@ -582,7 +632,6 @@ export default function SavingsView() {
     </div>
   );
 }
-
 
 // ===== Savings Goals Section =====
 interface SavingsGoal {
@@ -602,7 +651,10 @@ function SavingsGoalsSection() {
   const [goals, setGoals] = React.useState<SavingsGoal[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [showCreate, setShowCreate] = React.useState(false);
-  const [contribGoal, setContribGoal] = React.useState<{ goal: SavingsGoal; mode: "DEPOSIT" | "WITHDRAW" } | null>(null);
+  const [contribGoal, setContribGoal] = React.useState<{
+    goal: SavingsGoal;
+    mode: "DEPOSIT" | "WITHDRAW";
+  } | null>(null);
   const [amountInput, setAmountInput] = React.useState("");
   const amountKobo = parseKobo(amountInput);
 
@@ -618,29 +670,54 @@ function SavingsGoalsSection() {
     }
   }, []);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => {
+    load();
+  }, [load]);
 
-  async function createGoal(name: string, targetKobo: number, targetDate: string | null, color: string, initialKobo: number) {
+  async function createGoal(
+    name: string,
+    targetKobo: number,
+    targetDate: string | null,
+    color: string,
+    initialKobo: number
+  ) {
     const res = await fetch("/api/savings-goals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, targetKobo, targetDate, color, initialDepositKobo: initialKobo }),
+      body: JSON.stringify({
+        name,
+        targetKobo,
+        targetDate,
+        color,
+        initialDepositKobo: initialKobo,
+      }),
     });
-    if (!res.ok) { const e = await res.json(); toast.error(e.error || "Failed"); return; }
+    if (!res.ok) {
+      const e = await res.json();
+      toast.error(e.error || "Failed");
+      return;
+    }
     toast.success("Goal created!");
     setShowCreate(false);
     load();
   }
 
   async function contribute(goal: SavingsGoal, mode: "DEPOSIT" | "WITHDRAW", amount: number) {
-    const pinVal = await pin.request({ title: mode === "DEPOSIT" ? "Deposit to goal" : "Withdraw from goal", description: `₦${(amount / 100).toLocaleString()}` });
+    const pinVal = await pin.request({
+      title: mode === "DEPOSIT" ? "Deposit to goal" : "Withdraw from goal",
+      description: `₦${(amount / 100).toLocaleString()}`,
+    });
     if (!pinVal) return;
     const res = await fetch(`/api/savings-goals/${goal.id}/contribute`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ amountKobo: amount, pin: pinVal, type: mode }),
     });
-    if (!res.ok) { const e = await res.json(); toast.error(e.error || "Failed"); return; }
+    if (!res.ok) {
+      const e = await res.json();
+      toast.error(e.error || "Failed");
+      return;
+    }
     toast.success(mode === "DEPOSIT" ? "Deposited!" : "Withdrawn!");
     setContribGoal(null);
     setAmountInput("");
@@ -649,7 +726,10 @@ function SavingsGoalsSection() {
 
   async function deleteGoal(id: string) {
     const res = await fetch(`/api/savings-goals/${id}`, { method: "DELETE" });
-    if (!res.ok) { toast.error("Failed to delete"); return; }
+    if (!res.ok) {
+      toast.error("Failed to delete");
+      return;
+    }
     toast.success("Goal deleted");
     load();
   }
@@ -658,7 +738,7 @@ function SavingsGoalsSection() {
     <div>
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Target className="h-4 w-4 text-primary" />
+          <Target className="text-primary h-4 w-4" />
           <h2 className="text-sm font-semibold">My Savings Goals</h2>
         </div>
         <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
@@ -668,13 +748,17 @@ function SavingsGoalsSection() {
 
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-48 rounded-2xl" />)}
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-48 rounded-2xl" />
+          ))}
         </div>
       ) : goals.length === 0 ? (
         <div className="rounded-2xl border border-dashed p-8 text-center">
-          <Target className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+          <Target className="text-muted-foreground mx-auto mb-3 h-10 w-10" />
           <p className="text-sm font-medium">No savings goals yet</p>
-          <p className="mt-1 text-xs text-muted-foreground">Create a goal to track your progress toward a target.</p>
+          <p className="text-muted-foreground mt-1 text-xs">
+            Create a goal to track your progress toward a target.
+          </p>
           <Button size="sm" className="mt-4 gap-1.5" onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4" /> Create your first goal
           </Button>
@@ -682,55 +766,119 @@ function SavingsGoalsSection() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {goals.map((g) => {
-            const pct = g.targetKobo > 0 ? Math.min(100, Math.round((g.currentKobo / g.targetKobo) * 100)) : 0;
+            const pct =
+              g.targetKobo > 0
+                ? Math.min(100, Math.round((g.currentKobo / g.targetKobo) * 100))
+                : 0;
             const completed = pct >= 100;
             return (
-              <Card key={g.id} className="p-5 tp-card-hover">
+              <Card key={g.id} className="tp-card-hover p-5">
                 <div className="mb-3 flex items-start justify-between">
                   <div className="flex items-center gap-2">
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${completed ? "bg-emerald-500/15 text-emerald-600" : "bg-primary/10 text-primary"}`}>
+                    <div
+                      className={`flex h-9 w-9 items-center justify-center rounded-lg ${completed ? "bg-emerald-500/15 text-emerald-600" : "bg-primary/10 text-primary"}`}
+                    >
                       {completed ? <Check className="h-4 w-4" /> : <Target className="h-4 w-4" />}
                     </div>
                     <div>
                       <p className="text-sm font-semibold">{g.name}</p>
-                      <p className="text-xs text-muted-foreground">{completed ? "Completed!" : g.targetDate ? `By ${formatDate(g.targetDate)}` : "No deadline"}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {completed
+                          ? "Completed!"
+                          : g.targetDate
+                            ? `By ${formatDate(g.targetDate)}`
+                            : "No deadline"}
+                      </p>
                     </div>
                   </div>
-                  {completed && <Badge className="bg-emerald-500/15 text-emerald-600 text-[10px]">100%</Badge>}
+                  {completed && (
+                    <Badge className="bg-emerald-500/15 text-[10px] text-emerald-600">100%</Badge>
+                  )}
                 </div>
 
                 {/* Progress ring */}
                 <div className="mb-3 flex items-center gap-3">
                   <div className="relative h-16 w-16">
                     <svg className="h-16 w-16 -rotate-90" viewBox="0 0 64 64">
-                      <circle cx="32" cy="32" r="28" fill="none" stroke="var(--muted)" strokeWidth="6" />
-                      <circle cx="32" cy="32" r="28" fill="none" stroke={completed ? "oklch(0.60 0.14 155)" : pct >= 75 ? "oklch(0.62 0.14 162)" : pct >= 50 ? "oklch(0.80 0.13 75)" : "oklch(0.62 0.14 162)"} strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(pct / 100) * 176} 176`} className="transition-all duration-700" />
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r="28"
+                        fill="none"
+                        stroke="var(--muted)"
+                        strokeWidth="6"
+                      />
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r="28"
+                        fill="none"
+                        stroke={
+                          completed
+                            ? "oklch(0.60 0.14 155)"
+                            : pct >= 75
+                              ? "oklch(0.62 0.14 162)"
+                              : pct >= 50
+                                ? "oklch(0.80 0.13 75)"
+                                : "oklch(0.62 0.14 162)"
+                        }
+                        strokeWidth="6"
+                        strokeLinecap="round"
+                        strokeDasharray={`${(pct / 100) * 176} 176`}
+                        className="transition-all duration-700"
+                      />
                     </svg>
-                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">{pct}%</span>
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">
+                      {pct}%
+                    </span>
                   </div>
                   <div>
                     <p className="text-lg font-bold tabular-nums">{naira(g.currentKobo)}</p>
-                    <p className="text-xs text-muted-foreground">of {naira(g.targetKobo)}</p>
+                    <p className="text-muted-foreground text-xs">of {naira(g.targetKobo)}</p>
                   </div>
                 </div>
 
                 {/* Milestones */}
                 <div className="mb-3 flex items-center gap-1.5">
                   {[25, 50, 75, 100].map((m) => (
-                    <div key={m} className={`flex-1 rounded-full py-0.5 text-center text-[9px] font-medium ${pct >= m ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"}`}>
+                    <div
+                      key={m}
+                      className={`flex-1 rounded-full py-0.5 text-center text-[9px] font-medium ${pct >= m ? "bg-emerald-500/15 text-emerald-600" : "bg-muted text-muted-foreground"}`}
+                    >
                       {pct >= m ? "✓" : `${m}%`}
                     </div>
                   ))}
                 </div>
 
                 <div className="flex gap-1.5">
-                  <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs" onClick={() => { setContribGoal({ goal: g, mode: "DEPOSIT" }); setAmountInput(""); }}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 gap-1 text-xs"
+                    onClick={() => {
+                      setContribGoal({ goal: g, mode: "DEPOSIT" });
+                      setAmountInput("");
+                    }}
+                  >
                     <ArrowDownToLine className="h-3.5 w-3.5" /> Add
                   </Button>
-                  <Button size="sm" variant="outline" className="flex-1 gap-1 text-xs" onClick={() => { setContribGoal({ goal: g, mode: "WITHDRAW" }); setAmountInput(""); }}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 gap-1 text-xs"
+                    onClick={() => {
+                      setContribGoal({ goal: g, mode: "WITHDRAW" });
+                      setAmountInput("");
+                    }}
+                  >
                     <ArrowUpFromLine className="h-3.5 w-3.5" /> Withdraw
                   </Button>
-                  <Button size="sm" variant="ghost" className="text-destructive px-2" onClick={() => deleteGoal(g.id)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive px-2"
+                    onClick={() => deleteGoal(g.id)}
+                  >
                     ✕
                   </Button>
                 </div>
@@ -750,21 +898,43 @@ function SavingsGoalsSection() {
         <Dialog open onOpenChange={() => setContribGoal(null)}>
           <DialogContent className="max-w-sm">
             <DialogHeader>
-              <DialogTitle>{contribGoal.mode === "DEPOSIT" ? "Add to" : "Withdraw from"} {contribGoal.goal.name}</DialogTitle>
-              <DialogDescription>Current: {naira(contribGoal.goal.currentKobo)} of {naira(contribGoal.goal.targetKobo)}</DialogDescription>
+              <DialogTitle>
+                {contribGoal.mode === "DEPOSIT" ? "Add to" : "Withdraw from"}{" "}
+                {contribGoal.goal.name}
+              </DialogTitle>
+              <DialogDescription>
+                Current: {naira(contribGoal.goal.currentKobo)} of{" "}
+                {naira(contribGoal.goal.targetKobo)}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-3 py-2">
               <Label>Amount (₦)</Label>
-              <Input type="number" value={amountInput} onChange={(e) => setAmountInput(e.target.value)} placeholder="5000" />
+              <Input
+                type="number"
+                value={amountInput}
+                onChange={(e) => setAmountInput(e.target.value)}
+                placeholder="5000"
+              />
               <div className="flex gap-2">
                 {[1000, 5000, 10000, 50000].map((v) => (
-                  <button key={v} onClick={() => setAmountInput(String(v))} className="rounded-full bg-muted px-3 py-1 text-xs hover:bg-muted/70">{naira(v * 100).replace(".00", "")}</button>
+                  <button
+                    key={v}
+                    onClick={() => setAmountInput(String(v))}
+                    className="bg-muted hover:bg-muted/70 rounded-full px-3 py-1 text-xs"
+                  >
+                    {naira(v * 100).replace(".00", "")}
+                  </button>
                 ))}
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setContribGoal(null)}>Cancel</Button>
-              <Button disabled={amountKobo <= 0} onClick={() => contribute(contribGoal.goal, contribGoal.mode, amountKobo)}>
+              <Button variant="outline" onClick={() => setContribGoal(null)}>
+                Cancel
+              </Button>
+              <Button
+                disabled={amountKobo <= 0}
+                onClick={() => contribute(contribGoal.goal, contribGoal.mode, amountKobo)}
+              >
                 {contribGoal.mode === "DEPOSIT" ? "Deposit" : "Withdraw"}
               </Button>
             </div>
@@ -775,7 +945,19 @@ function SavingsGoalsSection() {
   );
 }
 
-function CreateGoalDialog({ onClose, onCreate }: { onClose: () => void; onCreate: (name: string, target: number, date: string | null, color: string, initial: number) => void }) {
+function CreateGoalDialog({
+  onClose,
+  onCreate,
+}: {
+  onClose: () => void;
+  onCreate: (
+    name: string,
+    target: number,
+    date: string | null,
+    color: string,
+    initial: number
+  ) => void;
+}) {
   const [name, setName] = React.useState("");
   const [target, setTarget] = React.useState("");
   const [date, setDate] = React.useState("");
@@ -794,12 +976,21 @@ function CreateGoalDialog({ onClose, onCreate }: { onClose: () => void; onCreate
         <div className="space-y-3 py-2">
           <div className="space-y-1.5">
             <Label>Goal name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. New laptop, Vacation, Emergency fund" />
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. New laptop, Vacation, Emergency fund"
+            />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Target amount (₦)</Label>
-              <Input type="number" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="100000" />
+              <Input
+                type="number"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                placeholder="100000"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Target date (optional)</Label>
@@ -808,20 +999,35 @@ function CreateGoalDialog({ onClose, onCreate }: { onClose: () => void; onCreate
           </div>
           <div className="space-y-1.5">
             <Label>Initial deposit (₦, optional)</Label>
-            <Input type="number" value={initial} onChange={(e) => setInitial(e.target.value)} placeholder="0" />
+            <Input
+              type="number"
+              value={initial}
+              onChange={(e) => setInitial(e.target.value)}
+              placeholder="0"
+            />
           </div>
           <div className="space-y-1.5">
             <Label>Color</Label>
             <div className="flex gap-2">
               {["emerald", "amber", "violet", "sky", "rose"].map((c) => (
-                <button key={c} onClick={() => setColor(c)} className={`h-8 w-8 rounded-full border-2 ${color === c ? "border-foreground" : "border-transparent"}`} style={{ background: `var(--color-${c === "emerald" ? "primary" : c})` }} />
+                <button
+                  key={c}
+                  onClick={() => setColor(c)}
+                  className={`h-8 w-8 rounded-full border-2 ${color === c ? "border-foreground" : "border-transparent"}`}
+                  style={{ background: `var(--color-${c === "emerald" ? "primary" : c})` }}
+                />
               ))}
             </div>
           </div>
         </div>
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button disabled={!name.trim() || targetKobo <= 0} onClick={() => onCreate(name.trim(), targetKobo, date || null, color, initialKobo)}>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            disabled={!name.trim() || targetKobo <= 0}
+            onClick={() => onCreate(name.trim(), targetKobo, date || null, color, initialKobo)}
+          >
             Create goal
           </Button>
         </div>
@@ -847,13 +1053,32 @@ interface AutoSaveRule {
   createdAt: string;
 }
 
-const RULE_TYPE_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; tone: string }> = {
-  ROUND_UP: { label: "Round-up", icon: CircleDot, tone: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" },
-  PERCENTAGE: { label: "Percentage", icon: Percent, tone: "bg-amber-500/15 text-amber-600 dark:text-amber-400" },
-  FIXED: { label: "Fixed schedule", icon: Repeat, tone: "bg-violet-500/15 text-violet-600 dark:text-violet-400" },
+const RULE_TYPE_META: Record<
+  string,
+  { label: string; icon: React.ComponentType<{ className?: string }>; tone: string }
+> = {
+  ROUND_UP: {
+    label: "Round-up",
+    icon: CircleDot,
+    tone: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400",
+  },
+  PERCENTAGE: {
+    label: "Percentage",
+    icon: Percent,
+    tone: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+  },
+  FIXED: {
+    label: "Fixed schedule",
+    icon: Repeat,
+    tone: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
+  },
 };
 
-function AutoSaveRulesSection({ products }: { products: { id: string; name: string; interestBps: number }[] }) {
+function AutoSaveRulesSection({
+  products,
+}: {
+  products: { id: string; name: string; interestBps: number }[];
+}) {
   const [rules, setRules] = React.useState<AutoSaveRule[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [showCreate, setShowCreate] = React.useState(false);
@@ -878,7 +1103,9 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
     }
   }, []);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => {
+    load();
+  }, [load]);
 
   React.useEffect(() => {
     if (products.length > 0 && !productId) setProductId(products[0].id);
@@ -930,7 +1157,7 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
   }
 
   async function toggleRule(rule: AutoSaveRule, enabled: boolean) {
-    setRules((arr) => arr.map((r) => r.id === rule.id ? { ...r, enabled } : r));
+    setRules((arr) => arr.map((r) => (r.id === rule.id ? { ...r, enabled } : r)));
     try {
       const res = await fetch(`/api/savings/auto-rules/${rule.id}`, {
         method: "PATCH",
@@ -938,13 +1165,13 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
         body: JSON.stringify({ enabled }),
       });
       if (!res.ok) {
-        setRules((arr) => arr.map((r) => r.id === rule.id ? { ...r, enabled: !enabled } : r));
+        setRules((arr) => arr.map((r) => (r.id === rule.id ? { ...r, enabled: !enabled } : r)));
         toast.error("Failed to update rule");
         return;
       }
       toast.success(enabled ? "Rule enabled" : "Rule paused");
     } catch {
-      setRules((arr) => arr.map((r) => r.id === rule.id ? { ...r, enabled: !enabled } : r));
+      setRules((arr) => arr.map((r) => (r.id === rule.id ? { ...r, enabled: !enabled } : r)));
       toast.error("Network error");
     }
   }
@@ -973,12 +1200,12 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
     <Card className="p-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <div className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
             <Zap className="h-5 w-5" />
           </div>
           <div>
             <p className="text-sm font-semibold">Auto-save rules</p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Automatically sweep spare change or a fixed amount into savings.
             </p>
           </div>
@@ -995,16 +1222,19 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
 
       {loading ? (
         <div className="grid gap-3 sm:grid-cols-2">
-          {[0, 1].map((i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+          {[0, 1].map((i) => (
+            <Skeleton key={i} className="h-32 rounded-2xl" />
+          ))}
         </div>
       ) : rules.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-8 text-center">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <div className="bg-primary/10 text-primary flex h-11 w-11 items-center justify-center rounded-2xl">
             <Zap className="h-5 w-5" />
           </div>
           <p className="mt-3 font-medium">No auto-save rules yet</p>
-          <p className="mt-1 max-w-xs text-sm text-muted-foreground">
-            Round up transactions, save a percentage of deposits, or stash a fixed amount on a schedule.
+          <p className="text-muted-foreground mt-1 max-w-xs text-sm">
+            Round up transactions, save a percentage of deposits, or stash a fixed amount on a
+            schedule.
           </p>
           <Button size="sm" className="mt-4 gap-1.5" onClick={() => setShowCreate(true)}>
             <Plus className="h-4 w-4" /> Create your first rule
@@ -1012,19 +1242,25 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
         </div>
       ) : (
         <>
-          <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl bg-muted/40 p-3 sm:grid-cols-3">
+          <div className="bg-muted/40 mb-3 grid grid-cols-2 gap-2 rounded-xl p-3 sm:grid-cols-3">
             <div>
-              <p className="text-[10px] text-muted-foreground">Total auto-saved</p>
-              <p className="text-sm font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{naira(totalSavedAll)}</p>
+              <p className="text-muted-foreground text-[10px]">Total auto-saved</p>
+              <p className="text-sm font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
+                {naira(totalSavedAll)}
+              </p>
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground">Active rules</p>
-              <p className="text-sm font-bold tabular-nums">{activeCount}/{rules.length}</p>
+              <p className="text-muted-foreground text-[10px]">Active rules</p>
+              <p className="text-sm font-bold tabular-nums">
+                {activeCount}/{rules.length}
+              </p>
             </div>
             <div className="hidden sm:block">
-              <p className="text-[10px] text-muted-foreground">Last run</p>
+              <p className="text-muted-foreground text-[10px]">Last run</p>
               <p className="text-sm font-medium">
-                {rules.find((r) => r.lastRunAt)?.lastRunAt ? timeAgo(rules.find((r) => r.lastRunAt)!.lastRunAt!) : "—"}
+                {rules.find((r) => r.lastRunAt)?.lastRunAt
+                  ? timeAgo(rules.find((r) => r.lastRunAt)!.lastRunAt!)
+                  : "—"}
               </p>
             </div>
           </div>
@@ -1037,36 +1273,45 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
                 r.type === "ROUND_UP"
                   ? `Round to ₦${(r.amountKobo / 100).toFixed(0)}`
                   : r.type === "PERCENTAGE"
-                  ? `${r.amountKobo}% of deposits`
-                  : `${naira(r.amountKobo)} per run`;
+                    ? `${r.amountKobo}% of deposits`
+                    : `${naira(r.amountKobo)} per run`;
               return (
-                <div key={r.id} className={`rounded-2xl border bg-card p-4 transition-all ${r.enabled ? "" : "opacity-60"}`}>
+                <div
+                  key={r.id}
+                  className={`bg-card rounded-2xl border p-4 transition-all ${r.enabled ? "" : "opacity-60"}`}
+                >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${meta.tone}`}>
+                      <div
+                        className={`flex h-9 w-9 items-center justify-center rounded-xl ${meta.tone}`}
+                      >
                         <Icon className="h-4 w-4" />
                       </div>
                       <div>
                         <p className="text-sm font-semibold">{meta.label}</p>
-                        <p className="text-xs text-muted-foreground">{r.productName}</p>
+                        <p className="text-muted-foreground text-xs">{r.productName}</p>
                       </div>
                     </div>
-                    <Switch checked={r.enabled} onCheckedChange={(v) => toggleRule(r, v)} aria-label="Toggle rule" />
+                    <Switch
+                      checked={r.enabled}
+                      onCheckedChange={(v) => toggleRule(r, v)}
+                      aria-label="Toggle rule"
+                    />
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg bg-muted/40 p-2">
+                    <div className="bg-muted/40 rounded-lg p-2">
                       <p className="text-muted-foreground">Rule</p>
                       <p className="font-semibold">{amountLabel}</p>
                     </div>
-                    <div className="rounded-lg bg-muted/40 p-2">
+                    <div className="bg-muted/40 rounded-lg p-2">
                       <p className="text-muted-foreground">Saved via this rule</p>
-                      <p className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">{naira(r.totalSavedKobo)}</p>
+                      <p className="font-semibold text-emerald-600 tabular-nums dark:text-emerald-400">
+                        {naira(r.totalSavedKobo)}
+                      </p>
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground">
-                    <span>
-                      {r.lastRunAt ? `Last run ${timeAgo(r.lastRunAt)}` : "Never run"}
-                    </span>
+                  <div className="text-muted-foreground mt-3 flex items-center justify-between text-[10px]">
+                    <span>{r.lastRunAt ? `Last run ${timeAgo(r.lastRunAt)}` : "Never run"}</span>
                     <button
                       onClick={() => deleteRule(r)}
                       className="flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-red-500/10 hover:text-red-600"
@@ -1085,7 +1330,7 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-primary" /> Create auto-save rule
+              <Zap className="text-primary h-4 w-4" /> Create auto-save rule
             </DialogTitle>
             <DialogDescription>
               Set up an automatic transfer to your savings product.
@@ -1094,25 +1339,36 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
           <div className="space-y-3 py-2">
             <div className="space-y-2">
               <Label>Rule type</Label>
-              <Select value={type} onValueChange={(v) => setType(v as "ROUND_UP" | "PERCENTAGE" | "FIXED")}>
-                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+              <Select
+                value={type}
+                onValueChange={(v) => setType(v as "ROUND_UP" | "PERCENTAGE" | "FIXED")}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ROUND_UP">
                     <div className="flex flex-col">
                       <span>Round-up</span>
-                      <span className="text-[10px] text-muted-foreground">Round every transaction to the nearest ₦1/₦5/₦10</span>
+                      <span className="text-muted-foreground text-[10px]">
+                        Round every transaction to the nearest ₦1/₦5/₦10
+                      </span>
                     </div>
                   </SelectItem>
                   <SelectItem value="PERCENTAGE">
                     <div className="flex flex-col">
                       <span>Percentage of deposits</span>
-                      <span className="text-[10px] text-muted-foreground">Save X% of every incoming deposit</span>
+                      <span className="text-muted-foreground text-[10px]">
+                        Save X% of every incoming deposit
+                      </span>
                     </div>
                   </SelectItem>
                   <SelectItem value="FIXED">
                     <div className="flex flex-col">
                       <span>Fixed amount on schedule</span>
-                      <span className="text-[10px] text-muted-foreground">Save a fixed amount daily/weekly/monthly</span>
+                      <span className="text-muted-foreground text-[10px]">
+                        Save a fixed amount daily/weekly/monthly
+                      </span>
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -1121,7 +1377,11 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
 
             <div className="space-y-2">
               <Label>
-                {type === "ROUND_UP" ? "Round-up unit" : type === "PERCENTAGE" ? "Percentage (%)" : "Amount per run (₦)"}
+                {type === "ROUND_UP"
+                  ? "Round-up unit"
+                  : type === "PERCENTAGE"
+                    ? "Percentage (%)"
+                    : "Amount per run (₦)"}
               </Label>
               {type === "ROUND_UP" ? (
                 <div className="flex gap-2">
@@ -1131,7 +1391,9 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
                       type="button"
                       onClick={() => setAmountInput(String(u))}
                       className={`flex-1 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
-                        amountInput === String(u) ? "border-primary bg-primary/5 text-primary" : "hover:bg-muted/40"
+                        amountInput === String(u)
+                          ? "border-primary bg-primary/5 text-primary"
+                          : "hover:bg-muted/40"
                       }`}
                     >
                       ₦{u / 100}
@@ -1140,9 +1402,16 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
                 </div>
               ) : type === "PERCENTAGE" ? (
                 <>
-                  <Slider value={[parseKobo(amountInput) || 5]} min={1} max={50} step={1}
-                    onValueChange={(v) => setAmountInput(String(v[0] ?? 5))} />
-                  <p className="text-center text-sm font-semibold text-primary">{parseKobo(amountInput) || 5}%</p>
+                  <Slider
+                    value={[parseKobo(amountInput) || 5]}
+                    min={1}
+                    max={50}
+                    step={1}
+                    onValueChange={(v) => setAmountInput(String(v[0] ?? 5))}
+                  />
+                  <p className="text-primary text-center text-sm font-semibold">
+                    {parseKobo(amountInput) || 5}%
+                  </p>
                 </>
               ) : (
                 <Input
@@ -1155,8 +1424,13 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
               {type === "FIXED" && (
                 <div className="space-y-1.5">
                   <Label>Frequency</Label>
-                  <Select value={frequency} onValueChange={(v) => setFrequency(v as "DAILY" | "WEEKLY" | "MONTHLY")}>
-                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <Select
+                    value={frequency}
+                    onValueChange={(v) => setFrequency(v as "DAILY" | "WEEKLY" | "MONTHLY")}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="DAILY">Daily</SelectItem>
                       <SelectItem value="WEEKLY">Weekly</SelectItem>
@@ -1170,7 +1444,9 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
             <div className="space-y-2">
               <Label>Target savings product</Label>
               <Select value={productId} onValueChange={setProductId}>
-                <SelectTrigger className="w-full"><SelectValue placeholder="Select product" /></SelectTrigger>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select product" />
+                </SelectTrigger>
                 <SelectContent>
                   {products.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
@@ -1182,20 +1458,29 @@ function AutoSaveRulesSection({ products }: { products: { id: string; name: stri
             </div>
 
             {amountInput && parseKobo(amountInput) > 0 && (
-              <div className="rounded-xl border bg-muted/40 p-3 text-sm">
-                <p className="text-xs text-muted-foreground">Preview</p>
+              <div className="bg-muted/40 rounded-xl border p-3 text-sm">
+                <p className="text-muted-foreground text-xs">Preview</p>
                 <p className="mt-0.5 font-medium">
-                  {type === "ROUND_UP" && `Every debit rounds up to ₦${(parseKobo(amountInput) / 100).toFixed(0)}; the difference goes to savings.`}
-                  {type === "PERCENTAGE" && `${parseKobo(amountInput)}% of every incoming deposit auto-saved.`}
-                  {type === "FIXED" && `${naira(parseKobo(amountInput))} moved to savings ${frequency.toLowerCase()}.`}
+                  {type === "ROUND_UP" &&
+                    `Every debit rounds up to ₦${(parseKobo(amountInput) / 100).toFixed(0)}; the difference goes to savings.`}
+                  {type === "PERCENTAGE" &&
+                    `${parseKobo(amountInput)}% of every incoming deposit auto-saved.`}
+                  {type === "FIXED" &&
+                    `${naira(parseKobo(amountInput))} moved to savings ${frequency.toLowerCase()}.`}
                 </p>
               </div>
             )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowCreate(false)} disabled={saving}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setShowCreate(false)} disabled={saving}>
+              Cancel
+            </Button>
             <Button onClick={createRule} disabled={saving} className="gap-1.5">
-              {saving ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {saving ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
               Create rule
             </Button>
           </DialogFooter>
@@ -1267,7 +1552,9 @@ function SavingsChallengesSection({ totalSaved }: { totalSaved: number }) {
   function toggleJoin(id: string) {
     setJoined((prev) => {
       const newState = { ...prev, [id]: !prev[id] };
-      toast.success(newState[id] ? "Challenge joined! Save daily to stay on track." : "Challenge left");
+      toast.success(
+        newState[id] ? "Challenge joined! Save daily to stay on track." : "Challenge left"
+      );
       return newState;
     });
   }
@@ -1280,62 +1567,82 @@ function SavingsChallengesSection({ totalSaved }: { totalSaved: number }) {
         </div>
         <div>
           <p className="text-sm font-semibold">Savings challenges</p>
-          <p className="text-xs text-muted-foreground">Join a community challenge and build a saving habit.</p>
+          <p className="text-muted-foreground text-xs">
+            Join a community challenge and build a saving habit.
+          </p>
         </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {challenges.map((c) => {
-          const pct = c.totalTargetKobo > 0 ? Math.min(100, Math.round((c.progressKobo / c.totalTargetKobo) * 100)) : 0;
-          const avgPct = c.totalTargetKobo > 0 ? Math.round((c.avgSavedKobo / c.totalTargetKobo) * 100) : 0;
+          const pct =
+            c.totalTargetKobo > 0
+              ? Math.min(100, Math.round((c.progressKobo / c.totalTargetKobo) * 100))
+              : 0;
+          const avgPct =
+            c.totalTargetKobo > 0 ? Math.round((c.avgSavedKobo / c.totalTargetKobo) * 100) : 0;
           return (
-            <div key={c.id} className={`rounded-2xl border bg-card p-4 transition-all ${c.joined ? "ring-1 ring-emerald-500/30" : ""}`}>
+            <div
+              key={c.id}
+              className={`bg-card rounded-2xl border p-4 transition-all ${c.joined ? "ring-1 ring-emerald-500/30" : ""}`}
+            >
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold">{c.title}</p>
                     {c.joined && (
-                      <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 text-[9px]">
+                      <Badge
+                        variant="outline"
+                        className="bg-emerald-500/10 text-[9px] text-emerald-600"
+                      >
                         Joined
                       </Badge>
                     )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground">{c.durationDays} days · {naira(c.dailyTargetKobo)}/day</p>
+                  <p className="text-muted-foreground text-[11px]">
+                    {c.durationDays} days · {naira(c.dailyTargetKobo)}/day
+                  </p>
                 </div>
-                <Trophy className={`h-5 w-5 ${c.joined ? "text-amber-500" : "text-muted-foreground/40"}`} />
+                <Trophy
+                  className={`h-5 w-5 ${c.joined ? "text-amber-500" : "text-muted-foreground/40"}`}
+                />
               </div>
 
               <div className="mt-3">
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                <div className="text-muted-foreground flex items-center justify-between text-[10px]">
                   <span>Target: {naira(c.totalTargetKobo)}</span>
                   <span>{pct}%</span>
                 </div>
-                <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+                <div className="bg-muted mt-1 h-2 overflow-hidden rounded-full">
                   <div
                     className="h-full rounded-full bg-emerald-500 transition-all duration-700"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
                 {c.joined && (
-                  <p className="mt-1 text-[10px] text-muted-foreground">
-                    You: <span className="font-semibold text-emerald-600 dark:text-emerald-400">{naira(c.progressKobo)}</span>
+                  <p className="text-muted-foreground mt-1 text-[10px]">
+                    You:{" "}
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                      {naira(c.progressKobo)}
+                    </span>
                   </p>
                 )}
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] text-muted-foreground">
-                <div className="rounded-lg bg-muted/40 p-1.5">
-                  <p className="font-semibold text-foreground">{c.participants.toLocaleString()}</p>
+              <div className="text-muted-foreground mt-3 grid grid-cols-2 gap-2 text-[10px]">
+                <div className="bg-muted/40 rounded-lg p-1.5">
+                  <p className="text-foreground font-semibold">{c.participants.toLocaleString()}</p>
                   <p>participants</p>
                 </div>
-                <div className="rounded-lg bg-muted/40 p-1.5">
-                  <p className="font-semibold text-foreground">{c.completionRatePct}%</p>
+                <div className="bg-muted/40 rounded-lg p-1.5">
+                  <p className="text-foreground font-semibold">{c.completionRatePct}%</p>
                   <p>completion</p>
                 </div>
               </div>
 
-              <div className="mt-2 text-[10px] text-muted-foreground">
-                Avg member saved <span className="font-semibold">{naira(c.avgSavedKobo)}</span> ({avgPct}%)
+              <div className="text-muted-foreground mt-2 text-[10px]">
+                Avg member saved <span className="font-semibold">{naira(c.avgSavedKobo)}</span> (
+                {avgPct}%)
               </div>
 
               <Button
@@ -1366,21 +1673,24 @@ function InterestProjectionSection() {
 
   const monthlyRate = annualRateBps / 10000 / 12;
   const n = years * 12;
-  const fv = monthlyRate === 0
-    ? monthlyKobo * n
-    : Math.round(monthlyKobo * ((Math.pow(1 + monthlyRate, n) - 1) / monthlyRate));
+  const fv =
+    monthlyRate === 0
+      ? monthlyKobo * n
+      : Math.round(monthlyKobo * ((Math.pow(1 + monthlyRate, n) - 1) / monthlyRate));
   const totalContributions = monthlyKobo * n;
   const totalInterest = fv - totalContributions;
 
   return (
     <Card className="p-5">
       <div className="mb-4 flex items-center gap-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <div className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
           <Calculator className="h-5 w-5" />
         </div>
         <div>
           <p className="text-sm font-semibold">Interest projection</p>
-          <p className="text-xs text-muted-foreground">See how regular saving compounds over time.</p>
+          <p className="text-muted-foreground text-xs">
+            See how regular saving compounds over time.
+          </p>
         </div>
       </div>
 
@@ -1389,7 +1699,9 @@ function InterestProjectionSection() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Monthly contribution</Label>
-              <span className="text-sm font-semibold text-primary tabular-nums">{naira(monthlyKobo)}</span>
+              <span className="text-primary text-sm font-semibold tabular-nums">
+                {naira(monthlyKobo)}
+              </span>
             </div>
             <Slider
               value={[monthlyKobo]}
@@ -1409,7 +1721,7 @@ function InterestProjectionSection() {
                   key={chip.label}
                   type="button"
                   onClick={() => setMonthlyKobo(chip.v)}
-                  className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                  className="border-border bg-background hover:border-primary hover:bg-primary/5 rounded-full border px-2.5 py-1 text-xs font-medium"
                 >
                   {chip.label}
                 </button>
@@ -1420,7 +1732,9 @@ function InterestProjectionSection() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Annual interest rate</Label>
-              <span className="text-sm font-semibold text-primary tabular-nums">{(annualRateBps / 100).toFixed(1)}% p.a.</span>
+              <span className="text-primary text-sm font-semibold tabular-nums">
+                {(annualRateBps / 100).toFixed(1)}% p.a.
+              </span>
             </div>
             <Slider
               value={[annualRateBps]}
@@ -1434,7 +1748,9 @@ function InterestProjectionSection() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label>Duration</Label>
-              <span className="text-sm font-semibold text-primary tabular-nums">{years} {years === 1 ? "year" : "years"}</span>
+              <span className="text-primary text-sm font-semibold tabular-nums">
+                {years} {years === 1 ? "year" : "years"}
+              </span>
             </div>
             <Slider
               value={[years]}
@@ -1447,8 +1763,10 @@ function InterestProjectionSection() {
         </div>
 
         <div className="flex flex-col justify-center rounded-2xl bg-gradient-to-br from-emerald-500/10 to-amber-500/5 p-5">
-          <p className="text-xs text-muted-foreground">Total value after {years} {years === 1 ? "year" : "years"}</p>
-          <p className="mt-1 text-3xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+          <p className="text-muted-foreground text-xs">
+            Total value after {years} {years === 1 ? "year" : "years"}
+          </p>
+          <p className="mt-1 text-3xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
             {naira(fv)}
           </p>
           <div className="mt-4 space-y-1.5 text-sm">
@@ -1458,20 +1776,30 @@ function InterestProjectionSection() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">Interest earned</span>
-              <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">+{naira(totalInterest)}</span>
+              <span className="font-semibold text-emerald-600 tabular-nums dark:text-emerald-400">
+                +{naira(totalInterest)}
+              </span>
             </div>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+            <div className="bg-muted mt-2 h-2 overflow-hidden rounded-full">
               <div
                 className="h-full rounded-full bg-emerald-500"
-                style={{ width: `${totalContributions > 0 ? Math.min(100, (totalContributions / fv) * 100) : 100}%` }}
+                style={{
+                  width: `${totalContributions > 0 ? Math.min(100, (totalContributions / fv) * 100) : 100}%`,
+                }}
               />
             </div>
-            <p className="mt-1 text-[10px] text-muted-foreground">
-              <span className="font-semibold text-foreground">{Math.round((totalContributions / Math.max(1, fv)) * 100)}%</span> contributions ·{" "}
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">{Math.round((totalInterest / Math.max(1, fv)) * 100)}%</span> interest
+            <p className="text-muted-foreground mt-1 text-[10px]">
+              <span className="text-foreground font-semibold">
+                {Math.round((totalContributions / Math.max(1, fv)) * 100)}%
+              </span>{" "}
+              contributions ·{" "}
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                {Math.round((totalInterest / Math.max(1, fv)) * 100)}%
+              </span>{" "}
+              interest
             </p>
           </div>
-          <p className="mt-4 text-[10px] text-muted-foreground">
+          <p className="text-muted-foreground mt-4 text-[10px]">
             Assumes monthly compounding. Actual returns depend on the savings product you choose.
           </p>
         </div>

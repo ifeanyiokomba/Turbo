@@ -34,10 +34,13 @@ export function ok<T>(data: T, providerRequestId = "", latencyMs = 0): ProviderR
 export function fail<T = never>(
   code: ProviderErrorCode,
   message: string,
-  opts: Partial<Pick<ProviderError, "providerCode" | "httpStatus" | "raw">> = {},
+  opts: Partial<Pick<ProviderError, "providerCode" | "httpStatus" | "raw">> = {}
 ): ProviderResult<T> {
   const retryable =
-    code === "PROVIDER_TIMEOUT" || code === "RATE_LIMITED" || code === "UPSTREAM_ERROR" || code === "PROVIDER_DOWN";
+    code === "PROVIDER_TIMEOUT" ||
+    code === "RATE_LIMITED" ||
+    code === "UPSTREAM_ERROR" ||
+    code === "PROVIDER_DOWN";
   return {
     ok: false,
     error: { code, message, retryable, ...opts },

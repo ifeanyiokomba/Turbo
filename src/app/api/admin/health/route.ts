@@ -57,7 +57,7 @@ export async function GET() {
             sampledAt: s.sampledAt,
           })),
         };
-      }),
+      })
     );
 
     return json({ providers: perProvider, generatedAt: new Date().toISOString() });

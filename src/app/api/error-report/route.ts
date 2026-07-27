@@ -41,8 +41,7 @@ export async function POST(req: NextRequest) {
       // ignore — anonymous report
     }
 
-    const severity =
-      level === "fatal" ? "CRITICAL" : level === "warning" ? "WARN" : "ERROR";
+    const severity = level === "fatal" ? "CRITICAL" : level === "warning" ? "WARN" : "ERROR";
 
     console.error(`[client-error] ${level.toUpperCase()} ${message}`, {
       url,

@@ -13,12 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -325,7 +320,9 @@ export default function QrView() {
       if (!ctx) return;
       ctx.drawImage(img, 0, 0);
       const imageData = ctx.getImageData(0, 0, img.width, img.height);
-      const code = jsQR(imageData.data, img.width, img.height, { inversionAttempts: "attemptBoth" });
+      const code = jsQR(imageData.data, img.width, img.height, {
+        inversionAttempts: "attemptBoth",
+      });
       if (!code || !code.data) {
         toast.error("No QR code found in the image");
         return;
@@ -442,7 +439,7 @@ export default function QrView() {
   const expiryCountdown = useExpiryCountdown(generatedQr?.expiresAt ?? null);
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="QR Pay"
         subtitle="Receive money with your QR code, scan to pay, and track QR payments."
@@ -465,15 +462,15 @@ export default function QrView() {
         <TabsContent value="receive" className="space-y-5">
           {loading ? (
             <Card className="mx-auto max-w-md p-8">
-              <div className="mx-auto h-64 w-64 animate-pulse rounded-2xl bg-muted" />
-              <div className="mt-6 h-4 w-2/3 animate-pulse rounded bg-muted" />
-              <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-muted" />
+              <div className="bg-muted mx-auto h-64 w-64 animate-pulse rounded-2xl" />
+              <div className="bg-muted mt-6 h-4 w-2/3 animate-pulse rounded" />
+              <div className="bg-muted mt-2 h-3 w-1/2 animate-pulse rounded" />
             </Card>
           ) : !account ? (
             <Card className="mx-auto max-w-md p-8 text-center">
-              <Wallet className="mx-auto h-10 w-10 text-muted-foreground" />
+              <Wallet className="text-muted-foreground mx-auto h-10 w-10" />
               <p className="mt-4 font-semibold">No virtual account yet</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="text-muted-foreground mt-1 text-sm">
                 Fund your wallet to generate a virtual account and unlock QR receiving.
               </p>
               <Button className="mt-4 gap-1.5" onClick={() => setView("wallet")}>
@@ -484,10 +481,10 @@ export default function QrView() {
             <>
               {/* Persistent "My QR code" card — payment card design */}
               <Card className="mx-auto max-w-md overflow-hidden p-0">
-                <div className="tp-emerald-grad relative p-5 text-white tp-sheen">
+                <div className="tp-emerald-grad tp-sheen relative p-5 text-white">
                   <div className="relative z-10 flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/80">
+                      <p className="text-[10px] font-semibold tracking-widest text-white/80 uppercase">
                         Turbopay · Receive
                       </p>
                       <p className="mt-0.5 text-lg font-bold">{account.accountName}</p>
@@ -508,23 +505,23 @@ export default function QrView() {
                       />
                     </div>
                   </div>
-                  <div className="w-full space-y-2 rounded-xl border bg-muted/30 p-3">
+                  <div className="bg-muted/30 w-full space-y-2 rounded-xl border p-3">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-muted-foreground">Account number</span>
+                      <span className="text-muted-foreground text-xs">Account number</span>
                       <button
                         onClick={copyAccount}
-                        className="flex items-center gap-1.5 font-mono text-sm font-semibold hover:text-primary"
+                        className="hover:text-primary flex items-center gap-1.5 font-mono text-sm font-semibold"
                       >
                         {account.accountNumber}
                         {copiedAcc ? (
                           <Check className="h-3.5 w-3.5 text-emerald-600" />
                         ) : (
-                          <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                          <Copy className="text-muted-foreground h-3.5 w-3.5" />
                         )}
                       </button>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-muted-foreground">Bank</span>
+                      <span className="text-muted-foreground text-xs">Bank</span>
                       <Badge variant="secondary" className="gap-1 text-[10px]">
                         <ShieldCheck className="h-3 w-3" /> {account.bankName}
                       </Badge>
@@ -532,7 +529,11 @@ export default function QrView() {
                   </div>
                   <div className="flex w-full gap-2">
                     <Button variant="outline" className="flex-1 gap-1.5" onClick={copyAccount}>
-                      {copiedAcc ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                      {copiedAcc ? (
+                        <Check className="h-4 w-4 text-emerald-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
                       Copy
                     </Button>
                     <Button className="flex-1 gap-1.5" onClick={shareStatic}>
@@ -545,10 +546,10 @@ export default function QrView() {
               {/* Dynamic payment QR generator */}
               <Card className="mx-auto max-w-md p-5 sm:p-6">
                 <div className="mb-4 flex items-center gap-2">
-                  <Plus className="h-5 w-5 text-primary" />
+                  <Plus className="text-primary h-5 w-5" />
                   <h3 className="text-base font-semibold">Generate payment QR</h3>
                 </div>
-                <p className="mb-4 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mb-4 text-sm">
                   Request a specific amount with an expiring QR. Perfect for invoices and in-person
                   payments — the recipient just scans and pays.
                 </p>
@@ -591,7 +592,7 @@ export default function QrView() {
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-primary" />
+                      <Sparkles className="text-primary h-5 w-5" />
                       Payment QR ready
                     </DialogTitle>
                     <DialogDescription>
@@ -603,7 +604,7 @@ export default function QrView() {
                       <div className="overflow-hidden rounded-2xl border bg-gradient-to-br from-emerald-600 to-teal-700 text-white">
                         <div className="flex items-center justify-between p-4">
                           <div>
-                            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/80">
+                            <p className="text-[10px] font-semibold tracking-widest text-white/80 uppercase">
                               Turbopay · Payment request
                             </p>
                             <p className="mt-0.5 text-sm font-bold">
@@ -623,7 +624,7 @@ export default function QrView() {
                             />
                           </div>
                           <div className="text-center">
-                            <p className="text-[10px] uppercase tracking-widest text-white/70">
+                            <p className="text-[10px] tracking-widest text-white/70 uppercase">
                               Amount
                             </p>
                             <p className="text-2xl font-bold tabular-nums">
@@ -648,8 +649,8 @@ export default function QrView() {
                       <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
                         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
                         <p className="text-xs text-amber-700 dark:text-amber-300">
-                          This QR expires in 10 minutes. Generate a new one if the customer can&apos;t
-                          scan in time.
+                          This QR expires in 10 minutes. Generate a new one if the customer
+                          can&apos;t scan in time.
                         </p>
                       </div>
                     </div>
@@ -671,10 +672,10 @@ export default function QrView() {
             {!resolved ? (
               <>
                 <div className="relative mx-auto aspect-square w-full max-w-[280px] overflow-hidden rounded-2xl border-2 border-emerald-500/30 bg-slate-900">
-                  <span className="pointer-events-none absolute left-3 top-3 h-7 w-7 rounded-tl-lg border-l-2 border-t-2 border-emerald-400" />
-                  <span className="pointer-events-none absolute right-3 top-3 h-7 w-7 rounded-tr-lg border-r-2 border-t-2 border-emerald-400" />
+                  <span className="pointer-events-none absolute top-3 left-3 h-7 w-7 rounded-tl-lg border-t-2 border-l-2 border-emerald-400" />
+                  <span className="pointer-events-none absolute top-3 right-3 h-7 w-7 rounded-tr-lg border-t-2 border-r-2 border-emerald-400" />
                   <span className="pointer-events-none absolute bottom-3 left-3 h-7 w-7 rounded-bl-lg border-b-2 border-l-2 border-emerald-400" />
-                  <span className="pointer-events-none absolute bottom-3 right-3 h-7 w-7 rounded-br-lg border-b-2 border-r-2 border-emerald-400" />
+                  <span className="pointer-events-none absolute right-3 bottom-3 h-7 w-7 rounded-br-lg border-r-2 border-b-2 border-emerald-400" />
                   {cameraOn ? (
                     <>
                       <video
@@ -683,10 +684,10 @@ export default function QrView() {
                         muted
                         playsInline
                       />
-                      <div className="pointer-events-none absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 bg-emerald-400/80 shadow-[0_0_12px_2px_oklch(0.72_0.14_162_/_0.6)] tp-pulse-dot" />
+                      <div className="tp-pulse-dot pointer-events-none absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 bg-emerald-400/80 shadow-[0_0_12px_2px_oklch(0.72_0.14_162_/_0.6)]" />
                       <button
                         onClick={stopCamera}
-                        className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                        className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
                         aria-label="Stop camera"
                       >
                         <X className="h-4 w-4" />
@@ -766,19 +767,19 @@ export default function QrView() {
                     <CheckCircle2 className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                    <p className="text-xs font-semibold tracking-wide text-emerald-700 uppercase dark:text-emerald-400">
                       Recipient verified
                     </p>
                     <p className="truncate text-sm font-bold">{resolved.recipient.name}</p>
-                    <p className="font-mono text-xs text-muted-foreground">
+                    <p className="text-muted-foreground font-mono text-xs">
                       {resolved.recipient.accountNumber} · {resolved.recipient.bankName}
                     </p>
                   </div>
                 </div>
 
                 {resolved.note && (
-                  <div className="rounded-xl border bg-muted/30 p-3">
-                    <p className="text-xs text-muted-foreground">Note</p>
+                  <div className="bg-muted/30 rounded-xl border p-3">
+                    <p className="text-muted-foreground text-xs">Note</p>
                     <p className="mt-0.5 text-sm">{resolved.note}</p>
                   </div>
                 )}
@@ -798,9 +799,9 @@ export default function QrView() {
                     disabled={!!(resolved.amountKobo && resolved.amountKobo > 0)}
                   />
                   {resolved.amountKobo && resolved.amountKobo > 0 && (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       This QR requires{" "}
-                      <span className="font-semibold text-foreground">
+                      <span className="text-foreground font-semibold">
                         {naira(resolved.amountKobo)}
                       </span>
                       .
@@ -808,7 +809,7 @@ export default function QrView() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <div className="text-muted-foreground flex items-center gap-1.5 text-[11px]">
                   <Clock className="h-3 w-3" />
                   Expires {timeAgo(resolved.expiresAt)}
                 </div>
@@ -823,7 +824,10 @@ export default function QrView() {
                     ) : (
                       <ArrowRight className="h-4 w-4" />
                     )}
-                    Pay {payAmount && Number(payAmount) > 0 ? naira(Math.round(Number(payAmount) * 100)) : ""}
+                    Pay{" "}
+                    {payAmount && Number(payAmount) > 0
+                      ? naira(Math.round(Number(payAmount) * 100))
+                      : ""}
                   </Button>
                 </div>
               </div>
@@ -836,7 +840,7 @@ export default function QrView() {
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
+                <Clock className="text-primary h-5 w-5" />
                 <h3 className="text-base font-semibold">QR payment history</h3>
               </div>
               <Button variant="ghost" size="sm" onClick={loadHistory} className="gap-1.5">
@@ -856,13 +860,13 @@ export default function QrView() {
                 description="Payments you make or receive via QR codes will appear here."
               />
             ) : (
-              <ul className="max-h-96 space-y-2 overflow-y-auto pr-1 scrollbar-thin">
+              <ul className="scrollbar-thin max-h-96 space-y-2 overflow-y-auto pr-1">
                 {history.map((h) => {
                   const isCredit = h.direction === "CREDIT";
                   return (
                     <li
                       key={h.id}
-                      className="flex items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-muted/40"
+                      className="hover:bg-muted/40 flex items-center gap-3 rounded-xl border p-3 transition-colors"
                     >
                       <div
                         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
@@ -882,7 +886,7 @@ export default function QrView() {
                           {isCredit ? "Received from " : "Paid to "}
                           <span className="font-semibold">{h.counterpartyName ?? "Unknown"}</span>
                         </p>
-                        <p className="truncate text-xs text-muted-foreground">
+                        <p className="text-muted-foreground truncate text-xs">
                           {h.reference}
                           {h.note && ` · ${h.note}`}
                           {` · ${timeAgo(h.createdAt)}`}
@@ -891,9 +895,7 @@ export default function QrView() {
                       <div className="text-right">
                         <p
                           className={`text-sm font-semibold tabular-nums ${
-                            isCredit
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : "text-foreground"
+                            isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"
                           }`}
                         >
                           {isCredit ? "+" : "−"}

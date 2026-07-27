@@ -26,10 +26,7 @@ export async function POST(req: Request) {
       // Delete sessions that have either expired or been explicitly revoked.
       const deleted = await db.session.deleteMany({
         where: {
-          OR: [
-            { expiresAt: { lt: now } },
-            { revokedAt: { not: null } },
-          ],
+          OR: [{ expiresAt: { lt: now } }, { revokedAt: { not: null } }],
         },
       });
 

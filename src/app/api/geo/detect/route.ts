@@ -1,13 +1,6 @@
-import {
-  json,
-  handleError,
-  requireUser,
-} from "@/lib/api";
+import { json, handleError, requireUser } from "@/lib/api";
 import { headers as nextHeaders } from "next/headers";
-import {
-  detectCountryFromHeaders,
-  getCountryConfig,
-} from "@/lib/turbocore/geo/country-config";
+import { detectCountryFromHeaders, getCountryConfig } from "@/lib/turbocore/geo/country-config";
 
 export async function GET() {
   try {

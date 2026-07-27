@@ -1,4 +1,4 @@
-import ZAI from 'z-ai-web-dev-sdk';
+import ZAI from "z-ai-web-dev-sdk";
 
 interface SearchFunctionResultItem {
   url: string;
@@ -14,13 +14,13 @@ async function main(query: string, num: number = 10) {
   try {
     const zai = await ZAI.create();
 
-    const searchResult = await zai.functions.invoke('web_search', {
+    const searchResult = await zai.functions.invoke("web_search", {
       query: query,
-      num: num
+      num: num,
     });
 
-    console.log('Search Results:');
-    console.log('================\n');
+    console.log("Search Results:");
+    console.log("================\n");
 
     if (Array.isArray(searchResult)) {
       searchResult.forEach((item: SearchFunctionResultItem, index: number) => {
@@ -29,16 +29,16 @@ async function main(query: string, num: number = 10) {
         console.log(`   Snippet: ${item.snippet}`);
         console.log(`   Host: ${item.host_name}`);
         console.log(`   Date: ${item.date}`);
-        console.log('');
+        console.log("");
       });
 
       console.log(`\nTotal results: ${searchResult.length}`);
     } else {
-      console.log('Unexpected response format:', searchResult);
+      console.log("Unexpected response format:", searchResult);
     }
   } catch (err: any) {
-    console.error('Web search failed:', err?.message || err);
+    console.error("Web search failed:", err?.message || err);
   }
 }
 
-main('What is the capital of France?', 5);
+main("What is the capital of France?", 5);

@@ -59,30 +59,30 @@
   --primary: oklch(0.52 0.13 162);
   --primary-foreground: oklch(0.99 0.01 162);
   --secondary: oklch(0.96 0.02 162);
-  --secondary-foreground: oklch(0.30 0.05 162);
+  --secondary-foreground: oklch(0.3 0.05 162);
   --muted: oklch(0.96 0.01 162);
   --muted-foreground: oklch(0.52 0.02 162);
   --accent: oklch(0.92 0.08 80);
-  --accent-foreground: oklch(0.35 0.10 70);
+  --accent-foreground: oklch(0.35 0.1 70);
   --destructive: oklch(0.58 0.22 27);
-  --success: oklch(0.60 0.14 155);
+  --success: oklch(0.6 0.14 155);
   --success-foreground: oklch(0.99 0.01 162);
-  --warning: oklch(0.80 0.13 75);
-  --warning-foreground: oklch(0.30 0.08 70);
+  --warning: oklch(0.8 0.13 75);
+  --warning-foreground: oklch(0.3 0.08 70);
   --border: oklch(0.91 0.01 162);
   --input: oklch(0.91 0.01 162);
   --ring: oklch(0.52 0.13 162);
   --chart-1: oklch(0.52 0.13 162);
-  --chart-2: oklch(0.80 0.13 75);
-  --chart-3: oklch(0.60 0.14 155);
+  --chart-2: oklch(0.8 0.13 75);
+  --chart-3: oklch(0.6 0.14 155);
   --chart-4: oklch(0.62 0.18 250);
-  --chart-5: oklch(0.65 0.20 18);
+  --chart-5: oklch(0.65 0.2 18);
   --sidebar: oklch(0.98 0.01 162);
-  --sidebar-foreground: oklch(0.20 0.03 162);
+  --sidebar-foreground: oklch(0.2 0.03 162);
   --sidebar-primary: oklch(0.52 0.13 162);
   --sidebar-primary-foreground: oklch(0.99 0.01 162);
   --sidebar-accent: oklch(0.94 0.03 162);
-  --sidebar-accent-foreground: oklch(0.30 0.05 162);
+  --sidebar-accent-foreground: oklch(0.3 0.05 162);
   --sidebar-border: oklch(0.91 0.01 162);
   --sidebar-ring: oklch(0.52 0.13 162);
 }
@@ -102,19 +102,19 @@
   --muted-foreground: oklch(0.68 0.02 162);
   --accent: oklch(0.38 0.09 72);
   --accent-foreground: oklch(0.95 0.05 80);
-  --destructive: oklch(0.70 0.19 22);
-  --success: oklch(0.70 0.15 155);
+  --destructive: oklch(0.7 0.19 22);
+  --success: oklch(0.7 0.15 155);
   --success-foreground: oklch(0.16 0.02 162);
-  --warning: oklch(0.80 0.13 75);
-  --warning-foreground: oklch(0.20 0.05 70);
+  --warning: oklch(0.8 0.13 75);
+  --warning-foreground: oklch(0.2 0.05 70);
   --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 12%);
   --ring: oklch(0.72 0.14 162);
   --chart-1: oklch(0.72 0.14 162);
-  --chart-2: oklch(0.80 0.13 75);
-  --chart-3: oklch(0.70 0.15 155);
+  --chart-2: oklch(0.8 0.13 75);
+  --chart-3: oklch(0.7 0.15 155);
   --chart-4: oklch(0.65 0.18 250);
-  --chart-5: oklch(0.70 0.20 18);
+  --chart-5: oklch(0.7 0.2 18);
   --sidebar: oklch(0.13 0.02 162);
   --sidebar-foreground: oklch(0.95 0.01 162);
   --sidebar-primary: oklch(0.72 0.14 162);
@@ -139,13 +139,21 @@
 @layer utilities {
   /* Signature emerald-gradient wallet card */
   .tp-wallet-card {
-    background:
-      radial-gradient(120% 120% at 0% 0%, oklch(0.62 0.16 162) 0%, oklch(0.42 0.12 162) 55%, oklch(0.30 0.08 162) 100%);
-    box-shadow: 0 18px 40px -18px oklch(0.30 0.12 162 / 0.55);
+    background: radial-gradient(
+      120% 120% at 0% 0%,
+      oklch(0.62 0.16 162) 0%,
+      oklch(0.42 0.12 162) 55%,
+      oklch(0.3 0.08 162) 100%
+    );
+    box-shadow: 0 18px 40px -18px oklch(0.3 0.12 162 / 0.55);
   }
   .tp-wallet-card-dark {
-    background:
-      radial-gradient(120% 120% at 0% 0%, oklch(0.50 0.13 162) 0%, oklch(0.34 0.10 162) 55%, oklch(0.22 0.06 162) 100%);
+    background: radial-gradient(
+      120% 120% at 0% 0%,
+      oklch(0.5 0.13 162) 0%,
+      oklch(0.34 0.1 162) 55%,
+      oklch(0.22 0.06 162) 100%
+    );
   }
   .tp-amber-grad {
     background: linear-gradient(135deg, oklch(0.85 0.13 80) 0%, oklch(0.72 0.15 70) 100%);
@@ -174,22 +182,40 @@
     animation: tp-sheen 3.2s ease-in-out infinite;
   }
   @keyframes tp-sheen {
-    0% { transform: translateX(-100%); }
-    60%, 100% { transform: translateX(100%); }
+    0% {
+      transform: translateX(-100%);
+    }
+    60%,
+    100% {
+      transform: translateX(100%);
+    }
   }
   .tp-fade-rise {
     animation: tp-fade-rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
   @keyframes tp-fade-rise {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   .tp-pulse-dot {
     animation: tp-pulse-dot 1.8s ease-in-out infinite;
   }
   @keyframes tp-pulse-dot {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.4; transform: scale(0.7); }
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.4;
+      transform: scale(0.7);
+    }
   }
   .tabular-nums {
     font-variant-numeric: tabular-nums;
@@ -211,11 +237,14 @@
     background: transparent;
   }
   .tp-card-hover {
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
   }
   .tp-card-hover:hover {
     transform: translateY(-2px);
-    box-shadow: 0 12px 24px -12px oklch(0.30 0.12 162 / 0.25);
+    box-shadow: 0 12px 24px -12px oklch(0.3 0.12 162 / 0.25);
     border-color: color-mix(in oklch, var(--primary) 30%, var(--border));
   }
   .tp-focus-glow:focus-visible {
@@ -223,20 +252,35 @@
     box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 25%, transparent);
   }
   .tp-shimmer {
-    background: linear-gradient(90deg, var(--muted) 25%, color-mix(in oklch, var(--muted) 50%, var(--background)) 50%, var(--muted) 75%);
+    background: linear-gradient(
+      90deg,
+      var(--muted) 25%,
+      color-mix(in oklch, var(--muted) 50%, var(--background)) 50%,
+      var(--muted) 75%
+    );
     background-size: 200% 100%;
     animation: tp-shimmer 1.5s ease-in-out infinite;
   }
   @keyframes tp-shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
   }
   .tp-slide-up {
     animation: tp-slide-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
   @keyframes tp-slide-up {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }
 
@@ -281,7 +325,11 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(135deg, color-mix(in oklch, var(--primary) 8%, transparent) 0%, transparent 60%);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary) 8%, transparent) 0%,
+    transparent 60%
+  );
   opacity: 0;
   transition: opacity 0.25s ease;
   pointer-events: none;
@@ -293,8 +341,14 @@
 
 /* Count-up animation for numeric transitions (e.g. balance, stats) */
 @keyframes tp-count-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .tp-count-up {
   animation: tp-count-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -311,7 +365,9 @@
   width: 0.375rem;
   border-radius: 9999px;
   background: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
-  transition: width 0.3s ease, background 0.3s ease;
+  transition:
+    width 0.3s ease,
+    background 0.3s ease;
 }
 .tp-step-indicator [data-step="active"] {
   width: 1.5rem;
@@ -323,26 +379,54 @@
 
 /* Subtle floating animation — used on the wallet BalanceCard */
 @keyframes tp-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 .tp-float {
   animation: tp-float 6s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .tp-float { animation: none; }
-  .tp-count-up { animation: none; }
-  .tp-shimmer { animation: none; background: var(--muted); }
-  .tp-sheen::after { animation: none; display: none; }
-  .tp-pulse-dot { animation: none; }
-  .tp-badge-pulse { animation: none; }
-  .tp-theme-toggle-thumb { transition: none !important; }
-  html { scroll-behavior: auto; }
+  .tp-float {
+    animation: none;
+  }
+  .tp-count-up {
+    animation: none;
+  }
+  .tp-shimmer {
+    animation: none;
+    background: var(--muted);
+  }
+  .tp-sheen::after {
+    animation: none;
+    display: none;
+  }
+  .tp-pulse-dot {
+    animation: none;
+  }
+  .tp-badge-pulse {
+    animation: none;
+  }
+  .tp-theme-toggle-thumb {
+    transition: none !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 /* ===== Premium app-wide scrollbar ===== */
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: var(--background); }
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
 ::-webkit-scrollbar-thumb {
   background: color-mix(in oklch, var(--primary) 30%, var(--muted));
   border-radius: 999px;
@@ -351,7 +435,9 @@
 ::-webkit-scrollbar-thumb:hover {
   background: color-mix(in oklch, var(--primary) 50%, var(--muted));
 }
-::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
 /* Firefox parity */
 * {
   scrollbar-width: thin;
@@ -359,9 +445,13 @@
 }
 
 /* Smooth scrolling + theme transition (no transform/opacity to avoid jank) */
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+}
 * {
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
 }
 
 /* ===== Premium pill theme toggle (sun/moon slide) ===== */
@@ -412,8 +502,14 @@ html { scroll-behavior: smooth; }
 
 /* ===== Notification panel slide-in ===== */
 @keyframes tp-slide-in-right {
-  from { opacity: 0; transform: translateX(24px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 .tp-slide-in-right {
   animation: tp-slide-in-right 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -426,7 +522,9 @@ html { scroll-behavior: smooth; }
   gap: 0.75rem;
   padding: 0.875rem 1rem;
   border-bottom: 1px solid var(--border);
-  transition: background-color 0.18s ease, transform 0.18s ease;
+  transition:
+    background-color 0.18s ease,
+    transform 0.18s ease;
   cursor: pointer;
 }
 .tp-notification-item:hover {
@@ -452,7 +550,8 @@ html { scroll-behavior: smooth; }
   animation: tp-badge-pulse 1.6s ease-in-out infinite;
 }
 @keyframes tp-badge-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 0 0 0 color-mix(in oklch, var(--destructive) 60%, transparent);
   }
@@ -466,26 +565,44 @@ html { scroll-behavior: smooth; }
 
 /* Button press feedback */
 .tp-btn-press {
-  transition: transform 0.08s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.08s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
-.tp-btn-press:active { transform: scale(0.97); }
+.tp-btn-press:active {
+  transform: scale(0.97);
+}
 
 /* Subtle 3D tilt on hover (for premium cards / CTAs) */
 .tp-card-tilt {
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease, border-color 0.2s ease;
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    border-color 0.2s ease;
   transform-style: preserve-3d;
   will-change: transform;
 }
 .tp-card-tilt:hover {
   transform: perspective(1000px) rotateX(1deg) rotateY(-1deg) translateY(-2px);
-  box-shadow: 0 16px 32px -16px oklch(0.30 0.12 162 / 0.30);
+  box-shadow: 0 16px 32px -16px oklch(0.3 0.12 162 / 0.3);
 }
 
 /* Sonner toast slide-in from top with a subtle bounce */
 @keyframes tp-toast-slide {
-  0% { opacity: 0; transform: translateY(-16px) scale(0.98); }
-  60% { opacity: 1; transform: translateY(2px) scale(1.01); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  0% {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.98);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(2px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* Improved skeleton shimmer with a gradient sweep (better than tp-shimmer) */
@@ -508,8 +625,12 @@ html { scroll-behavior: smooth; }
   animation: tp-skeleton-sweep 1.6s ease-in-out infinite;
 }
 @keyframes tp-skeleton-sweep {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Animated underline on hover (link / nav items) */
@@ -518,7 +639,9 @@ html { scroll-behavior: smooth; }
   background-position: 0 100%;
   background-repeat: no-repeat;
   background-size: 0% 1.5px;
-  transition: background-size 0.28s ease, color 0.2s ease;
+  transition:
+    background-size 0.28s ease,
+    color 0.2s ease;
   padding-bottom: 1px;
 }
 .tp-link-underline:hover {
@@ -581,9 +704,17 @@ html { scroll-behavior: smooth; }
   animation: tp-holo-sweep 1.4s ease-out;
 }
 @keyframes tp-holo-sweep {
-  0% { background-position: 200% 0; opacity: 0; }
-  25% { opacity: 1; }
-  100% { background-position: -100% 0; opacity: 1; }
+  0% {
+    background-position: 200% 0;
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    background-position: -100% 0;
+    opacity: 1;
+  }
 }
 
 /* NFC "contactless" wifi-wave icon — three nested arcs that pulse */
@@ -603,17 +734,35 @@ html { scroll-behavior: smooth; }
   opacity: 0.85;
   animation: tp-nfc-pulse 1.8s ease-in-out infinite;
 }
-.tp-nfc-wave span:nth-child(1) { height: 35%; animation-delay: 0s; }
-.tp-nfc-wave span:nth-child(2) { height: 65%; animation-delay: 0.18s; }
-.tp-nfc-wave span:nth-child(3) { height: 100%; animation-delay: 0.36s; }
+.tp-nfc-wave span:nth-child(1) {
+  height: 35%;
+  animation-delay: 0s;
+}
+.tp-nfc-wave span:nth-child(2) {
+  height: 65%;
+  animation-delay: 0.18s;
+}
+.tp-nfc-wave span:nth-child(3) {
+  height: 100%;
+  animation-delay: 0.36s;
+}
 @keyframes tp-nfc-pulse {
-  0%, 100% { opacity: 0.5; transform: scaleY(0.85); }
-  50% { opacity: 1; transform: scaleY(1); }
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scaleY(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
 }
 
 /* Testimonial carousel fade transition */
 .tp-testimonial {
-  transition: opacity 0.6s ease, transform 0.6s ease;
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease;
 }
 .tp-testimonial[data-active="true"] {
   opacity: 1;
@@ -641,22 +790,35 @@ html { scroll-behavior: smooth; }
   animation: tp-accordion-open 0.3s ease-out;
 }
 @keyframes tp-accordion-open {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Awards / recognition marquee shimmer */
 .tp-award-shine {
-  background: linear-gradient(110deg,
+  background: linear-gradient(
+    110deg,
     color-mix(in oklch, var(--primary) 10%, transparent) 0%,
     color-mix(in oklch, var(--warning) 22%, transparent) 50%,
-    color-mix(in oklch, var(--primary) 10%, transparent) 100%);
+    color-mix(in oklch, var(--primary) 10%, transparent) 100%
+  );
   background-size: 200% 100%;
   animation: tp-award-shine 4s ease-in-out infinite;
 }
 @keyframes tp-award-shine {
-  0%, 100% { background-position: 0% 0; }
-  50% { background-position: 100% 0; }
+  0%,
+  100% {
+    background-position: 0% 0;
+  }
+  50% {
+    background-position: 100% 0;
+  }
 }
 
 /* Insights tip card subtle rotating gradient border */
@@ -669,10 +831,12 @@ html { scroll-behavior: smooth; }
   position: absolute;
   inset: -1px;
   border-radius: inherit;
-  background: conic-gradient(from var(--tip-angle, 0deg),
+  background: conic-gradient(
+    from var(--tip-angle, 0deg),
     color-mix(in oklch, var(--primary) 30%, transparent),
     color-mix(in oklch, var(--warning) 30%, transparent),
-    color-mix(in oklch, var(--primary) 30%, transparent));
+    color-mix(in oklch, var(--primary) 30%, transparent)
+  );
   z-index: -1;
   opacity: 0.5;
   filter: blur(8px);
@@ -684,18 +848,36 @@ html { scroll-behavior: smooth; }
   initial-value: 0deg;
 }
 @keyframes tp-tip-rotate {
-  to { --tip-angle: 360deg; }
+  to {
+    --tip-angle: 360deg;
+  }
 }
 
 /* Extend reduced-motion guard with the new animations */
 @media (prefers-reduced-motion: reduce) {
-  .tp-card-flipper { transition: none !important; }
-  .tp-holo::before { animation: none !important; opacity: 0; }
-  .tp-nfc-wave span { animation: none !important; }
-  .tp-award-shine { animation: none !important; }
-  .tp-tip-glow::before { animation: none !important; }
-  .tp-testimonial { transition: none !important; }
-  .tp-confetti-piece { animation: none !important; display: none !important; }
+  .tp-card-flipper {
+    transition: none !important;
+  }
+  .tp-holo::before {
+    animation: none !important;
+    opacity: 0;
+  }
+  .tp-nfc-wave span {
+    animation: none !important;
+  }
+  .tp-award-shine {
+    animation: none !important;
+  }
+  .tp-tip-glow::before {
+    animation: none !important;
+  }
+  .tp-testimonial {
+    transition: none !important;
+  }
+  .tp-confetti-piece {
+    animation: none !important;
+    display: none !important;
+  }
 }
 
 /* ===== Transaction success confetti (pure CSS) ===== */
@@ -715,7 +897,9 @@ html { scroll-behavior: smooth; }
     transform: translate3d(0, 0, 0) rotate(0deg);
     opacity: 1;
   }
-  80% { opacity: 1; }
+  80% {
+    opacity: 1;
+  }
   100% {
     /* Fall from -10vh to 110vh, drift horizontally, and spin a full turn. */
     transform: translate3d(var(--tp-confetti-drift, 0vw), 120vh, 0) rotate(720deg);
@@ -728,14 +912,21 @@ html { scroll-behavior: smooth; }
    background, icon scale-up (1.1), and a soft emerald glow. */
 .tp-nav-item {
   position: relative;
-  transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.22s ease, transform 0.18s ease;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.22s ease,
+    transform 0.18s ease;
 }
-.tp-nav-item:hover { transform: translateX(1px); }
+.tp-nav-item:hover {
+  transform: translateX(1px);
+}
 .tp-nav-item[data-active="true"] {
-  background:
-    linear-gradient(135deg,
-      color-mix(in oklch, var(--primary) 14%, transparent) 0%,
-      color-mix(in oklch, var(--primary) 4%, transparent) 100%);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--primary) 14%, transparent) 0%,
+    color-mix(in oklch, var(--primary) 4%, transparent) 100%
+  );
   color: var(--primary);
   box-shadow:
     0 6px 16px -8px color-mix(in oklch, var(--primary) 50%, transparent),
@@ -795,22 +986,26 @@ html { scroll-behavior: smooth; }
 .tp-glow-emerald {
   box-shadow:
     0 0 20px -5px oklch(0.62 0.14 162 / 0.3),
-    0 12px 28px -16px oklch(0.30 0.12 162 / 0.45);
+    0 12px 28px -16px oklch(0.3 0.12 162 / 0.45);
 }
 
 /* Amber glow variant — for rewards / featured cards */
 .tp-glow-amber {
   box-shadow:
-    0 0 20px -5px oklch(0.80 0.13 75 / 0.3),
+    0 0 20px -5px oklch(0.8 0.13 75 / 0.3),
     0 12px 28px -16px oklch(0.55 0.13 75 / 0.35);
 }
 
 /* Deeper, more vivid balance card in dark mode — richer gradient + stronger glow */
 .dark .tp-wallet-card {
-  background:
-    radial-gradient(120% 120% at 0% 0%, oklch(0.55 0.15 162) 0%, oklch(0.36 0.11 162) 55%, oklch(0.20 0.05 162) 100%);
+  background: radial-gradient(
+    120% 120% at 0% 0%,
+    oklch(0.55 0.15 162) 0%,
+    oklch(0.36 0.11 162) 55%,
+    oklch(0.2 0.05 162) 100%
+  );
   box-shadow:
-    0 22px 48px -18px oklch(0.30 0.12 162 / 0.65),
+    0 22px 48px -18px oklch(0.3 0.12 162 / 0.65),
     0 0 24px -6px oklch(0.62 0.14 162 / 0.25);
 }
 
@@ -837,8 +1032,14 @@ html { scroll-behavior: smooth; }
 
 /* Smooth view entrance — opacity + slight Y + scale */
 @keyframes tp-view-enter {
-  from { opacity: 0; transform: translateY(8px) scale(0.99); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 .tp-view-enter {
   animation: tp-view-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -846,23 +1047,49 @@ html { scroll-behavior: smooth; }
 
 /* Staggered children entrance — fade + slide up, sequential delays */
 @keyframes tp-stagger-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .tp-stagger > * {
   animation: tp-stagger-in 0.4s ease-out both;
 }
-.tp-stagger > *:nth-child(1) { animation-delay: 0.05s; }
-.tp-stagger > *:nth-child(2) { animation-delay: 0.10s; }
-.tp-stagger > *:nth-child(3) { animation-delay: 0.15s; }
-.tp-stagger > *:nth-child(4) { animation-delay: 0.20s; }
-.tp-stagger > *:nth-child(5) { animation-delay: 0.25s; }
-.tp-stagger > *:nth-child(6) { animation-delay: 0.30s; }
+.tp-stagger > *:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.tp-stagger > *:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.tp-stagger > *:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.tp-stagger > *:nth-child(4) {
+  animation-delay: 0.2s;
+}
+.tp-stagger > *:nth-child(5) {
+  animation-delay: 0.25s;
+}
+.tp-stagger > *:nth-child(6) {
+  animation-delay: 0.3s;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .tp-view-enter { animation: none !important; }
-  .tp-stagger > * { animation: none !important; }
+  .tp-view-enter {
+    animation: none !important;
+  }
+  .tp-stagger > * {
+    animation: none !important;
+  }
   .tp-glow-emerald,
-  .tp-glow-amber { box-shadow: none !important; }
-  .tp-sidebar-glow::before { display: none !important; }
+  .tp-glow-amber {
+    box-shadow: none !important;
+  }
+  .tp-sidebar-glow::before {
+    display: none !important;
+  }
 }

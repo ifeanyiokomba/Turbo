@@ -25,11 +25,24 @@ const PROVIDER = "turbopay";
 export const turbopayVirtualAccount: IVirtualAccountProvider = {
   contract: "VIRTUAL_ACCOUNT",
   async listSupportedBanks(country) {
-    return ok(UNIQUE_BANKS.map((b) => ({ ...b, country })), "mock", 12);
+    return ok(
+      UNIQUE_BANKS.map((b) => ({ ...b, country })),
+      "mock",
+      12
+    );
   },
   async createVirtualAccount(req) {
     const acc = generateAccountNumber();
-    return ok({ accountNumber: acc, bankCode: "000", bankName: "Turbopay MFB", providerRef: `tp-va-${acc}` }, "mock", 50);
+    return ok(
+      {
+        accountNumber: acc,
+        bankCode: "000",
+        bankName: "Turbopay MFB",
+        providerRef: `tp-va-${acc}`,
+      },
+      "mock",
+      50
+    );
   },
   async getAccountStatus(ref) {
     return ok({ status: "ACTIVE", accountNumber: ref.split("-").pop() ?? "" }, "mock", 10);
@@ -60,7 +73,11 @@ export const turbopayCardPayment: ICardPaymentProvider = {
 export const turbopayBankTransfer: IBankTransferProvider = {
   contract: "BANK_TRANSFER",
   async listBanks(country) {
-    return ok(UNIQUE_BANKS.map((b) => ({ ...b, country })), "mock", 15);
+    return ok(
+      UNIQUE_BANKS.map((b) => ({ ...b, country })),
+      "mock",
+      15
+    );
   },
   async resolveAccountName(req) {
     return turbopayVirtualAccount.resolveAccountName(req);
@@ -80,14 +97,23 @@ export const turbopayBillPayment: IBillPaymentProvider = {
   contract: "BILL_PAYMENT",
   async listBillers(req) {
     const cats = Object.keys(BILLERS);
-    const billers = req.category ? BILLERS[req.category] ?? [] : cats.flatMap((c) => BILLERS[c] ?? []);
-    return ok(billers.map((b) => ({ ...b, country: req.country })), "mock", 20);
+    const billers = req.category
+      ? (BILLERS[req.category] ?? [])
+      : cats.flatMap((c) => BILLERS[c] ?? []);
+    return ok(
+      billers.map((b) => ({ ...b, country: req.country })),
+      "mock",
+      20
+    );
   },
   async validateCustomer(req) {
     return ok({ customerName: `CUSTOMER ${req.customerRef.slice(-4)}`, valid: true }, "mock", 40);
   },
   async payBill(req) {
-    const token = req.billerCode.startsWith("E") || req.category === "ELECTRICITY" ? Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("") : undefined;
+    const token =
+      req.billerCode.startsWith("E") || req.category === "ELECTRICITY"
+        ? Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("")
+        : undefined;
     return ok({ providerRef: `tp-bill-${req.reference}`, status: "SUCCESS", token }, "mock", 150);
   },
   async queryBillPayment(ref) {
@@ -98,10 +124,18 @@ export const turbopayBillPayment: IBillPaymentProvider = {
 export const turbopayAirtime: IAirtimeProvider = {
   contract: "AIRTIME",
   async listNetworks(country) {
-    return ok(NETWORKS.map((n) => ({ id: n.id, name: n.name, country })), "mock", 10);
+    return ok(
+      NETWORKS.map((n) => ({ id: n.id, name: n.name, country })),
+      "mock",
+      10
+    );
   },
   async listDataPlans(req) {
-    return ok((DATA_PLANS[req.network] ?? []).map((p) => ({ ...p, network: req.network })), "mock", 12);
+    return ok(
+      (DATA_PLANS[req.network] ?? []).map((p) => ({ ...p, network: req.network })),
+      "mock",
+      12
+    );
   },
   async purchase(req) {
     return ok({ providerRef: `tp-air-${req.reference}`, status: "SUCCESS" }, "mock", 120);
@@ -114,7 +148,16 @@ export const turbopayAirtime: IAirtimeProvider = {
 export const turbopayKyc: IKYCProvider = {
   contract: "KYC",
   async verifyIdentity(req) {
-    return ok({ tier: req.idType === "BVN" ? 3 : 2, verified: true, firstName: "Verified", lastName: "User" }, "mock", 300);
+    return ok(
+      {
+        tier: req.idType === "BVN" ? 3 : 2,
+        verified: true,
+        firstName: "Verified",
+        lastName: "User",
+      },
+      "mock",
+      300
+    );
   },
 };
 
@@ -132,13 +175,34 @@ export const turbopayIntl: IInternationalTransferProvider = {
   contract: "INTERNATIONAL_TRANSFER",
   async getQuote(req) {
     const rate = req.sourceCurrency === "NGN" && req.targetCurrency === "USD" ? 1 / 1480 : 1;
-    return ok({ rate, feeMinor: 500, totalMinor: req.amountMinor + 500, expiresAt: new Date(Date.now() + 60_000).toISOString() }, "mock", 80);
+    return ok(
+      {
+        rate,
+        feeMinor: 500,
+        totalMinor: req.amountMinor + 500,
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      },
+      "mock",
+      80
+    );
   },
   async sendTransfer(req) {
-    return ok({ providerRef: `tp-intl-${req.reference}`, status: "PENDING", estimatedDelivery: new Date(Date.now() + 24 * 3600_000).toISOString() }, "mock", 200);
+    return ok(
+      {
+        providerRef: `tp-intl-${req.reference}`,
+        status: "PENDING",
+        estimatedDelivery: new Date(Date.now() + 24 * 3600_000).toISOString(),
+      },
+      "mock",
+      200
+    );
   },
   async getTransferStatus(ref) {
-    return ok({ status: "PENDING", timeline: [{ status: "initiated", at: new Date().toISOString() }] }, "mock", 20);
+    return ok(
+      { status: "PENDING", timeline: [{ status: "initiated", at: new Date().toISOString() }] },
+      "mock",
+      20
+    );
   },
   async cancelTransfer() {
     return ok({ status: "CANCELLED" }, "mock", 30);
@@ -164,11 +228,33 @@ export const turbopayMobileMoney: IMobileMoneyProvider = {
 export const turbopayExchangeRate: IExchangeRateProvider = {
   contract: "EXCHANGE_RATE",
   async getRate(req) {
-    const rates: Record<string, number> = { "NGN-USD": 1 / 1480, "USD-NGN": 1480, "NGN-KES": 11.4, "USD-KES": 168 };
-    return ok({ rate: rates[`${req.base}-${req.quote}`] ?? 1, source: "mock", timestamp: new Date().toISOString() }, "mock", 20);
+    const rates: Record<string, number> = {
+      "NGN-USD": 1 / 1480,
+      "USD-NGN": 1480,
+      "NGN-KES": 11.4,
+      "USD-KES": 168,
+    };
+    return ok(
+      {
+        rate: rates[`${req.base}-${req.quote}`] ?? 1,
+        source: "mock",
+        timestamp: new Date().toISOString(),
+      },
+      "mock",
+      20
+    );
   },
   async listSupported() {
-    return ok({ pairs: [{ base: "NGN", quote: "USD" }, { base: "USD", quote: "KES" }] }, "mock", 10);
+    return ok(
+      {
+        pairs: [
+          { base: "NGN", quote: "USD" },
+          { base: "USD", quote: "KES" },
+        ],
+      },
+      "mock",
+      10
+    );
   },
 };
 
@@ -176,7 +262,17 @@ export const turbopayCardIssuer: IVirtualCardIssuer = {
   contract: "VIRTUAL_CARD_ISSUER",
   async issueCard(req) {
     const { pan, last4 } = generatePan();
-    return ok({ providerRef: `tp-card-issue-${req.userId}`, panEnc: encryptSecret(pan), cvvEnc: encryptSecret(String(Math.floor(100 + Math.random() * 900))), last4, expiry: generateExpiry() }, "mock", 80);
+    return ok(
+      {
+        providerRef: `tp-card-issue-${req.userId}`,
+        panEnc: encryptSecret(pan),
+        cvvEnc: encryptSecret(String(Math.floor(100 + Math.random() * 900))),
+        last4,
+        expiry: generateExpiry(),
+      },
+      "mock",
+      80
+    );
   },
   async fundCard() {
     return ok({ status: "SUCCESS" }, "mock", 30);

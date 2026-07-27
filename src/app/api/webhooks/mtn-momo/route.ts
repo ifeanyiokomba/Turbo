@@ -65,8 +65,7 @@ export async function POST(req: Request) {
 
     // eventId — prefer financialTransactionId (most stable), then externalId,
     // then a sha of the raw body so duplicate deliveries dedupe.
-    const eventId =
-      financialTxId ?? externalId ?? referenceId ?? `mtn_momo:${hashOf(rawBody)}`;
+    const eventId = financialTxId ?? externalId ?? referenceId ?? `mtn_momo:${hashOf(rawBody)}`;
 
     const status = normalizeStatus(body.status);
 
@@ -94,9 +93,7 @@ export async function POST(req: Request) {
     // echoes it as `referenceId` in the body. As a fallback, we also try the
     // externalId (which we set to the first 16 chars of our internal
     // reference).
-    const candidateRefs = [referenceId, externalId, financialTxId].filter(
-      (v): v is string => !!v,
-    );
+    const candidateRefs = [referenceId, externalId, financialTxId].filter((v): v is string => !!v);
 
     let tx: { id: string; state: string; reference: string; userId: string } | null = null;
     for (const ref of candidateRefs) {
@@ -109,7 +106,7 @@ export async function POST(req: Request) {
 
     if (!tx) {
       console.log(
-        `[webhook:mtn-momo] no tx for refs=${JSON.stringify(candidateRefs)} — recorded only`,
+        `[webhook:mtn-momo] no tx for refs=${JSON.stringify(candidateRefs)} — recorded only`
       );
       await db.webhookEvent.updateMany({
         where: { eventId },
@@ -128,14 +125,10 @@ export async function POST(req: Request) {
       return json({ ok: true, processed: false, reason: `status-${status.toLowerCase()}` }, 200);
     }
 
-    const outcome = await confirmOrReverseTransaction(
-      tx.id,
-      status,
-      `webhook:${PROVIDER_CODE}`,
-    );
+    const outcome = await confirmOrReverseTransaction(tx.id, status, `webhook:${PROVIDER_CODE}`);
 
     console.log(
-      `[webhook:mtn-momo] tx ${tx.reference} → ${outcome.outcome} (${outcome.reason ?? "ok"})`,
+      `[webhook:mtn-momo] tx ${tx.reference} → ${outcome.outcome} (${outcome.reason ?? "ok"})`
     );
 
     await audit({
@@ -154,18 +147,21 @@ export async function POST(req: Request) {
       },
     }).catch(() => {});
 
-    return json({
-      ok: true,
-      processed: true,
-      outcome: outcome.outcome,
-      reference: tx.reference,
-      startedAt,
-    }, 200);
+    return json(
+      {
+        ok: true,
+        processed: true,
+        outcome: outcome.outcome,
+        reference: tx.reference,
+        startedAt,
+      },
+      200
+    );
   } catch (e) {
     console.error(`[webhook:mtn-momo] handler error:`, e);
     return json(
       { ok: false, error: e instanceof Error ? e.message : "internal-error", startedAt },
-      200,
+      200
     );
   }
 }

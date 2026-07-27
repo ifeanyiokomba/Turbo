@@ -10,20 +10,9 @@ import {
   ServiceError,
 } from "@/lib/api";
 import { rateLimitMiddleware } from "@/lib/rate-limit-helpers";
-import {
-  creditWallet,
-  debitWallet,
-  transferBetweenWallets,
-  LedgerError,
-} from "@/lib/ledger";
+import { creditWallet, debitWallet, transferBetweenWallets, LedgerError } from "@/lib/ledger";
 import { BANKS_BY_CODE } from "@/lib/banks";
-import {
-  RefType,
-  TxDirection,
-  TxState,
-  TxStatus,
-  TxType,
-} from "@/lib/constants";
+import { RefType, TxDirection, TxState, TxStatus, TxType } from "@/lib/constants";
 import { generateReference } from "@/lib/money";
 
 const BANK_FEE_KOBO = 5250; // ₦52.50
@@ -52,11 +41,7 @@ async function resolveTurbopayUser(query: string) {
   if (byAccount?.user) return byAccount.user;
   const user = await db.user.findFirst({
     where: {
-      OR: [
-        { username: q },
-        { email: q },
-        { phone: q },
-      ],
+      OR: [{ username: q }, { email: q }, { phone: q }],
     },
   });
   return user ?? null;
@@ -148,7 +133,9 @@ export async function POST(req: Request) {
             counterpartyName: user.fullName,
             counterpartyAccount: user.username,
             counterpartyBank: "Turbopay MFB",
-            description: note ? `From ${user.fullName} — ${note}` : `Transfer from ${user.fullName}`,
+            description: note
+              ? `From ${user.fullName} — ${note}`
+              : `Transfer from ${user.fullName}`,
             provider: "turbopay",
             providerRef: reference,
             metadata: JSON.stringify({ pairRef: reference }),
@@ -268,8 +255,14 @@ export async function POST(req: Request) {
 function resolvedBankName(accountNumber: string): string {
   // Deterministic mock name from account number hash
   const names = [
-    "JOHN DOE", "MARY JANE", "CHIKA OBIAJULU", "ADEKUNLE BELLO",
-    "FATIMA ABUBAKAR", "EMEKA NWANKWO", "GRACE OKAFOR", "TUNDE BALOGUN",
+    "JOHN DOE",
+    "MARY JANE",
+    "CHIKA OBIAJULU",
+    "ADEKUNLE BELLO",
+    "FATIMA ABUBAKAR",
+    "EMEKA NWANKWO",
+    "GRACE OKAFOR",
+    "TUNDE BALOGUN",
   ];
   let hash = 0;
   for (let i = 0; i < accountNumber.length; i++) {

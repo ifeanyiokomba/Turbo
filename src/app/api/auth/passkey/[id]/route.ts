@@ -3,7 +3,16 @@
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { json, errorJson, handleError, requireUser, audit, getClientIp, getUserAgent } from "@/lib/api";
+import {
+  json,
+  errorJson,
+  handleError,
+  requireUser,
+  audit,
+  getClientIp,
+  getUserAgent,
+} from "@/lib/api";
+import { logSecurityEvent } from "@/lib/security-log";
 
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
@@ -22,6 +31,13 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
       action: "PASSKEY_DELETED",
       category: "AUTH",
       severity: "WARN",
+      ip: getClientIp(req),
+      userAgent: getUserAgent(req),
+      metadata: { passkeyId: id, deviceName: passkey.deviceName ?? null },
+    });
+    await logSecurityEvent({
+      userId: user.id,
+      type: "PASSKEY_DELETED",
       ip: getClientIp(req),
       userAgent: getUserAgent(req),
       metadata: { passkeyId: id, deviceName: passkey.deviceName ?? null },

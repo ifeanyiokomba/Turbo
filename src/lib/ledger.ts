@@ -60,8 +60,7 @@ export async function debitWallet(opts: {
   const t = opts.tx ?? db;
   if (opts.amountKobo <= 0) throw new LedgerError("Amount must be positive");
   const wallet = await getWalletForUpdate(t, opts.userId);
-  if (wallet.balanceKobo < opts.amountKobo)
-    throw new LedgerError("Insufficient balance");
+  if (wallet.balanceKobo < opts.amountKobo) throw new LedgerError("Insufficient balance");
 
   // Optimistic conditional update — only succeeds if balance still covers
   const updated = await t.wallet.updateMany({

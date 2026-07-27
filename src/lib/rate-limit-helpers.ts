@@ -14,7 +14,7 @@ import { rateLimit, RATE_LIMITS, type RateLimitEndpoint } from "@/lib/rate-limit
 export async function rateLimitMiddleware(
   req: Request,
   endpoint: RateLimitEndpoint | string,
-  identifier?: string,
+  identifier?: string
 ): Promise<NextResponse | null> {
   const config = (RATE_LIMITS as Record<string, { limit: number; windowMs: number }>)[endpoint];
   if (!config) {
@@ -33,10 +33,7 @@ export async function rateLimitMiddleware(
   });
 
   if (!result.success) {
-    const retryAfterSec = Math.max(
-      1,
-      Math.ceil((result.resetAt.getTime() - Date.now()) / 1000),
-    );
+    const retryAfterSec = Math.max(1, Math.ceil((result.resetAt.getTime() - Date.now()) / 1000));
     return NextResponse.json(
       {
         error: "Too many requests. Please slow down and try again shortly.",
@@ -51,7 +48,7 @@ export async function rateLimitMiddleware(
           "X-RateLimit-Remaining": "0",
           "X-RateLimit-Reset": result.resetAt.toISOString(),
         },
-      },
+      }
     );
   }
 

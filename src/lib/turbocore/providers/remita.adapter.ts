@@ -46,18 +46,45 @@ export const remitaBillPayment: IBillPaymentProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       const cats = Object.keys(BILLERS);
-      const billers = req.category ? BILLERS[req.category] ?? [] : cats.flatMap((c) => BILLERS[c] ?? []);
-      return ok(billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })), "mock", 20);
+      const billers = req.category
+        ? (BILLERS[req.category] ?? [])
+        : cats.flatMap((c) => BILLERS[c] ?? []);
+      return ok(
+        billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })),
+        "mock",
+        20
+      );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
     try {
       const { body } = await http(
         `${base}/billers/categories`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const cats = (body as { categories?: Array<{ code?: string; name?: string; billers?: Array<{ code?: string; name?: string; refLabel?: string; refType?: string }> }> }).categories ?? [];
-      const out: { code: string; name: string; category: string; country: string; refLabel: string; refType: string }[] = [];
+      const cats =
+        (
+          body as {
+            categories?: Array<{
+              code?: string;
+              name?: string;
+              billers?: Array<{
+                code?: string;
+                name?: string;
+                refLabel?: string;
+                refType?: string;
+              }>;
+            }>;
+          }
+        ).categories ?? [];
+      const out: {
+        code: string;
+        name: string;
+        category: string;
+        country: string;
+        refLabel: string;
+        refType: string;
+      }[] = [];
       for (const c of cats) {
         const catName = String(c.name ?? c.code ?? "BILL");
         for (const b of c.billers ?? []) {
@@ -75,16 +102,28 @@ export const remitaBillPayment: IBillPaymentProvider = {
       }
       if (!out.length) {
         const allCats = Object.keys(BILLERS);
-        const billers = req.category ? BILLERS[req.category] ?? [] : allCats.flatMap((c) => BILLERS[c] ?? []);
-        return ok(billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })), "remita-fallback", 0);
+        const billers = req.category
+          ? (BILLERS[req.category] ?? [])
+          : allCats.flatMap((c) => BILLERS[c] ?? []);
+        return ok(
+          billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })),
+          "remita-fallback",
+          0
+        );
       }
       return ok(out, "remita-billers", 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Remita listBillers failed";
       void msg;
       const allCats = Object.keys(BILLERS);
-      const billers = req.category ? BILLERS[req.category] ?? [] : allCats.flatMap((c) => BILLERS[c] ?? []);
-      return ok(billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })), "remita-fallback", 0);
+      const billers = req.category
+        ? (BILLERS[req.category] ?? [])
+        : allCats.flatMap((c) => BILLERS[c] ?? []);
+      return ok(
+        billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })),
+        "remita-fallback",
+        0
+      );
     }
   },
 
@@ -105,17 +144,27 @@ export const remitaBillPayment: IBillPaymentProvider = {
           headers: authHeaders(creds),
           body: JSON.stringify({ billerCode: req.billerCode, customerRef: req.customerRef }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { customerName?: string; valid?: boolean; name?: string; account_name?: string });
+      const data = body as {
+        customerName?: string;
+        valid?: boolean;
+        name?: string;
+        account_name?: string;
+      };
       const name = data.customerName ?? data.name ?? data.account_name ?? "";
       if (!name) {
-        return fail("BENEFICIARY_INVALID", "Remita could not validate customer", { providerCode: CODE, raw: sanitize(body) });
+        return fail("BENEFICIARY_INVALID", "Remita could not validate customer", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       }
       return ok({ customerName: name, valid: true }, "remita-validate", 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Remita validateCustomer failed";
-      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found|invalid/i.test(msg) ? "BENEFICIARY_INVALID" : "UPSTREAM_ERROR";
+      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found|invalid/i.test(msg)
+        ? "BENEFICIARY_INVALID"
+        : "UPSTREAM_ERROR";
       return fail(code, msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
     }
   },
@@ -147,11 +196,14 @@ export const remitaBillPayment: IBillPaymentProvider = {
             description: `Turbopay bill payment ${req.billerCode}`,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { rrr?: string; status?: string; statuscode?: string });
+      const data = body as { rrr?: string; status?: string; statuscode?: string };
       if (!data.rrr) {
-        return fail("UPSTREAM_ERROR", "Remita RRR generation returned no RRR", { providerCode: CODE, raw: sanitize(body) });
+        return fail("UPSTREAM_ERROR", "Remita RRR generation returned no RRR", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       }
       return ok({ providerRef: data.rrr, status: "PENDING" }, data.rrr, 0);
     } catch (e) {
@@ -177,9 +229,9 @@ export const remitaBillPayment: IBillPaymentProvider = {
           headers: authHeaders(creds),
           body: JSON.stringify({ rrr: providerRef }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: string; statuscode?: string; message?: string });
+      const data = body as { status?: string; statuscode?: string; message?: string };
       const code = String(data.statuscode ?? data.status ?? "").toLowerCase();
       let status = "PENDING";
       if (code === "00" || code === "success" || code === "paid") status = "SUCCESS";
@@ -211,7 +263,16 @@ export interface RemitaRRRProvider extends IBillPaymentProvider {
     currency?: string;
   }): Promise<ProviderResult<{ rrr: string; status: string; amountMinor: number }>>;
   getRRRStatus(rrr: string): Promise<ProviderResult<{ status: string; rrr: string }>>;
-  getRRRDetails(rrr: string): Promise<ProviderResult<{ rrr: string; amountMinor: number; payerName: string; payerEmail: string; status: string; description?: string }>>;
+  getRRRDetails(rrr: string): Promise<
+    ProviderResult<{
+      rrr: string;
+      amountMinor: number;
+      payerName: string;
+      payerEmail: string;
+      status: string;
+      description?: string;
+    }>
+  >;
 }
 
 export const remitaRRR: RemitaRRRProvider = {
@@ -244,11 +305,14 @@ export const remitaRRR: RemitaRRRProvider = {
             description: req.description ?? "TurboPay RRR generation",
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { rrr?: string; status?: string; statuscode?: string });
+      const data = body as { rrr?: string; status?: string; statuscode?: string };
       if (!data.rrr) {
-        return fail("UPSTREAM_ERROR", "Remita generateRRR returned no RRR", { providerCode: CODE, raw: sanitize(body) });
+        return fail("UPSTREAM_ERROR", "Remita generateRRR returned no RRR", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       }
       const st = String(data.status ?? data.statuscode ?? "PENDING").toUpperCase();
       return ok({ rrr: data.rrr, status: st, amountMinor: req.amountMinor }, data.rrr, 0);
@@ -271,9 +335,9 @@ export const remitaRRR: RemitaRRRProvider = {
       const { body } = await http(
         `${base}/payments/v1/rrr/${encodeURIComponent(rrr)}/status`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: string; statuscode?: string; message?: string });
+      const data = body as { status?: string; statuscode?: string; message?: string };
       const code = String(data.statuscode ?? data.status ?? "").toLowerCase();
       let status = "PENDING";
       if (code === "00" || code === "success" || code === "paid") status = "SUCCESS";
@@ -301,7 +365,7 @@ export const remitaRRR: RemitaRRRProvider = {
           description: "Mock RRR",
         },
         "mock",
-        30,
+        30
       );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
@@ -309,9 +373,9 @@ export const remitaRRR: RemitaRRRProvider = {
       const { body } = await http(
         `${base}/payments/v1/rrr/${encodeURIComponent(rrr)}/details`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as {
+      const data = body as {
         rrr?: string;
         amount?: number;
         amountPayable?: number;
@@ -320,7 +384,7 @@ export const remitaRRR: RemitaRRRProvider = {
         status?: string;
         statuscode?: string;
         description?: string;
-      });
+      };
       const code = String(data.statuscode ?? data.status ?? "").toLowerCase();
       let status = "PENDING";
       if (code === "00" || code === "success" || code === "paid") status = "SUCCESS";
@@ -336,7 +400,7 @@ export const remitaRRR: RemitaRRRProvider = {
           description: data.description,
         },
         rrr,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Remita getRRRDetails failed";
@@ -362,7 +426,15 @@ export const remitaMandate: IDirectDebitProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       const mandateId = `RMTMDT-${generateReference("M")}`;
-      return ok({ mandateId, status: "PENDING", authUrl: `${SANDBOX_BASE}/mock/mandate/auth?id=${mandateId}` }, "mock", 150);
+      return ok(
+        {
+          mandateId,
+          status: "PENDING",
+          authUrl: `${SANDBOX_BASE}/mock/mandate/auth?id=${mandateId}`,
+        },
+        "mock",
+        150
+      );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
     try {
@@ -374,7 +446,8 @@ export const remitaMandate: IDirectDebitProvider = {
           body: JSON.stringify({
             mandateType: req.mandateType ?? "DIRECT_DEBIT",
             payerName: req.payerName,
-            payerEmail: req.payerEmail ?? `${req.payerName.replace(/\s+/g, ".").toLowerCase()}@turbopay.ng`,
+            payerEmail:
+              req.payerEmail ?? `${req.payerName.replace(/\s+/g, ".").toLowerCase()}@turbopay.ng`,
             payerPhone: req.payerPhone,
             amount: req.amountMinor / 100, // major units
             currency: req.currency ?? "NGN",
@@ -386,12 +459,26 @@ export const remitaMandate: IDirectDebitProvider = {
             narration: req.narration ?? "TurboPay Remita mandate",
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { mandateId?: string; mandateReference?: string; reference?: string; status?: string; statuscode?: string; authUrl?: string; authorizationUrl?: string });
-      const mandateId = String(data.mandateId ?? data.mandateReference ?? data.reference ?? `RMTMDT-${Date.now()}`);
+      const data = body as {
+        mandateId?: string;
+        mandateReference?: string;
+        reference?: string;
+        status?: string;
+        statuscode?: string;
+        authUrl?: string;
+        authorizationUrl?: string;
+      };
+      const mandateId = String(
+        data.mandateId ?? data.mandateReference ?? data.reference ?? `RMTMDT-${Date.now()}`
+      );
       const st = String(data.status ?? data.statuscode ?? "PENDING").toUpperCase();
-      return ok({ mandateId, status: st, authUrl: data.authUrl ?? data.authorizationUrl }, mandateId, 0);
+      return ok(
+        { mandateId, status: st, authUrl: data.authUrl ?? data.authorizationUrl },
+        mandateId,
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Remita createMandate failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -411,10 +498,17 @@ export const remitaMandate: IDirectDebitProvider = {
       const { body } = await http(
         `${base}/mandate/${encodeURIComponent(mandateId)}/status`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { mandateId?: string; status?: string; statuscode?: string; mandateStatus?: string });
-      const st = String(data.mandateStatus ?? data.status ?? data.statuscode ?? "ACTIVE").toUpperCase();
+      const data = body as {
+        mandateId?: string;
+        status?: string;
+        statuscode?: string;
+        mandateStatus?: string;
+      };
+      const st = String(
+        data.mandateStatus ?? data.status ?? data.statuscode ?? "ACTIVE"
+      ).toUpperCase();
       return ok({ status: st, mandateId: String(data.mandateId ?? mandateId) }, mandateId, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Remita getMandateStatus failed";
@@ -444,10 +538,18 @@ export const remitaMandate: IDirectDebitProvider = {
             narration: req.narration ?? "TurboPay mandate debit",
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { debitReference?: string; transactionReference?: string; reference?: string; status?: string; statuscode?: string });
-      const providerRef = String(data.debitReference ?? data.transactionReference ?? data.reference ?? `RMTDBT-${Date.now()}`);
+      const data = body as {
+        debitReference?: string;
+        transactionReference?: string;
+        reference?: string;
+        status?: string;
+        statuscode?: string;
+      };
+      const providerRef = String(
+        data.debitReference ?? data.transactionReference ?? data.reference ?? `RMTDBT-${Date.now()}`
+      );
       const st = String(data.status ?? data.statuscode ?? "PENDING").toUpperCase();
       return ok({ providerRef, status: st }, providerRef, 0);
     } catch (e) {
@@ -469,10 +571,17 @@ export const remitaMandate: IDirectDebitProvider = {
       const { body } = await http(
         `${base}/mandate/${encodeURIComponent(mandateId)}/stop`,
         { method: "POST", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { mandateId?: string; status?: string; statuscode?: string; mandateStatus?: string });
-      const st = String(data.mandateStatus ?? data.status ?? data.statuscode ?? "STOPPED").toUpperCase();
+      const data = body as {
+        mandateId?: string;
+        status?: string;
+        statuscode?: string;
+        mandateStatus?: string;
+      };
+      const st = String(
+        data.mandateStatus ?? data.status ?? data.statuscode ?? "STOPPED"
+      ).toUpperCase();
       return ok({ status: st, mandateId: String(data.mandateId ?? mandateId) }, mandateId, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Remita stopMandate failed";
@@ -488,7 +597,10 @@ export const remitaMandate: IDirectDebitProvider = {
 // ---------------------------------------------------------------------------
 
 export const remitaPaymentNotification = {
-  async sendPaymentNotification(req: { rrr: string; channel?: string }): Promise<ProviderResult<{ sent: boolean; channel: string; rrr: string }>> {
+  async sendPaymentNotification(req: {
+    rrr: string;
+    channel?: string;
+  }): Promise<ProviderResult<{ sent: boolean; channel: string; rrr: string }>> {
     const blocked = await requireCreds(CODE);
     if (blocked) return blocked;
     const creds = await loadCreds(CODE);
@@ -508,9 +620,9 @@ export const remitaPaymentNotification = {
             channel: req.channel ?? "EMAIL",
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: string; statuscode?: string; message?: string });
+      const data = body as { status?: string; statuscode?: string; message?: string };
       const st = String(data.status ?? data.statuscode ?? "SUCCESS").toUpperCase();
       const sent = st === "SUCCESS" || st === "00";
       return ok({ sent, channel: req.channel ?? "EMAIL", rrr: req.rrr }, req.rrr, 0);

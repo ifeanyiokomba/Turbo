@@ -5,8 +5,17 @@
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { json, errorJson, handleError, requireUser, audit, getClientIp, getUserAgent } from "@/lib/api";
+import {
+  json,
+  errorJson,
+  handleError,
+  requireUser,
+  audit,
+  getClientIp,
+  getUserAgent,
+} from "@/lib/api";
 import { decryptMfaSecret, verifyTotp, generateBackupCodes, hashBackupCodes } from "@/lib/mfa";
+import { logSecurityEvent } from "@/lib/security-log";
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +36,11 @@ export async function POST(req: NextRequest) {
 
     const secret = decryptMfaSecret(mfa.secretEnc);
     if (!verifyTotp(token, secret)) {
-      return errorJson("Incorrect code. Make sure your device time is correct.", 400, "INVALID_TOKEN");
+      return errorJson(
+        "Incorrect code. Make sure your device time is correct.",
+        400,
+        "INVALID_TOKEN"
+      );
     }
 
     const backupCodes = generateBackupCodes();
@@ -46,6 +59,12 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       action: "MFA_ENABLED",
       category: "AUTH",
+      ip: getClientIp(req),
+      userAgent: getUserAgent(req),
+    });
+    await logSecurityEvent({
+      userId: user.id,
+      type: "MFA_ENABLED",
       ip: getClientIp(req),
       userAgent: getUserAgent(req),
     });

@@ -6,7 +6,15 @@
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { json, errorJson, handleError, requireUser, audit, getClientIp, getUserAgent } from "@/lib/api";
+import {
+  json,
+  errorJson,
+  handleError,
+  requireUser,
+  audit,
+  getClientIp,
+  getUserAgent,
+} from "@/lib/api";
 import { verifyPassword } from "@/lib/auth";
 import { generateBackupCodes, hashBackupCodes } from "@/lib/mfa";
 

@@ -17,9 +17,10 @@ function buildDashboardPrompt(
   position: PositionInfo | undefined,
   warnings: string[]
 ): string {
-  const warningBlock = warnings.length > 0
-    ? `⚠️ 数据预警（必须在报告中体现）：\n${warnings.map((w) => `- ${w}`).join("\n")}\n\n`
-    : "";
+  const warningBlock =
+    warnings.length > 0
+      ? `⚠️ 数据预警（必须在报告中体现）：\n${warnings.map((w) => `- ${w}`).join("\n")}\n\n`
+      : "";
 
   const positionBlock = position
     ? position.status === "holding"
@@ -119,9 +120,8 @@ ${JSON.stringify(data, null, 2)}
 // ── 研报 Prompt（PDF/Word）──────────────────────────────
 
 function buildReportPrompt(data: StockData, position: PositionInfo | undefined): string {
-  const positionBlock = position?.status === "holding"
-    ? `用户持仓成本：${position.cost ?? "未知"}`
-    : "用户当前空仓";
+  const positionBlock =
+    position?.status === "holding" ? `用户持仓成本：${position.cost ?? "未知"}` : "用户当前空仓";
 
   return `${positionBlock}
 
@@ -171,24 +171,31 @@ export async function analyzeStock(
 
   if (!valid) {
     return {
-      code: data.code, market: data.market, name,
+      code: data.code,
+      market: data.market,
+      name,
       verdict: "观望",
       analysis: `## ⚠️ 数据获取失败\n\n${data.code} 数据无法获取（${data.error ?? "未知错误"}），建议手动核实。`,
-      warnings, outputFormat,
+      warnings,
+      outputFormat,
       generatedAt: new Date().toISOString(),
     };
   }
 
   const zai = await ZAI.create();
-  const userPrompt = outputFormat === "markdown"
-    ? buildDashboardPrompt(data, position, warnings)
-    : buildReportPrompt(data, position);
+  const userPrompt =
+    outputFormat === "markdown"
+      ? buildDashboardPrompt(data, position, warnings)
+      : buildReportPrompt(data, position);
 
   let analysisText = "⚠️ LLM 未返回内容，请重试。";
   try {
     const completion = await zai.chat.completions.create({
       messages: [
-        { role: "system", content: `你是一位资深${MARKET_LABEL[data.market]}股票分析师。数据缺失标"暂缺"，严禁捏造。乖离率>5%不得建议买入。结论四选一：强烈买入/买入/观望/卖出。输出语言：中文。` },
+        {
+          role: "system",
+          content: `你是一位资深${MARKET_LABEL[data.market]}股票分析师。数据缺失标"暂缺"，严禁捏造。乖离率>5%不得建议买入。结论四选一：强烈买入/买入/观望/卖出。输出语言：中文。`,
+        },
         { role: "user", content: userPrompt },
       ],
       thinking: { type: "disabled" },
@@ -208,10 +215,13 @@ export async function analyzeStock(
   }
 
   return {
-    code: data.code, market: data.market, name,
+    code: data.code,
+    market: data.market,
+    name,
     verdict: extractVerdict(analysisText),
     analysis: analysisText,
-    warnings, outputFormat,
+    warnings,
+    outputFormat,
     generatedAt: new Date().toISOString(),
   };
 }
@@ -252,7 +262,10 @@ export async function analyzeChartImage(
           role: "user",
           content: [
             { type: "image", image: imageContent },
-            { type: "text", text: `这是 ${stockCode} 的K线图，请分析：\n1. 当前K线形态\n2. 趋势方向\n3. 关键支撑位和压力位\n4. 成交量配合\n5. 短期操作建议` },
+            {
+              type: "text",
+              text: `这是 ${stockCode} 的K线图，请分析：\n1. 当前K线形态\n2. 趋势方向\n3. 关键支撑位和压力位\n4. 成交量配合\n5. 短期操作建议`,
+            },
           ],
         },
       ],

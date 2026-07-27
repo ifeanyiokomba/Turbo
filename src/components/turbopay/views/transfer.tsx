@@ -19,12 +19,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -214,7 +209,7 @@ export default function TransferView() {
           if (!res.ok) return;
           const json = await res.json();
           const found: Beneficiary | undefined = (json.beneficiaries ?? []).find(
-            (b: Beneficiary) => b.id === id,
+            (b: Beneficiary) => b.id === id
           );
           if (found) prefill(found);
         } catch {}
@@ -398,7 +393,9 @@ export default function TransferView() {
         bankCode: type === "BANK" ? bankCode : null,
         bankName:
           type === "BANK"
-            ? bankResolved?.bankName ?? UNIQUE_BANKS.find((b) => b.code === bankCode)?.name ?? null
+            ? (bankResolved?.bankName ??
+              UNIQUE_BANKS.find((b) => b.code === bankCode)?.name ??
+              null)
             : null,
         amountKobo,
         note,
@@ -411,9 +408,7 @@ export default function TransferView() {
       toast.success("Transfer successful");
       if (wantsTemplate) {
         // Pre-seed the name field and open the save-template dialog
-        setTplName(
-          `${snapshot.recipientName} — ${nairaPlain(snapshot.amountKobo)}`.slice(0, 60),
-        );
+        setTplName(`${snapshot.recipientName} — ${nairaPlain(snapshot.amountKobo)}`.slice(0, 60));
         setTplDialogOpen(true);
       }
     } catch {
@@ -425,9 +420,7 @@ export default function TransferView() {
 
   async function toggleFavorite(b: Beneficiary) {
     const next = !b.isFavorite;
-    setBeneficiaries((arr) =>
-      arr.map((x) => (x.id === b.id ? { ...x, isFavorite: next } : x)),
-    );
+    setBeneficiaries((arr) => arr.map((x) => (x.id === b.id ? { ...x, isFavorite: next } : x)));
     try {
       await fetch(`/api/beneficiaries/${b.id}`, {
         method: "PATCH",
@@ -436,9 +429,7 @@ export default function TransferView() {
       });
     } catch {
       // revert on failure
-      setBeneficiaries((arr) =>
-        arr.map((x) => (x.id === b.id ? { ...x, isFavorite: !next } : x)),
-      );
+      setBeneficiaries((arr) => arr.map((x) => (x.id === b.id ? { ...x, isFavorite: !next } : x)));
     }
   }
 
@@ -515,7 +506,7 @@ export default function TransferView() {
     setSaveTemplate(false);
     // Bump lastUsedAt optimistically + persist via PATCH (touch)
     setTemplates((arr) =>
-      arr.map((x) => (x.id === t.id ? { ...x, lastUsedAt: new Date().toISOString() } : x)),
+      arr.map((x) => (x.id === t.id ? { ...x, lastUsedAt: new Date().toISOString() } : x))
     );
     fetch(`/api/transfer-templates/${t.id}`, {
       method: "PATCH",
@@ -529,9 +520,7 @@ export default function TransferView() {
 
   async function toggleFavoriteTemplate(t: TransferTemplate) {
     const next = !t.isFavorite;
-    setTemplates((arr) =>
-      arr.map((x) => (x.id === t.id ? { ...x, isFavorite: next } : x)),
-    );
+    setTemplates((arr) => arr.map((x) => (x.id === t.id ? { ...x, isFavorite: next } : x)));
     try {
       await fetch(`/api/transfer-templates/${t.id}`, {
         method: "PATCH",
@@ -539,9 +528,7 @@ export default function TransferView() {
         body: JSON.stringify({ isFavorite: next }),
       });
     } catch {
-      setTemplates((arr) =>
-        arr.map((x) => (x.id === t.id ? { ...x, isFavorite: !next } : x)),
-      );
+      setTemplates((arr) => arr.map((x) => (x.id === t.id ? { ...x, isFavorite: !next } : x)));
     }
   }
 
@@ -599,7 +586,7 @@ export default function TransferView() {
   }
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="Transfer"
         subtitle="Send money to Turbopay users or any Nigerian bank account."
@@ -616,7 +603,11 @@ export default function TransferView() {
           onSaveTemplate={() => {
             // Seed the name from the transfer result and open the dialog
             const r = result;
-            const seed = `${r.recipientName ?? r.transaction.counterpartyName ?? "Transfer"} — ${nairaPlain(r.transaction.amountKobo)}`.slice(0, 60);
+            const seed =
+              `${r.recipientName ?? r.transaction.counterpartyName ?? "Transfer"} — ${nairaPlain(r.transaction.amountKobo)}`.slice(
+                0,
+                60
+              );
             setTplName(seed);
             setTplDialogOpen(true);
           }}
@@ -657,7 +648,7 @@ export default function TransferView() {
                         variant="secondary"
                         onClick={resolveTurbopay}
                         disabled={tpResolving || tpRecipient.trim().length < 3}
-                        className="gap-1.5 shrink-0"
+                        className="shrink-0 gap-1.5"
                       >
                         {tpResolving ? (
                           <RefreshCw className="h-4 w-4 animate-spin" />
@@ -671,7 +662,9 @@ export default function TransferView() {
                       <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2">
                         <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         <span className="text-sm font-medium">{tpResolved.name}</span>
-                        <Badge variant="secondary" className="ml-auto">Turbopay user</Badge>
+                        <Badge variant="secondary" className="ml-auto">
+                          Turbopay user
+                        </Badge>
                       </div>
                     )}
                   </div>
@@ -680,7 +673,15 @@ export default function TransferView() {
                 <TabsContent value="BANK" className="mt-5 space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="bank-select">Bank</Label>
-                    <Select value={bankCode} onValueChange={(v) => { setBankCode(v); setBankResolved(null); setBankResolveStatus(null); setBankProceedAnyway(false); }}>
+                    <Select
+                      value={bankCode}
+                      onValueChange={(v) => {
+                        setBankCode(v);
+                        setBankResolved(null);
+                        setBankResolveStatus(null);
+                        setBankProceedAnyway(false);
+                      }}
+                    >
                       <SelectTrigger id="bank-select" className="w-full">
                         <SelectValue placeholder="Select bank" />
                       </SelectTrigger>
@@ -714,9 +715,11 @@ export default function TransferView() {
                       <Button
                         type="button"
                         variant="secondary"
-                        onClick={() => { void resolveBank(); }}
+                        onClick={() => {
+                          void resolveBank();
+                        }}
                         disabled={bankResolving || !bankCode || bankAccount.length < 6}
-                        className="gap-1.5 shrink-0"
+                        className="shrink-0 gap-1.5"
                       >
                         {bankResolving ? (
                           <RefreshCw className="h-4 w-4 animate-spin" />
@@ -730,7 +733,9 @@ export default function TransferView() {
                     {bankResolving && (
                       <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2">
                         <RefreshCw className="h-4 w-4 animate-spin text-amber-600 dark:text-amber-400" />
-                        <span className="text-sm text-muted-foreground">Verifying account name…</span>
+                        <span className="text-muted-foreground text-sm">
+                          Verifying account name…
+                        </span>
                       </div>
                     )}
                     {/* Resolved — green confirmation box */}
@@ -770,7 +775,10 @@ export default function TransferView() {
                             <button
                               type="button"
                               className="ml-auto underline-offset-2 hover:underline"
-                              onClick={() => { setBankProceedAnyway(false); void resolveBank(); }}
+                              onClick={() => {
+                                setBankProceedAnyway(false);
+                                void resolveBank();
+                              }}
                             >
                               Retry
                             </button>
@@ -799,7 +807,7 @@ export default function TransferView() {
                         key={v}
                         type="button"
                         onClick={() => setAmountInput(String(v))}
-                        className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                        className="border-border bg-background hover:border-primary hover:bg-primary/5 rounded-full border px-2.5 py-1 text-xs font-medium"
                       >
                         ₦{v.toLocaleString()}
                       </button>
@@ -819,7 +827,7 @@ export default function TransferView() {
                 </div>
 
                 {/* Fee + total */}
-                <div className="rounded-xl border bg-muted/40 p-3 text-sm">
+                <div className="bg-muted/40 rounded-xl border p-3 text-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Transfer fee</span>
                     <span className="font-medium tabular-nums">
@@ -846,9 +854,9 @@ export default function TransferView() {
                     onCheckedChange={(v) => setSaveTemplate(v === true)}
                   />
                   <span className="flex items-center gap-1">
-                    <Bookmark className="h-3.5 w-3.5 text-muted-foreground" />
+                    <Bookmark className="text-muted-foreground h-3.5 w-3.5" />
                     Save as template
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground text-xs">
                       (prompt for name after transfer)
                     </span>
                   </span>
@@ -892,34 +900,30 @@ export default function TransferView() {
                   title="No beneficiaries yet"
                   description="Saved recipients will appear here."
                   action={
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setView("beneficiaries")}
-                    >
+                    <Button size="sm" variant="outline" onClick={() => setView("beneficiaries")}>
                       Add beneficiary
                     </Button>
                   }
                 />
               ) : (
-                <div className="max-h-96 space-y-1.5 overflow-y-auto scrollbar-thin pr-1">
+                <div className="scrollbar-thin max-h-96 space-y-1.5 overflow-y-auto pr-1">
                   {beneficiaries.map((b) => (
                     <div
                       key={b.id}
-                      className="group flex items-center gap-3 rounded-xl border border-transparent p-2 transition-colors hover:border-border hover:bg-muted/40"
+                      className="group hover:border-border hover:bg-muted/40 flex items-center gap-3 rounded-xl border border-transparent p-2 transition-colors"
                     >
                       <button
                         onClick={() => prefill(b)}
                         className="flex min-w-0 flex-1 items-center gap-3 text-left"
                       >
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <div className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
                           <span className="text-xs font-bold">
                             {b.name.slice(0, 2).toUpperCase()}
                           </span>
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">{b.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">
+                          <p className="text-muted-foreground truncate text-xs">
                             {b.accountNumber} · {b.bankName}
                           </p>
                         </div>
@@ -931,15 +935,13 @@ export default function TransferView() {
                       >
                         <Star
                           className={`h-4 w-4 ${
-                            b.isFavorite
-                              ? "fill-amber-400 text-amber-400"
-                              : "text-muted-foreground"
+                            b.isFavorite ? "fill-amber-400 text-amber-400" : "text-muted-foreground"
                           }`}
                         />
                       </button>
                       <button
                         onClick={() => deleteBeneficiary(b)}
-                        className="shrink-0 p-1.5 text-muted-foreground hover:text-destructive"
+                        className="text-muted-foreground hover:text-destructive shrink-0 p-1.5"
                         title="Delete"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -955,9 +957,9 @@ export default function TransferView() {
                 <ShieldCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                 <div>
                   <p className="text-sm font-semibold">Safe &amp; secure</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    All transfers require your 4-digit PIN. Bank transfers are
-                    protected by name verification.
+                  <p className="text-muted-foreground mt-0.5 text-xs">
+                    All transfers require your 4-digit PIN. Bank transfers are protected by name
+                    verification.
                   </p>
                 </div>
               </div>
@@ -967,11 +969,9 @@ export default function TransferView() {
             <Card className="p-5">
               <div className="mb-3 flex items-center justify-between">
                 <p className="flex items-center gap-1.5 text-sm font-semibold">
-                  <Bookmark className="h-4 w-4 text-primary" /> Templates
+                  <Bookmark className="text-primary h-4 w-4" /> Templates
                 </p>
-                <span className="text-xs text-muted-foreground">
-                  {templates.length} saved
-                </span>
+                <span className="text-muted-foreground text-xs">{templates.length} saved</span>
               </div>
               {tplLoading ? (
                 <div className="space-y-2">
@@ -986,14 +986,14 @@ export default function TransferView() {
                   description="Save your recurring transfers for quick access."
                 />
               ) : (
-                <div className="max-h-80 space-y-2 overflow-y-auto scrollbar-thin pr-1">
+                <div className="scrollbar-thin max-h-80 space-y-2 overflow-y-auto pr-1">
                   {templates.map((t) => (
                     <div
                       key={t.id}
-                      className="group rounded-xl border border-transparent p-2.5 transition-colors hover:border-border hover:bg-muted/40"
+                      className="group hover:border-border hover:bg-muted/40 rounded-xl border border-transparent p-2.5 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <div className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
                           {t.type === "TURBOPAY" ? (
                             <ArrowLeftRight className="h-4 w-4" />
                           ) : (
@@ -1002,12 +1002,12 @@ export default function TransferView() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">{t.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">
+                          <p className="text-muted-foreground truncate text-xs">
                             {t.recipientName} · {t.accountNumber}
                             {t.bankName ? ` · ${t.bankName}` : ""}
                           </p>
                           {t.amountKobo ? (
-                            <p className="mt-0.5 text-[11px] font-medium tabular-nums text-muted-foreground">
+                            <p className="text-muted-foreground mt-0.5 text-[11px] font-medium tabular-nums">
                               {naira(t.amountKobo)}
                               {t.note ? ` · ${t.note}` : ""}
                             </p>
@@ -1038,7 +1038,7 @@ export default function TransferView() {
                         </Button>
                         <button
                           onClick={() => deleteTemplate(t)}
-                          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0 rounded-md p-1.5"
                           title="Delete template"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -1078,7 +1078,7 @@ export default function TransferView() {
               />
             </div>
             {lastTransfer && (
-              <div className="rounded-xl border bg-muted/40 p-3 text-xs">
+              <div className="bg-muted/40 rounded-xl border p-3 text-xs">
                 <Row label="Recipient" value={lastTransfer.recipientName} />
                 <Row
                   label="Account"
@@ -1126,14 +1126,14 @@ export default function TransferView() {
               label="Account"
               value={
                 type === "TURBOPAY"
-                  ? tpResolved?.username ?? tpRecipient
+                  ? (tpResolved?.username ?? tpRecipient)
                   : `${bankAccount} · ${bankResolved?.bankName ?? ""}`
               }
             />
             <Row label="Amount" value={naira(amountKobo)} />
             <Row label="Fee" value={feeKobo > 0 ? naira(feeKobo) : "Free"} />
             {note && <Row label="Note" value={note} />}
-            <div className="rounded-xl border bg-muted/50 p-3">
+            <div className="bg-muted/50 rounded-xl border p-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="font-medium">Total debit</span>
                 <span className="text-lg font-bold tabular-nums">{naira(totalKobo)}</span>
@@ -1144,11 +1144,7 @@ export default function TransferView() {
             <Button variant="outline" className="flex-1" onClick={() => setConfirmOpen(false)}>
               Cancel
             </Button>
-            <Button
-              className="flex-1 gap-1.5"
-              disabled={submitting}
-              onClick={submitTransfer}
-            >
+            <Button className="flex-1 gap-1.5" disabled={submitting} onClick={submitTransfer}>
               {submitting ? (
                 <RefreshCw className="h-4 w-4 animate-spin" />
               ) : (
@@ -1185,19 +1181,19 @@ function SuccessCard({
 }) {
   const tx = result.transaction;
   return (
-    <Card className="mx-auto max-w-md p-6 text-center tp-fade-rise">
+    <Card className="tp-fade-rise mx-auto max-w-md p-6 text-center">
       <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
         <CheckCircle2 className="h-9 w-9" />
       </div>
       <h2 className="mt-4 text-xl font-bold">Transfer successful</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="text-muted-foreground mt-1 text-sm">
         {naira(tx.amountKobo)} sent to{" "}
-        <span className="font-medium text-foreground">
+        <span className="text-foreground font-medium">
           {tx.counterpartyName ?? result.recipientName}
         </span>
       </p>
 
-      <div className="mt-5 space-y-2 rounded-xl border bg-muted/40 p-4 text-left text-sm">
+      <div className="bg-muted/40 mt-5 space-y-2 rounded-xl border p-4 text-left text-sm">
         <Row label="Reference" value={tx.reference} />
         <Row label="Amount" value={naira(tx.amountKobo)} />
         {tx.feeKobo > 0 && <Row label="Fee" value={naira(tx.feeKobo)} />}
@@ -1217,7 +1213,7 @@ function SuccessCard({
 
       <button
         onClick={onSaveTemplate}
-        className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-primary/40 bg-primary/5 px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
+        className="border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed px-4 py-2.5 text-sm font-medium transition-colors"
       >
         <BookmarkPlus className="h-4 w-4" /> Save as template
       </button>

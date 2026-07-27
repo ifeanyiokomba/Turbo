@@ -21,26 +21,12 @@ import { z } from "zod";
 
 export const dynamic = "force-dynamic";
 
-const CATEGORIES = new Set([
-  "TRANSACTION",
-  "BILL",
-  "TRANSFER",
-  "CARD",
-  "AIRTIME",
-  "OTHER",
-]);
+const CATEGORIES = new Set(["TRANSACTION", "BILL", "TRANSFER", "CARD", "AIRTIME", "OTHER"]);
 const PRIORITIES = new Set(["LOW", "NORMAL", "HIGH", "URGENT"]);
 
 const createSchema = z.object({
   subject: z.string().trim().min(3, "Subject is too short").max(160),
-  category: z.enum([
-    "TRANSACTION",
-    "BILL",
-    "TRANSFER",
-    "CARD",
-    "AIRTIME",
-    "OTHER",
-  ]),
+  category: z.enum(["TRANSACTION", "BILL", "TRANSFER", "CARD", "AIRTIME", "OTHER"]),
   priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
   transactionId: z.string().trim().max(60).optional().nullable(),
   description: z.string().trim().min(10, "Please describe the issue").max(8000),
@@ -77,13 +63,13 @@ export async function GET() {
         d.status === "OPEN" ||
         d.status === "UNDER_REVIEW" ||
         d.status === "EVIDENCE_REQUIRED" ||
-        d.status === "ESCALATED",
+        d.status === "ESCALATED"
     ).length;
     const resolved = all.filter(
       (d) =>
         d.status === "RESOLVED_FAVOUR_USER" ||
         d.status === "RESOLVED_FAVOUR_PLATFORM" ||
-        d.status === "CLOSED",
+        d.status === "CLOSED"
     ).length;
 
     return json({
@@ -118,14 +104,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
-      return errorJson(
-        parsed.error.issues[0]?.message ?? "Invalid input",
-        400,
-        "VALIDATION",
-      );
+      return errorJson(parsed.error.issues[0]?.message ?? "Invalid input", 400, "VALIDATION");
     }
-    const { subject, category, priority, transactionId, description } =
-      parsed.data;
+    const { subject, category, priority, transactionId, description } = parsed.data;
 
     // Optional transaction reference — must belong to user if provided
     let txId: string | null = null;
@@ -135,11 +116,7 @@ export async function POST(req: NextRequest) {
         select: { id: true },
       });
       if (!tx)
-        throw new ServiceError(
-          "Transaction not found for your account",
-          404,
-          "TX_NOT_FOUND",
-        );
+        throw new ServiceError("Transaction not found for your account", 404, "TX_NOT_FOUND");
       txId = tx.id;
     }
 

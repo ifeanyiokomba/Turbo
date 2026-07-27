@@ -1,6 +1,14 @@
 // TurboCore — 11 provider contracts. Every method returns Promise<ProviderResult<T>>.
 
-import type { ProviderResult, Bank, Biller, Network, DataPlan, InternationalBeneficiary, TimelineEvent } from "./result";
+import type {
+  ProviderResult,
+  Bank,
+  Biller,
+  Network,
+  DataPlan,
+  InternationalBeneficiary,
+  TimelineEvent,
+} from "./result";
 
 // Re-export ProviderResult so adapter files can import everything they need
 // from a single module path.
@@ -16,10 +24,23 @@ export interface IVirtualAccountProvider {
     country: string;
     bvn?: string;
     nin?: string;
-  }): Promise<ProviderResult<{ accountNumber: string; bankCode: string; bankName: string; providerRef: string }>>;
-  getAccountStatus(providerRef: string): Promise<ProviderResult<{ status: string; accountNumber: string }>>;
+  }): Promise<
+    ProviderResult<{
+      accountNumber: string;
+      bankCode: string;
+      bankName: string;
+      providerRef: string;
+    }>
+  >;
+  getAccountStatus(
+    providerRef: string
+  ): Promise<ProviderResult<{ status: string; accountNumber: string }>>;
   deactivateVirtualAccount(providerRef: string): Promise<ProviderResult<{ deactivated: boolean }>>;
-  resolveAccountName(req: { accountNumber: string; bankCode: string; country: string }): Promise<ProviderResult<{ accountName: string; bankName: string }>>;
+  resolveAccountName(req: {
+    accountNumber: string;
+    bankCode: string;
+    country: string;
+  }): Promise<ProviderResult<{ accountName: string; bankName: string }>>;
 }
 
 // 2. Card payments (Paystack, Flutterwave, Stripe)
@@ -31,16 +52,32 @@ export interface ICardPaymentProvider {
     reference: string;
     customer: { email?: string; phone?: string; name?: string };
     metadata?: Record<string, unknown>;
-  }): Promise<ProviderResult<{ providerRef: string; status: "PENDING" | "SUCCESS" | "3DS_REQUIRED"; authUrl?: string }>>;
-  verifyCharge(providerRef: string): Promise<ProviderResult<{ status: string; amountSettledMinor: number; currency: string }>>;
-  refund(req: { providerRef: string; amountMinor?: number; reason?: string }): Promise<ProviderResult<{ refundRef: string; status: string }>>;
+  }): Promise<
+    ProviderResult<{
+      providerRef: string;
+      status: "PENDING" | "SUCCESS" | "3DS_REQUIRED";
+      authUrl?: string;
+    }>
+  >;
+  verifyCharge(
+    providerRef: string
+  ): Promise<ProviderResult<{ status: string; amountSettledMinor: number; currency: string }>>;
+  refund(req: {
+    providerRef: string;
+    amountMinor?: number;
+    reason?: string;
+  }): Promise<ProviderResult<{ refundRef: string; status: string }>>;
 }
 
 // 3. Bank transfers (Paystack, Flutterwave, OnePipe)
 export interface IBankTransferProvider {
   readonly contract: "BANK_TRANSFER";
   listBanks(country: string): Promise<ProviderResult<Bank[]>>;
-  resolveAccountName(req: { accountNumber: string; bankCode: string; country: string }): Promise<ProviderResult<{ accountName: string; bankName: string }>>;
+  resolveAccountName(req: {
+    accountNumber: string;
+    bankCode: string;
+    country: string;
+  }): Promise<ProviderResult<{ accountName: string; bankName: string }>>;
   initiateTransfer(req: {
     reference: string;
     amountMinor: number;
@@ -48,15 +85,26 @@ export interface IBankTransferProvider {
     beneficiary: { name: string; accountNumber: string; bankCode: string };
     narration?: string;
   }): Promise<ProviderResult<{ providerRef: string; status: "PENDING" | "SUCCESS" | "FAILED" }>>;
-  getTransferStatus(providerRef: string): Promise<ProviderResult<{ status: string; settlementTime?: string }>>;
-  reverseTransfer(req: { providerRef: string; reason: string }): Promise<ProviderResult<{ reversalRef: string; status: string }>>;
+  getTransferStatus(
+    providerRef: string
+  ): Promise<ProviderResult<{ status: string; settlementTime?: string }>>;
+  reverseTransfer(req: {
+    providerRef: string;
+    reason: string;
+  }): Promise<ProviderResult<{ reversalRef: string; status: string }>>;
 }
 
 // 4. Bill payments (Baxi, Remita, Quickteller)
 export interface IBillPaymentProvider {
   readonly contract: "BILL_PAYMENT";
   listBillers(req: { country: string; category?: string }): Promise<ProviderResult<Biller[]>>;
-  validateCustomer(req: { billerCode: string; customerRef: string; country: string }): Promise<ProviderResult<{ customerName: string; valid: boolean; metadata?: Record<string, unknown> }>>;
+  validateCustomer(req: {
+    billerCode: string;
+    customerRef: string;
+    country: string;
+  }): Promise<
+    ProviderResult<{ customerName: string; valid: boolean; metadata?: Record<string, unknown> }>
+  >;
   payBill(req: {
     reference: string;
     billerCode: string;
@@ -64,8 +112,18 @@ export interface IBillPaymentProvider {
     amountMinor: number;
     currency: string;
     productCode?: string;
-  }): Promise<ProviderResult<{ providerRef: string; status: string; token?: string; units?: string; receipt?: string }>>;
-  queryBillPayment(providerRef: string): Promise<ProviderResult<{ status: string; token?: string }>>;
+  }): Promise<
+    ProviderResult<{
+      providerRef: string;
+      status: string;
+      token?: string;
+      units?: string;
+      receipt?: string;
+    }>
+  >;
+  queryBillPayment(
+    providerRef: string
+  ): Promise<ProviderResult<{ status: string; token?: string }>>;
 }
 
 // 5. Airtime & data (Baxi, Quickteller, provider-direct)
@@ -93,7 +151,15 @@ export interface IKYCProvider {
     country: string;
     idType: string; // NIN | BVN | KRA_PIN | GHANA_CARD | SA_ID
     idValue: string;
-  }): Promise<ProviderResult<{ tier: number; verified: boolean; firstName?: string; lastName?: string; phone?: string }>>;
+  }): Promise<
+    ProviderResult<{
+      tier: number;
+      verified: boolean;
+      firstName?: string;
+      lastName?: string;
+      phone?: string;
+    }>
+  >;
 }
 
 // 7. Notifications (Termii, Resend, GetOTP, Firebase)
@@ -107,7 +173,9 @@ export interface INotificationProvider {
     body: string;
     variables?: Record<string, string>;
   }): Promise<ProviderResult<{ messageId: string; status: string }>>;
-  getDeliveryStatus(messageId: string): Promise<ProviderResult<{ status: string; deliveredAt?: string }>>;
+  getDeliveryStatus(
+    messageId: string
+  ): Promise<ProviderResult<{ status: string; deliveredAt?: string }>>;
 }
 
 // 8. International transfers (Wise, Flutterwave borderless)
@@ -118,7 +186,9 @@ export interface IInternationalTransferProvider {
     targetCurrency: string;
     amountMinor: number;
     direction: "OUTBOUND" | "INBOUND";
-  }): Promise<ProviderResult<{ rate: number; feeMinor: number; totalMinor: number; expiresAt: string }>>;
+  }): Promise<
+    ProviderResult<{ rate: number; feeMinor: number; totalMinor: number; expiresAt: string }>
+  >;
   sendTransfer(req: {
     reference: string;
     beneficiary: InternationalBeneficiary;
@@ -126,14 +196,19 @@ export interface IInternationalTransferProvider {
     currency: string;
     narration?: string;
   }): Promise<ProviderResult<{ providerRef: string; status: string; estimatedDelivery?: string }>>;
-  getTransferStatus(providerRef: string): Promise<ProviderResult<{ status: string; timeline: TimelineEvent[] }>>;
+  getTransferStatus(
+    providerRef: string
+  ): Promise<ProviderResult<{ status: string; timeline: TimelineEvent[] }>>;
   cancelTransfer(providerRef: string): Promise<ProviderResult<{ status: string }>>;
 }
 
 // 9. Mobile money (M-Pesa, MTN MoMo, Airtel Money)
 export interface IMobileMoneyProvider {
   readonly contract: "MOBILE_MONEY";
-  getBalance(req: { walletProvider: string; phone: string }): Promise<ProviderResult<{ balanceMinor: number; currency: string }>>;
+  getBalance(req: {
+    walletProvider: string;
+    phone: string;
+  }): Promise<ProviderResult<{ balanceMinor: number; currency: string }>>;
   collect(req: {
     reference: string;
     phone: string;
@@ -175,7 +250,9 @@ export interface IMobileMoneyProvider {
     identifierType?: string;
     remarks?: string;
     occasion?: string;
-  }): Promise<ProviderResult<{ status: string; conversationId?: string; originatorConversationId?: string }>>;
+  }): Promise<
+    ProviderResult<{ status: string; conversationId?: string; originatorConversationId?: string }>
+  >;
 
   /** POST /mpesa/c2b/v1/register/url — register C2B validation/confirmation URLs. */
   registerC2BUrl?(req: {
@@ -192,7 +269,9 @@ export interface IMobileMoneyProvider {
     msisdn: string;
     billRefNumber: string;
     shortCode: string;
-  }): Promise<ProviderResult<{ conversationId?: string; responseCode: string; responseDescription: string }>>;
+  }): Promise<
+    ProviderResult<{ conversationId?: string; responseCode: string; responseDescription: string }>
+  >;
 
   /** POST /mpesa/accountbalance/v1/query — query account balance (async via callback). */
   getAccountBalance?(req: {
@@ -201,7 +280,15 @@ export interface IMobileMoneyProvider {
     partyA?: string;
     identifierType?: string;
     remarks?: string;
-  }): Promise<ProviderResult<{ conversationId?: string; responseCode: string; responseDescription: string; balanceMinor?: number; currency?: string }>>;
+  }): Promise<
+    ProviderResult<{
+      conversationId?: string;
+      responseCode: string;
+      responseDescription: string;
+      balanceMinor?: number;
+      currency?: string;
+    }>
+  >;
 
   /** POST /mpesa/transactionstatus/v1/query — generic transaction status query. */
   getTransactionStatus?(req: {
@@ -211,7 +298,9 @@ export interface IMobileMoneyProvider {
     identifierType?: string;
     remarks?: string;
     occasion?: string;
-  }): Promise<ProviderResult<{ status: string; conversationId?: string; originatorConversationId?: string }>>;
+  }): Promise<
+    ProviderResult<{ status: string; conversationId?: string; originatorConversationId?: string }>
+  >;
 
   // MTN MoMo — pre-approval, delivery notification, account holder info,
   // disbursement-specific transfer (separate token from collection).
@@ -236,7 +325,9 @@ export interface IMobileMoneyProvider {
   getAccountHolderBasicInfo?(req: {
     accountHolderId: string;
     accountHolderIdType: "MSISDN" | "EMAIL" | "PARTY_CODE";
-  }): Promise<ProviderResult<{ name?: string; surname?: string; msisdn?: string; status?: string }>>;
+  }): Promise<
+    ProviderResult<{ name?: string; surname?: string; msisdn?: string; status?: string }>
+  >;
 
   /** GET /collection/v2_0/accountholder/:type/:id/active — check account holder activity. */
   isAccountHolderActive?(req: {
@@ -255,10 +346,14 @@ export interface IMobileMoneyProvider {
   }): Promise<ProviderResult<{ referenceId: string; status: string }>>;
 
   /** GET /disbursement/v2_0/transfer/:referenceId — disbursement transfer status. */
-  getDisbursementTransferStatus?(referenceId: string): Promise<ProviderResult<{ status: string; financialTransactionId?: string }>>;
+  getDisbursementTransferStatus?(
+    referenceId: string
+  ): Promise<ProviderResult<{ status: string; financialTransactionId?: string }>>;
 
   /** GET /disbursement/v2_0/account/balance — disbursement account balance. */
-  getDisbursementAccountBalance?(): Promise<ProviderResult<{ balanceMinor: number; currency: string; availableBalanceMinor?: number }>>;
+  getDisbursementAccountBalance?(): Promise<
+    ProviderResult<{ balanceMinor: number; currency: string; availableBalanceMinor?: number }>
+  >;
 
   // AIRTEL MONEY — KYC verification, refund, merchant payment.
 
@@ -298,7 +393,9 @@ export interface IMobileMoneyProvider {
   }): Promise<ProviderResult<{ providerRef: string; status: string }>>;
 
   /** GET /v1/accounts/verify?phone= — verify Smartcash account exists. */
-  verifyAccount?(req: { phone: string }): Promise<ProviderResult<{ valid: boolean; accountName?: string; status?: string }>>;
+  verifyAccount?(req: {
+    phone: string;
+  }): Promise<ProviderResult<{ valid: boolean; accountName?: string; status?: string }>>;
 
   /** GET /v1/transactions/history — fetch transaction history for a phone. */
   getTransactionHistory?(req: {
@@ -306,13 +403,27 @@ export interface IMobileMoneyProvider {
     fromDate?: string;
     toDate?: string;
     limit?: number;
-  }): Promise<ProviderResult<{ transactions: Array<{ id: string; type: string; amountMinor: number; currency: string; status: string; timestamp: string }> }>>;
+  }): Promise<
+    ProviderResult<{
+      transactions: Array<{
+        id: string;
+        type: string;
+        amountMinor: number;
+        currency: string;
+        status: string;
+        timestamp: string;
+      }>;
+    }>
+  >;
 }
 
 // 10. Exchange rates (Paystack, Flutterwave, Wise, open-market)
 export interface IExchangeRateProvider {
   readonly contract: "EXCHANGE_RATE";
-  getRate(req: { base: string; quote: string }): Promise<ProviderResult<{ rate: number; source: string; timestamp: string }>>;
+  getRate(req: {
+    base: string;
+    quote: string;
+  }): Promise<ProviderResult<{ rate: number; source: string; timestamp: string }>>;
   listSupported(): Promise<ProviderResult<{ pairs: { base: string; quote: string }[] }>>;
 }
 
@@ -325,12 +436,29 @@ export interface IVirtualCardIssuer {
     currency: string;
     type: "VISA" | "MASTERCARD";
     spendingLimitMinor: number;
-  }): Promise<ProviderResult<{ providerRef: string; panEnc: string; cvvEnc: string; last4: string; expiry: string }>>;
-  fundCard(req: { providerRef: string; amountMinor: number; currency: string }): Promise<ProviderResult<{ status: string }>>;
-  withdrawCard(req: { providerRef: string; amountMinor: number }): Promise<ProviderResult<{ status: string }>>;
+  }): Promise<
+    ProviderResult<{
+      providerRef: string;
+      panEnc: string;
+      cvvEnc: string;
+      last4: string;
+      expiry: string;
+    }>
+  >;
+  fundCard(req: {
+    providerRef: string;
+    amountMinor: number;
+    currency: string;
+  }): Promise<ProviderResult<{ status: string }>>;
+  withdrawCard(req: {
+    providerRef: string;
+    amountMinor: number;
+  }): Promise<ProviderResult<{ status: string }>>;
   freezeCard(providerRef: string): Promise<ProviderResult<{ status: string }>>;
   unfreezeCard(providerRef: string): Promise<ProviderResult<{ status: string }>>;
-  terminateCard(providerRef: string): Promise<ProviderResult<{ status: string; refundedMinor?: number }>>;
+  terminateCard(
+    providerRef: string
+  ): Promise<ProviderResult<{ status: string; refundedMinor?: number }>>;
 }
 
 // 12. AML screening (Dojah AML, sanctions, PEPs, transaction screening)
@@ -348,29 +476,74 @@ export interface IAMLProvider {
     senderCountry?: string;
     beneficiaryName: string;
     beneficiaryCountry?: string;
-  }): Promise<ProviderResult<{ hit: boolean; riskScore: number; matches?: AMLMatch[]; screeningId?: string }>>;
-  getAMLPeps(req: { name: string; country?: string }): Promise<ProviderResult<{ matches: AMLMatch[] }>>;
-  getAMLSanctions(req: { name: string; country?: string }): Promise<ProviderResult<{ matches: AMLMatch[] }>>;
+  }): Promise<
+    ProviderResult<{ hit: boolean; riskScore: number; matches?: AMLMatch[]; screeningId?: string }>
+  >;
+  getAMLPeps(req: {
+    name: string;
+    country?: string;
+  }): Promise<ProviderResult<{ matches: AMLMatch[] }>>;
+  getAMLSanctions(req: {
+    name: string;
+    country?: string;
+  }): Promise<ProviderResult<{ matches: AMLMatch[] }>>;
 }
 
 // 13. Business KYC (Dojah CAC/TIN/business name verification)
 export interface IBusinessKYCProvider {
   readonly contract: "BUSINESS_KYC";
-  verifyRCNumber(req: {
-    rcNumber: string;
-    companyType?: string;
-  }): Promise<ProviderResult<{ verified: boolean; companyName?: string; address?: string; status?: string; directors?: string[] }>>;
-  verifyTIN(req: { tin: string }): Promise<ProviderResult<{ verified: boolean; companyName?: string; tin?: string; status?: string }>>;
-  verifyBusinessName(req: { businessName: string }): Promise<ProviderResult<{ verified: boolean; matches?: BusinessMatch[] }>>;
+  verifyRCNumber(req: { rcNumber: string; companyType?: string }): Promise<
+    ProviderResult<{
+      verified: boolean;
+      companyName?: string;
+      address?: string;
+      status?: string;
+      directors?: string[];
+    }>
+  >;
+  verifyTIN(req: {
+    tin: string;
+  }): Promise<
+    ProviderResult<{ verified: boolean; companyName?: string; tin?: string; status?: string }>
+  >;
+  verifyBusinessName(req: {
+    businessName: string;
+  }): Promise<ProviderResult<{ verified: boolean; matches?: BusinessMatch[] }>>;
 }
 
 // 14. Fraud screening (Dojah phone/email/IP reputation + card BIN lookup)
 export interface IFraudScreeningProvider {
   readonly contract: "FRAUD_SCREENING";
-  screenPhone(req: { phone: string }): Promise<ProviderResult<{ riskScore: number; carrier?: string; country?: string; ported?: boolean; valid?: boolean }>>;
-  screenEmail(req: { email: string }): Promise<ProviderResult<{ riskScore: number; deliverable?: boolean; breached?: boolean; breaches?: number }>>;
-  screenIP(req: { ip: string }): Promise<ProviderResult<{ riskScore: number; country?: string; city?: string; proxy?: boolean; vpn?: boolean; isp?: string }>>;
-  checkBIN(req: { bin: string }): Promise<ProviderResult<{ bank?: string; brand?: string; type?: string; country?: string }>>;
+  screenPhone(req: { phone: string }): Promise<
+    ProviderResult<{
+      riskScore: number;
+      carrier?: string;
+      country?: string;
+      ported?: boolean;
+      valid?: boolean;
+    }>
+  >;
+  screenEmail(req: { email: string }): Promise<
+    ProviderResult<{
+      riskScore: number;
+      deliverable?: boolean;
+      breached?: boolean;
+      breaches?: number;
+    }>
+  >;
+  screenIP(req: { ip: string }): Promise<
+    ProviderResult<{
+      riskScore: number;
+      country?: string;
+      city?: string;
+      proxy?: boolean;
+      vpn?: boolean;
+      isp?: string;
+    }>
+  >;
+  checkBIN(req: {
+    bin: string;
+  }): Promise<ProviderResult<{ bank?: string; brand?: string; type?: string; country?: string }>>;
 }
 
 // 15. OTP delivery + verification (Termii OTP across SMS/Voice/WhatsApp/Email)
@@ -386,9 +559,22 @@ export interface IOTPProvider {
     pinPlaceholder?: string;
     messageText?: string;
   }): Promise<ProviderResult<{ pinId: string; status: string; deliveredTo?: string }>>;
-  verifyOTP(req: { pinId: string; pin: string }): Promise<ProviderResult<{ verified: boolean; status: string }>>;
-  sendVoiceOTP(req: { to: string; pinAttempts?: number; pinTimeToLive?: number; pinLength?: number }): Promise<ProviderResult<{ pinId: string; status: string }>>;
-  sendWhatsAppOTP(req: { to: string; pinAttempts?: number; pinTimeToLive?: number; pinLength?: number }): Promise<ProviderResult<{ pinId: string; status: string }>>;
+  verifyOTP(req: {
+    pinId: string;
+    pin: string;
+  }): Promise<ProviderResult<{ verified: boolean; status: string }>>;
+  sendVoiceOTP(req: {
+    to: string;
+    pinAttempts?: number;
+    pinTimeToLive?: number;
+    pinLength?: number;
+  }): Promise<ProviderResult<{ pinId: string; status: string }>>;
+  sendWhatsAppOTP(req: {
+    to: string;
+    pinAttempts?: number;
+    pinTimeToLive?: number;
+    pinLength?: number;
+  }): Promise<ProviderResult<{ pinId: string; status: string }>>;
 }
 
 // 16. International recipient CRUD (Wise recipients — create/list/get/update/delete)
@@ -400,10 +586,25 @@ export interface IRecipientProvider {
     type: string; // iban | swift_code | sort_code | bsb_code | aba | iban | swift
     accountHolderName: string;
     bankDetails?: Record<string, unknown>;
-  }): Promise<ProviderResult<{ recipientId: string; currency: string; type: string; active: boolean }>>;
-  listRecipients(req: { profileId: string }): Promise<ProviderResult<{ recipients: RecipientSummary[] }>>;
-  getRecipient(id: string): Promise<ProviderResult<{ id: string; name: string; currency: string; type: string; bankDetails?: Record<string, unknown> }>>;
-  updateRecipient(id: string, req: Partial<{ accountHolderName: string; bankDetails: Record<string, unknown> }>): Promise<ProviderResult<{ id: string; updated: boolean }>>;
+  }): Promise<
+    ProviderResult<{ recipientId: string; currency: string; type: string; active: boolean }>
+  >;
+  listRecipients(req: {
+    profileId: string;
+  }): Promise<ProviderResult<{ recipients: RecipientSummary[] }>>;
+  getRecipient(id: string): Promise<
+    ProviderResult<{
+      id: string;
+      name: string;
+      currency: string;
+      type: string;
+      bankDetails?: Record<string, unknown>;
+    }>
+  >;
+  updateRecipient(
+    id: string,
+    req: Partial<{ accountHolderName: string; bankDetails: Record<string, unknown> }>
+  ): Promise<ProviderResult<{ id: string; updated: boolean }>>;
   deleteRecipient(id: string): Promise<ProviderResult<{ deleted: boolean }>>;
 }
 
@@ -411,7 +612,15 @@ export interface IRecipientProvider {
 export interface IMultiCurrencyBalanceProvider {
   readonly contract: "MULTI_CURRENCY_BALANCE";
   getBalances(req: { profileId: string }): Promise<ProviderResult<{ balances: BalanceSummary[] }>>;
-  getBalance(balanceId: string): Promise<ProviderResult<{ id: string; currency: string; amountMinor: number; type?: string; bankDetails?: Record<string, unknown> }>>;
+  getBalance(balanceId: string): Promise<
+    ProviderResult<{
+      id: string;
+      currency: string;
+      amountMinor: number;
+      type?: string;
+      bankDetails?: Record<string, unknown>;
+    }>
+  >;
 }
 
 // 18. Split payment subaccounts (Paystack, Flutterwave, Monnify)
@@ -460,19 +669,25 @@ export interface ISplitPaymentProvider {
     // Shared
     accountNumber: string;
   }): Promise<ProviderResult<ISubaccountSummary>>;
-  listSubaccounts(req?: { perPage?: number; page?: number }): Promise<ProviderResult<ISubaccountSummary[]>>;
+  listSubaccounts(req?: {
+    perPage?: number;
+    page?: number;
+  }): Promise<ProviderResult<ISubaccountSummary[]>>;
   /** Paystack/Flutterwave: GET /subaccount/:id or /subaccounts/:id */
   fetchSubaccount?(id: string): Promise<ProviderResult<ISubaccountSummary>>;
   /** Paystack/Flutterwave: PUT /subaccount/:id or /subaccounts/:id */
-  updateSubaccount?(id: string, req: Partial<{
-    businessName: string;
-    settlementBank: string;
-    accountNumber: string;
-    percentageCharge: number;
-    splitType: string;
-    splitValue: number;
-    defaultPercentage: number;
-  }>): Promise<ProviderResult<ISubaccountSummary>>;
+  updateSubaccount?(
+    id: string,
+    req: Partial<{
+      businessName: string;
+      settlementBank: string;
+      accountNumber: string;
+      percentageCharge: number;
+      splitType: string;
+      splitValue: number;
+      defaultPercentage: number;
+    }>
+  ): Promise<ProviderResult<ISubaccountSummary>>;
   /** Paystack/Flutterwave: DELETE /subaccount/:id or /subaccounts/:id */
   deleteSubaccount?(id: string): Promise<ProviderResult<{ deleted: boolean }>>;
 }
@@ -491,8 +706,19 @@ export interface IInvoiceProvider {
     expiryDate?: string;
     currency?: string;
   }): Promise<ProviderResult<{ invoiceReference: string; checkoutUrl?: string; status: string }>>;
-  getInvoiceStatus(invoiceReference: string): Promise<ProviderResult<{ status: string; amountPaidMinor?: number }>>;
-  getInvoiceDetails(invoiceReference: string): Promise<ProviderResult<{ status: string; amountMinor: number; customerEmail: string; description: string; createdAt: string; paidAt?: string }>>;
+  getInvoiceStatus(
+    invoiceReference: string
+  ): Promise<ProviderResult<{ status: string; amountPaidMinor?: number }>>;
+  getInvoiceDetails(invoiceReference: string): Promise<
+    ProviderResult<{
+      status: string;
+      amountMinor: number;
+      customerEmail: string;
+      description: string;
+      createdAt: string;
+      paidAt?: string;
+    }>
+  >;
 }
 
 // 20. Direct debit mandates (Monnify, Remita, Paga)
@@ -515,8 +741,14 @@ export interface IDirectDebitProvider {
     bankCode?: string;
     narration?: string;
   }): Promise<ProviderResult<{ mandateId: string; status: string; authUrl?: string }>>;
-  getMandateStatus(mandateId: string): Promise<ProviderResult<{ status: string; mandateId: string }>>;
-  debitMandate(req: { mandateId: string; amountMinor: number; narration?: string }): Promise<ProviderResult<{ providerRef: string; status: string }>>;
+  getMandateStatus(
+    mandateId: string
+  ): Promise<ProviderResult<{ status: string; mandateId: string }>>;
+  debitMandate(req: {
+    mandateId: string;
+    amountMinor: number;
+    narration?: string;
+  }): Promise<ProviderResult<{ providerRef: string; status: string }>>;
   stopMandate(mandateId: string): Promise<ProviderResult<{ status: string; mandateId: string }>>;
 }
 
@@ -571,9 +803,15 @@ export interface IRecurringBillingProvider {
     currency: string;
     invoiceLimit?: number;
   }): Promise<ProviderResult<IPlan>>;
-  listPlans?(req?: { perPage?: number; page?: number }): Promise<ProviderResult<{ plans: IPlan[]; total?: number; meta?: Record<string, unknown> }>>;
+  listPlans?(req?: {
+    perPage?: number;
+    page?: number;
+  }): Promise<ProviderResult<{ plans: IPlan[]; total?: number; meta?: Record<string, unknown> }>>;
   fetchPlan?(id: string): Promise<ProviderResult<IPlan>>;
-  updatePlan?(id: string, req: Partial<{ name: string; amountMinor: number; interval: string }>): Promise<ProviderResult<IPlan>>;
+  updatePlan?(
+    id: string,
+    req: Partial<{ name: string; amountMinor: number; interval: string }>
+  ): Promise<ProviderResult<IPlan>>;
   // Subscriptions (Paystack: POST /subscription, Stripe: POST /v1/subscriptions)
   createSubscription?(req: {
     customer: string;
@@ -583,19 +821,41 @@ export interface IRecurringBillingProvider {
     start_date?: string;
     metadata?: Record<string, unknown>;
   }): Promise<ProviderResult<ISubscription>>;
-  listSubscriptions?(req?: { perPage?: number; page?: number }): Promise<ProviderResult<{ subscriptions: ISubscription[]; total?: number; meta?: Record<string, unknown> }>>;
+  listSubscriptions?(req?: { perPage?: number; page?: number }): Promise<
+    ProviderResult<{
+      subscriptions: ISubscription[];
+      total?: number;
+      meta?: Record<string, unknown>;
+    }>
+  >;
   fetchSubscription?(id: string): Promise<ProviderResult<ISubscription>>;
   /** Paystack: POST /subscription/disable */
-  disableSubscription?(req: { code: string; token: string }): Promise<ProviderResult<{ status: string }>>;
+  disableSubscription?(req: {
+    code: string;
+    token: string;
+  }): Promise<ProviderResult<{ status: string }>>;
   /** Paystack: POST /subscription/enable */
-  enableSubscription?(req: { code: string; token: string }): Promise<ProviderResult<{ status: string }>>;
+  enableSubscription?(req: {
+    code: string;
+    token: string;
+  }): Promise<ProviderResult<{ status: string }>>;
   /** Stripe: DELETE /v1/subscriptions/:id */
   cancelSubscription?(id: string): Promise<ProviderResult<{ status: string }>>;
   /** Stripe: POST /v1/subscriptions/:id */
-  updateSubscription?(id: string, req: Record<string, unknown>): Promise<ProviderResult<ISubscription>>;
+  updateSubscription?(
+    id: string,
+    req: Record<string, unknown>
+  ): Promise<ProviderResult<ISubscription>>;
   // Flutterwave payment plans (variant)
-  createPaymentPlan?(req: { name: string; amount: number; interval: string; duration?: number }): Promise<ProviderResult<{ code: string; status: string; id?: string }>>;
-  listPaymentPlans?(req?: { page?: number }): Promise<ProviderResult<{ plans: unknown[]; meta?: Record<string, unknown> }>>;
+  createPaymentPlan?(req: {
+    name: string;
+    amount: number;
+    interval: string;
+    duration?: number;
+  }): Promise<ProviderResult<{ code: string; status: string; id?: string }>>;
+  listPaymentPlans?(req?: {
+    page?: number;
+  }): Promise<ProviderResult<{ plans: unknown[]; meta?: Record<string, unknown> }>>;
   fetchPaymentPlan?(id: string): Promise<ProviderResult<{ plan: unknown }>>;
   /** Flutterwave: PUT /payment-plans/:id/cancel */
   cancelPaymentPlan?(id: string): Promise<ProviderResult<{ status: string }>>;
@@ -622,9 +882,17 @@ export interface ICheckoutProvider {
     splitCode?: string;
     metadata?: Record<string, unknown>;
   }): Promise<ProviderResult<IPaymentPage>>;
-  listPaymentPages(req?: { perPage?: number; page?: number }): Promise<ProviderResult<{ pages: IPaymentPage[]; total?: number; meta?: Record<string, unknown> }>>;
+  listPaymentPages(req?: {
+    perPage?: number;
+    page?: number;
+  }): Promise<
+    ProviderResult<{ pages: IPaymentPage[]; total?: number; meta?: Record<string, unknown> }>
+  >;
   fetchPaymentPage(id: string): Promise<ProviderResult<IPaymentPage>>;
-  updatePaymentPage(id: string, req: Partial<{ name: string; description: string; amountMinor: number; currency: string }>): Promise<ProviderResult<IPaymentPage>>;
+  updatePaymentPage(
+    id: string,
+    req: Partial<{ name: string; description: string; amountMinor: number; currency: string }>
+  ): Promise<ProviderResult<IPaymentPage>>;
 }
 
 // 24. USSD code generation (Paystack)
@@ -664,9 +932,15 @@ export interface ICustomerProvider {
     phone?: string;
     metadata?: Record<string, unknown>;
   }): Promise<ProviderResult<ICustomer>>;
-  listCustomers(req?: { perPage?: number; page?: number }): Promise<ProviderResult<{ customers: ICustomer[]; total?: number; hasMore?: boolean }>>;
+  listCustomers(req?: {
+    perPage?: number;
+    page?: number;
+  }): Promise<ProviderResult<{ customers: ICustomer[]; total?: number; hasMore?: boolean }>>;
   fetchCustomer(id: string): Promise<ProviderResult<ICustomer>>;
-  updateCustomer(id: string, req: Partial<{ email: string; name: string; phone: string; metadata: Record<string, unknown> }>): Promise<ProviderResult<ICustomer>>;
+  updateCustomer(
+    id: string,
+    req: Partial<{ email: string; name: string; phone: string; metadata: Record<string, unknown> }>
+  ): Promise<ProviderResult<ICustomer>>;
   deleteCustomer(id: string): Promise<ProviderResult<{ deleted: boolean }>>;
 }
 
@@ -689,7 +963,10 @@ export interface IPayoutProvider {
     method?: "STANDARD" | "INSTANT";
     metadata?: Record<string, unknown>;
   }): Promise<ProviderResult<IPayout>>;
-  listPayouts(req?: { perPage?: number; page?: number }): Promise<ProviderResult<{ payouts: IPayout[]; total?: number; hasMore?: boolean }>>;
+  listPayouts(req?: {
+    perPage?: number;
+    page?: number;
+  }): Promise<ProviderResult<{ payouts: IPayout[]; total?: number; hasMore?: boolean }>>;
   cancelPayout(id: string): Promise<ProviderResult<{ status: string }>>;
 }
 
@@ -705,9 +982,22 @@ export interface IRefundRecord {
 }
 export interface IRefundProvider {
   readonly contract: "REFUND";
-  listRefunds(req?: { reference?: string; currency?: string; perPage?: number; page?: number; paymentIntent?: string }): Promise<ProviderResult<{ refunds: IRefundRecord[]; total?: number; meta?: Record<string, unknown> }>>;
+  listRefunds(req?: {
+    reference?: string;
+    currency?: string;
+    perPage?: number;
+    page?: number;
+    paymentIntent?: string;
+  }): Promise<
+    ProviderResult<{ refunds: IRefundRecord[]; total?: number; meta?: Record<string, unknown> }>
+  >;
   fetchRefund(id: string): Promise<ProviderResult<IRefundRecord>>;
-  createRefund?(req: { paymentIntent: string; amountMinor?: number; reason?: string; metadata?: Record<string, unknown> }): Promise<ProviderResult<IRefundRecord>>;
+  createRefund?(req: {
+    paymentIntent: string;
+    amountMinor?: number;
+    reason?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<ProviderResult<IRefundRecord>>;
 }
 
 // 28. Settlements (Paystack)
@@ -721,7 +1011,14 @@ export interface ISettlement {
 }
 export interface ISettlementProvider {
   readonly contract: "SETTLEMENT";
-  listSettlements(req?: { perPage?: number; page?: number; from?: string; to?: string }): Promise<ProviderResult<{ settlements: ISettlement[]; total?: number; meta?: Record<string, unknown> }>>;
+  listSettlements(req?: {
+    perPage?: number;
+    page?: number;
+    from?: string;
+    to?: string;
+  }): Promise<
+    ProviderResult<{ settlements: ISettlement[]; total?: number; meta?: Record<string, unknown> }>
+  >;
   fetchSettlement?(id: string): Promise<ProviderResult<ISettlement>>;
 }
 
@@ -762,7 +1059,10 @@ export interface IVirtualCardManagementProvider {
     billingAddress?: Record<string, unknown>;
   }): Promise<ProviderResult<IVirtualCard>>;
   getVirtualCard(id: string): Promise<ProviderResult<IVirtualCard>>;
-  fundVirtualCard(id: string, req: { amountMinor: number; currency?: string }): Promise<ProviderResult<{ status: string; balanceMinor?: number }>>;
+  fundVirtualCard(
+    id: string,
+    req: { amountMinor: number; currency?: string }
+  ): Promise<ProviderResult<{ status: string; balanceMinor?: number }>>;
   terminateVirtualCard(id: string): Promise<ProviderResult<{ status: string }>>;
 }
 
@@ -788,7 +1088,10 @@ export interface IBulkTransferProvider {
     }>;
     currency?: string;
   }): Promise<ProviderResult<IBulkTransferResult>>;
-  fetchTransferFee(req: { amountMinor: number; currency: string }): Promise<ProviderResult<{ feeMinor: number; currency: string }>>;
+  fetchTransferFee(req: {
+    amountMinor: number;
+    currency: string;
+  }): Promise<ProviderResult<{ feeMinor: number; currency: string }>>;
 }
 
 // 32. Chargebacks (Flutterwave)
@@ -804,7 +1107,10 @@ export interface IChargeback {
 }
 export interface IChargebackProvider {
   readonly contract: "CHARGEBACK";
-  listChargebacks(req?: { page?: number; perPage?: number }): Promise<ProviderResult<{ chargebacks: IChargeback[]; meta?: Record<string, unknown> }>>;
+  listChargebacks(req?: {
+    page?: number;
+    perPage?: number;
+  }): Promise<ProviderResult<{ chargebacks: IChargeback[]; meta?: Record<string, unknown> }>>;
   fetchChargeback(id: string): Promise<ProviderResult<IChargeback>>;
 }
 
@@ -818,8 +1124,15 @@ export interface IProduct {
 }
 export interface IProductProvider {
   readonly contract: "PRODUCT";
-  createProduct(req: { name: string; description?: string; metadata?: Record<string, unknown> }): Promise<ProviderResult<IProduct>>;
-  listProducts(req?: { perPage?: number; page?: number }): Promise<ProviderResult<{ products: IProduct[]; hasMore?: boolean }>>;
+  createProduct(req: {
+    name: string;
+    description?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<ProviderResult<IProduct>>;
+  listProducts(req?: {
+    perPage?: number;
+    page?: number;
+  }): Promise<ProviderResult<{ products: IProduct[]; hasMore?: boolean }>>;
 }
 
 // 34. Prices (Stripe Prices — recurring or one-time)
@@ -840,7 +1153,11 @@ export interface IPriceProvider {
     product: string;
     nickname?: string;
   }): Promise<ProviderResult<IPrice>>;
-  listPrices(req?: { perPage?: number; page?: number; product?: string }): Promise<ProviderResult<{ prices: IPrice[]; hasMore?: boolean }>>;
+  listPrices(req?: {
+    perPage?: number;
+    page?: number;
+    product?: string;
+  }): Promise<ProviderResult<{ prices: IPrice[]; hasMore?: boolean }>>;
 }
 
 // 35. Webhook endpoints (Stripe)
@@ -853,8 +1170,14 @@ export interface IWebhookEndpoint {
 }
 export interface IWebhookEndpointProvider {
   readonly contract: "WEBHOOK_ENDPOINT";
-  createWebhookEndpoint(req: { url: string; events: string[]; description?: string }): Promise<ProviderResult<IWebhookEndpoint>>;
-  listWebhookEndpoints(): Promise<ProviderResult<{ endpoints: IWebhookEndpoint[]; hasMore?: boolean }>>;
+  createWebhookEndpoint(req: {
+    url: string;
+    events: string[];
+    description?: string;
+  }): Promise<ProviderResult<IWebhookEndpoint>>;
+  listWebhookEndpoints(): Promise<
+    ProviderResult<{ endpoints: IWebhookEndpoint[]; hasMore?: boolean }>
+  >;
 }
 
 // Union of all contract interfaces for registry typing

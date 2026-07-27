@@ -119,11 +119,15 @@ export const smartcashProvider: IMobileMoneyProvider = {
       const { body } = await http(
         `${base}/v1/wallets/balance?phone=${encodeURIComponent(req.phone)}`,
         { method: "GET", headers: authHeaders(creds.secrets.apiKey, creds.secrets.merchantId) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { balance?: string | number; currency?: string } };
       const bal = Number(data?.data?.balance ?? 0) * 100;
-      return ok({ balanceMinor: Math.round(bal), currency: data?.data?.currency ?? "NGN" }, `smartcash-bal-${Date.now()}`, 0);
+      return ok(
+        { balanceMinor: Math.round(bal), currency: data?.data?.currency ?? "NGN" },
+        `smartcash-bal-${Date.now()}`,
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Smartcash getBalance failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -136,7 +140,11 @@ export const smartcashProvider: IMobileMoneyProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ providerRef: `smartcash-charge-${req.reference}`, status: "PENDING" }, "mock", 200);
+      return ok(
+        { providerRef: `smartcash-charge-${req.reference}`, status: "PENDING" },
+        "mock",
+        200
+      );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
     try {
@@ -153,9 +161,13 @@ export const smartcashProvider: IMobileMoneyProvider = {
             narration: (req.narration ?? "Turbopay collection").slice(0, 100),
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = body as { data?: { transactionId?: string; status?: string }; status?: string; message?: string };
+      const data = body as {
+        data?: { transactionId?: string; status?: string };
+        status?: string;
+        message?: string;
+      };
       const providerRef = data?.data?.transactionId ?? `smartcash-${req.reference}`;
       const status = normalizeStatus(data?.data?.status ?? data?.status ?? "PENDING");
       return ok({ providerRef, status }, providerRef, 0);
@@ -171,7 +183,11 @@ export const smartcashProvider: IMobileMoneyProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ providerRef: `smartcash-payout-${req.reference}`, status: "PENDING" }, "mock", 200);
+      return ok(
+        { providerRef: `smartcash-payout-${req.reference}`, status: "PENDING" },
+        "mock",
+        200
+      );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
     try {
@@ -188,7 +204,7 @@ export const smartcashProvider: IMobileMoneyProvider = {
             narration: "Turbopay payout",
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { transactionId?: string; status?: string }; status?: string };
       const providerRef = data?.data?.transactionId ?? `smartcash-payout-${req.reference}`;
@@ -213,7 +229,7 @@ export const smartcashProvider: IMobileMoneyProvider = {
       const { body } = await http(
         `${base}/v1/transactions/${encodeURIComponent(providerRef)}`,
         { method: "GET", headers: authHeaders(creds.secrets.apiKey, creds.secrets.merchantId) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { status?: string } };
       const status = normalizeStatus(data?.data?.status ?? "PENDING");
@@ -237,10 +253,7 @@ export const smartcashProvider: IMobileMoneyProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok(
-        { providerRef: `smartcash-w2w-${req.reference}`, status: "PENDING" },
-        "mock", 200,
-      );
+      return ok({ providerRef: `smartcash-w2w-${req.reference}`, status: "PENDING" }, "mock", 200);
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
     try {
@@ -258,7 +271,7 @@ export const smartcashProvider: IMobileMoneyProvider = {
             narration: (req.narration ?? "Turbopay wallet transfer").slice(0, 100),
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { transactionId?: string; status?: string }; status?: string };
       const providerRef = data?.data?.transactionId ?? `smartcash-w2w-${req.reference}`;
@@ -283,7 +296,8 @@ export const smartcashProvider: IMobileMoneyProvider = {
       mockWarnOnce(CODE);
       return ok(
         { valid: true, accountName: `Customer ${req.phone.slice(-4)}`, status: "ACTIVE" },
-        "mock", 50,
+        "mock",
+        50
       );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
@@ -291,7 +305,7 @@ export const smartcashProvider: IMobileMoneyProvider = {
       const { body } = await http(
         `${base}/v1/accounts/verify?phone=${encodeURIComponent(req.phone)}`,
         { method: "GET", headers: authHeaders(creds.secrets.apiKey, creds.secrets.merchantId) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { accountName?: string; status?: string; valid?: boolean } };
       const valid = Boolean(data?.data?.valid ?? data?.data?.accountName ?? false);
@@ -301,13 +315,15 @@ export const smartcashProvider: IMobileMoneyProvider = {
           accountName: data?.data?.accountName,
           status: data?.data?.status ?? (valid ? "ACTIVE" : "NOT_FOUND"),
         },
-        `smartcash-verify-${req.phone}`, 0,
+        `smartcash-verify-${req.phone}`,
+        0
       );
     } catch (e) {
       // 404 → account doesn't exist; surface as valid=false instead of erroring.
       if (e && typeof e === "object" && "error" in e) {
         const err = (e as { error?: { httpStatus?: number } }).error;
-        if (err?.httpStatus === 404) return ok({ valid: false, status: "NOT_FOUND" }, `smartcash-verify-${req.phone}`, 0);
+        if (err?.httpStatus === 404)
+          return ok({ valid: false, status: "NOT_FOUND" }, `smartcash-verify-${req.phone}`, 0);
       }
       const msg = e instanceof Error ? e.message : "Smartcash account verification failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -337,7 +353,8 @@ export const smartcashProvider: IMobileMoneyProvider = {
             },
           ],
         },
-        "mock", 80,
+        "mock",
+        80
       );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
@@ -349,9 +366,22 @@ export const smartcashProvider: IMobileMoneyProvider = {
       const { body } = await http(
         `${base}/v1/transactions/history?${params.toString()}`,
         { method: "GET", headers: authHeaders(creds.secrets.apiKey, creds.secrets.merchantId) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = body as { data?: { transactions?: Array<{ id?: string; transactionId?: string; type?: string; amount?: string | number; currency?: string; status?: string; createdAt?: string; timestamp?: string }> } };
+      const data = body as {
+        data?: {
+          transactions?: Array<{
+            id?: string;
+            transactionId?: string;
+            type?: string;
+            amount?: string | number;
+            currency?: string;
+            status?: string;
+            createdAt?: string;
+            timestamp?: string;
+          }>;
+        };
+      };
       const txns = (data?.data?.transactions ?? []).map((t) => ({
         id: String(t.id ?? t.transactionId ?? ""),
         type: String(t.type ?? "UNKNOWN").toUpperCase(),
@@ -390,21 +420,27 @@ export const smartcashBankTransfer: IBankTransferProvider = {
 
   async resolveAccountName(req) {
     if (req.country !== "NG") {
-      return fail("NOT_SUPPORTED", "Smartcash bank transfer supports NG only", { providerCode: CODE });
+      return fail("NOT_SUPPORTED", "Smartcash bank transfer supports NG only", {
+        providerCode: CODE,
+      });
     }
     const blocked = await requireCreds(CODE);
     if (blocked) return blocked;
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ accountName: `ACCOUNT ${req.accountNumber.slice(-4)}`, bankName: "Smartcash Bank" }, "mock", 50);
+      return ok(
+        { accountName: `ACCOUNT ${req.accountNumber.slice(-4)}`, bankName: "Smartcash Bank" },
+        "mock",
+        50
+      );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
     try {
       const { body } = await http(
         `${base}/v1/accounts/resolve?accountNumber=${encodeURIComponent(req.accountNumber)}&bankCode=${encodeURIComponent(req.bankCode)}`,
         { method: "GET", headers: authHeaders(creds.secrets.apiKey, creds.secrets.merchantId) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { accountName?: string; bankName?: string } };
       return ok(
@@ -412,7 +448,8 @@ export const smartcashBankTransfer: IBankTransferProvider = {
           accountName: data?.data?.accountName ?? `ACCOUNT ${req.accountNumber.slice(-4)}`,
           bankName: data?.data?.bankName ?? "Smartcash Bank",
         },
-        `smartcash-resolve-${req.accountNumber}`, 0,
+        `smartcash-resolve-${req.accountNumber}`,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Smartcash resolveAccountName failed";
@@ -426,10 +463,7 @@ export const smartcashBankTransfer: IBankTransferProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok(
-        { providerRef: `smartcash-bank-${req.reference}`, status: "PENDING" },
-        "mock", 200,
-      );
+      return ok({ providerRef: `smartcash-bank-${req.reference}`, status: "PENDING" }, "mock", 200);
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
     try {
@@ -449,7 +483,7 @@ export const smartcashBankTransfer: IBankTransferProvider = {
             narration: (req.narration ?? "Turbopay bank transfer").slice(0, 100),
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { transactionId?: string; status?: string }; status?: string };
       const providerRef = data?.data?.transactionId ?? `smartcash-bank-${req.reference}`;
@@ -474,7 +508,7 @@ export const smartcashBankTransfer: IBankTransferProvider = {
       const { body } = await http(
         `${base}/v1/transactions/${encodeURIComponent(providerRef)}`,
         { method: "GET", headers: authHeaders(creds.secrets.apiKey, creds.secrets.merchantId) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { status?: string; settlementTime?: string } };
       const status = normalizeStatus(data?.data?.status ?? "PENDING");
@@ -494,7 +528,8 @@ export const smartcashBankTransfer: IBankTransferProvider = {
       mockWarnOnce(CODE);
       return ok(
         { reversalRef: `smartcash-reversal-${req.providerRef}`, status: "PENDING" },
-        "mock", 100,
+        "mock",
+        100
       );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
@@ -510,7 +545,7 @@ export const smartcashBankTransfer: IBankTransferProvider = {
             reason: (req.reason ?? "Turbopay reversal").slice(0, 100),
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { transactionId?: string; status?: string } };
       const reversalRef = data?.data?.transactionId ?? `smartcash-reversal-${req.providerRef}`;
@@ -546,11 +581,41 @@ export const smartcashAirtime: IAirtimeProvider = {
     // Smartcash does not expose a public data plans endpoint; return a small
     // static catalogue so the UI is functional in sandbox.
     const plans = [
-      { id: `${req.network}-100mb`, name: "100MB / 1 Day", amountMinor: 10000, validity: "1 day", network: req.network },
-      { id: `${req.network}-350mb`, name: "350MB / 7 Days", amountMinor: 20000, validity: "7 days", network: req.network },
-      { id: `${req.network}-1gb`, name: "1GB / 30 Days", amountMinor: 35000, validity: "30 days", network: req.network },
-      { id: `${req.network}-5gb`, name: "5GB / 30 Days", amountMinor: 150000, validity: "30 days", network: req.network },
-      { id: `${req.network}-10gb`, name: "10GB / 30 Days", amountMinor: 300000, validity: "30 days", network: req.network },
+      {
+        id: `${req.network}-100mb`,
+        name: "100MB / 1 Day",
+        amountMinor: 10000,
+        validity: "1 day",
+        network: req.network,
+      },
+      {
+        id: `${req.network}-350mb`,
+        name: "350MB / 7 Days",
+        amountMinor: 20000,
+        validity: "7 days",
+        network: req.network,
+      },
+      {
+        id: `${req.network}-1gb`,
+        name: "1GB / 30 Days",
+        amountMinor: 35000,
+        validity: "30 days",
+        network: req.network,
+      },
+      {
+        id: `${req.network}-5gb`,
+        name: "5GB / 30 Days",
+        amountMinor: 150000,
+        validity: "30 days",
+        network: req.network,
+      },
+      {
+        id: `${req.network}-10gb`,
+        name: "10GB / 30 Days",
+        amountMinor: 300000,
+        validity: "30 days",
+        network: req.network,
+      },
     ];
     return ok(plans, "local-ng-plans", 5);
   },
@@ -563,7 +628,8 @@ export const smartcashAirtime: IAirtimeProvider = {
       mockWarnOnce(CODE);
       return ok(
         { providerRef: `smartcash-airtime-${req.reference}`, status: "SUCCESS" },
-        "mock", 100,
+        "mock",
+        100
       );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
@@ -577,13 +643,14 @@ export const smartcashAirtime: IAirtimeProvider = {
             reference: req.reference,
             phone: req.phone,
             network: req.network,
-            amount: req.amountMinor != null ? Number((req.amountMinor / 100).toFixed(2)) : undefined,
+            amount:
+              req.amountMinor != null ? Number((req.amountMinor / 100).toFixed(2)) : undefined,
             planCode: req.planCode,
             currency: req.currency,
             type: req.type,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { transactionId?: string; status?: string }; status?: string };
       const providerRef = data?.data?.transactionId ?? `smartcash-airtime-${req.reference}`;
@@ -608,7 +675,7 @@ export const smartcashAirtime: IAirtimeProvider = {
       const { body } = await http(
         `${base}/v1/transactions/${encodeURIComponent(providerRef)}`,
         { method: "GET", headers: authHeaders(creds.secrets.apiKey, creds.secrets.merchantId) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { status?: string } };
       const status = normalizeStatus(data?.data?.status ?? "PENDING");
@@ -635,11 +702,11 @@ export const smartcashBillPayment: IBillPaymentProvider = {
     // Smartcash does not expose a public listBillers endpoint; fall back to
     // the local BILLERS directory so the UI is functional.
     const { BILLERS } = await import("@/lib/banks");
-    const billers = req.category ? BILLERS[req.category] ?? [] : Object.values(BILLERS).flat();
+    const billers = req.category ? (BILLERS[req.category] ?? []) : Object.values(BILLERS).flat();
     return ok(
       billers.map((b) => ({ ...b, country: req.country, category: req.category ?? "OTHERS" })),
       "local-fallback",
-      5,
+      5
     );
   },
 
@@ -649,17 +716,14 @@ export const smartcashBillPayment: IBillPaymentProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok(
-        { customerName: `CUSTOMER ${req.customerRef.slice(-4)}`, valid: true },
-        "mock", 50,
-      );
+      return ok({ customerName: `CUSTOMER ${req.customerRef.slice(-4)}`, valid: true }, "mock", 50);
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
     try {
       const { body } = await http(
         `${base}/v1/bills/validate?billerCode=${encodeURIComponent(req.billerCode)}&customerRef=${encodeURIComponent(req.customerRef)}`,
         { method: "GET", headers: authHeaders(creds.secrets.apiKey, creds.secrets.merchantId) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { customerName?: string; valid?: boolean } };
       return ok(
@@ -667,7 +731,8 @@ export const smartcashBillPayment: IBillPaymentProvider = {
           customerName: data?.data?.customerName ?? `CUSTOMER ${req.customerRef.slice(-4)}`,
           valid: data?.data?.valid ?? true,
         },
-        `smartcash-validate-${req.customerRef}`, 0,
+        `smartcash-validate-${req.customerRef}`,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Smartcash validateCustomer failed";
@@ -683,12 +748,15 @@ export const smartcashBillPayment: IBillPaymentProvider = {
       mockWarnOnce(CODE);
       // Electricity billers typically return a token; surface one in mock mode.
       const token =
-        req.billerCode.startsWith("E") || req.billerCode.startsWith("IKEDC") || req.billerCode.startsWith("EKEDC")
+        req.billerCode.startsWith("E") ||
+        req.billerCode.startsWith("IKEDC") ||
+        req.billerCode.startsWith("EKEDC")
           ? Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("")
           : undefined;
       return ok(
         { providerRef: `smartcash-bill-${req.reference}`, status: "SUCCESS", token },
-        "mock", 150,
+        "mock",
+        150
       );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
@@ -707,9 +775,17 @@ export const smartcashBillPayment: IBillPaymentProvider = {
             productCode: req.productCode ?? "",
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = body as { data?: { transactionId?: string; status?: string; token?: string; units?: string; receipt?: string } };
+      const data = body as {
+        data?: {
+          transactionId?: string;
+          status?: string;
+          token?: string;
+          units?: string;
+          receipt?: string;
+        };
+      };
       const providerRef = data?.data?.transactionId ?? `smartcash-bill-${req.reference}`;
       const status = normalizeStatus(data?.data?.status ?? "PENDING");
       return ok(
@@ -720,7 +796,8 @@ export const smartcashBillPayment: IBillPaymentProvider = {
           units: data?.data?.units,
           receipt: data?.data?.receipt,
         },
-        providerRef, 0,
+        providerRef,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Smartcash payBill failed";
@@ -741,7 +818,7 @@ export const smartcashBillPayment: IBillPaymentProvider = {
       const { body } = await http(
         `${base}/v1/transactions/${encodeURIComponent(providerRef)}`,
         { method: "GET", headers: authHeaders(creds.secrets.apiKey, creds.secrets.merchantId) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { status?: string; token?: string } };
       const status = normalizeStatus(data?.data?.status ?? "PENDING");

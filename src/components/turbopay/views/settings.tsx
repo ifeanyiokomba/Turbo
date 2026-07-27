@@ -82,12 +82,14 @@ interface CommPrefs {
 }
 
 function initials(name: string): string {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("") || "U";
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase() ?? "")
+      .join("") || "U"
+  );
 }
 
 export default function SettingsView() {
@@ -291,10 +293,7 @@ export default function SettingsView() {
     try {
       const url = "/api/settings/pin";
       const method = pinOpen === "set" ? "POST" : "PUT";
-      const body =
-        pinOpen === "set"
-          ? { pin: pinNew }
-          : { oldPin: pinOld, newPin: pinNew };
+      const body = pinOpen === "set" ? { pin: pinNew } : { oldPin: pinOld, newPin: pinNew };
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -370,8 +369,7 @@ export default function SettingsView() {
     setSigningOut(true);
     try {
       await fetch("/api/auth/logout", { method: "POST" });
-    } catch {
-    }
+    } catch {}
     logoutClient();
     toast.success("Signed out");
     router.refresh();
@@ -465,7 +463,7 @@ export default function SettingsView() {
       <div className="space-y-5">
         <PageHeader title="Settings" subtitle="Manage your profile, security, and preferences" />
         <div className="grid gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-5">
+          <div className="space-y-5 lg:col-span-2">
             <Skeleton className="h-72 rounded-2xl" />
             <Skeleton className="h-56 rounded-2xl" />
           </div>
@@ -491,7 +489,11 @@ export default function SettingsView() {
         subtitle="Manage your profile, security, and preferences"
         actions={
           <Button onClick={saveProfile} disabled={savingProfile} className="gap-1.5">
-            {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {savingProfile ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4" />
+            )}
             Save profile
           </Button>
         }
@@ -503,19 +505,24 @@ export default function SettingsView() {
           {/* Profile */}
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <UserIcon className="h-5 w-5 text-primary" />
+              <UserIcon className="text-primary h-5 w-5" />
               <h2 className="text-base font-semibold">Profile</h2>
             </div>
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
               <div className="flex flex-col items-center gap-2">
-                <Avatar className="h-20 w-20 ring-2 ring-primary/20">
-                  {profile?.avatarUrl && <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />}
-                  <AvatarFallback className="bg-primary/10 text-lg font-semibold text-primary">
+                <Avatar className="ring-primary/20 h-20 w-20 ring-2">
+                  {profile?.avatarUrl && (
+                    <AvatarImage src={profile.avatarUrl} alt={profile.fullName} />
+                  )}
+                  <AvatarFallback className="bg-primary/10 text-primary text-lg font-semibold">
                     {initials(profile?.fullName ?? user?.fullName ?? "")}
                   </AvatarFallback>
                 </Avatar>
                 {profile?.emailVerified ? (
-                  <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  <Badge
+                    variant="secondary"
+                    className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  >
                     <Check className="h-3 w-3" /> Verified
                   </Badge>
                 ) : (
@@ -525,33 +532,52 @@ export default function SettingsView() {
               <div className="grid flex-1 gap-3 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="fullName">Full name</Label>
-                  <Input id="fullName" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your full name" />
+                  <Input
+                    id="fullName"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Your full name"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="username">Username</Label>
                   <div className="relative">
-                    <AtSign className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <AtSign className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                     <Input
                       id="username"
                       value={profile?.username ?? ""}
                       readOnly
                       disabled
-                      className="bg-muted/40 pl-9 text-muted-foreground"
+                      className="bg-muted/40 text-muted-foreground pl-9"
                     />
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="email">Email</Label>
                   <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" className="pl-9" />
+                    <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@email.com"
+                      className="pl-9"
+                    />
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="phone">Phone</Label>
                   <div className="relative">
-                    <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+234 800 000 0000" className="pl-9" />
+                    <Phone className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="+234 800 000 0000"
+                      className="pl-9"
+                    />
                   </div>
                 </div>
                 <div className="space-y-1.5 sm:col-span-2">
@@ -564,7 +590,7 @@ export default function SettingsView() {
                     placeholder="Tell us a little about yourself (max 280 characters)"
                     maxLength={280}
                   />
-                  <p className="text-right text-xs text-muted-foreground">{bio.length}/280</p>
+                  <p className="text-muted-foreground text-right text-xs">{bio.length}/280</p>
                 </div>
               </div>
             </div>
@@ -573,10 +599,10 @@ export default function SettingsView() {
           {/* Appearance */}
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
+              <Sparkles className="text-primary h-5 w-5" />
               <h2 className="text-base font-semibold">Appearance</h2>
             </div>
-            <p className="mb-3 text-sm text-muted-foreground">Choose how Turbopay looks to you.</p>
+            <p className="text-muted-foreground mb-3 text-sm">Choose how Turbopay looks to you.</p>
             <div className="grid grid-cols-3 gap-2">
               {themeOptions.map((opt) => {
                 const active = (theme ?? "system") === opt.value;
@@ -599,10 +625,10 @@ export default function SettingsView() {
           {/* Communication preferences */}
           <Card className="p-5 sm:p-6">
             <div className="mb-1 flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
+              <Bell className="text-primary h-5 w-5" />
               <h2 className="text-base font-semibold">Communication preferences</h2>
             </div>
-            <p className="mb-4 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mb-4 text-sm">
               Choose how and when you want to hear from us.
             </p>
 
@@ -615,7 +641,7 @@ export default function SettingsView() {
             ) : commPrefs ? (
               <>
                 {/* Channels */}
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
                   Channels
                 </p>
                 <div className="mb-4 space-y-1">
@@ -650,7 +676,7 @@ export default function SettingsView() {
                 </div>
 
                 {/* Categories */}
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
                   Categories
                 </p>
                 <div className="space-y-1">
@@ -685,8 +711,10 @@ export default function SettingsView() {
                 </div>
 
                 <div className="mt-4 flex items-center justify-between gap-3">
-                  <p className="text-xs text-muted-foreground">
-                    {prefsDirty ? "You have unsaved changes." : `Last updated ${new Date(commPrefs.updatedAt).toLocaleDateString("en-NG")}`}
+                  <p className="text-muted-foreground text-xs">
+                    {prefsDirty
+                      ? "You have unsaved changes."
+                      : `Last updated ${new Date(commPrefs.updatedAt).toLocaleDateString("en-NG")}`}
                   </p>
                   <Button
                     size="sm"
@@ -694,13 +722,17 @@ export default function SettingsView() {
                     disabled={savingPrefs || !prefsDirty}
                     className="gap-1.5"
                   >
-                    {savingPrefs ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {savingPrefs ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="h-4 w-4" />
+                    )}
                     Save preferences
                   </Button>
                 </div>
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">Could not load preferences.</p>
+              <p className="text-muted-foreground text-sm">Could not load preferences.</p>
             )}
           </Card>
         </div>
@@ -710,10 +742,10 @@ export default function SettingsView() {
           {/* Transaction PIN */}
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-primary" />
+              <KeyRound className="text-primary h-5 w-5" />
               <h2 className="text-base font-semibold">Transaction PIN</h2>
             </div>
-            <p className="mb-3 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mb-3 text-sm">
               {profile?.hasPin
                 ? "Change your 4-digit PIN used to authorize transactions."
                 : "Set a 4-digit PIN to authorize transactions."}
@@ -732,7 +764,7 @@ export default function SettingsView() {
               {profile?.hasPin ? "Change PIN" : "Set PIN"}
             </Button>
             {profile?.hasPin && (
-              <p className="mt-2 text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-2 text-xs">
                 <ShieldCheck className="mr-1 inline h-3 w-3" />
                 PIN is active
               </p>
@@ -742,10 +774,10 @@ export default function SettingsView() {
           {/* Password */}
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <Lock className="h-5 w-5 text-primary" />
+              <Lock className="text-primary h-5 w-5" />
               <h2 className="text-base font-semibold">Password</h2>
             </div>
-            <p className="mb-3 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mb-3 text-sm">
               Use a strong password (8+ chars, mixed case, digit).
             </p>
             <Button
@@ -765,10 +797,10 @@ export default function SettingsView() {
           {/* Sign out */}
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <LogOut className="h-5 w-5 text-primary" />
+              <LogOut className="text-primary h-5 w-5" />
               <h2 className="text-base font-semibold">Session</h2>
             </div>
-            <p className="mb-3 text-sm text-muted-foreground">
+            <p className="text-muted-foreground mb-3 text-sm">
               Sign out of Turbopay on this device.
             </p>
             <Button
@@ -777,7 +809,11 @@ export default function SettingsView() {
               onClick={handleSignOut}
               disabled={signingOut}
             >
-              {signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+              {signingOut ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LogOut className="h-4 w-4" />
+              )}
               Sign out
             </Button>
           </Card>
@@ -785,14 +821,14 @@ export default function SettingsView() {
       </div>
 
       {/* Data & Privacy (NDPR / GDPR) */}
-      <Card className="p-5 sm:p-6 border-red-500/20">
+      <Card className="border-red-500/20 p-5 sm:p-6">
         <div className="mb-4 flex items-center gap-2">
-          <Database className="h-5 w-5 text-primary" />
+          <Database className="text-primary h-5 w-5" />
           <h2 className="text-base font-semibold">Data &amp; Privacy</h2>
         </div>
-        <p className="mb-4 text-sm text-muted-foreground">
-          Under the Nigeria Data Protection Regulation (NDPR) and GDPR, you have the right
-          to access your data and to request erasure of your personal information.
+        <p className="text-muted-foreground mb-4 text-sm">
+          Under the Nigeria Data Protection Regulation (NDPR) and GDPR, you have the right to access
+          your data and to request erasure of your personal information.
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
@@ -804,9 +840,9 @@ export default function SettingsView() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-medium">Download my data</p>
-                <p className="text-xs text-muted-foreground">
-                  Export everything we hold about you as a JSON file. Credentials and full
-                  card numbers are excluded; BVN/NIN are masked.
+                <p className="text-muted-foreground text-xs">
+                  Export everything we hold about you as a JSON file. Credentials and full card
+                  numbers are excluded; BVN/NIN are masked.
                 </p>
               </div>
             </div>
@@ -816,7 +852,11 @@ export default function SettingsView() {
               onClick={handleExportData}
               disabled={exporting}
             >
-              {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {exporting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="h-4 w-4" />
+              )}
               {exporting ? "Generating…" : "Download my data"}
             </Button>
           </div>
@@ -829,9 +869,9 @@ export default function SettingsView() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-medium text-red-700 dark:text-red-400">Delete account</p>
-                <p className="text-xs text-muted-foreground">
-                  Permanently anonymize your personal data. Transaction records are retained
-                  for regulatory compliance.
+                <p className="text-muted-foreground text-xs">
+                  Permanently anonymize your personal data. Transaction records are retained for
+                  regulatory compliance.
                 </p>
               </div>
             </div>
@@ -893,7 +933,7 @@ export default function SettingsView() {
                   <button
                     type="button"
                     onClick={() => setShowDeletePwd((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+                    className="text-muted-foreground hover:bg-muted absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5"
                   >
                     {showDeletePwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -922,7 +962,10 @@ export default function SettingsView() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="deleteConfirm">
-                  Type <span className="font-mono font-semibold text-red-700 dark:text-red-400">DELETE MY ACCOUNT</span>
+                  Type{" "}
+                  <span className="font-mono font-semibold text-red-700 dark:text-red-400">
+                    DELETE MY ACCOUNT
+                  </span>
                 </Label>
                 <Input
                   id="deleteConfirm"
@@ -951,20 +994,20 @@ export default function SettingsView() {
             <div className="space-y-3 py-1">
               <div className="rounded-lg bg-red-500/10 p-3 text-xs text-red-800 dark:text-red-300">
                 <AlertTriangle className="mr-1 inline h-3.5 w-3.5" />
-                Step 3 of 3 — final confirmation. Once you click below, your account will be
-                closed immediately and your personal data anonymized.
+                Step 3 of 3 — final confirmation. Once you click below, your account will be closed
+                immediately and your personal data anonymized.
               </div>
-              <ul className="space-y-1 text-xs text-muted-foreground">
+              <ul className="text-muted-foreground space-y-1 text-xs">
                 <li className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground" />
+                  <span className="bg-muted-foreground mt-1.5 h-1 w-1 shrink-0 rounded-full" />
                   Your name, email, phone, BVN, NIN, avatar and bio will be wiped.
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground" />
+                  <span className="bg-muted-foreground mt-1.5 h-1 w-1 shrink-0 rounded-full" />
                   All sessions will be revoked and your wallet frozen.
                 </li>
                 <li className="flex items-start gap-2">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-muted-foreground" />
+                  <span className="bg-muted-foreground mt-1.5 h-1 w-1 shrink-0 rounded-full" />
                   Transaction, ledger, and audit records are retained for AML/CBN compliance.
                 </li>
               </ul>
@@ -977,7 +1020,11 @@ export default function SettingsView() {
                   disabled={deleting}
                   className="gap-1.5 bg-red-600 hover:bg-red-700"
                 >
-                  {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  {deleting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
                   Delete my account permanently
                 </Button>
               </DialogFooter>
@@ -1002,7 +1049,7 @@ export default function SettingsView() {
           <div className="space-y-4 py-2">
             {pinOpen === "change" && (
               <div className="space-y-1.5">
-                <Label className="text-center text-xs text-muted-foreground">Current PIN</Label>
+                <Label className="text-muted-foreground text-center text-xs">Current PIN</Label>
                 <InputOTP
                   maxLength={4}
                   value={pinOld}
@@ -1019,7 +1066,7 @@ export default function SettingsView() {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label className="text-center text-xs text-muted-foreground">
+              <Label className="text-muted-foreground text-center text-xs">
                 {pinOpen === "set" ? "New PIN" : "New PIN"}
               </Label>
               <InputOTP
@@ -1037,7 +1084,7 @@ export default function SettingsView() {
               </InputOTP>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-center text-xs text-muted-foreground">Confirm new PIN</Label>
+              <Label className="text-muted-foreground text-center text-xs">Confirm new PIN</Label>
               <InputOTP
                 maxLength={4}
                 value={pinConfirm}
@@ -1070,7 +1117,9 @@ export default function SettingsView() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Change password</DialogTitle>
-            <DialogDescription>Use at least 8 characters with mixed case and a digit.</DialogDescription>
+            <DialogDescription>
+              Use at least 8 characters with mixed case and a digit.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div className="space-y-1.5">
@@ -1087,7 +1136,7 @@ export default function SettingsView() {
                 <button
                   type="button"
                   onClick={() => setShowPwdOld((v) => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+                  className="text-muted-foreground hover:bg-muted absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5"
                 >
                   {showPwdOld ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -1107,7 +1156,7 @@ export default function SettingsView() {
                 <button
                   type="button"
                   onClick={() => setShowPwdNew((v) => !v)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-muted"
+                  className="text-muted-foreground hover:bg-muted absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5"
                 >
                   {showPwdNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -1158,20 +1207,16 @@ function PrefRow({
   return (
     <label
       htmlFor={`pref-${label}`}
-      className="flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors hover:bg-muted/40"
+      className="hover:bg-muted/40 flex cursor-pointer items-center gap-3 rounded-lg p-2 transition-colors"
     >
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+      <div className="bg-primary/10 text-primary flex h-9 w-9 shrink-0 items-center justify-center rounded-lg">
         <Icon className="h-4.5 w-4.5" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">{label}</p>
-        <p className="truncate text-xs text-muted-foreground">{description}</p>
+        <p className="text-muted-foreground truncate text-xs">{description}</p>
       </div>
-      <Switch
-        id={`pref-${label}`}
-        checked={checked}
-        onCheckedChange={onChange}
-      />
+      <Switch id={`pref-${label}`} checked={checked} onCheckedChange={onChange} />
     </label>
   );
 }

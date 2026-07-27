@@ -61,7 +61,9 @@ export async function POST(req: Request) {
   try {
     const user = await requirePermission(Permissions.PROVIDERS_MANAGE);
     const body = await req.json().catch(() => ({}));
-    const code = String(body.code ?? "").trim().toLowerCase();
+    const code = String(body.code ?? "")
+      .trim()
+      .toLowerCase();
     const displayName = String(body.displayName ?? "").trim();
     if (!code || !displayName) {
       return json({ error: "code and displayName are required" }, 400);

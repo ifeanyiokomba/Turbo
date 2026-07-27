@@ -53,7 +53,7 @@ function NfcWave({ className = "" }: { className?: string }) {
 function VisaLogo({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`rounded-md bg-white/95 px-2 py-0.5 text-sm font-bold italic tracking-[0.18em] text-slate-900 shadow-sm ${className}`}
+      className={`rounded-md bg-white/95 px-2 py-0.5 text-sm font-bold tracking-[0.18em] text-slate-900 italic shadow-sm ${className}`}
     >
       VISA
     </span>
@@ -141,8 +141,8 @@ function TestimonialsCarousel() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="relative overflow-hidden rounded-3xl border bg-card p-6 shadow-sm sm:p-10">
-        <Quote className="absolute right-6 top-6 h-10 w-10 text-primary/10" />
+      <div className="bg-card relative overflow-hidden rounded-3xl border p-6 shadow-sm sm:p-10">
+        <Quote className="text-primary/10 absolute top-6 right-6 h-10 w-10" />
         <div className="relative min-h-[200px] sm:min-h-[180px]">
           {TESTIMONIALS.map((t, i) => (
             <div
@@ -153,13 +153,10 @@ function TestimonialsCarousel() {
             >
               <div className="flex items-center gap-1">
                 {Array.from({ length: t.rating }).map((_, s) => (
-                  <Star
-                    key={s}
-                    className="h-4 w-4 fill-amber-400 text-amber-400"
-                  />
+                  <Star key={s} className="h-4 w-4 fill-amber-400 text-amber-400" />
                 ))}
               </div>
-              <p className="mt-4 text-base leading-relaxed text-foreground sm:text-lg">
+              <p className="text-foreground mt-4 text-base leading-relaxed sm:text-lg">
                 &ldquo;{t.quote}&rdquo;
               </p>
               <div className="mt-5 flex items-center gap-3">
@@ -170,7 +167,7 @@ function TestimonialsCarousel() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold">{t.name}</p>
-                  <p className="text-xs text-muted-foreground">{t.role}</p>
+                  <p className="text-muted-foreground text-xs">{t.role}</p>
                 </div>
               </div>
             </div>
@@ -183,7 +180,7 @@ function TestimonialsCarousel() {
         <button
           onClick={() => go(-1)}
           aria-label="Previous testimonial"
-          className="flex h-9 w-9 items-center justify-center rounded-full border bg-background transition-colors hover:border-primary hover:bg-primary/5"
+          className="bg-background hover:border-primary hover:bg-primary/5 flex h-9 w-9 items-center justify-center rounded-full border transition-colors"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -194,7 +191,9 @@ function TestimonialsCarousel() {
               onClick={() => setActive(i)}
               aria-label={`Go to testimonial ${i + 1}`}
               className={`h-1.5 rounded-full transition-all ${
-                i === active ? "w-6 bg-primary" : "w-1.5 bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                i === active
+                  ? "bg-primary w-6"
+                  : "bg-muted-foreground/30 hover:bg-muted-foreground/50 w-1.5"
               }`}
             />
           ))}
@@ -202,7 +201,7 @@ function TestimonialsCarousel() {
         <button
           onClick={() => go(1)}
           aria-label="Next testimonial"
-          className="flex h-9 w-9 items-center justify-center rounded-full border bg-background transition-colors hover:border-primary hover:bg-primary/5"
+          className="bg-background hover:border-primary hover:bg-primary/5 flex h-9 w-9 items-center justify-center rounded-full border transition-colors"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
@@ -223,18 +222,18 @@ const TRUST_BADGES = [
 
 function TrustBadges() {
   return (
-    <section className="border-y bg-card/60 py-7">
+    <section className="bg-card/60 border-y py-7">
       <div className="mx-auto max-w-5xl px-4">
-        <p className="mb-4 text-center text-xs font-medium uppercase tracking-widest text-muted-foreground">
+        <p className="text-muted-foreground mb-4 text-center text-xs font-medium tracking-widest uppercase">
           Trusted &amp; regulated
         </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {TRUST_BADGES.map((b) => (
             <div
               key={b.label}
-              className="flex items-center justify-center gap-2 rounded-xl border border-border/60 bg-background/60 px-3 py-2.5 text-center transition-colors hover:border-primary/40 hover:bg-primary/5"
+              className="border-border/60 bg-background/60 hover:border-primary/40 hover:bg-primary/5 flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-center transition-colors"
             >
-              <b.icon className="h-4 w-4 shrink-0 text-primary" />
+              <b.icon className="text-primary h-4 w-4 shrink-0" />
               <span className="text-xs font-semibold sm:text-sm">{b.label}</span>
             </div>
           ))}
@@ -294,20 +293,30 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
   const HERO_BALANCE_KOBO = 4_940_000;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background min-h-screen">
       {/* Navbar */}
-      <header className="sticky top-0 z-40 border-b border-border/40 tp-glass">
+      <header className="border-border/40 tp-glass sticky top-0 z-40 border-b">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
           <div className="flex items-center gap-2">
             <Logo size={32} />
             <Wordmark size={20} />
           </div>
-          <nav className="hidden items-center gap-7 text-sm font-medium text-muted-foreground md:flex">
-            <a href="#providers" className="transition-colors hover:text-foreground">Providers</a>
-            <a href="#features" className="transition-colors hover:text-foreground">Features</a>
-            <a href="#how" className="transition-colors hover:text-foreground">How it works</a>
-            <a href="#security" className="transition-colors hover:text-foreground">Security</a>
-            <a href="#faq" className="transition-colors hover:text-foreground">FAQ</a>
+          <nav className="text-muted-foreground hidden items-center gap-7 text-sm font-medium md:flex">
+            <a href="#providers" className="hover:text-foreground transition-colors">
+              Providers
+            </a>
+            <a href="#features" className="hover:text-foreground transition-colors">
+              Features
+            </a>
+            <a href="#how" className="hover:text-foreground transition-colors">
+              How it works
+            </a>
+            <a href="#security" className="hover:text-foreground transition-colors">
+              Security
+            </a>
+            <a href="#faq" className="hover:text-foreground transition-colors">
+              FAQ
+            </a>
           </nav>
           <Button onClick={onGetStarted} size="sm" className="gap-1.5">
             Get Started <ArrowRight className="h-4 w-4" />
@@ -320,18 +329,17 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
         <div className="tp-grain absolute inset-0 opacity-60" />
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-16 md:grid-cols-2 md:py-24">
           <div className="tp-fade-rise">
-            <Badge className="mb-5 gap-1.5 rounded-full border-primary/30 bg-primary/10 text-primary">
+            <Badge className="border-primary/30 bg-primary/10 text-primary mb-5 gap-1.5 rounded-full">
               <Zap className="h-3.5 w-3.5" /> The fast lane to your money
             </Badge>
-            <h1 className="text-4xl font-bold leading-[1.1] tracking-tight md:text-6xl">
+            <h1 className="text-4xl leading-[1.1] font-bold tracking-tight md:text-6xl">
               Your money,
               <br />
               <span className="text-primary">faster than ever.</span>
             </h1>
-            <p className="mt-5 max-w-md text-base text-muted-foreground md:text-lg">
-              Fund your wallet, transfer to any bank, buy airtime &amp; data, pay bills,
-              get a virtual card, save and invest — all in one beautiful app built
-              for Nigeria.
+            <p className="text-muted-foreground mt-5 max-w-md text-base md:text-lg">
+              Fund your wallet, transfer to any bank, buy airtime &amp; data, pay bills, get a
+              virtual card, save and invest — all in one beautiful app built for Nigeria.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Button onClick={onGetStarted} size="lg" className="gap-1.5">
@@ -341,20 +349,26 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
                 Sign in
               </Button>
             </div>
-            <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary" /> Instant transfers</span>
-              <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary" /> Zero hidden fees</span>
-              <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary" /> Bank-grade security</span>
+            <div className="text-muted-foreground mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs">
+              <span className="flex items-center gap-1.5">
+                <Check className="text-primary h-3.5 w-3.5" /> Instant transfers
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Check className="text-primary h-3.5 w-3.5" /> Zero hidden fees
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Check className="text-primary h-3.5 w-3.5" /> Bank-grade security
+              </span>
             </div>
           </div>
 
           {/* Hero wallet card mockup — with 3D tilt, NFC, cardholder, VISA, animated balance */}
           <div className="relative hidden md:block">
-            <div className="tp-wallet-card tp-card-tilt tp-holo relative aspect-[1.6/1] w-full max-w-md rounded-3xl p-6 text-white tp-sheen">
+            <div className="tp-wallet-card tp-card-tilt tp-holo tp-sheen relative aspect-[1.6/1] w-full max-w-md rounded-3xl p-6 text-white">
               {/* Top row: logo + NFC + VISA */}
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-[10px] uppercase tracking-widest opacity-70">Turbopay</p>
+                  <p className="text-[10px] tracking-widest uppercase opacity-70">Turbopay</p>
                   <p className="text-xs font-medium opacity-90">Virtual Card</p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -367,7 +381,7 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
               <div className="relative mt-4 h-7 w-10 overflow-hidden rounded-md bg-gradient-to-br from-amber-200 via-amber-300 to-amber-500 shadow-inner">
                 <div className="absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-amber-700/40" />
                 <div className="absolute inset-y-1 left-1/2 w-px -translate-x-1/2 bg-amber-700/40" />
-                <div className="absolute left-1 top-1 h-1.5 w-2 rounded-sm border border-amber-700/40" />
+                <div className="absolute top-1 left-1 h-1.5 w-2 rounded-sm border border-amber-700/40" />
                 <div className="absolute right-1 bottom-1 h-1.5 w-2 rounded-sm border border-amber-700/40" />
               </div>
 
@@ -375,11 +389,7 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
               <div className="mt-3">
                 <p className="text-[10px]/none opacity-80">Available balance</p>
                 <p className="mt-1 text-3xl font-bold tabular-nums">
-                  <AnimatedNumber
-                    value={HERO_BALANCE_KOBO}
-                    format={naira}
-                    duration={1600}
-                  />
+                  <AnimatedNumber value={HERO_BALANCE_KOBO} format={naira} duration={1600} />
                 </p>
               </div>
 
@@ -387,7 +397,7 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
               <div className="mt-5 flex items-end justify-between">
                 <div>
                   <p className="text-[10px] opacity-70">Cardholder</p>
-                  <p className="text-sm font-semibold uppercase tracking-wider">ADAEZE OKAFOR</p>
+                  <p className="text-sm font-semibold tracking-wider uppercase">ADAEZE OKAFOR</p>
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] opacity-70">Virtual Account</p>
@@ -398,7 +408,10 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
               {/* Quick chips */}
               <div className="mt-5 flex gap-2">
                 {["Fund", "Transfer", "Airtime", "Bills"].map((p) => (
-                  <span key={p} className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur">
+                  <span
+                    key={p}
+                    className="rounded-full bg-white/15 px-3 py-1 text-xs font-medium backdrop-blur"
+                  >
                     {p}
                   </span>
                 ))}
@@ -406,24 +419,24 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
             </div>
 
             {/* floating stat cards */}
-            <div className="absolute -left-6 top-6 rounded-2xl border bg-card p-3 shadow-xl">
+            <div className="bg-card absolute top-6 -left-6 rounded-2xl border p-3 shadow-xl">
               <div className="flex items-center gap-2">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15 text-primary">
+                <div className="bg-primary/15 text-primary flex h-9 w-9 items-center justify-center rounded-xl">
                   <Zap className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-foreground">Instant transfer</p>
+                  <p className="text-muted-foreground text-[10px]">Instant transfer</p>
                   <p className="text-sm font-semibold">₦0 fee</p>
                 </div>
               </div>
             </div>
-            <div className="absolute -right-4 bottom-8 rounded-2xl border bg-card p-3 shadow-xl">
+            <div className="bg-card absolute -right-4 bottom-8 rounded-2xl border p-3 shadow-xl">
               <div className="flex items-center gap-2">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/15 text-amber-500">
                   <TrendingUp className="h-4 w-4" />
                 </div>
                 <div>
-                  <p className="text-[10px] text-muted-foreground">Funding speed</p>
+                  <p className="text-muted-foreground text-[10px]">Funding speed</p>
                   <p className="text-sm font-semibold">Instant</p>
                 </div>
               </div>
@@ -433,7 +446,7 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
       </section>
 
       {/* Stats bar */}
-      <section className="border-y bg-card/60 py-6">
+      <section className="bg-card/60 border-y py-6">
         <div className="mx-auto grid max-w-5xl grid-cols-2 gap-4 px-4 md:grid-cols-4">
           {[
             { value: "16+", label: "Payment providers" },
@@ -442,8 +455,8 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
             { value: "24/7", label: "Uptime & support" },
           ].map((s) => (
             <div key={s.label} className="text-center">
-              <p className="text-2xl font-bold text-primary md:text-3xl">{s.value}</p>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
+              <p className="text-primary text-2xl font-bold md:text-3xl">{s.value}</p>
+              <p className="text-muted-foreground text-xs">{s.label}</p>
             </div>
           ))}
         </div>
@@ -453,12 +466,13 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
       <TrustBadges />
 
       {/* Provider network */}
-      <section id="providers" className="border-t bg-background py-14">
+      <section id="providers" className="bg-background border-t py-14">
         <div className="mx-auto max-w-6xl px-4">
-          <p className="mb-2 text-center text-sm font-medium text-muted-foreground">
-            Powered by Nigeria&apos;s leading payment networks — synchronized, health-checked, always routed to the fastest &amp; cheapest path
+          <p className="text-muted-foreground mb-2 text-center text-sm font-medium">
+            Powered by Nigeria&apos;s leading payment networks — synchronized, health-checked,
+            always routed to the fastest &amp; cheapest path
           </p>
-          <div className="mb-7 mt-4 flex flex-wrap items-center justify-center gap-3">
+          <div className="mt-4 mb-7 flex flex-wrap items-center justify-center gap-3">
             <ProviderChip name="Remita" tag="RRR · Govt" featured />
             <ProviderChip name="Quickteller" tag="Interswitch" featured />
             <ProviderChip name="Paystack" tag="Cards · Transfer" />
@@ -472,43 +486,80 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
             <ProviderChip name="Wise" tag="International" />
             <ProviderChip name="Stripe" tag="Cards · Issuing" />
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary" /> Auto-routed by success rate</span>
-            <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary" /> Circuit-breaker protected</span>
-            <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary" /> Lowest-fee first</span>
-            <span className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-primary" /> 12+ providers, 1 unified API</span>
+          <div className="text-muted-foreground flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs">
+            <span className="flex items-center gap-1.5">
+              <Check className="text-primary h-3.5 w-3.5" /> Auto-routed by success rate
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="text-primary h-3.5 w-3.5" /> Circuit-breaker protected
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="text-primary h-3.5 w-3.5" /> Lowest-fee first
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Check className="text-primary h-3.5 w-3.5" /> 12+ providers, 1 unified API
+            </span>
           </div>
         </div>
       </section>
 
       {/* Features */}
-      <section id="features" className="border-t bg-card/40 py-20">
+      <section id="features" className="bg-card/40 border-t py-20">
         <div className="mx-auto max-w-6xl px-4">
           <div className="mb-12 text-center">
-            <Badge variant="secondary" className="mb-3">Everything you need</Badge>
-            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">One app for all your money</h2>
-            <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-              From everyday payments to long-term savings — Turbopay puts your finances in the fast lane.
+            <Badge variant="secondary" className="mb-3">
+              Everything you need
+            </Badge>
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+              One app for all your money
+            </h2>
+            <p className="text-muted-foreground mx-auto mt-3 max-w-xl">
+              From everyday payments to long-term savings — Turbopay puts your finances in the fast
+              lane.
             </p>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { icon: Wallet, title: "Wallet & Virtual Account", desc: "Get a dedicated account number instantly. Fund via bank transfer, card, or USSD." },
-              { icon: Send, title: "Free Turbopay Transfers", desc: "Send money to other Turbopay users instantly and free. Bank transfers at low fees." },
-              { icon: Smartphone, title: "Airtime & Data", desc: "Top up any network in seconds. Buy affordable data bundles for MTN, Glo, Airtel, 9mobile." },
-              { icon: Receipt, title: "Bill Payments", desc: "Pay electricity, cable TV, internet, water, education, insurance and more." },
-              { icon: ShieldCheck, title: "Protected at Every Step", desc: "Transaction PIN, session monitoring, audit trails, and encrypted data keep you safe." },
-              { icon: CreditCard, title: "Virtual Cards", desc: "Get a Visa virtual card for online shopping worldwide. Freeze, fund, and control spending." },
+              {
+                icon: Wallet,
+                title: "Wallet & Virtual Account",
+                desc: "Get a dedicated account number instantly. Fund via bank transfer, card, or USSD.",
+              },
+              {
+                icon: Send,
+                title: "Free Turbopay Transfers",
+                desc: "Send money to other Turbopay users instantly and free. Bank transfers at low fees.",
+              },
+              {
+                icon: Smartphone,
+                title: "Airtime & Data",
+                desc: "Top up any network in seconds. Buy affordable data bundles for MTN, Glo, Airtel, 9mobile.",
+              },
+              {
+                icon: Receipt,
+                title: "Bill Payments",
+                desc: "Pay electricity, cable TV, internet, water, education, insurance and more.",
+              },
+              {
+                icon: ShieldCheck,
+                title: "Protected at Every Step",
+                desc: "Transaction PIN, session monitoring, audit trails, and encrypted data keep you safe.",
+              },
+              {
+                icon: CreditCard,
+                title: "Virtual Cards",
+                desc: "Get a Visa virtual card for online shopping worldwide. Freeze, fund, and control spending.",
+              },
             ].map((f) => (
               <div
                 key={f.title}
-                className="group rounded-2xl border bg-card p-6 transition-all hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
+                className="group bg-card hover:border-primary/40 rounded-2xl border p-6 transition-all hover:-translate-y-1 hover:shadow-lg"
               >
-                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <div className="bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground mb-4 flex h-11 w-11 items-center justify-center rounded-xl transition-colors">
                   <f.icon className="h-5 w-5" />
                 </div>
                 <h3 className="text-lg font-semibold">{f.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{f.desc}</p>
+                <p className="text-muted-foreground mt-2 text-sm">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -519,21 +570,35 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
       <section id="how" className="py-20">
         <div className="mx-auto max-w-6xl px-4">
           <div className="mb-12 text-center">
-            <Badge variant="secondary" className="mb-3">Get started in minutes</Badge>
+            <Badge variant="secondary" className="mb-3">
+              Get started in minutes
+            </Badge>
             <h2 className="text-3xl font-bold tracking-tight md:text-4xl">How it works</h2>
           </div>
           <div className="grid gap-8 md:grid-cols-3">
             {[
-              { n: 1, title: "Create your account", desc: "Sign up with your email or phone in under 60 seconds. No paperwork." },
-              { n: 2, title: "Fund your wallet", desc: "Add money via bank transfer to your virtual account, card, or USSD." },
-              { n: 3, title: "Start transacting", desc: "Transfer, pay bills, buy airtime, save, invest — your money, your rules." },
+              {
+                n: 1,
+                title: "Create your account",
+                desc: "Sign up with your email or phone in under 60 seconds. No paperwork.",
+              },
+              {
+                n: 2,
+                title: "Fund your wallet",
+                desc: "Add money via bank transfer to your virtual account, card, or USSD.",
+              },
+              {
+                n: 3,
+                title: "Start transacting",
+                desc: "Transfer, pay bills, buy airtime, save, invest — your money, your rules.",
+              },
             ].map((s) => (
               <div key={s.n} className="relative text-center">
-                <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl tp-emerald-grad text-2xl font-bold text-white shadow-lg">
+                <div className="tp-emerald-grad mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl text-2xl font-bold text-white shadow-lg">
                   {s.n}
                 </div>
                 <h3 className="text-lg font-semibold">{s.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{s.desc}</p>
+                <p className="text-muted-foreground mt-2 text-sm">{s.desc}</p>
               </div>
             ))}
           </div>
@@ -541,15 +606,18 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
       </section>
 
       {/* Testimonials */}
-      <section className="border-t bg-card/40 py-20">
+      <section className="bg-card/40 border-t py-20">
         <div className="mx-auto max-w-6xl px-4">
           <div className="mb-10 text-center">
             <Badge variant="secondary" className="mb-3 gap-1.5">
               <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" /> Loved by Nigerians
             </Badge>
-            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">What our customers say</h2>
-            <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-              Join thousands of Nigerians using Turbopay to move money faster, save smarter, and spend with confidence.
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+              What our customers say
+            </h2>
+            <p className="text-muted-foreground mx-auto mt-3 max-w-xl">
+              Join thousands of Nigerians using Turbopay to move money faster, save smarter, and
+              spend with confidence.
             </p>
           </div>
           <TestimonialsCarousel />
@@ -563,13 +631,15 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
             <Badge variant="secondary" className="mb-3 gap-1.5">
               <Trophy className="h-3.5 w-3.5 text-amber-500" /> Recognised
             </Badge>
-            <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Awards &amp; recognition</h2>
+            <h2 className="text-2xl font-bold tracking-tight md:text-3xl">
+              Awards &amp; recognition
+            </h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             {AWARDS.map((a) => (
               <div
                 key={a.title}
-                className="relative overflow-hidden rounded-2xl border bg-card p-5 text-center"
+                className="bg-card relative overflow-hidden rounded-2xl border p-5 text-center"
               >
                 <div className="tp-award-shine absolute inset-0 opacity-25" />
                 <div className="relative">
@@ -577,7 +647,7 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
                     <a.icon className="h-5 w-5" />
                   </div>
                   <p className="text-sm font-semibold">{a.title}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{a.org}</p>
+                  <p className="text-muted-foreground mt-0.5 text-xs">{a.org}</p>
                 </div>
               </div>
             ))}
@@ -586,14 +656,18 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
       </section>
 
       {/* Security */}
-      <section id="security" className="border-y bg-card/40 py-20">
+      <section id="security" className="bg-card/40 border-y py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 md:grid-cols-2">
           <div>
-            <Badge className="mb-3 gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Bank-grade security</Badge>
-            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Your money is always protected</h2>
-            <p className="mt-4 text-muted-foreground">
-              We build security into everything. From encrypted data to transaction PINs and full audit trails,
-              Turbopay keeps your funds safe around the clock.
+            <Badge className="mb-3 gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5" /> Bank-grade security
+            </Badge>
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+              Your money is always protected
+            </h2>
+            <p className="text-muted-foreground mt-4">
+              We build security into everything. From encrypted data to transaction PINs and full
+              audit trails, Turbopay keeps your funds safe around the clock.
             </p>
             <ul className="mt-6 space-y-3">
               {[
@@ -604,7 +678,7 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
                 "3-tier KYC with progressive limits",
               ].map((item) => (
                 <li key={item} className="flex items-center gap-3 text-sm">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-primary">
+                  <span className="bg-primary/15 text-primary flex h-5 w-5 items-center justify-center rounded-full">
                     <Check className="h-3 w-3" />
                   </span>
                   {item}
@@ -619,9 +693,9 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
               { icon: Globe, label: "Multi-currency", value: "USD · EUR · GBP" },
               { icon: CreditCard, label: "Virtual cards", value: "Instant issue" },
             ].map((s) => (
-              <div key={s.label} className="rounded-2xl border bg-background p-5">
-                <s.icon className="mb-3 h-6 w-6 text-primary" />
-                <p className="text-xs text-muted-foreground">{s.label}</p>
+              <div key={s.label} className="bg-background rounded-2xl border p-5">
+                <s.icon className="text-primary mb-3 h-6 w-6" />
+                <p className="text-muted-foreground text-xs">{s.label}</p>
                 <p className="text-lg font-semibold">{s.value}</p>
               </div>
             ))}
@@ -636,20 +710,22 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
             <Badge variant="secondary" className="mb-3 gap-1.5">
               <HelpCircle className="h-3.5 w-3.5" /> FAQ
             </Badge>
-            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Frequently asked questions</h2>
+            <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+              Frequently asked questions
+            </h2>
           </div>
           <Accordion type="single" collapsible className="w-full">
             {FAQ_ITEMS.map((item, i) => (
               <AccordionItem key={i} value={`item-${i}`} className="tp-accordion-content">
                 <AccordionTrigger className="tp-accordion-trigger text-left text-base font-medium hover:no-underline">
                   <span className="flex items-center gap-3">
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <span className="bg-primary/10 text-primary flex h-7 w-7 shrink-0 items-center justify-center rounded-lg">
                       <item.icon className="h-3.5 w-3.5" />
                     </span>
                     {item.q}
                   </span>
                 </AccordionTrigger>
-                <AccordionContent className="pl-10 text-sm text-muted-foreground">
+                <AccordionContent className="text-muted-foreground pl-10 text-sm">
                   {item.a}
                 </AccordionContent>
               </AccordionItem>
@@ -660,14 +736,23 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
 
       {/* CTA */}
       <section className="px-4 py-20">
-        <div className="mx-auto max-w-5xl overflow-hidden rounded-3xl tp-wallet-card px-8 py-14 text-center text-white">
-          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Ready to move money faster?</h2>
-          <p className="mx-auto mt-3 max-w-md opacity-90">Join thousands of Nigerians using Turbopay to send, save, and spend smarter.</p>
+        <div className="tp-wallet-card mx-auto max-w-5xl overflow-hidden rounded-3xl px-8 py-14 text-center text-white">
+          <h2 className="text-3xl font-bold tracking-tight md:text-4xl">
+            Ready to move money faster?
+          </h2>
+          <p className="mx-auto mt-3 max-w-md opacity-90">
+            Join thousands of Nigerians using Turbopay to send, save, and spend smarter.
+          </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Button onClick={onGetStarted} size="lg" variant="secondary" className="gap-1.5">
               Create free account <ArrowRight className="h-4 w-4" />
             </Button>
-            <Button onClick={onGetStarted} size="lg" variant="outline" className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white">
+            <Button
+              onClick={onGetStarted}
+              size="lg"
+              variant="outline"
+              className="border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+            >
               Sign in
             </Button>
           </div>
@@ -675,38 +760,47 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-card/40 py-10">
+      <footer className="bg-card/40 border-t py-10">
         <div className="mx-auto grid max-w-6xl gap-8 px-4 md:grid-cols-4">
           <div>
             <div className="flex items-center gap-2">
               <Logo size={28} />
               <Wordmark size={18} />
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">The fast lane to your money.</p>
+            <p className="text-muted-foreground mt-3 text-xs">The fast lane to your money.</p>
           </div>
           <div>
             <p className="mb-3 text-sm font-semibold">Product</p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>Wallet</li><li>Transfers</li><li>Virtual Cards</li><li>Savings</li>
+            <ul className="text-muted-foreground space-y-2 text-sm">
+              <li>Wallet</li>
+              <li>Transfers</li>
+              <li>Virtual Cards</li>
+              <li>Savings</li>
             </ul>
           </div>
           <div>
             <p className="mb-3 text-sm font-semibold">Company</p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>About</li><li>Careers</li><li>Blog</li><li>Press</li>
+            <ul className="text-muted-foreground space-y-2 text-sm">
+              <li>About</li>
+              <li>Careers</li>
+              <li>Blog</li>
+              <li>Press</li>
             </ul>
           </div>
           <div>
             <p className="mb-3 text-sm font-semibold">Support</p>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>Help Center</li><li>Contact</li><li>Privacy</li><li>Terms</li>
+            <ul className="text-muted-foreground space-y-2 text-sm">
+              <li>Help Center</li>
+              <li>Contact</li>
+              <li>Privacy</li>
+              <li>Terms</li>
             </ul>
           </div>
         </div>
-        <div className="mx-auto mt-8 flex max-w-6xl flex-col items-center justify-between gap-3 border-t px-4 pt-6 text-xs text-muted-foreground sm:flex-row">
+        <div className="text-muted-foreground mx-auto mt-8 flex max-w-6xl flex-col items-center justify-between gap-3 border-t px-4 pt-6 text-xs sm:flex-row">
           <p>© {new Date().getFullYear()} Turbopay. All rights reserved.</p>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 tp-pulse-dot" />
+            <span className="tp-pulse-dot h-2 w-2 rounded-full bg-emerald-500" />
             All systems operational
           </span>
         </div>
@@ -715,7 +809,15 @@ export function LandingPage({ onGetStarted }: { onGetStarted: () => void }) {
   );
 }
 
-function ProviderChip({ name, tag, featured = false }: { name: string; tag: string; featured?: boolean }) {
+function ProviderChip({
+  name,
+  tag,
+  featured = false,
+}: {
+  name: string;
+  tag: string;
+  featured?: boolean;
+}) {
   return (
     <div
       className={`group flex items-center gap-2.5 rounded-xl border px-4 py-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md ${
@@ -730,11 +832,15 @@ function ProviderChip({ name, tag, featured = false }: { name: string; tag: stri
         {name.slice(0, 2).toUpperCase()}
       </div>
       <div className="leading-tight">
-        <p className={`text-sm font-semibold ${featured ? "text-foreground" : "text-foreground"}`}>{name}</p>
-        <p className="text-[10px] text-muted-foreground">{tag}</p>
+        <p className={`text-sm font-semibold ${featured ? "text-foreground" : "text-foreground"}`}>
+          {name}
+        </p>
+        <p className="text-muted-foreground text-[10px]">{tag}</p>
       </div>
       {featured && (
-        <Badge variant="secondary" className="ml-1 bg-primary/15 text-primary text-[9px]">★</Badge>
+        <Badge variant="secondary" className="bg-primary/15 text-primary ml-1 text-[9px]">
+          ★
+        </Badge>
       )}
     </div>
   );

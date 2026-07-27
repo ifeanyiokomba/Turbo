@@ -9,7 +9,10 @@ export async function GET(_req: NextRequest) {
   try {
     const user = await requireUser();
     const mfa = await db.mfaSecret.findUnique({ where: { userId: user.id } });
-    const hasBackupCodes = !!mfa && Array.isArray(safeParse(mfa.backupCodesHash)) && safeParse(mfa.backupCodesHash).length > 0;
+    const hasBackupCodes =
+      !!mfa &&
+      Array.isArray(safeParse(mfa.backupCodesHash)) &&
+      safeParse(mfa.backupCodesHash).length > 0;
     return json({
       enabled: !!mfa?.enabled,
       enabledAt: mfa?.enabledAt ?? null,

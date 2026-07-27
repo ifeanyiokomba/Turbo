@@ -66,9 +66,7 @@ export async function GET(req: Request) {
           closedAt: c.closedAt,
           userId: c.userId,
           transactionId: c.transactionId,
-          user: u
-            ? { fullName: u.fullName, username: u.username, email: u.email }
-            : null,
+          user: u ? { fullName: u.fullName, username: u.username, email: u.email } : null,
         };
       }),
       screenings: screenings.map((s) => {

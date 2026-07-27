@@ -151,7 +151,7 @@ export default function KycView() {
   const canApplyTier3 = tier < 3;
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="KYC & Limits"
         subtitle="Verify your identity to unlock higher transaction limits."
@@ -190,11 +190,17 @@ export default function KycView() {
                       : "bg-amber-500/20 text-amber-600 dark:text-amber-400"
                   }`}
                 >
-                  {verified ? <ShieldCheck className="h-7 w-7" /> : <ShieldAlert className="h-7 w-7" />}
+                  {verified ? (
+                    <ShieldCheck className="h-7 w-7" />
+                  ) : (
+                    <ShieldAlert className="h-7 w-7" />
+                  )}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <p className="text-lg font-bold">Tier {tier} · {TIER_LABELS[tier]}</p>
+                    <p className="text-lg font-bold">
+                      Tier {tier} · {TIER_LABELS[tier]}
+                    </p>
                     <Badge
                       className={
                         verified
@@ -205,26 +211,24 @@ export default function KycView() {
                       {status}
                     </Badge>
                   </div>
-                  <p className="mt-0.5 text-sm text-muted-foreground">{TIER_DESCRIPTIONS[tier]}</p>
+                  <p className="text-muted-foreground mt-0.5 text-sm">{TIER_DESCRIPTIONS[tier]}</p>
                 </div>
               </div>
               {data?.verifications && data.verifications.length > 0 && (
                 <div className="text-right">
-                  <p className="text-xs text-muted-foreground">Last verified</p>
+                  <p className="text-muted-foreground text-xs">Last verified</p>
                   <p className="text-sm font-semibold">
                     {data.verifications[0].verifiedAt
                       ? formatDate(data.verifications[0].verifiedAt, true)
                       : "—"}
                   </p>
                   {data.nin && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="text-muted-foreground mt-0.5 text-xs">
                       NIN ••••{data.nin.slice(-3)}
                     </p>
                   )}
                   {data.bvn && (
-                    <p className="text-xs text-muted-foreground">
-                      BVN ••••{data.bvn.slice(-3)}
-                    </p>
+                    <p className="text-muted-foreground text-xs">BVN ••••{data.bvn.slice(-3)}</p>
                   )}
                 </div>
               )}
@@ -259,7 +263,7 @@ export default function KycView() {
           <Card className="overflow-hidden p-0">
             <div className="border-b p-5">
               <h2 className="text-sm font-semibold">Tier comparison</h2>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-0.5 text-xs">
                 Compare limits across all three tiers. Verify to unlock more.
               </p>
             </div>
@@ -279,10 +283,7 @@ export default function KycView() {
                   const isCurrent = tNum === tier;
                   const isUnlocked = tNum <= tier;
                   return (
-                    <TableRow
-                      key={t}
-                      className={isCurrent ? "bg-emerald-500/5" : undefined}
-                    >
+                    <TableRow key={t} className={isCurrent ? "bg-emerald-500/5" : undefined}>
                       <TableCell className="pl-5 font-medium">
                         <div className="flex items-center gap-2">
                           Tier {tNum}
@@ -298,12 +299,14 @@ export default function KycView() {
                       </TableCell>
                       <TableCell className="tabular-nums">{naira(cfg.singleTxLimitKobo)}</TableCell>
                       <TableCell className="tabular-nums">{naira(cfg.dailyLimitKobo)}</TableCell>
-                      <TableCell className="tabular-nums">{maxBalanceLabel(cfg.maxBalanceKobo)}</TableCell>
+                      <TableCell className="tabular-nums">
+                        {maxBalanceLabel(cfg.maxBalanceKobo)}
+                      </TableCell>
                       <TableCell className="pr-5 text-right">
                         {isUnlocked ? (
                           <CheckCircle2 className="ml-auto h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                         ) : (
-                          <Lock className="ml-auto h-4 w-4 text-muted-foreground" />
+                          <Lock className="text-muted-foreground ml-auto h-4 w-4" />
                         )}
                       </TableCell>
                     </TableRow>
@@ -330,7 +333,7 @@ export default function KycView() {
                       </Badge>
                     )}
                   </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
+                  <p className="text-muted-foreground mt-0.5 text-xs">
                     Enter your 11-digit National Identification Number. Verification is instant.
                   </p>
                 </div>
@@ -346,7 +349,7 @@ export default function KycView() {
                   onChange={(e) => setNin(e.target.value.replace(/\D+/g, ""))}
                   disabled={!canApplyTier2 || busy}
                 />
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-muted-foreground text-[10px]">
                   We never store your NIN in plaintext. Verification is via NIMC (mock).
                 </p>
               </div>
@@ -355,7 +358,11 @@ export default function KycView() {
                 disabled={!canApplyTier2 || nin.length !== 11 || busy}
                 onClick={() => submitTier(2)}
               >
-                {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                {busy ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ShieldCheck className="h-4 w-4" />
+                )}
                 {canApplyTier2 ? "Verify NIN" : "Already verified"}
               </Button>
             </Card>
@@ -375,7 +382,7 @@ export default function KycView() {
                       </Badge>
                     )}
                   </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
+                  <p className="text-muted-foreground mt-0.5 text-xs">
                     Enter your 11-digit Bank Verification Number for premium limits.
                   </p>
                 </div>
@@ -391,7 +398,7 @@ export default function KycView() {
                   onChange={(e) => setBvn(e.target.value.replace(/\D+/g, ""))}
                   disabled={!canApplyTier3 || busy}
                 />
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-muted-foreground text-[10px]">
                   Requires Tier 2 first. Verification is via NIBSS (mock).
                 </p>
               </div>
@@ -400,7 +407,11 @@ export default function KycView() {
                 disabled={!canApplyTier3 || bvn.length !== 11 || busy}
                 onClick={() => submitTier(3)}
               >
-                {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Fingerprint className="h-4 w-4" />}
+                {busy ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Fingerprint className="h-4 w-4" />
+                )}
                 {canApplyTier3 ? "Verify BVN" : "Already verified"}
               </Button>
             </Card>
@@ -414,15 +425,23 @@ export default function KycView() {
                 {data.verifications.map((v) => (
                   <div
                     key={v.id}
-                    className="flex items-center justify-between rounded-xl border bg-muted/30 px-3 py-2.5 text-sm"
+                    className="bg-muted/30 flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm"
                   >
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                      <span className="font-medium">Tier {v.tier} · {TIER_LABELS[v.tier]}</span>
+                      <span className="font-medium">
+                        Tier {v.tier} · {TIER_LABELS[v.tier]}
+                      </span>
                     </div>
-                    <div className="text-right text-xs text-muted-foreground">
-                      <p>{v.verifiedAt ? formatDate(v.verifiedAt, true) : formatDate(v.createdAt, true)}</p>
-                      <p>{v.provider} · {v.status}</p>
+                    <div className="text-muted-foreground text-right text-xs">
+                      <p>
+                        {v.verifiedAt
+                          ? formatDate(v.verifiedAt, true)
+                          : formatDate(v.createdAt, true)}
+                      </p>
+                      <p>
+                        {v.provider} · {v.status}
+                      </p>
                     </div>
                   </div>
                 ))}

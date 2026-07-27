@@ -83,11 +83,7 @@ export async function POST(req: NextRequest) {
       where: { email: normalizedEmail },
     });
     if (existing) {
-      return errorJson(
-        "A team member with this email already exists",
-        409,
-        "EMAIL_TAKEN",
-      );
+      return errorJson("A team member with this email already exists", 409, "EMAIL_TAKEN");
     }
 
     const member = await db.teamMember.create({
@@ -115,10 +111,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return json(
-      { member: publicMember(member) },
-      201,
-    );
+    return json({ member: publicMember(member) }, 201);
   } catch (e) {
     if (e instanceof ServiceError) return errorJson(e.message, e.statusCode, e.code);
     return handleError(e);

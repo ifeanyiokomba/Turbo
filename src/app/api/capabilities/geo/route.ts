@@ -13,10 +13,7 @@
 // exactly one place to update when the preferred-provider matrix changes.
 
 import { json, handleError, requireUser } from "@/lib/api";
-import {
-  getCountryConfig,
-  getAllCountryConfigs,
-} from "@/lib/turbocore/geo/country-config";
+import { getCountryConfig, getAllCountryConfigs } from "@/lib/turbocore/geo/country-config";
 import { ALL_CONTRACTS, type ContractName } from "@/lib/turbocore/result";
 
 export const dynamic = "force-dynamic";
@@ -70,7 +67,7 @@ export async function GET(req: Request) {
 // (empty array when the country has no preference for that contract). This
 // makes the response shape stable for the frontend.
 function buildPreferredByContract(
-  preferred: Record<string, string[]>,
+  preferred: Record<string, string[]>
 ): Record<ContractName, string[]> {
   const out = {} as Record<ContractName, string[]>;
   for (const c of ALL_CONTRACTS) {

@@ -33,9 +33,18 @@ interface ResolveResponse {
 // without leaking wrong names.
 function mockBankName(seed: string): string {
   const names = [
-    "JOHN DOE", "MARY JANE", "CHIKA OBIAJULU", "ADEKUNLE BELLO",
-    "FATIMA ABUBAKAR", "EMEKA NWANKWO", "GRACE OKAFOR", "TUNDE BALOGUN",
-    "NUHU SANI", "BOLA AHMED", "IFENYI OKOYE", "ZAINAB YUSUF",
+    "JOHN DOE",
+    "MARY JANE",
+    "CHIKA OBIAJULU",
+    "ADEKUNLE BELLO",
+    "FATIMA ABUBAKAR",
+    "EMEKA NWANKWO",
+    "GRACE OKAFOR",
+    "TUNDE BALOGUN",
+    "NUHU SANI",
+    "BOLA AHMED",
+    "IFENYI OKOYE",
+    "ZAINAB YUSUF",
   ];
   let hash = 0;
   for (let i = 0; i < seed.length; i++) {
@@ -51,13 +60,10 @@ function mockBankName(seed: string): string {
 async function resolveViaPaystack(
   accountNumber: string,
   bankCode: string,
-  country: string,
+  country: string
 ): Promise<{ ok: true; name: string; bankName: string } | { ok: false }> {
   try {
-    const adapter = await registry.resolve<IBankTransferProvider>(
-      "BANK_TRANSFER",
-      "paystack",
-    );
+    const adapter = await registry.resolve<IBankTransferProvider>("BANK_TRANSFER", "paystack");
     if (!adapter?.resolveAccountName) return { ok: false };
     const result = await adapter.resolveAccountName({
       accountNumber,
@@ -82,10 +88,8 @@ export async function GET(req: Request) {
     const query = (url.searchParams.get("query") ?? "").trim();
     const bankCode = (url.searchParams.get("bankCode") ?? "").trim();
 
-    if (!query)
-      throw new ServiceError("Query is required", 400, "MISSING_QUERY");
-    if (query.length < 3)
-      throw new ServiceError("Query is too short", 400, "QUERY_TOO_SHORT");
+    if (!query) throw new ServiceError("Query is required", 400, "MISSING_QUERY");
+    if (query.length < 3) throw new ServiceError("Query is too short", 400, "QUERY_TOO_SHORT");
 
     // Branch 1 — bank account resolution
     if (bankCode) {
@@ -137,11 +141,7 @@ export async function GET(req: Request) {
 
     const userRow = await db.user.findFirst({
       where: {
-        OR: [
-          { username: query },
-          { email: query },
-          { phone: query },
-        ],
+        OR: [{ username: query }, { email: query }, { phone: query }],
       },
     });
     if (userRow) {
@@ -156,7 +156,7 @@ export async function GET(req: Request) {
     throw new ServiceError(
       "No Turbopay user found. Check the username, phone, email or account number.",
       404,
-      "RECIPIENT_NOT_FOUND",
+      "RECIPIENT_NOT_FOUND"
     );
   } catch (e) {
     return handleError(e);

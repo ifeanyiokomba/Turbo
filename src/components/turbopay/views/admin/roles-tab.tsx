@@ -14,12 +14,7 @@ import * as React from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -84,9 +79,7 @@ export default function RolesTab() {
   // If the current role is "USER" (no admin permissions), fall back to
   // SUPER_ADMIN so the admin can still see what full access looks like.
   const initialSelected: Role =
-    currentRole in ROLE_META
-      ? (currentRole as Role)
-      : Roles.SUPER_ADMIN;
+    currentRole in ROLE_META ? (currentRole as Role) : Roles.SUPER_ADMIN;
 
   const [selected, setSelected] = React.useState<Role>(initialSelected);
   const [query, setQuery] = React.useState("");
@@ -124,18 +117,16 @@ export default function RolesTab() {
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-semibold tracking-tight">Your role</h2>
                 <Badge className={roleTone(currentRole)} variant="secondary">
-                  {currentRole === "SUPER_ADMIN" && (
-                    <Crown className="mr-1 h-3 w-3" />
-                  )}
+                  {currentRole === "SUPER_ADMIN" && <Crown className="mr-1 h-3 w-3" />}
                   {roleLabel(currentRole)}
                 </Badge>
                 {currentRole === "ADMIN" && (
-                  <Badge variant="outline" className="text-[10px] text-muted-foreground">
+                  <Badge variant="outline" className="text-muted-foreground text-[10px]">
                     legacy
                   </Badge>
                 )}
               </div>
-              <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+              <p className="text-muted-foreground mt-1 max-w-xl text-sm">
                 {currentRole in ROLE_META
                   ? ROLE_META[currentRole as Role].description
                   : currentRole === "ADMIN"
@@ -145,16 +136,14 @@ export default function RolesTab() {
             </div>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-1 sm:text-right">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            <p className="text-muted-foreground text-xs tracking-wide uppercase">
               Effective permissions
             </p>
             <p className="text-2xl font-bold tabular-nums">
-              <span className="text-emerald-600 dark:text-emerald-400">
-                {currentPerms.length}
-              </span>
+              <span className="text-emerald-600 dark:text-emerald-400">{currentPerms.length}</span>
               <span className="text-muted-foreground"> / {TOTAL_PERMISSIONS}</span>
             </p>
-            <div className="h-1.5 w-40 overflow-hidden rounded-full bg-muted">
+            <div className="bg-muted h-1.5 w-40 overflow-hidden rounded-full">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-amber-500 transition-all"
                 style={{
@@ -170,19 +159,19 @@ export default function RolesTab() {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-sm font-semibold">All roles</h3>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-muted-foreground text-xs">
             {ALL_ROLES.length} declared admin roles · {TOTAL_PERMISSIONS} granular permissions
           </p>
         </div>
         <div className="relative w-full sm:w-72">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2" />
           <input
             ref={searchRef}
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search roles or permissions…"
-            className="h-9 w-full rounded-md border border-input bg-background pl-8 pr-3 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring h-9 w-full rounded-md border pr-3 pl-8 text-sm focus-visible:ring-2 focus-visible:outline-none"
           />
         </div>
       </div>
@@ -199,9 +188,7 @@ export default function RolesTab() {
             role.toLowerCase().includes(query.toLowerCase()) ||
             meta.label.toLowerCase().includes(query.toLowerCase()) ||
             meta.description.toLowerCase().includes(query.toLowerCase()) ||
-            ROLE_PERMISSIONS[role].some((p) =>
-              p.toLowerCase().includes(query.toLowerCase()),
-            );
+            ROLE_PERMISSIONS[role].some((p) => p.toLowerCase().includes(query.toLowerCase()));
           if (!matchesQuery) return null;
           return (
             <button
@@ -216,7 +203,7 @@ export default function RolesTab() {
             >
               {/* "You" pill */}
               {isYou && (
-                <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
                   <Sparkles className="h-2.5 w-2.5" /> You
                 </span>
               )}
@@ -235,17 +222,19 @@ export default function RolesTab() {
                 </Badge>
               </div>
               <div>
-                <p className="text-sm font-semibold leading-tight">{meta.label}</p>
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                <p className="text-sm leading-tight font-semibold">{meta.label}</p>
+                <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">
                   {meta.description}
                 </p>
               </div>
               <div className="mt-auto">
-                <div className="mb-1 flex items-center justify-between text-[10px] text-muted-foreground">
-                  <span>{count} of {TOTAL_PERMISSIONS}</span>
+                <div className="text-muted-foreground mb-1 flex items-center justify-between text-[10px]">
+                  <span>
+                    {count} of {TOTAL_PERMISSIONS}
+                  </span>
                   <span>{pct}%</span>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="bg-muted h-1.5 overflow-hidden rounded-full">
                   <div
                     className={`h-full rounded-full transition-all ${
                       role === Roles.SUPER_ADMIN
@@ -263,7 +252,7 @@ export default function RolesTab() {
 
       {/* ─── Selected role detail ───────────────────────────────────── */}
       <Card className="overflow-hidden p-0">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-muted/30 px-5 py-4">
+        <div className="border-border bg-muted/30 flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
           <div className="flex items-center gap-3">
             <span
               className={`inline-flex h-9 w-9 items-center justify-center rounded-lg ${ROLE_META[selected].tone}`}
@@ -281,21 +270,22 @@ export default function RolesTab() {
                   {selected}
                 </Badge>
                 {isCurrent && (
-                  <Badge variant="outline" className="gap-1 text-[10px] text-emerald-600 dark:text-emerald-400">
+                  <Badge
+                    variant="outline"
+                    className="gap-1 text-[10px] text-emerald-600 dark:text-emerald-400"
+                  >
                     <Sparkles className="h-2.5 w-2.5" /> Your role
                   </Badge>
                 )}
               </div>
-              <p className="mt-0.5 max-w-xl text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-0.5 max-w-xl text-xs">
                 {ROLE_META[selected].description}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="text-right">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                Granted
-              </p>
+              <p className="text-muted-foreground text-[10px] tracking-wide uppercase">Granted</p>
               <p className="text-lg font-bold tabular-nums">
                 <span className="text-emerald-600 dark:text-emerald-400">
                   {selectedPerms.length}
@@ -315,11 +305,9 @@ export default function RolesTab() {
         </div>
 
         {/* Permission grid, grouped by category */}
-        <div className="divide-y divide-border">
+        <div className="divide-border divide-y">
           {PERMISSION_CATEGORIES.map((cat) => {
-            const grantedInCat = cat.permissions.filter((p) =>
-              selectedPerms.includes(p),
-            );
+            const grantedInCat = cat.permissions.filter((p) => selectedPerms.includes(p));
             const allGranted = grantedInCat.length === cat.permissions.length;
             const noneGranted = grantedInCat.length === 0;
             return (
@@ -327,7 +315,7 @@ export default function RolesTab() {
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h4 className="text-sm font-semibold">{cat.label}</h4>
-                    <p className="text-xs text-muted-foreground">{cat.description}</p>
+                    <p className="text-muted-foreground text-xs">{cat.description}</p>
                   </div>
                   <Badge
                     variant="outline"
@@ -345,8 +333,7 @@ export default function RolesTab() {
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                   {cat.permissions.map((perm) => {
                     const granted = selectedPerms.includes(perm);
-                    const matches =
-                      !query || perm.toLowerCase().includes(query.toLowerCase());
+                    const matches = !query || perm.toLowerCase().includes(query.toLowerCase());
                     if (!matches) return null;
                     return (
                       <TooltipProvider key={perm} delayDuration={150}>
@@ -355,20 +342,20 @@ export default function RolesTab() {
                             <div
                               className={`flex items-center gap-2 rounded-md border px-2.5 py-2 text-xs transition-colors ${
                                 granted
-                                  ? "border-emerald-500/20 bg-emerald-500/5 text-foreground"
+                                  ? "text-foreground border-emerald-500/20 bg-emerald-500/5"
                                   : "border-border bg-muted/30 text-muted-foreground"
                               }`}
                             >
                               {granted ? (
                                 <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
                               ) : (
-                                <XCircle className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40" />
+                                <XCircle className="text-muted-foreground/40 h-3.5 w-3.5 shrink-0" />
                               )}
                               <code
                                 className={`font-mono text-[11px] ${
                                   granted
                                     ? "text-foreground"
-                                    : "text-muted-foreground/70 line-through decoration-muted-foreground/30"
+                                    : "text-muted-foreground/70 decoration-muted-foreground/30 line-through"
                                 }`}
                               >
                                 {perm}
@@ -395,14 +382,14 @@ export default function RolesTab() {
       </Card>
 
       {/* ─── Footer legend ──────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed border-border bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
+      <div className="border-border bg-muted/20 text-muted-foreground flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed px-4 py-3 text-xs">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
             Granted
           </span>
           <span className="flex items-center gap-1.5">
-            <XCircle className="h-3.5 w-3.5 text-muted-foreground/40" />
+            <XCircle className="text-muted-foreground/40 h-3.5 w-3.5" />
             Not granted
           </span>
           <span className="flex items-center gap-1.5">

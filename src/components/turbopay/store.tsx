@@ -86,11 +86,12 @@ export const useApp = create<AppState>()(
       setLoading: (l) => set({ loading: l }),
       setMinipayMode: (v) => set({ minipayMode: v }),
       setCeloAddress: (a) => set({ celoAddress: a }),
-      logoutClient: () => set({ user: null, view: "dashboard", minipayMode: false, celoAddress: null }),
+      logoutClient: () =>
+        set({ user: null, view: "dashboard", minipayMode: false, celoAddress: null }),
     }),
     {
       name: "tp_app",
       partialize: (s) => ({ view: s.view }) as AppState,
-    },
-  ),
+    }
+  )
 );

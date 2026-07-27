@@ -81,7 +81,7 @@ function RateDisplay({ price }: { price: PriceData | null }) {
     <Card className="p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs text-muted-foreground">Live rate</p>
+          <p className="text-muted-foreground text-xs">Live rate</p>
           <p className="mt-0.5 text-xl font-bold tabular-nums">
             1 USDm = ₦{rate.toLocaleString("en-NG", { maximumFractionDigits: 2 })}
           </p>
@@ -91,7 +91,7 @@ function RateDisplay({ price }: { price: PriceData | null }) {
           {ageMin != null ? `${ageMin}m ago` : "—"}
         </Badge>
       </div>
-      <p className="mt-2 text-[10px] text-muted-foreground">
+      <p className="text-muted-foreground mt-2 text-[10px]">
         Source: {price?.source ?? "fallback"} · Updated {price ? timeAgo(price.updatedAt) : "—"}
       </p>
     </Card>
@@ -111,7 +111,7 @@ function BridgeEventRow({ ev }: { ev: BridgeEvent }) {
         ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
         : "bg-red-500/15 text-red-600 dark:text-red-400";
   return (
-    <div className="flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-muted/60">
+    <div className="hover:bg-muted/60 flex items-center gap-3 rounded-xl px-2 py-2.5 transition-colors">
       <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${tone}`}>
         <Icon className="h-4.5 w-4.5" />
       </div>
@@ -119,16 +119,21 @@ function BridgeEventRow({ ev }: { ev: BridgeEvent }) {
         <p className="truncate text-sm font-medium">
           {isCredit ? "Deposit cUSD → NGN" : "Withdraw NGN → cUSD"}
         </p>
-        <p className="truncate text-xs text-muted-foreground">
+        <p className="text-muted-foreground truncate text-xs">
           {Number(ev.amountUsdm).toLocaleString(undefined, { maximumFractionDigits: 6 })} USDm ·{" "}
           {timeAgo(ev.createdAt)}
         </p>
       </div>
       <div className="text-right">
-        <p className={`text-sm font-semibold tabular-nums ${isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>
-          {isCredit ? "+" : "−"}{naira(ev.amountKobo)}
+        <p
+          className={`text-sm font-semibold tabular-nums ${isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}
+        >
+          {isCredit ? "+" : "−"}
+          {naira(ev.amountKobo)}
         </p>
-        <span className={`mt-0.5 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${statusTone}`}>
+        <span
+          className={`mt-0.5 inline-flex rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${statusTone}`}
+        >
           {ev.status}
         </span>
       </div>
@@ -253,7 +258,10 @@ export default function CeloBridgeView() {
   }
 
   async function handleWithdraw() {
-    const amountKobo = withdrawMode === "NGN" ? parseKobo(withdrawInput) : Math.round((parseFloat(withdrawInput) || 0) * usdNgnRate * 100);
+    const amountKobo =
+      withdrawMode === "NGN"
+        ? parseKobo(withdrawInput)
+        : Math.round((parseFloat(withdrawInput) || 0) * usdNgnRate * 100);
     if (amountKobo < 1000) {
       toast.error("Minimum withdrawal is ₦10");
       return;
@@ -305,15 +313,21 @@ export default function CeloBridgeView() {
   const withdrawUsdmEquiv =
     withdrawMode === "USDm"
       ? parseFloat(withdrawInput) || 0
-      : (parseKobo(withdrawInput) / 100) / usdNgnRate;
+      : parseKobo(withdrawInput) / 100 / usdNgnRate;
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="cUSD ↔ NGN Bridge"
         subtitle="Move between Celo USDm and Naira instantly. Deposits credit your wallet; withdrawals send USDm to your MiniPay address."
         actions={
-          <Button variant="outline" size="sm" onClick={refresh} disabled={refreshing} className="gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={refresh}
+            disabled={refreshing}
+            className="gap-1.5"
+          >
             <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} /> Refresh
           </Button>
         }
@@ -324,7 +338,7 @@ export default function CeloBridgeView() {
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Deposit card */}
         <Card className="relative overflow-hidden p-5">
-          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl" />
+          <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl" />
           <div className="relative">
             <div className="flex items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
@@ -332,20 +346,22 @@ export default function CeloBridgeView() {
               </div>
               <div>
                 <p className="text-sm font-semibold">Deposit cUSD → NGN</p>
-                <p className="text-xs text-muted-foreground">Send USDm to treasury, get NGN credited</p>
+                <p className="text-muted-foreground text-xs">
+                  Send USDm to treasury, get NGN credited
+                </p>
               </div>
             </div>
 
             {/* Flow diagram */}
-            <div className="mt-4 flex items-center gap-2 rounded-xl border bg-muted/40 p-3 text-xs">
+            <div className="bg-muted/40 mt-4 flex items-center gap-2 rounded-xl border p-3 text-xs">
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 font-medium text-emerald-700 dark:text-emerald-300">
                 <Zap className="h-3 w-3" /> USDm
               </span>
-              <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground" />
+              <ArrowLeftRight className="text-muted-foreground h-3.5 w-3.5" />
               <span className="rounded-full bg-amber-500/10 px-2 py-1 font-medium text-amber-700 dark:text-amber-300">
                 Treasury
               </span>
-              <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground" />
+              <ArrowLeftRight className="text-muted-foreground h-3.5 w-3.5" />
               <span className="rounded-full bg-emerald-500/10 px-2 py-1 font-medium text-emerald-700 dark:text-emerald-300">
                 ₦ NGN
               </span>
@@ -383,8 +399,12 @@ export default function CeloBridgeView() {
                 onChange={(e) => setDepositAmount(e.target.value)}
               />
               {depositAmountNum > 0 && (
-                <p className="text-xs text-muted-foreground tabular-nums">
-                  You&apos;ll receive ≈ <span className="font-semibold text-foreground">{naira(Math.round(depositNgnEquiv * 100))}</span> at the current rate
+                <p className="text-muted-foreground text-xs tabular-nums">
+                  You&apos;ll receive ≈{" "}
+                  <span className="text-foreground font-semibold">
+                    {naira(Math.round(depositNgnEquiv * 100))}
+                  </span>{" "}
+                  at the current rate
                 </p>
               )}
             </div>
@@ -404,12 +424,14 @@ export default function CeloBridgeView() {
                 <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
                   Deposit instructions
                 </p>
-                <ol className="mt-1.5 list-decimal space-y-1 pl-4 text-xs text-muted-foreground">
+                <ol className="text-muted-foreground mt-1.5 list-decimal space-y-1 pl-4 text-xs">
                   <li>
-                    Send <span className="font-semibold text-foreground">{depositAmount} USDm</span> to{" "}
-                    <span className="font-mono">{truncateAddress(TREASURY_ADDRESS)}</span>
+                    Send <span className="text-foreground font-semibold">{depositAmount} USDm</span>{" "}
+                    to <span className="font-mono">{truncateAddress(TREASURY_ADDRESS)}</span>
                   </li>
-                  <li>Reference: <span className="font-mono">{depositRef}</span></li>
+                  <li>
+                    Reference: <span className="font-mono">{depositRef}</span>
+                  </li>
                   <li>Wait for the on-chain confirmation (usually ~5 seconds on Celo)</li>
                   <li>Paste the tx hash below and click “Confirm deposit”</li>
                 </ol>
@@ -444,7 +466,7 @@ export default function CeloBridgeView() {
 
         {/* Withdraw card */}
         <Card className="relative overflow-hidden p-5">
-          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-amber-500/10 blur-2xl" />
+          <div className="absolute -top-6 -right-6 h-24 w-24 rounded-full bg-amber-500/10 blur-2xl" />
           <div className="relative">
             <div className="flex items-center gap-2">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400">
@@ -452,20 +474,22 @@ export default function CeloBridgeView() {
               </div>
               <div>
                 <p className="text-sm font-semibold">Withdraw NGN → cUSD</p>
-                <p className="text-xs text-muted-foreground">Debit NGN, receive USDm in your wallet</p>
+                <p className="text-muted-foreground text-xs">
+                  Debit NGN, receive USDm in your wallet
+                </p>
               </div>
             </div>
 
             {/* Flow diagram */}
-            <div className="mt-4 flex items-center gap-2 rounded-xl border bg-muted/40 p-3 text-xs">
+            <div className="bg-muted/40 mt-4 flex items-center gap-2 rounded-xl border p-3 text-xs">
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 font-medium text-emerald-700 dark:text-emerald-300">
                 ₦ NGN
               </span>
-              <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground" />
+              <ArrowLeftRight className="text-muted-foreground h-3.5 w-3.5" />
               <span className="rounded-full bg-amber-500/10 px-2 py-1 font-medium text-amber-700 dark:text-amber-300">
                 Debit
               </span>
-              <ArrowLeftRight className="h-3.5 w-3.5 text-muted-foreground" />
+              <ArrowLeftRight className="text-muted-foreground h-3.5 w-3.5" />
               <span className="rounded-full bg-emerald-500/10 px-2 py-1 font-medium text-emerald-700 dark:text-emerald-300">
                 <Zap className="inline h-3 w-3" /> USDm
               </span>
@@ -476,7 +500,11 @@ export default function CeloBridgeView() {
               <Label className="text-xs">Recipient (your MiniPay address)</Label>
               <div className="mt-1.5">
                 {celoAddress ? (
-                  <AddressPill address={celoAddress} chainId={CELO_MAINNET_CHAIN_ID} copyable={false} />
+                  <AddressPill
+                    address={celoAddress}
+                    chainId={CELO_MAINNET_CHAIN_ID}
+                    copyable={false}
+                  />
                 ) : (
                   <p className="text-xs text-amber-600 dark:text-amber-400">
                     No Celo wallet linked — open in MiniPay to link.
@@ -515,12 +543,20 @@ export default function CeloBridgeView() {
                 value={withdrawInput}
                 onChange={(e) => setWithdrawInput(e.target.value)}
               />
-              <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+              <div className="text-muted-foreground grid grid-cols-2 gap-2 text-xs">
                 <p>
-                  ≈ <span className="font-semibold text-foreground tabular-nums">{naira(Math.round(withdrawNgnEquiv * 100))}</span> NGN
+                  ≈{" "}
+                  <span className="text-foreground font-semibold tabular-nums">
+                    {naira(Math.round(withdrawNgnEquiv * 100))}
+                  </span>{" "}
+                  NGN
                 </p>
                 <p className="text-right">
-                  ≈ <span className="font-semibold text-foreground tabular-nums">{withdrawUsdmEquiv.toLocaleString(undefined, { maximumFractionDigits: 6 })}</span> USDm
+                  ≈{" "}
+                  <span className="text-foreground font-semibold tabular-nums">
+                    {withdrawUsdmEquiv.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+                  </span>{" "}
+                  USDm
                 </p>
               </div>
             </div>
@@ -538,8 +574,9 @@ export default function CeloBridgeView() {
               {withdrawing ? "Processing…" : `Withdraw ${withdrawMode}`}
             </Button>
 
-            <p className="mt-3 text-[10px] text-muted-foreground">
-              Withdrawals are PIN-verified. The treasury dispatches USDm to your MiniPay address once processed.
+            <p className="text-muted-foreground mt-3 text-[10px]">
+              Withdrawals are PIN-verified. The treasury dispatches USDm to your MiniPay address
+              once processed.
             </p>
           </div>
         </Card>
@@ -551,7 +588,7 @@ export default function CeloBridgeView() {
           <p className="text-sm font-semibold">Bridge history</p>
           <button
             onClick={() => setView("onchain-history")}
-            className="flex items-center gap-1 text-xs text-primary hover:underline"
+            className="text-primary flex items-center gap-1 text-xs hover:underline"
           >
             View all <ChevronRight className="h-3 w-3" />
           </button>

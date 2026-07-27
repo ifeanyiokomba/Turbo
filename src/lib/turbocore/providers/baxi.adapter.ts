@@ -57,8 +57,14 @@ export const baxiBillPayment: IBillPaymentProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       const cats = Object.keys(BILLERS);
-      const billers = req.category ? BILLERS[req.category] ?? [] : cats.flatMap((c) => BILLERS[c] ?? []);
-      return ok(billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })), "mock", 20);
+      const billers = req.category
+        ? (BILLERS[req.category] ?? [])
+        : cats.flatMap((c) => BILLERS[c] ?? []);
+      return ok(
+        billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })),
+        "mock",
+        20
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Baxi secretKey missing", { providerCode: CODE });
@@ -67,9 +73,20 @@ export const baxiBillPayment: IBillPaymentProvider = {
       const { body } = await http(
         `${BASE}/services/${encodeURIComponent(service)}/billers`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const list = (body as { providers?: Array<{ id?: string; name?: string; service_type?: string; refLabel?: string; refType?: string }> }).providers ?? [];
+      const list =
+        (
+          body as {
+            providers?: Array<{
+              id?: string;
+              name?: string;
+              service_type?: string;
+              refLabel?: string;
+              refType?: string;
+            }>;
+          }
+        ).providers ?? [];
       const out = list
         .filter((b) => b.id && b.name)
         .map((b) => ({
@@ -83,17 +100,29 @@ export const baxiBillPayment: IBillPaymentProvider = {
       // Fall back to local directory if upstream is empty
       if (!out.length) {
         const cats = Object.keys(BILLERS);
-        const billers = req.category ? BILLERS[req.category] ?? [] : cats.flatMap((c) => BILLERS[c] ?? []);
-        return ok(billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })), "baxi-fallback", 0);
+        const billers = req.category
+          ? (BILLERS[req.category] ?? [])
+          : cats.flatMap((c) => BILLERS[c] ?? []);
+        return ok(
+          billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })),
+          "baxi-fallback",
+          0
+        );
       }
       return ok(out, "baxi-billers", 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi listBillers failed";
       // Degrade to local directory on upstream error so the UI stays functional
       const cats = Object.keys(BILLERS);
-      const billers = req.category ? BILLERS[req.category] ?? [] : cats.flatMap((c) => BILLERS[c] ?? []);
+      const billers = req.category
+        ? (BILLERS[req.category] ?? [])
+        : cats.flatMap((c) => BILLERS[c] ?? []);
       void msg;
-      return ok(billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })), "baxi-fallback", 0);
+      return ok(
+        billers.map((b) => ({ ...b, category: req.category ?? "BILL", country: req.country })),
+        "baxi-fallback",
+        0
+      );
     }
   },
 
@@ -115,17 +144,27 @@ export const baxiBillPayment: IBillPaymentProvider = {
           headers: authHeaders(secretKey),
           body: JSON.stringify({ account_number: req.customerRef }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { customer_name?: string; valid?: boolean; name?: string; account_name?: string });
+      const data = body as {
+        customer_name?: string;
+        valid?: boolean;
+        name?: string;
+        account_name?: string;
+      };
       const name = data.customer_name ?? data.name ?? data.account_name ?? "";
       if (!name) {
-        return fail("BENEFICIARY_INVALID", "Baxi could not validate customer", { providerCode: CODE, raw: sanitize(body) });
+        return fail("BENEFICIARY_INVALID", "Baxi could not validate customer", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       }
       return ok({ customerName: name, valid: true }, "baxi-validate", 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi validateCustomer failed";
-      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found|invalid/i.test(msg) ? "BENEFICIARY_INVALID" : "UPSTREAM_ERROR";
+      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found|invalid/i.test(msg)
+        ? "BENEFICIARY_INVALID"
+        : "UPSTREAM_ERROR";
       return fail(code, msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
     }
   },
@@ -140,7 +179,11 @@ export const baxiBillPayment: IBillPaymentProvider = {
       const token = isElectricity
         ? Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("")
         : undefined;
-      return ok({ providerRef: `baxi-bill-${req.reference}`, status: "SUCCESS", token }, "mock", 150);
+      return ok(
+        { providerRef: `baxi-bill-${req.reference}`, status: "SUCCESS", token },
+        "mock",
+        150
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Baxi secretKey missing", { providerCode: CODE });
@@ -157,26 +200,27 @@ export const baxiBillPayment: IBillPaymentProvider = {
       const { body } = await http(
         `${BASE}/bills/pay`,
         { method: "POST", headers: authHeaders(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as {
+      const data = body as {
         transactionReference?: string;
         status?: string;
         token?: string;
         units?: string;
         receipt_no?: string;
         transaction_id?: string;
-      });
+      };
       return ok(
         {
-          providerRef: data.transactionReference ?? data.transaction_id ?? `baxi-bill-${req.reference}`,
+          providerRef:
+            data.transactionReference ?? data.transaction_id ?? `baxi-bill-${req.reference}`,
           status: (data.status ?? "SUCCESS").toUpperCase(),
           token: data.token,
           units: data.units,
           receipt: data.receipt_no,
         },
         data.transactionReference ?? req.reference,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi payBill failed";
@@ -198,10 +242,14 @@ export const baxiBillPayment: IBillPaymentProvider = {
       const { body } = await http(
         `${BASE}/transactions/${encodeURIComponent(providerRef)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: string; token?: string });
-      return ok({ status: (data.status ?? "PENDING").toUpperCase(), token: data.token }, providerRef, 0);
+      const data = body as { status?: string; token?: string };
+      return ok(
+        { status: (data.status ?? "PENDING").toUpperCase(), token: data.token },
+        providerRef,
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi queryBillPayment failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -222,23 +270,39 @@ export const baxiAirtime: IAirtimeProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok(NETWORKS.map((n) => ({ id: n.id, name: n.name, country, color: n.color })), "mock", 10);
+      return ok(
+        NETWORKS.map((n) => ({ id: n.id, name: n.name, country, color: n.color })),
+        "mock",
+        10
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Baxi secretKey missing", { providerCode: CODE });
     try {
-      const { body } = await http(`${BASE}/airtime/networks`, { method: "GET", headers: authHeaders(secretKey) }, (s, b) =>
-        defaultHttpError(CODE, s, b),
+      const { body } = await http(
+        `${BASE}/airtime/networks`,
+        { method: "GET", headers: authHeaders(secretKey) },
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const list = (body as { networks?: Array<{ id?: string; name?: string }> }).networks ?? [];
       const out = list
         .filter((n) => n.id && n.name)
         .map((n) => ({ id: String(n.id), name: String(n.name), country }));
-      return ok(out.length ? out : NETWORKS.map((n) => ({ id: n.id, name: n.name, country, color: n.color })), "baxi-networks", 0);
+      return ok(
+        out.length
+          ? out
+          : NETWORKS.map((n) => ({ id: n.id, name: n.name, country, color: n.color })),
+        "baxi-networks",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi listNetworks failed";
       void msg;
-      return ok(NETWORKS.map((n) => ({ id: n.id, name: n.name, country, color: n.color })), "baxi-fallback", 0);
+      return ok(
+        NETWORKS.map((n) => ({ id: n.id, name: n.name, country, color: n.color })),
+        "baxi-fallback",
+        0
+      );
     }
   },
 
@@ -248,7 +312,17 @@ export const baxiAirtime: IAirtimeProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok((DATA_PLANS[req.network] ?? []).map((p) => ({ id: p.id, name: p.name, amountMinor: p.amountKobo, validity: p.validity, network: req.network })), "mock", 12);
+      return ok(
+        (DATA_PLANS[req.network] ?? []).map((p) => ({
+          id: p.id,
+          name: p.name,
+          amountMinor: p.amountKobo,
+          validity: p.validity,
+          network: req.network,
+        })),
+        "mock",
+        12
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Baxi secretKey missing", { providerCode: CODE });
@@ -256,9 +330,14 @@ export const baxiAirtime: IAirtimeProvider = {
       const { body } = await http(
         `${BASE}/data/plans/${encodeURIComponent(req.network)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const list = (body as { plans?: Array<{ id?: string; name?: string; amount?: number; validity?: string }> }).plans ?? [];
+      const list =
+        (
+          body as {
+            plans?: Array<{ id?: string; name?: string; amount?: number; validity?: string }>;
+          }
+        ).plans ?? [];
       const out = list
         .filter((p) => p.id && p.name)
         .map((p) => ({
@@ -268,11 +347,33 @@ export const baxiAirtime: IAirtimeProvider = {
           validity: p.validity ?? "",
           network: req.network,
         }));
-      return ok(out.length ? out : (DATA_PLANS[req.network] ?? []).map((p) => ({ id: p.id, name: p.name, amountMinor: p.amountKobo, validity: p.validity, network: req.network })), "baxi-plans", 0);
+      return ok(
+        out.length
+          ? out
+          : (DATA_PLANS[req.network] ?? []).map((p) => ({
+              id: p.id,
+              name: p.name,
+              amountMinor: p.amountKobo,
+              validity: p.validity,
+              network: req.network,
+            })),
+        "baxi-plans",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi listDataPlans failed";
       void msg;
-      return ok((DATA_PLANS[req.network] ?? []).map((p) => ({ id: p.id, name: p.name, amountMinor: p.amountKobo, validity: p.validity, network: req.network })), "baxi-fallback", 0);
+      return ok(
+        (DATA_PLANS[req.network] ?? []).map((p) => ({
+          id: p.id,
+          name: p.name,
+          amountMinor: p.amountKobo,
+          validity: p.validity,
+          network: req.network,
+        })),
+        "baxi-fallback",
+        0
+      );
     }
   },
 
@@ -282,7 +383,11 @@ export const baxiAirtime: IAirtimeProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ providerRef: `baxi-${req.type.toLowerCase()}-${req.reference}`, status: "SUCCESS" }, "mock", 120);
+      return ok(
+        { providerRef: `baxi-${req.type.toLowerCase()}-${req.reference}`, status: "SUCCESS" },
+        "mock",
+        120
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Baxi secretKey missing", { providerCode: CODE });
@@ -301,16 +406,23 @@ export const baxiAirtime: IAirtimeProvider = {
       const { body } = await http(
         `${BASE}/${endpoint}`,
         { method: "POST", headers: authHeaders(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { transactionReference?: string; transaction_id?: string; status?: string });
+      const data = body as {
+        transactionReference?: string;
+        transaction_id?: string;
+        status?: string;
+      };
       return ok(
         {
-          providerRef: data.transactionReference ?? data.transaction_id ?? `baxi-${req.type.toLowerCase()}-${req.reference}`,
+          providerRef:
+            data.transactionReference ??
+            data.transaction_id ??
+            `baxi-${req.type.toLowerCase()}-${req.reference}`,
           status: (data.status ?? "SUCCESS").toUpperCase(),
         },
         data.transactionReference ?? req.reference,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi purchase failed";
@@ -332,9 +444,9 @@ export const baxiAirtime: IAirtimeProvider = {
       const { body } = await http(
         `${BASE}/transactions/${encodeURIComponent(providerRef)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: string });
+      const data = body as { status?: string };
       return ok({ status: (data.status ?? "PENDING").toUpperCase() }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi getStatus failed";
@@ -367,9 +479,20 @@ export interface BaxiProduct {
 
 export interface BaxiBillersProvider extends IBillPaymentProvider {
   listBillerCategories(): Promise<ProviderResult<BaxiBillerCategory[]>>;
-  listBillersByCategory(category: string): Promise<ProviderResult<Array<{ id: string; name: string; category: string; refLabel?: string; refType?: string }>>>;
+  listBillersByCategory(
+    category: string
+  ): Promise<
+    ProviderResult<
+      Array<{ id: string; name: string; category: string; refLabel?: string; refType?: string }>
+    >
+  >;
   getBillerProducts(billerId: string): Promise<ProviderResult<BaxiProduct[]>>;
-  validateBill(req: { service_type: string; account_number: string }): Promise<ProviderResult<{ customerName: string; valid: boolean; metadata?: Record<string, unknown> }>>;
+  validateBill(req: {
+    service_type: string;
+    account_number: string;
+  }): Promise<
+    ProviderResult<{ customerName: string; valid: boolean; metadata?: Record<string, unknown> }>
+  >;
 }
 
 export const baxiBillers: BaxiBillersProvider = {
@@ -382,16 +505,32 @@ export const baxiBillers: BaxiBillersProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      const cats = Object.keys(BILLERS).map((id) => ({ id, name: id.charAt(0) + id.slice(1).toLowerCase() }));
+      const cats = Object.keys(BILLERS).map((id) => ({
+        id,
+        name: id.charAt(0) + id.slice(1).toLowerCase(),
+      }));
       return ok(cats, "mock", 25);
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Baxi secretKey missing", { providerCode: CODE });
     try {
-      const { body } = await http(`${BASE}/billers/categories`, { method: "GET", headers: authHeaders(secretKey) }, (s, b) =>
-        defaultHttpError(CODE, s, b),
+      const { body } = await http(
+        `${BASE}/billers/categories`,
+        { method: "GET", headers: authHeaders(secretKey) },
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const list = (body as { categories?: Array<{ id?: string; categoryId?: string; name?: string; categoryName?: string; description?: string }> }).categories ?? [];
+      const list =
+        (
+          body as {
+            categories?: Array<{
+              id?: string;
+              categoryId?: string;
+              name?: string;
+              categoryName?: string;
+              description?: string;
+            }>;
+          }
+        ).categories ?? [];
       const out = list
         .filter((c) => c.id || c.categoryId)
         .map((c) => ({
@@ -400,14 +539,20 @@ export const baxiBillers: BaxiBillersProvider = {
           description: c.description,
         }));
       if (!out.length) {
-        const cats = Object.keys(BILLERS).map((id) => ({ id, name: id.charAt(0) + id.slice(1).toLowerCase() }));
+        const cats = Object.keys(BILLERS).map((id) => ({
+          id,
+          name: id.charAt(0) + id.slice(1).toLowerCase(),
+        }));
         return ok(cats, "baxi-fallback", 0);
       }
       return ok(out, "baxi-categories", 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi listBillerCategories failed";
       void msg;
-      const cats = Object.keys(BILLERS).map((id) => ({ id, name: id.charAt(0) + id.slice(1).toLowerCase() }));
+      const cats = Object.keys(BILLERS).map((id) => ({
+        id,
+        name: id.charAt(0) + id.slice(1).toLowerCase(),
+      }));
       return ok(cats, "baxi-fallback", 0);
     }
   },
@@ -418,7 +563,13 @@ export const baxiBillers: BaxiBillersProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      const billers = (BILLERS[category.toUpperCase()] ?? []).map((b) => ({ id: b.code, name: b.name, category, refLabel: b.refLabel, refType: b.refType }));
+      const billers = (BILLERS[category.toUpperCase()] ?? []).map((b) => ({
+        id: b.code,
+        name: b.name,
+        category,
+        refLabel: b.refLabel,
+        refType: b.refType,
+      }));
       return ok(billers, "mock", 25);
     }
     const secretKey = creds.secrets.secretKey;
@@ -427,9 +578,20 @@ export const baxiBillers: BaxiBillersProvider = {
       const { body } = await http(
         `${BASE}/billers/${encodeURIComponent(category)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const list = (body as { providers?: Array<{ id?: string; name?: string; service_type?: string; refLabel?: string; refType?: string }> }).providers ?? [];
+      const list =
+        (
+          body as {
+            providers?: Array<{
+              id?: string;
+              name?: string;
+              service_type?: string;
+              refLabel?: string;
+              refType?: string;
+            }>;
+          }
+        ).providers ?? [];
       const out = list
         .filter((b) => b.id && b.name)
         .map((b) => ({
@@ -440,14 +602,26 @@ export const baxiBillers: BaxiBillersProvider = {
           refType: b.refType,
         }));
       if (!out.length) {
-        const billers = (BILLERS[category.toUpperCase()] ?? []).map((b) => ({ id: b.code, name: b.name, category, refLabel: b.refLabel, refType: b.refType }));
+        const billers = (BILLERS[category.toUpperCase()] ?? []).map((b) => ({
+          id: b.code,
+          name: b.name,
+          category,
+          refLabel: b.refLabel,
+          refType: b.refType,
+        }));
         return ok(billers, "baxi-fallback", 0);
       }
       return ok(out, "baxi-billers-by-cat", 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi listBillersByCategory failed";
       void msg;
-      const billers = (BILLERS[category.toUpperCase()] ?? []).map((b) => ({ id: b.code, name: b.name, category, refLabel: b.refLabel, refType: b.refType }));
+      const billers = (BILLERS[category.toUpperCase()] ?? []).map((b) => ({
+        id: b.code,
+        name: b.name,
+        category,
+        refLabel: b.refLabel,
+        refType: b.refType,
+      }));
       return ok(billers, "baxi-fallback", 0);
     }
   },
@@ -464,7 +638,7 @@ export const baxiBillers: BaxiBillersProvider = {
           { id: `${billerId}-PREPAID`, name: "Prepaid Plan" },
         ],
         "mock",
-        30,
+        30
       );
     }
     const secretKey = creds.secrets.secretKey;
@@ -473,9 +647,22 @@ export const baxiBillers: BaxiBillersProvider = {
       const { body } = await http(
         `${BASE}/billers/${encodeURIComponent(billerId)}/products`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const list = (body as { products?: Array<{ id?: string; productId?: string; name?: string; productName?: string; amount?: number; validity?: string; description?: string }> }).products ?? [];
+      const list =
+        (
+          body as {
+            products?: Array<{
+              id?: string;
+              productId?: string;
+              name?: string;
+              productName?: string;
+              amount?: number;
+              validity?: string;
+              description?: string;
+            }>;
+          }
+        ).products ?? [];
       const out = list
         .filter((p) => p.id || p.productId || p.name || p.productName)
         .map((p) => ({
@@ -498,7 +685,11 @@ export const baxiBillers: BaxiBillersProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ customerName: `CUSTOMER ${req.account_number.slice(-4)}`, valid: true }, "mock", 40);
+      return ok(
+        { customerName: `CUSTOMER ${req.account_number.slice(-4)}`, valid: true },
+        "mock",
+        40
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Baxi secretKey missing", { providerCode: CODE });
@@ -508,19 +699,37 @@ export const baxiBillers: BaxiBillersProvider = {
         {
           method: "POST",
           headers: authHeaders(secretKey),
-          body: JSON.stringify({ service_type: req.service_type, account_number: req.account_number }),
+          body: JSON.stringify({
+            service_type: req.service_type,
+            account_number: req.account_number,
+          }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { customer_name?: string; name?: string; account_name?: string; valid?: boolean; metadata?: Record<string, unknown> });
+      const data = body as {
+        customer_name?: string;
+        name?: string;
+        account_name?: string;
+        valid?: boolean;
+        metadata?: Record<string, unknown>;
+      };
       const name = data.customer_name ?? data.name ?? data.account_name ?? "";
       if (!name) {
-        return fail("BENEFICIARY_INVALID", "Baxi could not validate bill account", { providerCode: CODE, raw: sanitize(body) });
+        return fail("BENEFICIARY_INVALID", "Baxi could not validate bill account", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       }
-      return ok({ customerName: name, valid: true, metadata: data.metadata }, "baxi-validate-bill", 0);
+      return ok(
+        { customerName: name, valid: true, metadata: data.metadata },
+        "baxi-validate-bill",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi validateBill failed";
-      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found|invalid/i.test(msg) ? "BENEFICIARY_INVALID" : "UPSTREAM_ERROR";
+      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found|invalid/i.test(msg)
+        ? "BENEFICIARY_INVALID"
+        : "UPSTREAM_ERROR";
       return fail(code, msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
     }
   },
@@ -563,9 +772,15 @@ export const baxiDataBundles: BaxiDataBundlesProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       return ok(
-        (DATA_PLANS[network] ?? []).map((p) => ({ id: p.id, name: p.name, amountMinor: p.amountKobo, validity: p.validity, network })),
+        (DATA_PLANS[network] ?? []).map((p) => ({
+          id: p.id,
+          name: p.name,
+          amountMinor: p.amountKobo,
+          validity: p.validity,
+          network,
+        })),
         "mock",
-        15,
+        15
       );
     }
     const secretKey = creds.secrets.secretKey;
@@ -574,9 +789,22 @@ export const baxiDataBundles: BaxiDataBundlesProvider = {
       const { body } = await http(
         `${BASE}/data/bundles/${encodeURIComponent(network)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const list = (body as { bundles?: Array<{ id?: string; plan_id?: string; name?: string; planName?: string; amount?: number; validity?: string; description?: string }> }).bundles ?? [];
+      const list =
+        (
+          body as {
+            bundles?: Array<{
+              id?: string;
+              plan_id?: string;
+              name?: string;
+              planName?: string;
+              amount?: number;
+              validity?: string;
+              description?: string;
+            }>;
+          }
+        ).bundles ?? [];
       const out = list
         .filter((p) => p.id || p.plan_id || p.name || p.planName)
         .map((p) => ({
@@ -587,11 +815,33 @@ export const baxiDataBundles: BaxiDataBundlesProvider = {
           network,
           description: p.description,
         }));
-      return ok(out.length ? out : (DATA_PLANS[network] ?? []).map((p) => ({ id: p.id, name: p.name, amountMinor: p.amountKobo, validity: p.validity, network })), "baxi-data-bundles", 0);
+      return ok(
+        out.length
+          ? out
+          : (DATA_PLANS[network] ?? []).map((p) => ({
+              id: p.id,
+              name: p.name,
+              amountMinor: p.amountKobo,
+              validity: p.validity,
+              network,
+            })),
+        "baxi-data-bundles",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi listDataBundles failed";
       void msg;
-      return ok((DATA_PLANS[network] ?? []).map((p) => ({ id: p.id, name: p.name, amountMinor: p.amountKobo, validity: p.validity, network })), "baxi-fallback", 0);
+      return ok(
+        (DATA_PLANS[network] ?? []).map((p) => ({
+          id: p.id,
+          name: p.name,
+          amountMinor: p.amountKobo,
+          validity: p.validity,
+          network,
+        })),
+        "baxi-fallback",
+        0
+      );
     }
   },
 
@@ -621,16 +871,20 @@ export const baxiDataBundles: BaxiDataBundlesProvider = {
             reference: ref,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { transactionReference?: string; transaction_id?: string; status?: string });
+      const data = body as {
+        transactionReference?: string;
+        transaction_id?: string;
+        status?: string;
+      };
       return ok(
         {
           providerRef: data.transactionReference ?? data.transaction_id ?? `baxi-data-${ref}`,
           status: (data.status ?? "SUCCESS").toUpperCase(),
         },
         data.transactionReference ?? ref,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi buyData failed";
@@ -667,42 +921,73 @@ export const baxiCableTV = {
           { id: "showmax", name: "Showmax", refLabel: "Customer ID" },
         ],
         "mock",
-        25,
+        25
       );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Baxi secretKey missing", { providerCode: CODE });
     try {
-      const { body } = await http(`${BASE}/cable-tv/providers`, { method: "GET", headers: authHeaders(secretKey) }, (s, b) =>
-        defaultHttpError(CODE, s, b),
+      const { body } = await http(
+        `${BASE}/cable-tv/providers`,
+        { method: "GET", headers: authHeaders(secretKey) },
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const list = (body as { providers?: Array<{ id?: string; name?: string; service_type?: string; refLabel?: string }> }).providers ?? [];
+      const list =
+        (
+          body as {
+            providers?: Array<{
+              id?: string;
+              name?: string;
+              service_type?: string;
+              refLabel?: string;
+            }>;
+          }
+        ).providers ?? [];
       const out = list
         .filter((p) => p.id && p.name)
         .map((p) => ({ id: String(p.id), name: String(p.name), refLabel: p.refLabel }));
-      return ok(out.length ? out : [
-        { id: "dstv", name: "DStv", refLabel: "Smartcard Number" },
-        { id: "gotv", name: "GOtv", refLabel: "IUC Number" },
-        { id: "startimes", name: "StarTimes", refLabel: "Smartcard Number" },
-      ], "baxi-cable-providers", 0);
+      return ok(
+        out.length
+          ? out
+          : [
+              { id: "dstv", name: "DStv", refLabel: "Smartcard Number" },
+              { id: "gotv", name: "GOtv", refLabel: "IUC Number" },
+              { id: "startimes", name: "StarTimes", refLabel: "Smartcard Number" },
+            ],
+        "baxi-cable-providers",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi listCableTVProviders failed";
       void msg;
-      return ok([
-        { id: "dstv", name: "DStv", refLabel: "Smartcard Number" },
-        { id: "gotv", name: "GOtv", refLabel: "IUC Number" },
-        { id: "startimes", name: "StarTimes", refLabel: "Smartcard Number" },
-      ], "baxi-fallback", 0);
+      return ok(
+        [
+          { id: "dstv", name: "DStv", refLabel: "Smartcard Number" },
+          { id: "gotv", name: "GOtv", refLabel: "IUC Number" },
+          { id: "startimes", name: "StarTimes", refLabel: "Smartcard Number" },
+        ],
+        "baxi-fallback",
+        0
+      );
     }
   },
 
-  async validateCableTV(req: { service_type: string; smartcard_number: string }): Promise<ProviderResult<{ customerName: string; valid: boolean; metadata?: Record<string, unknown> }>> {
+  async validateCableTV(req: {
+    service_type: string;
+    smartcard_number: string;
+  }): Promise<
+    ProviderResult<{ customerName: string; valid: boolean; metadata?: Record<string, unknown> }>
+  > {
     const blocked = await requireCreds(CODE);
     if (blocked) return blocked;
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ customerName: `CUSTOMER ${req.smartcard_number.slice(-4)}`, valid: true }, "mock", 40);
+      return ok(
+        { customerName: `CUSTOMER ${req.smartcard_number.slice(-4)}`, valid: true },
+        "mock",
+        40
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Baxi secretKey missing", { providerCode: CODE });
@@ -712,19 +997,37 @@ export const baxiCableTV = {
         {
           method: "POST",
           headers: authHeaders(secretKey),
-          body: JSON.stringify({ service_type: req.service_type, smartcard_number: req.smartcard_number }),
+          body: JSON.stringify({
+            service_type: req.service_type,
+            smartcard_number: req.smartcard_number,
+          }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { customer_name?: string; name?: string; account_name?: string; valid?: boolean; metadata?: Record<string, unknown> });
+      const data = body as {
+        customer_name?: string;
+        name?: string;
+        account_name?: string;
+        valid?: boolean;
+        metadata?: Record<string, unknown>;
+      };
       const name = data.customer_name ?? data.name ?? data.account_name ?? "";
       if (!name) {
-        return fail("BENEFICIARY_INVALID", "Baxi could not validate smartcard", { providerCode: CODE, raw: sanitize(body) });
+        return fail("BENEFICIARY_INVALID", "Baxi could not validate smartcard", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       }
-      return ok({ customerName: name, valid: true, metadata: data.metadata }, "baxi-cable-validate", 0);
+      return ok(
+        { customerName: name, valid: true, metadata: data.metadata },
+        "baxi-cable-validate",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi validateCableTV failed";
-      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found|invalid/i.test(msg) ? "BENEFICIARY_INVALID" : "UPSTREAM_ERROR";
+      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found|invalid/i.test(msg)
+        ? "BENEFICIARY_INVALID"
+        : "UPSTREAM_ERROR";
       return fail(code, msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
     }
   },
@@ -761,9 +1064,14 @@ export const baxiCableTV = {
             reference: ref,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { transactionReference?: string; transaction_id?: string; status?: string; receipt_no?: string });
+      const data = body as {
+        transactionReference?: string;
+        transaction_id?: string;
+        status?: string;
+        receipt_no?: string;
+      };
       return ok(
         {
           providerRef: data.transactionReference ?? data.transaction_id ?? `baxi-cable-${ref}`,
@@ -771,7 +1079,7 @@ export const baxiCableTV = {
           receipt: data.receipt_no,
         },
         data.transactionReference ?? ref,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi payCableTV failed";
@@ -810,46 +1118,79 @@ export const baxiElectricity = {
           { id: "jed", name: "Jos Electric" },
         ],
         "mock",
-        25,
+        25
       );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Baxi secretKey missing", { providerCode: CODE });
     try {
-      const { body } = await http(`${BASE}/electricity/discos`, { method: "GET", headers: authHeaders(secretKey) }, (s, b) =>
-        defaultHttpError(CODE, s, b),
+      const { body } = await http(
+        `${BASE}/electricity/discos`,
+        { method: "GET", headers: authHeaders(secretKey) },
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const list = (body as { discos?: Array<{ id?: string; name?: string; service_type?: string }> }).discos ?? [];
+      const list =
+        (body as { discos?: Array<{ id?: string; name?: string; service_type?: string }> })
+          .discos ?? [];
       const out = list
         .filter((d) => d.id && d.name)
         .map((d) => ({ id: String(d.id), name: String(d.name) }));
-      return ok(out.length ? out : [
-        { id: "ikedc", name: "Ikeja Electric" },
-        { id: "ekedc", name: "Eko Electric" },
-        { id: "aedc", name: "Abuja Electric" },
-        { id: "phed", name: "Port Harcourt Electric" },
-        { id: "ibedc", name: "Ibadan Electric" },
-      ], "baxi-discos", 0);
+      return ok(
+        out.length
+          ? out
+          : [
+              { id: "ikedc", name: "Ikeja Electric" },
+              { id: "ekedc", name: "Eko Electric" },
+              { id: "aedc", name: "Abuja Electric" },
+              { id: "phed", name: "Port Harcourt Electric" },
+              { id: "ibedc", name: "Ibadan Electric" },
+            ],
+        "baxi-discos",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi listElectricityDiscos failed";
       void msg;
-      return ok([
-        { id: "ikedc", name: "Ikeja Electric" },
-        { id: "ekedc", name: "Eko Electric" },
-        { id: "aedc", name: "Abuja Electric" },
-        { id: "phed", name: "Port Harcourt Electric" },
-        { id: "ibedc", name: "Ibadan Electric" },
-      ], "baxi-fallback", 0);
+      return ok(
+        [
+          { id: "ikedc", name: "Ikeja Electric" },
+          { id: "ekedc", name: "Eko Electric" },
+          { id: "aedc", name: "Abuja Electric" },
+          { id: "phed", name: "Port Harcourt Electric" },
+          { id: "ibedc", name: "Ibadan Electric" },
+        ],
+        "baxi-fallback",
+        0
+      );
     }
   },
 
-  async validateMeter(req: { disco: string; meter_number: string; meter_type: "PREPAID" | "POSTPAID" }): Promise<ProviderResult<{ customerName: string; valid: boolean; meterType?: string; metadata?: Record<string, unknown> }>> {
+  async validateMeter(req: {
+    disco: string;
+    meter_number: string;
+    meter_type: "PREPAID" | "POSTPAID";
+  }): Promise<
+    ProviderResult<{
+      customerName: string;
+      valid: boolean;
+      meterType?: string;
+      metadata?: Record<string, unknown>;
+    }>
+  > {
     const blocked = await requireCreds(CODE);
     if (blocked) return blocked;
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ customerName: `CUSTOMER ${req.meter_number.slice(-4)}`, valid: true, meterType: req.meter_type }, "mock", 40);
+      return ok(
+        {
+          customerName: `CUSTOMER ${req.meter_number.slice(-4)}`,
+          valid: true,
+          meterType: req.meter_type,
+        },
+        "mock",
+        40
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Baxi secretKey missing", { providerCode: CODE });
@@ -865,17 +1206,38 @@ export const baxiElectricity = {
             meter_type: req.meter_type,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { customer_name?: string; name?: string; account_name?: string; valid?: boolean; meter_type?: string; metadata?: Record<string, unknown> });
+      const data = body as {
+        customer_name?: string;
+        name?: string;
+        account_name?: string;
+        valid?: boolean;
+        meter_type?: string;
+        metadata?: Record<string, unknown>;
+      };
       const name = data.customer_name ?? data.name ?? data.account_name ?? "";
       if (!name) {
-        return fail("BENEFICIARY_INVALID", "Baxi could not validate meter", { providerCode: CODE, raw: sanitize(body) });
+        return fail("BENEFICIARY_INVALID", "Baxi could not validate meter", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       }
-      return ok({ customerName: name, valid: true, meterType: data.meter_type ?? req.meter_type, metadata: data.metadata }, "baxi-meter-validate", 0);
+      return ok(
+        {
+          customerName: name,
+          valid: true,
+          meterType: data.meter_type ?? req.meter_type,
+          metadata: data.metadata,
+        },
+        "baxi-meter-validate",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi validateMeter failed";
-      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found|invalid/i.test(msg) ? "BENEFICIARY_INVALID" : "UPSTREAM_ERROR";
+      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found|invalid/i.test(msg)
+        ? "BENEFICIARY_INVALID"
+        : "UPSTREAM_ERROR";
       return fail(code, msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
     }
   },
@@ -886,7 +1248,15 @@ export const baxiElectricity = {
     meter_type: "PREPAID" | "POSTPAID";
     amountMinor: number;
     reference?: string;
-  }): Promise<ProviderResult<{ providerRef: string; status: string; token?: string; units?: string; receipt?: string }>> {
+  }): Promise<
+    ProviderResult<{
+      providerRef: string;
+      status: string;
+      token?: string;
+      units?: string;
+      receipt?: string;
+    }>
+  > {
     const blocked = await requireCreds(CODE);
     if (blocked) return blocked;
     const creds = await loadCreds(CODE);
@@ -894,9 +1264,10 @@ export const baxiElectricity = {
       mockWarnOnce(CODE);
       const ref = req.reference ?? generateReference("BAXI");
       // For prepaid, generate a 20-digit token; for postpaid, no token
-      const token = req.meter_type === "PREPAID"
-        ? Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("")
-        : undefined;
+      const token =
+        req.meter_type === "PREPAID"
+          ? Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("")
+          : undefined;
       return ok({ providerRef: `baxi-electricity-${ref}`, status: "SUCCESS", token }, "mock", 150);
     }
     const secretKey = creds.secrets.secretKey;
@@ -916,19 +1287,27 @@ export const baxiElectricity = {
             reference: ref,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { transactionReference?: string; transaction_id?: string; status?: string; token?: string; units?: string; receipt_no?: string });
+      const data = body as {
+        transactionReference?: string;
+        transaction_id?: string;
+        status?: string;
+        token?: string;
+        units?: string;
+        receipt_no?: string;
+      };
       return ok(
         {
-          providerRef: data.transactionReference ?? data.transaction_id ?? `baxi-electricity-${ref}`,
+          providerRef:
+            data.transactionReference ?? data.transaction_id ?? `baxi-electricity-${ref}`,
           status: (data.status ?? "SUCCESS").toUpperCase(),
           token: data.token,
           units: data.units,
           receipt: data.receipt_no,
         },
         data.transactionReference ?? ref,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Baxi payElectricity failed";

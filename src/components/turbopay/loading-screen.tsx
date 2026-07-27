@@ -5,7 +5,7 @@ import { Logo, Wordmark } from "./logo";
 
 export function LoadingScreen() {
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background">
+    <div className="bg-background fixed inset-0 z-[100] flex flex-col items-center justify-center">
       <div className="flex items-center gap-3">
         <div className="tp-fade-rise">
           <Logo size={56} className="tp-bolt-glow" />
@@ -25,10 +25,10 @@ export function LoadingScreen() {
           ))}
         </div>
       </div>
-      <div className="mt-8 h-1 w-40 overflow-hidden rounded-full bg-muted">
-        <div className="tp-sheen h-full w-full bg-primary" />
+      <div className="bg-muted mt-8 h-1 w-40 overflow-hidden rounded-full">
+        <div className="tp-sheen bg-primary h-full w-full" />
       </div>
-      <p className="mt-4 text-xs text-muted-foreground">The fast lane to your money</p>
+      <p className="text-muted-foreground mt-4 text-xs">The fast lane to your money</p>
     </div>
   );
 }

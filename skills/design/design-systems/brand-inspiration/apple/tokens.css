@@ -138,8 +138,8 @@
    * defaults are restrained enough not to fight the blue accent.
    * Reserve under 5% of any surface area regardless. */
   --success: #16a34a;
-  --warn:    #eab308;
-  --danger:  #dc2626;
+  --warn: #eab308;
+  --danger: #dc2626;
 
   /* ─── Typography ──────────────────────────────────────────────────
    * Apple's documented split is two SF Pro families: SF Pro Display
@@ -151,33 +151,30 @@
    *
    * SF Mono leads the monospace stack — Apple's brand mono — with
    * the schema fallbacks behind it for portability. */
-  --font-display:
-    "SF Pro Display", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-body:
-    "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-mono:
-    "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
+  --font-display: "SF Pro Display", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-body: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
 
   /* Type scale (px) — derived from DESIGN.md §3 hierarchy table.
    * Apple's body baseline is 17px (NOT the 16px web norm) because
    * SF Pro Text was metrically tuned at 17 for Retina; rebinding
    * --text-base to anything else collapses the brand's reading
    * texture. The display ceiling is the 80px Hero Display XL. */
-  --text-xs:   12px;   /* Micro UI — fine print, micro labels */
-  --text-sm:   14px;   /* Control Label — buttons, helper labels */
-  --text-base: 17px;   /* Body Primary — Apple's reading baseline */
-  --text-lg:   21px;   /* Link/Action Heading — large promo links */
-  --text-xl:   28px;   /* Card/Product Title — tile-level naming */
-  --text-2xl:  40px;   /* Product Heading — campaign section titles */
-  --text-3xl:  56px;   /* Hero Display L — homepage hero moments */
-  --text-4xl:  80px;   /* Hero Display XL — Environment / store hero */
+  --text-xs: 12px; /* Micro UI — fine print, micro labels */
+  --text-sm: 14px; /* Control Label — buttons, helper labels */
+  --text-base: 17px; /* Body Primary — Apple's reading baseline */
+  --text-lg: 21px; /* Link/Action Heading — large promo links */
+  --text-xl: 28px; /* Card/Product Title — tile-level naming */
+  --text-2xl: 40px; /* Product Heading — campaign section titles */
+  --text-3xl: 56px; /* Hero Display L — homepage hero moments */
+  --text-4xl: 80px; /* Hero Display XL — Environment / store hero */
 
   /* Apple's leading envelope is unusually tight at the top of the
    * scale (display sizes ride at 1.00–1.10) and unusually airy in
    * the body (1.47, well above the web 1.4 default). Both numbers
    * come straight from DESIGN.md §3. */
-  --leading-body:  1.47;   /* SF Pro Text body, 17px */
-  --leading-tight: 1.05;   /* Hero Display XL ceiling */
+  --leading-body: 1.47; /* SF Pro Text body, 17px */
+  --leading-tight: 1.05; /* Hero Display XL ceiling */
 
   /* Display tracking compresses to -0.015em — the famous Apple
    * machined-headline feel. DESIGN.md §3 lists -1.2px on 80px
@@ -193,13 +190,13 @@
    * the defaults. Component-internal values that don't match a token
    * (Apple's 14px or 17px utility intervals) stay inline at the
    * call site rather than spawning extra spacing tokens. */
-  --space-1:  4px;
-  --space-2:  8px;
-  --space-3:  12px;
-  --space-4:  16px;
-  --space-5:  20px;
-  --space-6:  24px;
-  --space-8:  32px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
   --space-12: 48px;
 
   /* ─── Section rhythm ──────────────────────────────────────────────
@@ -208,8 +205,8 @@
    * lets product imagery dominate the page. We bind 100/64/40, a
    * slightly wider envelope than default's 80/48/32. */
   --section-y-desktop: 100px;
-  --section-y-tablet:  64px;
-  --section-y-phone:   40px;
+  --section-y-tablet: 64px;
+  --section-y-phone: 40px;
 
   /* ─── Radius ──────────────────────────────────────────────────────
    * Apple uses purposeful radius tiers (DESIGN.md §5 §7 — "don't
@@ -226,9 +223,9 @@
    * The 28-36px spotlight tier and the 56px capsule sub-tier are
    * component-internal one-offs and stay inline — they do not earn
    * their own tokens until a second use appears. */
-  --radius-sm:   8px;
-  --radius-md:   12px;
-  --radius-lg:   18px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
   --radius-pill: 980px;
 
   /* ─── Elevation (3 levels) ────────────────────────────────────────
@@ -244,8 +241,8 @@
    *
    * No fourth level — that would be the Material/neumorphism stack
    * Apple consciously avoids. */
-  --elev-flat:   none;
-  --elev-ring:   0 0 0 1px var(--border);
+  --elev-flat: none;
+  --elev-ring: 0 0 0 1px var(--border);
   --elev-raised: 0 12px 32px rgba(0, 0, 0, 0.08);
 
   /* ─── Focus ring ──────────────────────────────────────────────────
@@ -267,8 +264,8 @@
    * carry slightly more cinematic weight than the web default.
    * --motion-fast stays at 150ms for true micro-states (hover tints,
    * focus, kbd press feedback). */
-  --motion-fast:   150ms;
-  --motion-base:   220ms;
+  --motion-fast: 150ms;
+  --motion-base: 220ms;
   --ease-standard: cubic-bezier(0.28, 0, 0.22, 1);
 
   /* ─── Layout ──────────────────────────────────────────────────────
@@ -279,8 +276,8 @@
    * 22 → 18 → 16 across desktop / tablet / phone — slightly tighter
    * than default to honor Apple's "broad horizontal breathing room
    * but column-disciplined content" balance. */
-  --container-max:            1024px;
+  --container-max: 1024px;
   --container-gutter-desktop: 22px;
-  --container-gutter-tablet:  18px;
-  --container-gutter-phone:   16px;
+  --container-gutter-tablet: 18px;
+  --container-gutter-phone: 16px;
 }

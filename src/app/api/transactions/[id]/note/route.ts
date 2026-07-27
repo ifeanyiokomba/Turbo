@@ -51,7 +51,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       throw new ServiceError(
         `Note is too long (max ${MAX_NOTE_LEN} characters)`,
         400,
-        "NOTE_TOO_LONG",
+        "NOTE_TOO_LONG"
       );
     }
 

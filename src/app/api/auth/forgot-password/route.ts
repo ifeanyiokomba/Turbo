@@ -93,7 +93,7 @@ It expires in 10 minutes. If you didn't request this, you can safely ignore this
   // truly broken, but we still don't want to leak that to the client).
   if (process.env.NODE_ENV !== "production") {
     console.log(
-      `\n[forgot-password] DEV ONLY — reset code for ${user.fullName} (${user.id}):\n  code = ${code}\n  expires in 10 min\n`,
+      `\n[forgot-password] DEV ONLY — reset code for ${user.fullName} (${user.id}):\n  code = ${code}\n  expires in 10 min\n`
     );
   }
   return { channel: "console", to: "console" };
@@ -102,7 +102,8 @@ It expires in 10 minutes. If you didn't request this, you can safely ignore this
 function maskEmail(email: string): string {
   const [name, domain] = email.split("@");
   if (!domain) return "••••";
-  const masked = name.length <= 2 ? "••" : name.slice(0, 2) + "•".repeat(Math.max(2, name.length - 2));
+  const masked =
+    name.length <= 2 ? "••" : name.slice(0, 2) + "•".repeat(Math.max(2, name.length - 2));
   return `${masked}@${domain}`;
 }
 

@@ -71,7 +71,9 @@ export async function POST(req: Request) {
     const resultCode = stk?.ResultCode;
     const resultDesc = stk?.ResultDesc ?? "";
     const amount = stk?.CallbackMetadata ? pickMeta(stk.CallbackMetadata, "Amount") : null;
-    const receipt = stk?.CallbackMetadata ? pickMeta(stk.CallbackMetadata, "MpesaReceiptNumber") : null;
+    const receipt = stk?.CallbackMetadata
+      ? pickMeta(stk.CallbackMetadata, "MpesaReceiptNumber")
+      : null;
     const phone = stk?.CallbackMetadata ? pickMeta(stk.CallbackMetadata, "PhoneNumber") : null;
 
     // eventId = CheckoutRequestID (stable per STK push). Fall back to a hash
@@ -107,13 +109,18 @@ export async function POST(req: Request) {
     // If the signature was invalid, record the delivery but don't process.
     if (!verifyResult.valid) {
       console.warn(
-        `[webhook:mpesa] signature invalid — scheme=${verifyResult.scheme} reason=${verifyResult.reason ?? "mismatch"}`,
+        `[webhook:mpesa] signature invalid — scheme=${verifyResult.scheme} reason=${verifyResult.reason ?? "mismatch"}`
       );
       await audit({
         action: "WEBHOOK_SIGNATURE_INVALID",
         category: "SECURITY",
         severity: "WARN",
-        metadata: { provider: PROVIDER_CODE, eventId, scheme: verifyResult.scheme, reason: verifyResult.reason },
+        metadata: {
+          provider: PROVIDER_CODE,
+          eventId,
+          scheme: verifyResult.scheme,
+          reason: verifyResult.reason,
+        },
       }).catch(() => {});
       return json({ ok: false, reason: "invalid-signature" }, 200);
     }
@@ -136,7 +143,7 @@ export async function POST(req: Request) {
 
     if (!tx) {
       console.log(
-        `[webhook:mpesa] no tx for CheckoutRequestID=${checkoutRequestID} — recorded only`,
+        `[webhook:mpesa] no tx for CheckoutRequestID=${checkoutRequestID} — recorded only`
       );
       await db.webhookEvent.updateMany({
         where: { eventId },
@@ -157,14 +164,10 @@ export async function POST(req: Request) {
     }
 
     // Apply confirm-or-reverse (idempotent — skips if tx already settled/reversed).
-    const outcome = await confirmOrReverseTransaction(
-      tx.id,
-      status,
-      `webhook:${PROVIDER_CODE}`,
-    );
+    const outcome = await confirmOrReverseTransaction(tx.id, status, `webhook:${PROVIDER_CODE}`);
 
     console.log(
-      `[webhook:mpesa] tx ${tx.reference} → ${outcome.outcome} (${outcome.reason ?? "ok"})`,
+      `[webhook:mpesa] tx ${tx.reference} → ${outcome.outcome} (${outcome.reason ?? "ok"})`
     );
 
     // Extra audit line with the M-Pesa-specific receipt info (the recovery
@@ -187,19 +190,22 @@ export async function POST(req: Request) {
       },
     }).catch(() => {});
 
-    return json({
-      ok: true,
-      processed: true,
-      outcome: outcome.outcome,
-      reference: tx.reference,
-      startedAt,
-    }, 200);
+    return json(
+      {
+        ok: true,
+        processed: true,
+        outcome: outcome.outcome,
+        reference: tx.reference,
+        startedAt,
+      },
+      200
+    );
   } catch (e) {
     console.error(`[webhook:mpesa] handler error:`, e);
     // Always 200 — see header comment.
     return json(
       { ok: false, error: e instanceof Error ? e.message : "internal-error", startedAt },
-      200,
+      200
     );
   }
 }

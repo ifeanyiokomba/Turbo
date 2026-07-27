@@ -37,9 +37,7 @@ export function mockWarnOnce(code: string): void {
  *   const creds = await getCredentials("paystack"); // null in mock mode
  *   if (!creds) { mockWarnOnce("paystack"); return ok(demoData, "mock", 0); }
  */
-export async function requireCreds(
-  code: string,
-): Promise<ProviderResult<never> | null> {
+export async function requireCreds(code: string): Promise<ProviderResult<never> | null> {
   const creds = await getCredentials(code);
   if (creds) return null; // configured — caller proceeds with real call
   if (process.env.NODE_ENV === "production") {
@@ -67,7 +65,7 @@ export async function loadCreds(code: string): Promise<ProviderCredentials | nul
 export async function http(
   url: string,
   init: RequestInit & { timeoutMs?: number },
-  onHttpError: (status: number, body: unknown) => ProviderResult<never>,
+  onHttpError: (status: number, body: unknown) => ProviderResult<never>
 ): Promise<{ status: number; body: unknown }> {
   const { timeoutMs = 20_000, ...rest } = init;
   const controller = new AbortController();
@@ -140,7 +138,7 @@ export function sanitize(value: unknown, depth = 0): unknown {
 export function defaultHttpError(
   code: string,
   status: number,
-  body: unknown,
+  body: unknown
 ): ProviderResult<never> {
   let errCode: ProviderErrorCode = "UPSTREAM_ERROR";
   if (status === 401 || status === 403) errCode = "AUTH_FAILED";

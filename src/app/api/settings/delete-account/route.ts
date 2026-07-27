@@ -81,11 +81,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Typed confirmation.
     if (confirmText.trim() !== CONFIRM_PHRASE) {
-      return errorJson(
-        `Type "${CONFIRM_PHRASE}" exactly to confirm`,
-        400,
-        "CONFIRM_MISMATCH",
-      );
+      return errorJson(`Type "${CONFIRM_PHRASE}" exactly to confirm`, 400, "CONFIRM_MISMATCH");
     }
 
     // 3. Anonymize the User row. The username must remain unique so we

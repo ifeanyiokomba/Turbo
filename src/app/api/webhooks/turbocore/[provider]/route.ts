@@ -56,9 +56,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ provider: stri
       // Prisma throws P2002 on unique constraint violation — that's our
       // duplicate-event signal, not a real error.
       if (e?.code === "P2002") {
-        console.log(
-          `[webhook:${provider}] duplicate eventId=${extracted.eventId} — returning 200`,
-        );
+        console.log(`[webhook:${provider}] duplicate eventId=${extracted.eventId} — returning 200`);
         return json({ ok: true, duplicate: true, eventId: extracted.eventId }, 200);
       }
       throw e;
@@ -67,13 +65,18 @@ export async function POST(req: Request, ctx: { params: Promise<{ provider: stri
     // If signature is invalid, record the delivery but don't process.
     if (!verifyResult.valid) {
       console.warn(
-        `[webhook:${provider}] signature invalid — scheme=${verifyResult.scheme} reason=${verifyResult.reason ?? "mismatch"}`,
+        `[webhook:${provider}] signature invalid — scheme=${verifyResult.scheme} reason=${verifyResult.reason ?? "mismatch"}`
       );
       await audit({
         action: "WEBHOOK_SIGNATURE_INVALID",
         category: "SECURITY",
         severity: "WARN",
-        metadata: { provider, eventId: extracted.eventId, scheme: verifyResult.scheme, reason: verifyResult.reason },
+        metadata: {
+          provider,
+          eventId: extracted.eventId,
+          scheme: verifyResult.scheme,
+          reason: verifyResult.reason,
+        },
       }).catch(() => {});
       // Still 200 so the provider doesn't retry — we logged the bad delivery.
       return json({ ok: false, reason: "invalid-signature" }, 200);
@@ -96,7 +99,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ provider: stri
 
     if (!tx) {
       console.log(
-        `[webhook:${provider}] no tx for providerRef=${extracted.providerRef} — recorded only`,
+        `[webhook:${provider}] no tx for providerRef=${extracted.providerRef} — recorded only`
       );
       await db.webhookEvent.updateMany({
         where: { eventId: extracted.eventId },
@@ -113,35 +116,36 @@ export async function POST(req: Request, ctx: { params: Promise<{ provider: stri
 
     if (extracted.status === "UNKNOWN") {
       // Provider hasn't reached a final state yet — leave the tx alone.
-      console.log(
-        `[webhook:${provider}] tx ${tx.reference} status UNKNOWN — leaving as-is`,
-      );
+      console.log(`[webhook:${provider}] tx ${tx.reference} status UNKNOWN — leaving as-is`);
       return json({ ok: true, processed: false, reason: "status-unknown" }, 200);
     }
 
     const outcome = await confirmOrReverseTransaction(
       tx.id,
       extracted.status,
-      `webhook:${provider}`,
+      `webhook:${provider}`
     );
 
     console.log(
-      `[webhook:${provider}] tx ${tx.reference} → ${outcome.outcome} (${outcome.reason ?? "ok"})`,
+      `[webhook:${provider}] tx ${tx.reference} → ${outcome.outcome} (${outcome.reason ?? "ok"})`
     );
 
-    return json({
-      ok: true,
-      processed: true,
-      outcome: outcome.outcome,
-      reference: tx.reference,
-      startedAt,
-    }, 200);
+    return json(
+      {
+        ok: true,
+        processed: true,
+        outcome: outcome.outcome,
+        reference: tx.reference,
+        startedAt,
+      },
+      200
+    );
   } catch (e) {
     console.error(`[webhook:${provider}] handler error:`, e);
     // Always 200 — see header comment.
     return json(
       { ok: false, error: e instanceof Error ? e.message : "internal-error", startedAt },
-      200,
+      200
     );
   }
 }

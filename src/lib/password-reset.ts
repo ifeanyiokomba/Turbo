@@ -90,7 +90,11 @@ export interface VerifyResult {
  * On failure, the attempt counter is incremented (and the record dropped
  * once MAX_VERIFY_ATTEMPTS is exceeded).
  */
-export function verifyCode(identifier: string, code: string, expectedUserId?: string): VerifyResult {
+export function verifyCode(
+  identifier: string,
+  code: string,
+  expectedUserId?: string
+): VerifyResult {
   const key = identifier.trim().toLowerCase();
   const rec = store.get(key);
   if (!rec) return { ok: false, reason: "not-found" };

@@ -167,7 +167,9 @@ export default function SupportView() {
   const filteredArticles = React.useMemo(() => {
     if (!search.trim()) return data?.articles ?? [];
     const q = search.toLowerCase();
-    return (data?.articles ?? []).filter((a) => a.q.toLowerCase().includes(q) || a.a.toLowerCase().includes(q));
+    return (data?.articles ?? []).filter(
+      (a) => a.q.toLowerCase().includes(q) || a.a.toLowerCase().includes(q)
+    );
   }, [data, search]);
 
   if (loading) {
@@ -175,7 +177,7 @@ export default function SupportView() {
       <div className="space-y-5">
         <PageHeader title="Help & Support" subtitle="Get answers and reach our team" />
         <div className="grid gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-5">
+          <div className="space-y-5 lg:col-span-2">
             <Skeleton className="h-72 rounded-2xl" />
             <Skeleton className="h-64 rounded-2xl" />
           </div>
@@ -206,11 +208,11 @@ export default function SupportView() {
           {/* Help articles */}
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <HelpCircle className="h-5 w-5 text-primary" />
+              <HelpCircle className="text-primary h-5 w-5" />
               <h2 className="text-base font-semibold">Help articles</h2>
             </div>
             <div className="relative mb-4">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -225,7 +227,7 @@ export default function SupportView() {
                     <AccordionTrigger className="text-left text-sm hover:no-underline">
                       {a.q}
                     </AccordionTrigger>
-                    <AccordionContent className="text-sm text-muted-foreground">
+                    <AccordionContent className="text-muted-foreground text-sm">
                       {a.a}
                     </AccordionContent>
                   </AccordionItem>
@@ -247,8 +249,9 @@ export default function SupportView() {
                 <Sparkles className="h-5 w-5" />
               </div>
               <p className="font-medium">AI assistant</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Chat with our AI helper (floating chat button bottom-right) for instant answers, 24/7.
+              <p className="text-muted-foreground mt-1 text-xs">
+                Chat with our AI helper (floating chat button bottom-right) for instant answers,
+                24/7.
               </p>
             </Card>
             <Card className="p-5">
@@ -256,8 +259,10 @@ export default function SupportView() {
                 <Mail className="h-5 w-5" />
               </div>
               <p className="font-medium">Email us</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Reach our human support team at <span className="font-medium text-foreground">help@turbopay.app</span> for complex issues.
+              <p className="text-muted-foreground mt-1 text-xs">
+                Reach our human support team at{" "}
+                <span className="text-foreground font-medium">help@turbopay.app</span> for complex
+                issues.
               </p>
             </Card>
           </div>
@@ -267,12 +272,14 @@ export default function SupportView() {
         <div className="space-y-5">
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <LifeBuoy className="h-5 w-5 text-primary" />
+              <LifeBuoy className="text-primary h-5 w-5" />
               <h2 className="text-base font-semibold">My tickets</h2>
-              <Badge variant="secondary" className="ml-auto">{data?.tickets.length ?? 0}</Badge>
+              <Badge variant="secondary" className="ml-auto">
+                {data?.tickets.length ?? 0}
+              </Badge>
             </div>
             {data?.tickets && data.tickets.length > 0 ? (
-              <ul className="max-h-[28rem] space-y-2 overflow-y-auto pr-1 scrollbar-thin">
+              <ul className="scrollbar-thin max-h-[28rem] space-y-2 overflow-y-auto pr-1">
                 {data.tickets.map((t) => {
                   const expanded = openTicketId === t.id;
                   return (
@@ -286,29 +293,41 @@ export default function SupportView() {
                       >
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">{t.subject}</p>
-                          <p className="truncate text-xs text-muted-foreground">
+                          <p className="text-muted-foreground truncate text-xs">
                             {CATEGORY_LABELS[t.category] ?? t.category} · {timeAgo(t.createdAt)}
                           </p>
                         </div>
-                        <Badge variant="secondary" className={`text-[10px] ${STATUS_TONE[t.status] ?? ""}`}>
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] ${STATUS_TONE[t.status] ?? ""}`}
+                        >
                           {t.status.replace(/_/g, " ").toLowerCase()}
                         </Badge>
-                        <ChevronRight className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`} />
+                        <ChevronRight
+                          className={`text-muted-foreground h-4 w-4 shrink-0 transition-transform ${expanded ? "rotate-90" : ""}`}
+                        />
                       </button>
                       {expanded && (
                         <div className="mt-3 space-y-2 border-t pt-3">
                           <div className="flex flex-wrap gap-1.5 text-xs">
-                            <Badge variant="outline">Priority: {PRIORITY_LABELS[t.priority] ?? t.priority}</Badge>
+                            <Badge variant="outline">
+                              Priority: {PRIORITY_LABELS[t.priority] ?? t.priority}
+                            </Badge>
                             <Badge variant="outline" className="gap-1">
                               <Clock className="h-3 w-3" /> {formatDate(t.createdAt, true)}
                             </Badge>
                             {t.status === "RESOLVED" || t.status === "CLOSED" ? (
-                              <Badge variant="outline" className="gap-1 text-emerald-600 dark:text-emerald-400">
+                              <Badge
+                                variant="outline"
+                                className="gap-1 text-emerald-600 dark:text-emerald-400"
+                              >
                                 <CheckCircle2 className="h-3 w-3" /> Resolved
                               </Badge>
                             ) : null}
                           </div>
-                          <p className="whitespace-pre-wrap text-xs text-muted-foreground">{t.message}</p>
+                          <p className="text-muted-foreground text-xs whitespace-pre-wrap">
+                            {t.message}
+                          </p>
                         </div>
                       )}
                     </li>
@@ -360,7 +379,9 @@ export default function SupportView() {
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(CATEGORY_LABELS).map(([v, l]) => (
-                      <SelectItem key={v} value={v}>{l}</SelectItem>
+                      <SelectItem key={v} value={v}>
+                        {l}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -373,7 +394,9 @@ export default function SupportView() {
                   </SelectTrigger>
                   <SelectContent>
                     {Object.entries(PRIORITY_LABELS).map(([v, l]) => (
-                      <SelectItem key={v} value={v}>{l}</SelectItem>
+                      <SelectItem key={v} value={v}>
+                        {l}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -389,7 +412,7 @@ export default function SupportView() {
                 placeholder="Describe the issue in as much detail as you can. Include reference numbers if applicable."
                 maxLength={4000}
               />
-              <p className="text-right text-xs text-muted-foreground">{message.length}/4000</p>
+              <p className="text-muted-foreground text-right text-xs">{message.length}/4000</p>
             </div>
           </div>
           <DialogFooter>

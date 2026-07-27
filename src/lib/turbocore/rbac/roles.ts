@@ -78,8 +78,7 @@ export const ROLE_META: Record<
   },
   OPERATIONS_OFFICER: {
     label: "Operations Officer",
-    description:
-      "Day-to-day ops — provider health, routing, capabilities, webhooks, monitoring.",
+    description: "Day-to-day ops — provider health, routing, capabilities, webhooks, monitoring.",
     tone: "bg-violet-500/15 text-violet-600 dark:text-violet-400",
     admin: true,
   },
@@ -124,9 +123,7 @@ const ALL_PERMISSIONS: Permission[] = Object.values(Permissions);
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   SUPER_ADMIN: [...ALL_PERMISSIONS],
 
-  ADMINISTRATOR: ALL_PERMISSIONS.filter(
-    (p) => p !== Permissions.CONFIG_ROLLBACK,
-  ),
+  ADMINISTRATOR: ALL_PERMISSIONS.filter((p) => p !== Permissions.CONFIG_ROLLBACK),
 
   FINANCE_OFFICER: [
     Permissions.FINANCE_VIEW,

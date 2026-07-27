@@ -5,8 +5,17 @@
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { json, errorJson, handleError, requireUser, audit, getClientIp, getUserAgent } from "@/lib/api";
+import {
+  json,
+  errorJson,
+  handleError,
+  requireUser,
+  audit,
+  getClientIp,
+  getUserAgent,
+} from "@/lib/api";
 import { verifyPassword } from "@/lib/auth";
+import { logSecurityEvent } from "@/lib/security-log";
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,6 +32,13 @@ export async function POST(req: NextRequest) {
         severity: "WARN",
         ip: getClientIp(req),
         userAgent: getUserAgent(req),
+      });
+      await logSecurityEvent({
+        userId: user.id,
+        type: "MFA_FAILED",
+        ip: getClientIp(req),
+        userAgent: getUserAgent(req),
+        metadata: { reason: "disable-wrong-password" },
       });
       return errorJson("Incorrect password", 401, "INVALID_PASSWORD");
     }
@@ -47,6 +63,12 @@ export async function POST(req: NextRequest) {
       action: "MFA_DISABLED",
       category: "AUTH",
       severity: "WARN",
+      ip: getClientIp(req),
+      userAgent: getUserAgent(req),
+    });
+    await logSecurityEvent({
+      userId: user.id,
+      type: "MFA_DISABLED",
       ip: getClientIp(req),
       userAgent: getUserAgent(req),
     });

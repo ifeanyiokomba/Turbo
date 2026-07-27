@@ -60,22 +60,21 @@ function normalizeStatus(body: AirtelCallback): string {
 function verifyAirtelSignature(
   rawBody: string,
   headers: Headers,
-  secret: string | null,
+  secret: string | null
 ): { valid: boolean; scheme: string; reason?: string } {
   if (!secret) {
     // Sandbox / dev — no secret configured. Accept but mark as unverified.
     return { valid: true, scheme: "airtel_money:none", reason: "no-secret" };
   }
   const sig =
-    headers.get("verif-hash") ??
-    headers.get("x-verif-hash") ??
-    headers.get("verif_hash") ??
-    null;
-  if (!sig) return { valid: false, scheme: "airtel_money:plain-equal", reason: "missing-signature" };
+    headers.get("verif-hash") ?? headers.get("x-verif-hash") ?? headers.get("verif_hash") ?? null;
+  if (!sig)
+    return { valid: false, scheme: "airtel_money:plain-equal", reason: "missing-signature" };
   // Plain string equality (constant-time).
   const a = Buffer.from(sig.trim(), "utf8");
   const b = Buffer.from(secret.trim(), "utf8");
-  if (a.length !== b.length || a.length === 0) return { valid: false, scheme: "airtel_money:plain-equal", reason: "mismatch" };
+  if (a.length !== b.length || a.length === 0)
+    return { valid: false, scheme: "airtel_money:plain-equal", reason: "mismatch" };
   try {
     return {
       valid: timingSafeEqual(a, b),
@@ -127,13 +126,18 @@ export async function POST(req: Request) {
 
     if (!verifyResult.valid) {
       console.warn(
-        `[webhook:airtel-money] signature invalid — scheme=${verifyResult.scheme} reason=${verifyResult.reason ?? "mismatch"}`,
+        `[webhook:airtel-money] signature invalid — scheme=${verifyResult.scheme} reason=${verifyResult.reason ?? "mismatch"}`
       );
       await audit({
         action: "WEBHOOK_SIGNATURE_INVALID",
         category: "SECURITY",
         severity: "WARN",
-        metadata: { provider: PROVIDER_CODE, eventId, scheme: verifyResult.scheme, reason: verifyResult.reason },
+        metadata: {
+          provider: PROVIDER_CODE,
+          eventId,
+          scheme: verifyResult.scheme,
+          reason: verifyResult.reason,
+        },
       }).catch(() => {});
       return json({ ok: false, reason: "invalid-signature" }, 200);
     }
@@ -152,7 +156,7 @@ export async function POST(req: Request) {
 
     if (!tx) {
       console.log(
-        `[webhook:airtel-money] no tx for refs=${JSON.stringify(candidateRefs)} — recorded only`,
+        `[webhook:airtel-money] no tx for refs=${JSON.stringify(candidateRefs)} — recorded only`
       );
       await db.webhookEvent.updateMany({
         where: { eventId },
@@ -171,14 +175,10 @@ export async function POST(req: Request) {
       return json({ ok: true, processed: false, reason: `status-${status.toLowerCase()}` }, 200);
     }
 
-    const outcome = await confirmOrReverseTransaction(
-      tx.id,
-      status,
-      `webhook:${PROVIDER_CODE}`,
-    );
+    const outcome = await confirmOrReverseTransaction(tx.id, status, `webhook:${PROVIDER_CODE}`);
 
     console.log(
-      `[webhook:airtel-money] tx ${tx.reference} → ${outcome.outcome} (${outcome.reason ?? "ok"})`,
+      `[webhook:airtel-money] tx ${tx.reference} → ${outcome.outcome} (${outcome.reason ?? "ok"})`
     );
 
     await audit({
@@ -197,18 +197,21 @@ export async function POST(req: Request) {
       },
     }).catch(() => {});
 
-    return json({
-      ok: true,
-      processed: true,
-      outcome: outcome.outcome,
-      reference: tx.reference,
-      startedAt,
-    }, 200);
+    return json(
+      {
+        ok: true,
+        processed: true,
+        outcome: outcome.outcome,
+        reference: tx.reference,
+        startedAt,
+      },
+      200
+    );
   } catch (e) {
     console.error(`[webhook:airtel-money] handler error:`, e);
     return json(
       { ok: false, error: e instanceof Error ? e.message : "internal-error", startedAt },
-      200,
+      200
     );
   }
 }

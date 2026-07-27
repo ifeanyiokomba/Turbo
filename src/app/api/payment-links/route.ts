@@ -25,11 +25,13 @@ interface CreateLinkBody {
 }
 
 function slugify(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40) || "pay";
+  return (
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "pay"
+  );
 }
 
 function randomSuffix(): string {
@@ -37,9 +39,16 @@ function randomSuffix(): string {
 }
 
 const VALID_THEMES = new Set([
-  "#10b981", "#f59e0b", "#0ea5e9", "#8b5cf6",
-  "#ef4444", "#ec4899", "#14b8a6", "#f97316",
-  "#22c55e", "#6366f1",
+  "#10b981",
+  "#f59e0b",
+  "#0ea5e9",
+  "#8b5cf6",
+  "#ef4444",
+  "#ec4899",
+  "#14b8a6",
+  "#f97316",
+  "#22c55e",
+  "#6366f1",
 ]);
 
 function parseMeta(s: string | null | undefined): Record<string, unknown> {
@@ -86,9 +95,18 @@ export async function GET(req: Request) {
         })
       : [];
 
-    const byLink = new Map<string, { views: number; payments: number; success: number; total: number; attempts: number }>();
+    const byLink = new Map<
+      string,
+      { views: number; payments: number; success: number; total: number; attempts: number }
+    >();
     for (const p of payments) {
-      const entry = byLink.get(p.paymentLinkId) ?? { views: 0, payments: 0, success: 0, total: 0, attempts: 0 };
+      const entry = byLink.get(p.paymentLinkId) ?? {
+        views: 0,
+        payments: 0,
+        success: 0,
+        total: 0,
+        attempts: 0,
+      };
       entry.attempts += 1;
       if (p.status === "SUCCESS") {
         entry.success += 1;
@@ -130,14 +148,23 @@ export async function POST(req: Request) {
 
     const title = String(body.title ?? "").trim();
     if (!title || title.length < 3) {
-      throw new ServiceError("Give your link a descriptive title (min 3 chars)", 400, "INVALID_TITLE");
+      throw new ServiceError(
+        "Give your link a descriptive title (min 3 chars)",
+        400,
+        "INVALID_TITLE"
+      );
     }
     const currency = String(body.currency ?? "NGN").toUpperCase();
-    const amountMinor = body.amountMinor === undefined || body.amountMinor === null
-      ? null
-      : Math.round(Number(body.amountMinor));
+    const amountMinor =
+      body.amountMinor === undefined || body.amountMinor === null
+        ? null
+        : Math.round(Number(body.amountMinor));
     if (amountMinor !== null && (!Number.isFinite(amountMinor) || amountMinor < 0)) {
-      throw new ServiceError("Invalid amount (must be ≥ 0; 0 means payer chooses)", 400, "INVALID_AMOUNT");
+      throw new ServiceError(
+        "Invalid amount (must be ≥ 0; 0 means payer chooses)",
+        400,
+        "INVALID_AMOUNT"
+      );
     }
     const maxUses = Math.max(0, Math.round(Number(body.maxUses ?? 0)));
     let expiresAt: Date | null = null;
@@ -156,7 +183,8 @@ export async function POST(req: Request) {
     let themeColor = String(body.themeColor ?? "#10b981").trim();
     if (!VALID_THEMES.has(themeColor.toLowerCase())) themeColor = "#10b981";
     const logoUrl = body.logoUrl ? String(body.logoUrl).trim().slice(0, 500) : null;
-    const allowCustomAmount = body.allowCustomAmount === true || amountMinor === null || amountMinor === 0;
+    const allowCustomAmount =
+      body.allowCustomAmount === true || amountMinor === null || amountMinor === 0;
 
     for (const u of [successUrl, cancelUrl, logoUrl]) {
       if (u) {

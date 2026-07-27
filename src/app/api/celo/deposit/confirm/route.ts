@@ -20,18 +20,8 @@ import { creditWallet } from "@/lib/ledger";
 import { RefType, TxDirection, TxState, TxStatus, TxType } from "@/lib/constants";
 import { generateReference } from "@/lib/money";
 import { getPublicClient } from "@/lib/wagmi";
-import {
-  TREASURY_ADDRESS,
-  getToken,
-  isValidTxHash,
-  CELO_MAINNET_CHAIN_ID,
-} from "@/lib/minipay";
-import {
-  erc20Abi,
-  parseUnits,
-  decodeFunctionData,
-  getAddress,
-} from "viem";
+import { TREASURY_ADDRESS, getToken, isValidTxHash, CELO_MAINNET_CHAIN_ID } from "@/lib/minipay";
+import { erc20Abi, parseUnits, decodeFunctionData, getAddress } from "viem";
 import type { Address, Hash } from "viem";
 
 export const runtime = "nodejs";
@@ -76,8 +66,7 @@ export async function POST(req: Request) {
       throw new ServiceError("Invalid amount", 400, "INVALID_AMOUNT");
 
     const token = getToken(tokenSymbol, chainId);
-    if (!token)
-      throw new ServiceError("Unsupported token: " + tokenSymbol, 400, "TOKEN_NOT_FOUND");
+    if (!token) throw new ServiceError("Unsupported token: " + tokenSymbol, 400, "TOKEN_NOT_FOUND");
 
     // Idempotency: if we already recorded this hash as SUCCESS, return it.
     const existing = await db.onChainTransaction.findUnique({
@@ -115,7 +104,7 @@ export async function POST(req: Request) {
       throw new ServiceError(
         "Transaction not found onchain (it may still be confirming)",
         404,
-        "TX_NOT_FOUND",
+        "TX_NOT_FOUND"
       );
     }
     if (receipt?.status !== "success") {
@@ -128,7 +117,7 @@ export async function POST(req: Request) {
       throw new ServiceError(
         "Transaction has no calldata (not an ERC-20 transfer)",
         400,
-        "NOT_TOKEN_TRANSFER",
+        "NOT_TOKEN_TRANSFER"
       );
     }
 
@@ -140,14 +129,14 @@ export async function POST(req: Request) {
       throw new ServiceError(
         "Transaction target is not the expected token contract",
         400,
-        "WRONG_TOKEN_CONTRACT",
+        "WRONG_TOKEN_CONTRACT"
       );
     }
     if (!txFrom || txFrom.toLowerCase() !== celoWallet.address.toLowerCase()) {
       throw new ServiceError(
         "Transaction sender does not match your linked wallet",
         400,
-        "WRONG_SENDER",
+        "WRONG_SENDER"
       );
     }
 
@@ -156,17 +145,13 @@ export async function POST(req: Request) {
     try {
       decoded = decodeFunctionData({ abi: erc20Abi, data: tx.input as `0x${string}` });
     } catch {
-      throw new ServiceError(
-        "Could not decode calldata as ERC-20 transfer",
-        400,
-        "DECODE_FAILED",
-      );
+      throw new ServiceError("Could not decode calldata as ERC-20 transfer", 400, "DECODE_FAILED");
     }
     if (decoded.functionName !== "transfer") {
       throw new ServiceError(
         "Expected ERC-20 transfer(), got " + decoded.functionName,
         400,
-        "NOT_TRANSFER",
+        "NOT_TRANSFER"
       );
     }
     const [recipientRaw, amountRaw] = decoded.args as [Address, bigint];
@@ -177,14 +162,14 @@ export async function POST(req: Request) {
       throw new ServiceError(
         "Transfer recipient is not the Turbopay treasury",
         400,
-        "WRONG_RECIPIENT",
+        "WRONG_RECIPIENT"
       );
     }
     if (amountRaw !== expectedAmountWei) {
       throw new ServiceError(
         `Transfer amount (${amountRaw.toString()}) does not match declared ${amountHuman} ${token.symbol}`,
         400,
-        "AMOUNT_MISMATCH",
+        "AMOUNT_MISMATCH"
       );
     }
 

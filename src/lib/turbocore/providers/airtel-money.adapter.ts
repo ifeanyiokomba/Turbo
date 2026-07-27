@@ -40,7 +40,10 @@ interface TokenCache {
 }
 let tokenCache: TokenCache | null = null;
 
-async function getToken(creds: { secrets: Record<string, string>; sandbox: boolean }): Promise<string | null> {
+async function getToken(creds: {
+  secrets: Record<string, string>;
+  sandbox: boolean;
+}): Promise<string | null> {
   const clientId = creds.secrets.clientId;
   const clientSecret = creds.secrets.clientSecret;
   if (!clientId || !clientSecret) return null;
@@ -54,9 +57,13 @@ async function getToken(creds: { secrets: Record<string, string>; sandbox: boole
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: `client_id=${encodeURIComponent(clientId)}&client_secret=${encodeURIComponent(clientSecret)}&grant_type=client_credentials`,
       },
-      (s, b) => defaultHttpError(CODE, s, b),
+      (s, b) => defaultHttpError(CODE, s, b)
     );
-    const data = body as { access_token?: string; expires_in?: string | number; token_type?: string };
+    const data = body as {
+      access_token?: string;
+      expires_in?: string | number;
+      token_type?: string;
+    };
     if (!data?.access_token) return null;
     const expiresIn = Number(data.expires_in ?? 3600);
     tokenCache = { token: data.access_token, expiresAt: Date.now() + expiresIn * 1000 };
@@ -67,7 +74,11 @@ async function getToken(creds: { secrets: Record<string, string>; sandbox: boole
 }
 
 function bearerHeaders(token: string): Record<string, string> {
-  return { Authorization: `Bearer ${token}`, "Content-Type": "application/json", Accept: "application/json" };
+  return {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
 }
 
 export const airtelMoneyProvider: IMobileMoneyProvider = {
@@ -82,17 +93,22 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
       return ok({ balanceMinor: 0, currency: "UGX" }, "mock", 50);
     }
     const token = await getToken(creds);
-    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    if (!token)
+      return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
     const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
     try {
       const { body } = await http(
         `${base}/standard/v1/users/balance`,
         { method: "GET", headers: bearerHeaders(token) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { balance?: string; currency?: string } };
       const bal = Number(data?.data?.balance ?? 0) * 100;
-      return ok({ balanceMinor: Math.round(bal), currency: data?.data?.currency ?? "UGX" }, `airtel-bal-${Date.now()}`, 0);
+      return ok(
+        { balanceMinor: Math.round(bal), currency: data?.data?.currency ?? "UGX" },
+        `airtel-bal-${Date.now()}`,
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Airtel Money getBalance failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -108,11 +124,19 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
       return ok({ providerRef: `airtel-pay-${req.reference}`, status: "PENDING" }, "mock", 200);
     }
     const token = await getToken(creds);
-    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    if (!token)
+      return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
     const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
     const paymentId = randomUUID();
     // Derive a 2-letter country code from currency (UGX→UG, TZS→TZ, KES→KE, NGN→NG, RWF→RW)
-    const countryMap: Record<string, string> = { UGX: "UG", TZS: "TZ", KES: "KE", NGN: "NG", RWF: "RW", INR: "IN" };
+    const countryMap: Record<string, string> = {
+      UGX: "UG",
+      TZS: "TZ",
+      KES: "KE",
+      NGN: "NG",
+      RWF: "RW",
+      INR: "IN",
+    };
     const country = countryMap[req.currency] ?? "UG";
     try {
       const { body } = await http(
@@ -131,9 +155,12 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
             },
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = body as { status?: { success?: boolean; response_code?: string }; data?: { id?: string; status?: string } };
+      const data = body as {
+        status?: { success?: boolean; response_code?: string };
+        data?: { id?: string; status?: string };
+      };
       const providerRef = data?.data?.id ?? paymentId;
       const st = String(data?.data?.status ?? "").toUpperCase();
       const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : "PENDING";
@@ -150,13 +177,25 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ providerRef: `airtel-disburse-${req.reference}`, status: "PENDING" }, "mock", 200);
+      return ok(
+        { providerRef: `airtel-disburse-${req.reference}`, status: "PENDING" },
+        "mock",
+        200
+      );
     }
     const token = await getToken(creds);
-    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    if (!token)
+      return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
     const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
     const paymentId = randomUUID();
-    const countryMap: Record<string, string> = { UGX: "UG", TZS: "TZ", KES: "KE", NGN: "NG", RWF: "RW", INR: "IN" };
+    const countryMap: Record<string, string> = {
+      UGX: "UG",
+      TZS: "TZ",
+      KES: "KE",
+      NGN: "NG",
+      RWF: "RW",
+      INR: "IN",
+    };
     const country = countryMap[req.currency] ?? "UG";
     try {
       const { body } = await http(
@@ -175,7 +214,7 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
             },
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { id?: string; status?: string } };
       const providerRef = data?.data?.id ?? paymentId;
@@ -197,17 +236,23 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
       return ok({ status: "SUCCESS" }, "mock", 15);
     }
     const token = await getToken(creds);
-    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    if (!token)
+      return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
     const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
     try {
       const { body } = await http(
         `${base}/standard/v1/payments/${providerRef}`,
         { method: "GET", headers: bearerHeaders(token) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = body as { data?: { transaction?: { status?: string } } };
       const st = String(data?.data?.transaction?.status ?? "").toUpperCase();
-      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      const status =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       return ok({ status }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Airtel Money status query failed";
@@ -228,13 +273,11 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok(
-        { verified: true, kycLevel: "FULL_KYC", msisdn: req.msisdn },
-        "mock", 80,
-      );
+      return ok({ verified: true, kycLevel: "FULL_KYC", msisdn: req.msisdn }, "mock", 80);
     }
     const token = await getToken(creds);
-    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    if (!token)
+      return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
     const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
     try {
       const { body } = await http(
@@ -249,14 +292,18 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
             address: req.address ?? "",
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: { success?: boolean; response_code?: string; code?: string }; data?: { kyc_level?: string; is_verified?: boolean; msisdn?: string } });
+      const data = body as {
+        status?: { success?: boolean; response_code?: string; code?: string };
+        data?: { kyc_level?: string; is_verified?: boolean; msisdn?: string };
+      };
       const verified = Boolean(data?.status?.success ?? data?.data?.is_verified ?? false);
       const kycLevel = data?.data?.kyc_level ?? (verified ? "FULL_KYC" : "UNVERIFIED");
       return ok(
         { verified, kycLevel, msisdn: data?.data?.msisdn ?? req.msisdn },
-        `airtel-kyc-${req.msisdn}`, 0,
+        `airtel-kyc-${req.msisdn}`,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Airtel Money KYC verification failed";
@@ -275,13 +322,11 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok(
-        { refundId: `airtel-refund-${req.payment_id}`, status: "PENDING" },
-        "mock", 100,
-      );
+      return ok({ refundId: `airtel-refund-${req.payment_id}`, status: "PENDING" }, "mock", 100);
     }
     const token = await getToken(creds);
-    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    if (!token)
+      return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
     const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
     try {
       const { body } = await http(
@@ -290,16 +335,27 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
           method: "POST",
           headers: bearerHeaders(token),
           body: JSON.stringify({
-            refund_amount: req.refund_amountMinor != null ? Number((req.refund_amountMinor / 100).toFixed(2)) : undefined,
+            refund_amount:
+              req.refund_amountMinor != null
+                ? Number((req.refund_amountMinor / 100).toFixed(2))
+                : undefined,
             reference: req.reference ?? `refund-${req.payment_id}`.slice(0, 32),
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: { success?: boolean; response_code?: string }; data?: { refund_id?: string; id?: string; status?: string } });
+      const data = body as {
+        status?: { success?: boolean; response_code?: string };
+        data?: { refund_id?: string; id?: string; status?: string };
+      };
       const refundId = data?.data?.refund_id ?? data?.data?.id ?? `airtel-refund-${req.payment_id}`;
       const st = String(data?.data?.status ?? "").toUpperCase();
-      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      const status =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       return ok({ refundId, status }, refundId, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Airtel Money refund failed";
@@ -319,13 +375,11 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok(
-        { providerRef: req.transaction.id, status: "PENDING" },
-        "mock", 200,
-      );
+      return ok({ providerRef: req.transaction.id, status: "PENDING" }, "mock", 200);
     }
     const token = await getToken(creds);
-    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    if (!token)
+      return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
     const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
     try {
       const { body } = await http(
@@ -348,9 +402,12 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
             },
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: { success?: boolean; response_code?: string }; data?: { id?: string; status?: string } });
+      const data = body as {
+        status?: { success?: boolean; response_code?: string };
+        data?: { id?: string; status?: string };
+      };
       const providerRef = data?.data?.id ?? req.transaction.id;
       const st = String(data?.data?.status ?? "").toUpperCase();
       const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : "PENDING";
@@ -374,20 +431,22 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
       mockWarnOnce(CODE);
       return ok(
         { status: "SUCCESS", conversationId: `airtel-tx-status-${req.transactionID}` },
-        "mock", 50,
+        "mock",
+        50
       );
     }
     const token = await getToken(creds);
-    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    if (!token)
+      return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
     const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
     try {
       const { body } = await http(
         `${base}/standard/v1/payments/${encodeURIComponent(req.transactionID)}`,
         { method: "GET", headers: bearerHeaders(token) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       // Full response shape: { status: {...}, data: { transaction: { id, status, amount, currency, ... }, ... } }
-      const data = (body as {
+      const data = body as {
         status?: { success?: boolean; response_code?: string; code?: string; result_code?: string };
         data?: {
           transaction?: {
@@ -399,16 +458,25 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
           };
           payment?: { id?: string; status?: string; amount?: string | number };
         };
-      });
-      const txStatus = String(data?.data?.transaction?.status ?? data?.data?.payment?.status ?? "").toUpperCase();
-      const status = txStatus === "SUCCESS" || txStatus === "SUCCESSFUL" ? "SUCCESS" : txStatus === "FAILED" ? "FAILED" : "PENDING";
+      };
+      const txStatus = String(
+        data?.data?.transaction?.status ?? data?.data?.payment?.status ?? ""
+      ).toUpperCase();
+      const status =
+        txStatus === "SUCCESS" || txStatus === "SUCCESSFUL"
+          ? "SUCCESS"
+          : txStatus === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       return ok(
         {
           status,
-          conversationId: data?.data?.transaction?.id ?? data?.data?.payment?.id ?? req.transactionID,
+          conversationId:
+            data?.data?.transaction?.id ?? data?.data?.payment?.id ?? req.transactionID,
           originatorConversationId: data?.data?.transaction?.reference,
         },
-        req.transactionID, 0,
+        req.transactionID,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Airtel Money deep transaction status failed";
@@ -435,19 +503,24 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
           balanceMinor: 0,
           currency: "UGX",
         },
-        "mock", 50,
+        "mock",
+        50
       );
     }
     const token = await getToken(creds);
-    if (!token) return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
+    if (!token)
+      return fail("AUTH_FAILED", "Airtel Money token retrieval failed", { providerCode: CODE });
     const base = creds.sandbox ? UAT_BASE : LIVE_BASE;
     try {
       const { body } = await http(
         `${base}/standard/v1/users/balance`,
         { method: "GET", headers: bearerHeaders(token) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: { success?: boolean; response_code?: string }; data?: { balance?: string | number; currency?: string } });
+      const data = body as {
+        status?: { success?: boolean; response_code?: string };
+        data?: { balance?: string | number; currency?: string };
+      };
       const bal = Number(data?.data?.balance ?? 0) * 100;
       const currency = data?.data?.currency ?? "UGX";
       const responseCode = String(data?.status?.response_code ?? "0");
@@ -455,11 +528,13 @@ export const airtelMoneyProvider: IMobileMoneyProvider = {
         {
           conversationId: `airtel-acct-bal-${Date.now()}`,
           responseCode,
-          responseDescription: responseCode === "0" ? "Balance query accepted" : "Balance query failed",
+          responseDescription:
+            responseCode === "0" ? "Balance query accepted" : "Balance query failed",
           balanceMinor: Math.round(bal),
           currency,
         },
-        `airtel-acct-bal-${Date.now()}`, 0,
+        `airtel-acct-bal-${Date.now()}`,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Airtel Money deep account balance failed";

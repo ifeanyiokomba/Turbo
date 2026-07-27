@@ -68,10 +68,19 @@ export const flutterwaveCardPayment: ICardPaymentProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ providerRef: `fw-mock-${req.reference}`, status: "3DS_REQUIRED", authUrl: `${BASE}/mock/charge?ref=${req.reference}` }, "mock", 60);
+      return ok(
+        {
+          providerRef: `fw-mock-${req.reference}`,
+          status: "3DS_REQUIRED",
+          authUrl: `${BASE}/mock/charge?ref=${req.reference}`,
+        },
+        "mock",
+        60
+      );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
@@ -90,11 +99,13 @@ export const flutterwaveCardPayment: ICardPaymentProvider = {
             meta: req.metadata ?? {},
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as {
-        data?: { id?: number; tx_ref?: string; status?: string; link?: string; flw_ref?: string };
-      }).data;
+      const data = (
+        body as {
+          data?: { id?: number; tx_ref?: string; status?: string; link?: string; flw_ref?: string };
+        }
+      ).data;
       const providerRef = String(data?.id ?? data?.tx_ref ?? req.reference);
       const authUrl = data?.link;
       const status: "PENDING" | "SUCCESS" | "3DS_REQUIRED" = authUrl ? "3DS_REQUIRED" : "PENDING";
@@ -114,7 +125,8 @@ export const flutterwaveCardPayment: ICardPaymentProvider = {
       return ok({ status: "success", amountSettledMinor: 0, currency: "NGN" }, "mock", 40);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       // providerRef is either the tx_ref or the numeric id — Flutterwave's
@@ -124,12 +136,25 @@ export const flutterwaveCardPayment: ICardPaymentProvider = {
         ? `${BASE}/transactions/${encodeURIComponent(providerRef)}/verify`
         : `${BASE}/transactions/verify_by_reference?tx_ref=${encodeURIComponent(providerRef)}`;
       const { body } = await http(url, { method: "GET", headers: authHeaders(secretKey) }, (s, b) =>
-        defaultHttpError(CODE, s, b),
+        defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { status?: string; amount?: number; currency?: string; amount_settled?: number } }).data;
+      const data = (
+        body as {
+          data?: { status?: string; amount?: number; currency?: string; amount_settled?: number };
+        }
+      ).data;
       const amount = typeof data?.amount === "number" ? Math.round(data.amount * 100) : 0; // major → minor
-      const settled = typeof data?.amount_settled === "number" ? Math.round(data.amount_settled * 100) : amount;
-      return ok({ status: data?.status ?? "pending", amountSettledMinor: settled, currency: data?.currency ?? "NGN" }, providerRef, 0);
+      const settled =
+        typeof data?.amount_settled === "number" ? Math.round(data.amount_settled * 100) : amount;
+      return ok(
+        {
+          status: data?.status ?? "pending",
+          amountSettledMinor: settled,
+          currency: data?.currency ?? "NGN",
+        },
+        providerRef,
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave verify failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -145,7 +170,8 @@ export const flutterwaveCardPayment: ICardPaymentProvider = {
       return ok({ refundRef: `fw-refund-${req.providerRef}`, status: "pending" }, "mock", 70);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const payload: Record<string, unknown> = { amount: (req.amountMinor ?? 0) / 100 };
@@ -153,13 +179,16 @@ export const flutterwaveCardPayment: ICardPaymentProvider = {
       const { body } = await http(
         `${BASE}/transactions/${encodeURIComponent(req.providerRef)}/refund`,
         { method: "POST", headers: authHeaders(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { id?: number; status?: string } }).data;
       return ok(
-        { refundRef: `fw-refund-${data?.id ?? req.providerRef}`, status: data?.status ?? "pending" },
+        {
+          refundRef: `fw-refund-${data?.id ?? req.providerRef}`,
+          status: data?.status ?? "pending",
+        },
         `fw-refund-${data?.id ?? ""}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave refund failed";
@@ -181,20 +210,30 @@ export const flutterwaveBankTransfer: IBankTransferProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok(UNIQUE_BANKS.map((b) => ({ ...b, country })), "mock", 12);
+      return ok(
+        UNIQUE_BANKS.map((b) => ({ ...b, country })),
+        "mock",
+        12
+      );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
     try {
       const { body } = await http(
         `${BASE}/banks/${encodeURIComponent(country)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Array<{ code?: string; name?: string }> }).data ?? [];
       const banks = data
         .filter((b) => b.code && b.name)
-        .map((b) => ({ code: String(b.code), name: String(b.name), short: String(b.name), country }));
+        .map((b) => ({
+          code: String(b.code),
+          name: String(b.name),
+          short: String(b.name),
+          country,
+        }));
       return ok(banks.length ? banks : UNIQUE_BANKS.map((b) => ({ ...b, country })), "fw-banks", 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave listBanks failed";
@@ -209,10 +248,15 @@ export const flutterwaveBankTransfer: IBankTransferProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       const known = NIGERIAN_BANKS.find((b) => b.code === req.bankCode);
-      return ok({ accountName: `MOCK ${req.accountNumber.slice(-4)}`, bankName: known?.name ?? "Unknown" }, "mock", 25);
+      return ok(
+        { accountName: `MOCK ${req.accountNumber.slice(-4)}`, bankName: known?.name ?? "Unknown" },
+        "mock",
+        25
+      );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
     try {
       const { body } = await http(
         `${BASE}/accounts/resolve`,
@@ -221,17 +265,26 @@ export const flutterwaveBankTransfer: IBankTransferProvider = {
           headers: authHeaders(secretKey),
           body: JSON.stringify({ account_number: req.accountNumber, account_bank: req.bankCode }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { account_name?: string } }).data;
       if (!data?.account_name) {
-        return fail("BENEFICIARY_INVALID", "Flutterwave could not resolve account", { providerCode: CODE, raw: sanitize(body) });
+        return fail("BENEFICIARY_INVALID", "Flutterwave could not resolve account", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       }
       const known = NIGERIAN_BANKS.find((b) => b.code === req.bankCode);
-      return ok({ accountName: data.account_name, bankName: known?.name ?? req.bankCode }, "fw-resolve", 0);
+      return ok(
+        { accountName: data.account_name, bankName: known?.name ?? req.bankCode },
+        "fw-resolve",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave resolve failed";
-      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found/i.test(msg) ? "BENEFICIARY_INVALID" : "UPSTREAM_ERROR";
+      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found/i.test(msg)
+        ? "BENEFICIARY_INVALID"
+        : "UPSTREAM_ERROR";
       return fail(code, msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
     }
   },
@@ -245,7 +298,8 @@ export const flutterwaveBankTransfer: IBankTransferProvider = {
       return ok({ providerRef: `fw-trf-${req.reference}`, status: "PENDING" }, "mock", 110);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
     try {
       const { body } = await http(
         `${BASE}/transfers`,
@@ -262,7 +316,7 @@ export const flutterwaveBankTransfer: IBankTransferProvider = {
             callback_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/flutterwave/transfer`,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { id?: number; status?: string } }).data;
       const providerRef = String(data?.id ?? `fw-trf-${req.reference}`);
@@ -282,15 +336,20 @@ export const flutterwaveBankTransfer: IBankTransferProvider = {
       return ok({ status: "SUCCESS", settlementTime: new Date().toISOString() }, "mock", 18);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
     try {
       const { body } = await http(
         `${BASE}/transfers/${encodeURIComponent(providerRef)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { status?: string; created_at?: string } }).data;
-      return ok({ status: (data?.status ?? "pending").toUpperCase(), settlementTime: data?.created_at }, providerRef, 0);
+      return ok(
+        { status: (data?.status ?? "pending").toUpperCase(), settlementTime: data?.created_at },
+        providerRef,
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave getTransferStatus failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -309,18 +368,26 @@ export const flutterwaveBankTransfer: IBankTransferProvider = {
       return ok({ reversalRef: `fw-rev-${req.providerRef}`, status: "SUCCESS" }, "mock", 50);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
     try {
       const { body } = await http(
         `${BASE}/transfers/${encodeURIComponent(req.providerRef)}/reverse`,
-        { method: "POST", headers: authHeaders(secretKey), body: JSON.stringify({ reason: req.reason }) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        {
+          method: "POST",
+          headers: authHeaders(secretKey),
+          body: JSON.stringify({ reason: req.reason }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { id?: number; status?: string } }).data;
       return ok(
-        { reversalRef: `fw-rev-${data?.id ?? req.providerRef}`, status: (data?.status ?? "pending").toUpperCase() },
+        {
+          reversalRef: `fw-rev-${data?.id ?? req.providerRef}`,
+          status: (data?.status ?? "pending").toUpperCase(),
+        },
         `fw-rev-${data?.id ?? ""}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave reverse failed";
@@ -343,10 +410,20 @@ export const flutterwaveIntl: IInternationalTransferProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       const rate = req.sourceCurrency === "NGN" && req.targetCurrency === "USD" ? 1 / 1480 : 1;
-      return ok({ rate, feeMinor: 500, totalMinor: req.amountMinor + 500, expiresAt: new Date(Date.now() + 60_000).toISOString() }, "mock", 80);
+      return ok(
+        {
+          rate,
+          feeMinor: 500,
+          totalMinor: req.amountMinor + 500,
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        },
+        "mock",
+        80
+      );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
     try {
       const { body } = await http(
         `${BASE}/transfers/rates`,
@@ -359,16 +436,24 @@ export const flutterwaveIntl: IInternationalTransferProvider = {
             source_currency: req.sourceCurrency,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { rate?: number; fee?: number; total?: number; expires_at?: string } }).data;
+      const data = (
+        body as { data?: { rate?: number; fee?: number; total?: number; expires_at?: string } }
+      ).data;
       const rate = Number(data?.rate ?? 0);
       const feeMinor = typeof data?.fee === "number" ? Math.round(data.fee * 100) : 0;
-      const totalMinor = typeof data?.total === "number" ? Math.round(data.total * 100) : req.amountMinor + feeMinor;
+      const totalMinor =
+        typeof data?.total === "number" ? Math.round(data.total * 100) : req.amountMinor + feeMinor;
       return ok(
-        { rate, feeMinor, totalMinor, expiresAt: data?.expires_at ?? new Date(Date.now() + 60_000).toISOString() },
+        {
+          rate,
+          feeMinor,
+          totalMinor,
+          expiresAt: data?.expires_at ?? new Date(Date.now() + 60_000).toISOString(),
+        },
         "fw-quote",
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave getQuote failed";
@@ -382,10 +467,19 @@ export const flutterwaveIntl: IInternationalTransferProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ providerRef: `fw-intl-${req.reference}`, status: "PENDING", estimatedDelivery: new Date(Date.now() + 24 * 3600_000).toISOString() }, "mock", 200);
+      return ok(
+        {
+          providerRef: `fw-intl-${req.reference}`,
+          status: "PENDING",
+          estimatedDelivery: new Date(Date.now() + 24 * 3600_000).toISOString(),
+        },
+        "mock",
+        200
+      );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
     try {
       const payload: Record<string, unknown> = {
         account_bank: req.beneficiary.swiftCode ?? req.beneficiary.bankName,
@@ -399,9 +493,10 @@ export const flutterwaveIntl: IInternationalTransferProvider = {
       const { body } = await http(
         `${BASE}/transfers`,
         { method: "POST", headers: authHeaders(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { id?: number; status?: string; expected_delivery?: string } }).data;
+      const data = (body as { data?: { id?: number; status?: string; expected_delivery?: string } })
+        .data;
       return ok(
         {
           providerRef: String(data?.id ?? `fw-intl-${req.reference}`),
@@ -409,7 +504,7 @@ export const flutterwaveIntl: IInternationalTransferProvider = {
           estimatedDelivery: data?.expected_delivery,
         },
         `fw-intl-${data?.id ?? ""}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave intl transfer failed";
@@ -423,17 +518,24 @@ export const flutterwaveIntl: IInternationalTransferProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ status: "PENDING", timeline: [{ status: "initiated", at: new Date().toISOString() }] }, "mock", 20);
+      return ok(
+        { status: "PENDING", timeline: [{ status: "initiated", at: new Date().toISOString() }] },
+        "mock",
+        20
+      );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
     try {
       const { body } = await http(
         `${BASE}/transfers/${encodeURIComponent(providerRef)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { status?: string; created_at?: string; completed_at?: string } }).data;
+      const data = (
+        body as { data?: { status?: string; created_at?: string; completed_at?: string } }
+      ).data;
       const timeline: { status: string; at: string }[] = [];
       if (data?.created_at) timeline.push({ status: "initiated", at: data.created_at });
       if (data?.completed_at) timeline.push({ status: "completed", at: data.completed_at });
@@ -453,13 +555,14 @@ export const flutterwaveIntl: IInternationalTransferProvider = {
       return ok({ status: "CANCELLED" }, "mock", 30);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
     try {
       // Flutterwave allows cancellation of NEW transfers via /transfers/:id/cancel
       const { body } = await http(
         `${BASE}/transfers/${encodeURIComponent(providerRef)}/cancel`,
         { method: "POST", headers: authHeaders(secretKey), body: JSON.stringify({}) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { status?: string } }).data;
       return ok({ status: (data?.status ?? "CANCELLED").toUpperCase() }, providerRef, 0);
@@ -496,13 +599,17 @@ export const flutterwaveMobileMoney: IMobileMoneyProvider = {
       return ok({ balanceMinor: 0, currency: "NGN" }, "mock", 50);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
     try {
-      const { body } = await http(`${BASE}/balances`, { method: "GET", headers: authHeaders(secretKey) }, (s, b) =>
-        defaultHttpError(CODE, s, b),
+      const { body } = await http(
+        `${BASE}/balances`,
+        { method: "GET", headers: authHeaders(secretKey) },
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { available_balance?: number; currency?: string } }).data;
-      const bal = typeof data?.available_balance === "number" ? Math.round(data.available_balance * 100) : 0;
+      const bal =
+        typeof data?.available_balance === "number" ? Math.round(data.available_balance * 100) : 0;
       return ok({ balanceMinor: bal, currency: data?.currency ?? "NGN" }, "fw-bal", 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave getBalance failed";
@@ -519,7 +626,8 @@ export const flutterwaveMobileMoney: IMobileMoneyProvider = {
       return ok({ providerRef: `fw-momo-${req.reference}`, status: "PENDING" }, "mock", 200);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
     try {
       const channel = pickMobileMoneyChannel(req.walletProvider);
       const { body } = await http(
@@ -536,13 +644,16 @@ export const flutterwaveMobileMoney: IMobileMoneyProvider = {
             tx_ref: req.reference,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { id?: number; status?: string; flw_ref?: string } }).data;
       return ok(
-        { providerRef: String(data?.id ?? `fw-momo-${req.reference}`), status: (data?.status ?? "PENDING").toUpperCase() },
+        {
+          providerRef: String(data?.id ?? `fw-momo-${req.reference}`),
+          status: (data?.status ?? "PENDING").toUpperCase(),
+        },
         `fw-momo-${data?.id ?? ""}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave mobile money collect failed";
@@ -561,7 +672,8 @@ export const flutterwaveMobileMoney: IMobileMoneyProvider = {
       return ok({ providerRef: `fw-momo-out-${req.reference}`, status: "PENDING" }, "mock", 200);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
     try {
       const { body } = await http(
         `${BASE}/transfers`,
@@ -577,13 +689,16 @@ export const flutterwaveMobileMoney: IMobileMoneyProvider = {
             reference: req.reference,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { id?: number; status?: string } }).data;
       return ok(
-        { providerRef: String(data?.id ?? `fw-momo-out-${req.reference}`), status: mapStatus(data?.status) },
+        {
+          providerRef: String(data?.id ?? `fw-momo-out-${req.reference}`),
+          status: mapStatus(data?.status),
+        },
         `fw-momo-out-${data?.id ?? ""}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave mobile money disburse failed";
@@ -600,12 +715,13 @@ export const flutterwaveMobileMoney: IMobileMoneyProvider = {
       return ok({ status: "SUCCESS" }, "mock", 15);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
     try {
       const { body } = await http(
         `${BASE}/transactions/${encodeURIComponent(providerRef)}/verify`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { status?: string } }).data;
       return ok({ status: (data?.status ?? "pending").toUpperCase() }, providerRef, 0);
@@ -659,11 +775,12 @@ export const flutterwaveSubaccounts: ISplitPaymentProvider = {
           splitValue: req.splitValue ?? req.percentageCharge ?? req.defaultPercentage ?? 0,
         },
         "mock",
-        80,
+        80
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
@@ -680,10 +797,14 @@ export const flutterwaveSubaccounts: ISplitPaymentProvider = {
             split_value: req.splitValue ?? req.percentageCharge ?? req.defaultPercentage ?? 0,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Flutterwave createSubaccount returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Flutterwave createSubaccount returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapFlwSubaccount(data), String(data.subaccount_id ?? data.id ?? "flw-sub"), 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave createSubaccount failed";
@@ -700,14 +821,15 @@ export const flutterwaveSubaccounts: ISplitPaymentProvider = {
       return ok([], "mock", 30);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const page = req?.page ?? 1;
       const { body } = await http(
         `${BASE}/subaccounts?page=${page}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown>[] }).data ?? [];
       return ok(data.map(mapFlwSubaccount), "flw-sub-list", 0);
@@ -735,20 +857,25 @@ export const flutterwaveSubaccounts: ISplitPaymentProvider = {
           splitValue: 5,
         },
         "mock",
-        20,
+        20
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/subaccounts/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Flutterwave fetchSubaccount returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Flutterwave fetchSubaccount returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapFlwSubaccount(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave fetchSubaccount failed";
@@ -774,11 +901,12 @@ export const flutterwaveSubaccounts: ISplitPaymentProvider = {
           splitValue: req.splitValue ?? 0,
         },
         "mock",
-        40,
+        40
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const payload: Record<string, unknown> = {};
@@ -790,10 +918,14 @@ export const flutterwaveSubaccounts: ISplitPaymentProvider = {
       const { body } = await http(
         `${BASE}/subaccounts/${encodeURIComponent(id)}`,
         { method: "PUT", headers: authHeaders(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Flutterwave updateSubaccount returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Flutterwave updateSubaccount returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapFlwSubaccount(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave updateSubaccount failed";
@@ -810,13 +942,14 @@ export const flutterwaveSubaccounts: ISplitPaymentProvider = {
       return ok({ deleted: true }, "mock", 20);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       await http(
         `${BASE}/subaccounts/${encodeURIComponent(id)}`,
         { method: "DELETE", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       return ok({ deleted: true }, id, 0);
     } catch (e) {
@@ -840,10 +973,15 @@ export const flutterwavePaymentPlans: IRecurringBillingProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       const code = `FLW_PLN-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-      return ok({ code, status: "active", id: String(Math.floor(Math.random() * 10000)) }, "mock", 70);
+      return ok(
+        { code, status: "active", id: String(Math.floor(Math.random() * 10000)) },
+        "mock",
+        70
+      );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
@@ -858,14 +996,33 @@ export const flutterwavePaymentPlans: IRecurringBillingProvider = {
             duration: req.duration ?? 0,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { id?: number; status?: string; plan?: number; amount?: number; name?: string; interval?: string } }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Flutterwave createPaymentPlan returned no data", { providerCode: CODE, raw: sanitize(body) });
+      const data = (
+        body as {
+          data?: {
+            id?: number;
+            status?: string;
+            plan?: number;
+            amount?: number;
+            name?: string;
+            interval?: string;
+          };
+        }
+      ).data;
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Flutterwave createPaymentPlan returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(
-        { code: String(data.id ?? data.plan ?? "flw-plan"), status: data.status ?? "active", id: String(data.id ?? "") },
+        {
+          code: String(data.id ?? data.plan ?? "flw-plan"),
+          status: data.status ?? "active",
+          id: String(data.id ?? ""),
+        },
         String(data.id ?? "flw-plan"),
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave createPaymentPlan failed";
@@ -882,14 +1039,15 @@ export const flutterwavePaymentPlans: IRecurringBillingProvider = {
       return ok({ plans: [], meta: { page_info: { total: 0 } } }, "mock", 25);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const page = req?.page ?? 1;
       const { body } = await http(
         `${BASE}/payment-plans?page=${page}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: unknown[]; meta?: Record<string, unknown> }).data ?? [];
       const meta = (body as { meta?: Record<string, unknown> }).meta;
@@ -909,16 +1067,21 @@ export const flutterwavePaymentPlans: IRecurringBillingProvider = {
       return ok({ plan: { id, name: "Demo Plan", amount: 1000, interval: "monthly" } }, "mock", 20);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/payment-plans/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Flutterwave fetchPaymentPlan returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Flutterwave fetchPaymentPlan returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok({ plan: data }, id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave fetchPaymentPlan failed";
@@ -935,13 +1098,14 @@ export const flutterwavePaymentPlans: IRecurringBillingProvider = {
       return ok({ status: "cancelled" }, "mock", 25);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/payment-plans/${encodeURIComponent(id)}/cancel`,
         { method: "PUT", headers: authHeaders(secretKey), body: JSON.stringify({}) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { status?: string } }).data;
       return ok({ status: (data?.status ?? "cancelled").toUpperCase() }, id, 0);
@@ -977,11 +1141,12 @@ export const flutterwaveVirtualCards: IVirtualCardManagementProvider = {
           status: "active",
         },
         "mock",
-        100,
+        100
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const payload: Record<string, unknown> = {
@@ -993,22 +1158,40 @@ export const flutterwaveVirtualCards: IVirtualCardManagementProvider = {
       const { body } = await http(
         `${BASE}/virtual-cards`,
         { method: "POST", headers: authHeaders(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { id?: string; cvv?: string; card_pan?: string; last4?: string; name_on_card?: string; status?: string; currency?: string; amount?: number } }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Flutterwave createVirtualCard returned no data", { providerCode: CODE, raw: sanitize(body) });
+      const data = (
+        body as {
+          data?: {
+            id?: string;
+            cvv?: string;
+            card_pan?: string;
+            last4?: string;
+            name_on_card?: string;
+            status?: string;
+            currency?: string;
+            amount?: number;
+          };
+        }
+      ).data;
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Flutterwave createVirtualCard returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(
         {
           id: String(data.id ?? "flw-vc"),
           currency: data.currency ?? req.currency,
-          amountMinor: typeof data.amount === "number" ? Math.round(data.amount * 100) : req.amountMinor,
+          amountMinor:
+            typeof data.amount === "number" ? Math.round(data.amount * 100) : req.amountMinor,
           billingName: data.name_on_card ?? req.billingName,
           billingAddress: req.billingAddress,
           last4: data.last4,
           status: data.status ?? "active",
         },
         String(data.id ?? "flw-vc"),
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave createVirtualCard failed";
@@ -1023,22 +1206,45 @@ export const flutterwaveVirtualCards: IVirtualCardManagementProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       return ok(
-        { id, currency: "USD", amountMinor: 0, billingName: "Turbopay User", last4: "1234", status: "active" },
+        {
+          id,
+          currency: "USD",
+          amountMinor: 0,
+          billingName: "Turbopay User",
+          last4: "1234",
+          status: "active",
+        },
         "mock",
-        20,
+        20
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/virtual-cards/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { id?: string; currency?: string; amount?: number; name_on_card?: string; last4?: string; status?: string } }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Flutterwave getVirtualCard returned no data", { providerCode: CODE, raw: sanitize(body) });
+      const data = (
+        body as {
+          data?: {
+            id?: string;
+            currency?: string;
+            amount?: number;
+            name_on_card?: string;
+            last4?: string;
+            status?: string;
+          };
+        }
+      ).data;
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Flutterwave getVirtualCard returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(
         {
           id: String(data.id ?? id),
@@ -1049,7 +1255,7 @@ export const flutterwaveVirtualCards: IVirtualCardManagementProvider = {
           status: data.status,
         },
         id,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave getVirtualCard failed";
@@ -1066,7 +1272,8 @@ export const flutterwaveVirtualCards: IVirtualCardManagementProvider = {
       return ok({ status: "success", balanceMinor: req.amountMinor }, "mock", 60);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
@@ -1076,10 +1283,19 @@ export const flutterwaveVirtualCards: IVirtualCardManagementProvider = {
           headers: authHeaders(secretKey),
           body: JSON.stringify({ amount: req.amountMinor / 100, currency: req.currency ?? "USD" }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { status?: string; amount?: number; new_balance?: number; currency?: string } }).data;
-      const balanceMinor = typeof data?.new_balance === "number" ? Math.round(data.new_balance * 100) : typeof data?.amount === "number" ? Math.round(data.amount * 100) : undefined;
+      const data = (
+        body as {
+          data?: { status?: string; amount?: number; new_balance?: number; currency?: string };
+        }
+      ).data;
+      const balanceMinor =
+        typeof data?.new_balance === "number"
+          ? Math.round(data.new_balance * 100)
+          : typeof data?.amount === "number"
+            ? Math.round(data.amount * 100)
+            : undefined;
       return ok({ status: data?.status ?? "success", balanceMinor }, id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave fundVirtualCard failed";
@@ -1096,13 +1312,14 @@ export const flutterwaveVirtualCards: IVirtualCardManagementProvider = {
       return ok({ status: "terminated" }, "mock", 30);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       await http(
         `${BASE}/virtual-cards/${encodeURIComponent(id)}`,
         { method: "DELETE", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       return ok({ status: "terminated" }, id, 0);
     } catch (e) {
@@ -1136,11 +1353,12 @@ export const flutterwaveTransfersToBank: IBulkTransferProvider = {
           entryCount: req.bulkData.length,
         },
         "mock",
-        120,
+        120
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const bulkData = req.bulkData.map((b, i) => ({
@@ -1158,17 +1376,37 @@ export const flutterwaveTransfersToBank: IBulkTransferProvider = {
           headers: authHeaders(secretKey),
           body: JSON.stringify({ bulk_data: bulkData, title: req.title }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { id?: number; status?: string; total_credit?: number; total_debit?: number; total_approved_amount?: number; count?: number; approvers?: unknown[] } }).data;
+      const data = (
+        body as {
+          data?: {
+            id?: number;
+            status?: string;
+            total_credit?: number;
+            total_debit?: number;
+            total_approved_amount?: number;
+            count?: number;
+            approvers?: unknown[];
+          };
+        }
+      ).data;
       const batchId = String(data?.id ?? `flw-bulk-${Date.now()}`);
-      const totalCreditMinor = typeof data?.total_credit === "number" ? Math.round(data.total_credit * 100) : undefined;
-      const totalDebitMinor = typeof data?.total_debit === "number" ? Math.round(data.total_debit * 100) : undefined;
+      const totalCreditMinor =
+        typeof data?.total_credit === "number" ? Math.round(data.total_credit * 100) : undefined;
+      const totalDebitMinor =
+        typeof data?.total_debit === "number" ? Math.round(data.total_debit * 100) : undefined;
       const entryCount = typeof data?.count === "number" ? data.count : req.bulkData.length;
       return ok(
-        { batchId, status: (data?.status ?? "PENDING").toUpperCase(), totalCreditMinor, totalDebitMinor, entryCount },
+        {
+          batchId,
+          status: (data?.status ?? "PENDING").toUpperCase(),
+          totalCreditMinor,
+          totalDebitMinor,
+          entryCount,
+        },
         batchId,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave bulkTransfer failed";
@@ -1185,7 +1423,8 @@ export const flutterwaveTransfersToBank: IBulkTransferProvider = {
       return ok({ feeMinor: 50, currency: req.currency }, "mock", 40);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
@@ -1195,7 +1434,7 @@ export const flutterwaveTransfersToBank: IBulkTransferProvider = {
           headers: authHeaders(secretKey),
           body: JSON.stringify({ amount: req.amountMinor / 100, currency: req.currency }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { fee?: number; currency?: string } }).data;
       const feeMinor = typeof data?.fee === "number" ? Math.round(data.fee * 100) : 0;
@@ -1234,7 +1473,8 @@ export const flutterwaveBillsPayment: IBillPaymentProvider = {
       return ok([], "mock", 30);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       // If a category is provided, list billers under that category.
@@ -1243,14 +1483,12 @@ export const flutterwaveBillsPayment: IBillPaymentProvider = {
       const url = req.category
         ? `${BASE}/bills/${encodeURIComponent(req.category)}?country=${encodeURIComponent(req.country)}`
         : `${BASE}/bills?country=${encodeURIComponent(req.country)}`;
-      const { body } = await http(
-        url,
-        { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+      const { body } = await http(url, { method: "GET", headers: authHeaders(secretKey) }, (s, b) =>
+        defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown>[] }).data ?? [];
       const billers = data.map((d) =>
-        mapFlwBiller(d, req.category ?? String(d.category ?? "general"), req.country),
+        mapFlwBiller(d, req.category ?? String(d.category ?? "general"), req.country)
       );
       return ok(billers, "flw-billers", 0);
     } catch (e) {
@@ -1268,7 +1506,8 @@ export const flutterwaveBillsPayment: IBillPaymentProvider = {
       return ok({ customerName: `MOCK ${req.customerRef.slice(-4)}`, valid: true }, "mock", 30);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
@@ -1282,15 +1521,26 @@ export const flutterwaveBillsPayment: IBillPaymentProvider = {
             customer: req.customerRef,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { response_message?: string; name?: string; valid?: boolean; status?: string; account_name?: string; customer_name?: string } }).data;
+      const data = (
+        body as {
+          data?: {
+            response_message?: string;
+            name?: string;
+            valid?: boolean;
+            status?: string;
+            account_name?: string;
+            customer_name?: string;
+          };
+        }
+      ).data;
       const valid = (data?.status ?? "").toLowerCase() === "success" || data?.valid === true;
       const customerName = data?.name ?? data?.customer_name ?? data?.account_name ?? "";
       return ok(
         { customerName, valid, metadata: { response_message: data?.response_message } },
         "flw-validate",
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave validateCustomer failed";
@@ -1307,7 +1557,8 @@ export const flutterwaveBillsPayment: IBillPaymentProvider = {
       return ok({ providerRef: `flw-bill-${req.reference}`, status: "success" }, "mock", 100);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
@@ -1325,9 +1576,22 @@ export const flutterwaveBillsPayment: IBillPaymentProvider = {
             currency: req.currency,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { flw_ref?: string; status?: string; tx_ref?: string; receipt_number?: string; token?: string; units?: string; amount?: number; currency?: string } }).data;
+      const data = (
+        body as {
+          data?: {
+            flw_ref?: string;
+            status?: string;
+            tx_ref?: string;
+            receipt_number?: string;
+            token?: string;
+            units?: string;
+            amount?: number;
+            currency?: string;
+          };
+        }
+      ).data;
       const providerRef = data?.flw_ref ?? data?.tx_ref ?? req.reference;
       return ok(
         {
@@ -1338,7 +1602,7 @@ export const flutterwaveBillsPayment: IBillPaymentProvider = {
           receipt: data?.receipt_number,
         },
         providerRef,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave payBill failed";
@@ -1355,16 +1619,21 @@ export const flutterwaveBillsPayment: IBillPaymentProvider = {
       return ok({ status: "success" }, "mock", 20);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/bills/${encodeURIComponent(providerRef)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { status?: string; token?: string } }).data;
-      return ok({ status: (data?.status ?? "pending").toLowerCase(), token: data?.token }, providerRef, 0);
+      return ok(
+        { status: (data?.status ?? "pending").toLowerCase(), token: data?.token },
+        providerRef,
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave queryBillPayment failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -1401,16 +1670,18 @@ export const flutterwaveChargebacks: IChargebackProvider = {
       return ok({ chargebacks: [], meta: {} }, "mock", 30);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const page = req?.page ?? 1;
       const { body } = await http(
         `${BASE}/chargebacks?page=${page}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: Record<string, unknown>[]; meta?: Record<string, unknown> }).data ?? [];
+      const data =
+        (body as { data?: Record<string, unknown>[]; meta?: Record<string, unknown> }).data ?? [];
       const meta = (body as { meta?: Record<string, unknown> }).meta;
       return ok({ chargebacks: data.map(mapFlwChargeback), meta }, "flw-chargeback-list", 0);
     } catch (e) {
@@ -1428,16 +1699,21 @@ export const flutterwaveChargebacks: IChargebackProvider = {
       return ok({ id, amountMinor: 0, currency: "NGN", status: "pending" }, "mock", 20);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Flutterwave secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/chargebacks/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Flutterwave fetchChargeback returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Flutterwave fetchChargeback returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapFlwChargeback(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Flutterwave fetchChargeback failed";
@@ -1445,4 +1721,3 @@ export const flutterwaveChargebacks: IChargebackProvider = {
     }
   },
 };
-

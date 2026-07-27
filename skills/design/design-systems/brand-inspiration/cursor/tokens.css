@@ -66,26 +66,26 @@
    * `#fafafa → #ffffff` ladder gets replaced by `#f2f1ed → #e6e5e0`,
    * with the warmer surface tier (#ebeae5) bound to --surface-warm
    * for buttons that rest on the page background. */
-  --bg: #f2f1ed;                    /* Surface 200 — warm off-white */
-  --surface: #e6e5e0;               /* Surface 400 — card / lifted */
-  --surface-warm: #ebeae5;          /* Surface 300 — button default */
+  --bg: #f2f1ed; /* Surface 200 — warm off-white */
+  --surface: #e6e5e0; /* Surface 400 — card / lifted */
+  --surface-warm: #ebeae5; /* Surface 300 — button default */
 
   /* ─── Foreground ramp (4 levels) ────────────────────────────────
    * Cursor genuinely has a 4-tier ramp: solid for headings/body,
    * 90% for "light surface" button labels, 55% for secondary text,
    * 40% for link underlines and metadata. All bind to the same
    * oklab-fallback rgba (warm brown) at different alphas. */
-  --fg: #26251e;                              /* warm near-black */
-  --fg-2: rgba(38, 37, 30, 0.9);              /* solid headings on light surfaces */
-  --muted: rgba(38, 37, 30, 0.55);            /* secondary text */
-  --meta: rgba(38, 37, 30, 0.4);              /* metadata, link decoration */
+  --fg: #26251e; /* warm near-black */
+  --fg-2: rgba(38, 37, 30, 0.9); /* solid headings on light surfaces */
+  --muted: rgba(38, 37, 30, 0.55); /* secondary text */
+  --meta: rgba(38, 37, 30, 0.4); /* metadata, link decoration */
 
   /* ─── Border (2 levels) ─────────────────────────────────────────
    * DESIGN.md §Color Palette specifies oklab-space borders as the
    * brand signature. The CSS-compatible fallback (rgba) is what
    * actually ships per DESIGN.md §Agent Prompt Guide rule 3. */
-  --border: rgba(38, 37, 30, 0.1);            /* primary border, 10% warm brown */
-  --border-soft: rgba(38, 37, 30, 0.06);      /* row separators, ghost-button bg */
+  --border: rgba(38, 37, 30, 0.1); /* primary border, 10% warm brown */
+  --border-soft: rgba(38, 37, 30, 0.06); /* row separators, ghost-button bg */
 
   /* ─── Accent ──────────────────────────────────────────────────────
    * Cursor Orange — primary CTAs, link color, ONE hero accent per
@@ -105,9 +105,9 @@
    * than the schema fallback's pure red. --success is a muted
    * teal-green (warm-shifted). --warn keeps the schema fallback;
    * Cursor's marketing site has no native warn token. */
-  --success: #1f8a65;                         /* muted teal-green */
+  --success: #1f8a65; /* muted teal-green */
   --warn: #eab308;
-  --danger: #cf2d56;                          /* warm crimson — hover signature */
+  --danger: #cf2d56; /* warm crimson — hover signature */
 
   /* ─── Typography ──────────────────────────────────────────────────
    * Three voices, three roles:
@@ -116,9 +116,15 @@
    *   --font-mono: berkeleyMono for code, kbd, terminal text
    * The three-voice system is the typographic signature; component
    * CSS should never substitute fewer voices for "simplicity". */
-  --font-display: "CursorGothic", "CursorGothic Fallback", system-ui, "Helvetica Neue", Helvetica, Arial, sans-serif;
-  --font-body: "jjannon", "Iowan Old Style", "Palatino Linotype", "URW Palladio L", P052, ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
-  --font-mono: "berkeleyMono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-display:
+    "CursorGothic", "CursorGothic Fallback", system-ui, "Helvetica Neue", Helvetica, Arial,
+    sans-serif;
+  --font-body:
+    "jjannon", "Iowan Old Style", "Palatino Linotype", "URW Palladio L", P052, ui-serif, Georgia,
+    Cambria, "Times New Roman", Times, serif;
+  --font-mono:
+    "berkeleyMono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
 
   /* Type scale — distilled from DESIGN.md §Typography Hierarchy.
    * Cursor has more than 8 sizes in production (caption 11, body
@@ -126,14 +132,14 @@
    * sub-heading 26, section 36, hero 72); the schema's 8 slots
    * cover the spine. 17.28px / 19.2px live inline in components.html
    * where the body-serif distinction matters. */
-  --text-xs: 11px;                  /* caption, system micro */
-  --text-sm: 14px;                  /* button label, system caption */
-  --text-base: 16px;                /* body sans, ui body */
-  --text-lg: 19.2px;                /* body serif (1.20rem) */
-  --text-xl: 22px;                  /* title small */
-  --text-2xl: 26px;                 /* sub-heading */
-  --text-3xl: 36px;                 /* section heading */
-  --text-4xl: 72px;                 /* display hero */
+  --text-xs: 11px; /* caption, system micro */
+  --text-sm: 14px; /* button label, system caption */
+  --text-base: 16px; /* body sans, ui body */
+  --text-lg: 19.2px; /* body serif (1.20rem) */
+  --text-xl: 22px; /* title small */
+  --text-2xl: 26px; /* sub-heading */
+  --text-3xl: 36px; /* section heading */
+  --text-4xl: 72px; /* display hero */
 
   /* Leading + tracking — DESIGN.md §Typography Hierarchy.
    * --leading-tight=1.10 is Cursor's hero rhythm (matches the
@@ -142,7 +148,7 @@
    * (-2.16px / 72px). Smaller display sizes in components.html
    * use proportional inline overrides. */
   --leading-body: 1.5;
-  --leading-tight: 1.10;
+  --leading-tight: 1.1;
   --tracking-display: -0.03em;
 
   /* ─── Spacing ─────────────────────────────────────────────────────
@@ -186,9 +192,7 @@
   --elev-flat: none;
   --elev-ring: 0 0 0 1px var(--border);
   --elev-raised:
-    0 28px 70px rgba(0, 0, 0, 0.14),
-    0 14px 32px rgba(0, 0, 0, 0.1),
-    0 0 0 1px var(--border);
+    0 28px 70px rgba(0, 0, 0, 0.14), 0 14px 32px rgba(0, 0, 0, 0.1), 0 0 0 1px var(--border);
 
   /* ─── Focus ───────────────────────────────────────────────────────
    * DESIGN.md §Interaction & Motion: "Shadow-based focus:

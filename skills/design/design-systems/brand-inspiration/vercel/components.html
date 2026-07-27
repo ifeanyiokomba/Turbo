@@ -39,7 +39,9 @@
 
         --font-display: "Geist", "Geist Sans", -apple-system, "Segoe UI", Arial, sans-serif;
         --font-body: "Geist", "Geist Sans", -apple-system, "Segoe UI", Arial, sans-serif;
-        --font-mono: "Geist Mono", ui-monospace, "SF Mono", "Roboto Mono", Menlo, Monaco, "Liberation Mono", "DejaVu Sans Mono", "Courier New", monospace;
+        --font-mono:
+          "Geist Mono", ui-monospace, "SF Mono", "Roboto Mono", Menlo, Monaco, "Liberation Mono",
+          "DejaVu Sans Mono", "Courier New", monospace;
 
         --text-xs: 12px;
         --text-sm: 14px;
@@ -75,10 +77,8 @@
         --elev-flat: none;
         --elev-ring: 0 0 0 1px var(--border);
         --elev-raised:
-          0 0 0 1px rgba(0, 0, 0, 0.08),
-          0 2px 2px rgba(0, 0, 0, 0.04),
-          0 8px 8px -8px rgba(0, 0, 0, 0.04),
-          0 0 0 1px #fafafa;
+          0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 2px rgba(0, 0, 0, 0.04),
+          0 8px 8px -8px rgba(0, 0, 0, 0.04), 0 0 0 1px #fafafa;
 
         --focus-ring: 0 0 0 2px var(--accent);
 
@@ -93,8 +93,16 @@
       }
 
       /* ─── Reset (minimal) ─────────────────────────────────────── */
-      *, *::before, *::after { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
       body {
         background: var(--bg);
         color: var(--fg);
@@ -127,12 +135,20 @@
         border-top: 1px solid var(--fg);
       }
       @media (max-width: 1023px) {
-        .container { padding-inline: var(--container-gutter-tablet); }
-        section { padding-block: var(--section-y-tablet); }
+        .container {
+          padding-inline: var(--container-gutter-tablet);
+        }
+        section {
+          padding-block: var(--section-y-tablet);
+        }
       }
       @media (max-width: 639px) {
-        .container { padding-inline: var(--container-gutter-phone); }
-        section { padding-block: var(--section-y-phone); }
+        .container {
+          padding-inline: var(--container-gutter-phone);
+        }
+        section {
+          padding-block: var(--section-y-phone);
+        }
       }
 
       /* ─── Typography ────────────────────────────────────────────
@@ -140,7 +156,10 @@
        * not weight. Three weights only — 400 (read), 500 (interact),
        * 600 (announce). Display sizes use the negative em tracking
        * from `--tracking-display`; smaller scales relax toward 0. */
-      h1, h2, h3, h4 {
+      h1,
+      h2,
+      h3,
+      h4 {
         font-family: var(--font-display);
         line-height: var(--leading-tight);
         margin: 0;
@@ -156,7 +175,7 @@
         font-weight: 600;
         /* 40px Section Heading: line-height 1.20 per DESIGN.md §Typography.
            Overrides the shared 1.10 (--leading-tight) set on h1/h2/h3 above. */
-        line-height: 1.20;
+        line-height: 1.2;
         letter-spacing: var(--tracking-display);
       }
       h3 {
@@ -173,16 +192,25 @@
         font-weight: 600;
         letter-spacing: -0.02em;
       }
-      p { margin: 0; }
+      p {
+        margin: 0;
+      }
 
       .lede {
         font-size: var(--text-lg);
         line-height: 1.6;
         color: var(--fg-2);
       }
-      .body-muted { color: var(--fg-2); }
-      .body-meta  { color: var(--muted); font-size: var(--text-sm); }
-      .body-sm    { font-size: var(--text-sm); }
+      .body-muted {
+        color: var(--fg-2);
+      }
+      .body-meta {
+        color: var(--muted);
+        font-size: var(--text-sm);
+      }
+      .body-sm {
+        font-size: var(--text-sm);
+      }
 
       /* Eyebrow uses Geist Mono uppercase — DESIGN.md §3: "Geist
          Mono in uppercase with tnum or liga serves as the developer
@@ -198,9 +226,15 @@
         letter-spacing: 0.08em;
       }
 
-      .stack-3 > * + * { margin-block-start: var(--space-3); }
-      .stack-4 > * + * { margin-block-start: var(--space-4); }
-      .stack-6 > * + * { margin-block-start: var(--space-6); }
+      .stack-3 > * + * {
+        margin-block-start: var(--space-3);
+      }
+      .stack-4 > * + * {
+        margin-block-start: var(--space-4);
+      }
+      .stack-6 > * + * {
+        margin-block-start: var(--space-6);
+      }
 
       /* ─── Buttons ───────────────────────────────────────────────
        * Vercel's primary CTA is BLACK, not the accent color — the
@@ -291,8 +325,12 @@
         box-shadow: 0 0 0 1px var(--border);
         transition: box-shadow var(--motion-fast) var(--ease-standard);
       }
-      .field input::placeholder { color: var(--meta); }
-      .field input:hover { box-shadow: 0 0 0 1px color-mix(in oklab, var(--fg), transparent 84%); }
+      .field input::placeholder {
+        color: var(--meta);
+      }
+      .field input:hover {
+        box-shadow: 0 0 0 1px color-mix(in oklab, var(--fg), transparent 84%);
+      }
       .field input:focus-visible {
         box-shadow: var(--focus-ring);
       }
@@ -379,7 +417,9 @@
         text-underline-offset: 3px;
         text-decoration-thickness: 1px;
       }
-      a:hover { text-decoration-thickness: 2px; }
+      a:hover {
+        text-decoration-thickness: 2px;
+      }
       a:focus-visible {
         outline: none;
         border-radius: 2px;
@@ -456,7 +496,9 @@
           grid-template-columns: 1fr;
           gap: var(--space-3);
         }
-        .pipeline-arrow { display: none; }
+        .pipeline-arrow {
+          display: none;
+        }
       }
 
       /* ─── Distinctive: Metric row ───────────────────────────────
@@ -471,7 +513,10 @@
         margin-block-start: var(--space-8);
       }
       @media (max-width: 639px) {
-        .metric-row { grid-template-columns: 1fr; gap: var(--space-6); }
+        .metric-row {
+          grid-template-columns: 1fr;
+          gap: var(--space-6);
+        }
       }
       .metric {
         display: flex;
@@ -523,9 +568,16 @@
         z-index: 0;
         pointer-events: none;
       }
-      .hero > * { position: relative; z-index: 1; }
-      .hero .eyebrow { margin-block-end: var(--space-4); }
-      .hero h1 { max-width: 18ch; }
+      .hero > * {
+        position: relative;
+        z-index: 1;
+      }
+      .hero .eyebrow {
+        margin-block-end: var(--space-4);
+      }
+      .hero h1 {
+        max-width: 18ch;
+      }
       .hero .lede {
         max-width: 56ch;
         margin-block-start: var(--space-5);
@@ -553,10 +605,14 @@
         margin-block-start: var(--space-8);
       }
       @media (max-width: 1023px) {
-        .features-grid { grid-template-columns: 1fr 1fr; }
+        .features-grid {
+          grid-template-columns: 1fr 1fr;
+        }
       }
       @media (max-width: 639px) {
-        .features-grid { grid-template-columns: 1fr; }
+        .features-grid {
+          grid-template-columns: 1fr;
+        }
       }
 
       .form-row {
@@ -567,7 +623,9 @@
         margin-block-start: var(--space-8);
       }
       @media (max-width: 1023px) {
-        .form-row { grid-template-columns: 1fr; }
+        .form-row {
+          grid-template-columns: 1fr;
+        }
       }
       .form {
         display: flex;
@@ -592,7 +650,11 @@
         justify-content: space-between;
         gap: var(--space-3);
       }
-      .icon { width: 16px; height: 16px; flex-shrink: 0; }
+      .icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
     </style>
   </head>
   <body>
@@ -610,10 +672,9 @@
         <p class="eyebrow">Reference fixture · Vercel</p>
         <h1>Build, preview, and ship without rebuilding the platform underneath.</h1>
         <p class="lede">
-          A token block distilled from Vercel's published design
-          system — Geist Sans with -0.05em display tracking, shadow-
-          as-border throughout, blue reserved for the chromatic
-          moments. The fixture you are reading paints from the same
+          A token block distilled from Vercel's published design system — Geist Sans with -0.05em
+          display tracking, shadow- as-border throughout, blue reserved for the chromatic moments.
+          The fixture you are reading paints from the same
           <code style="font-family: var(--font-mono); font-size: 0.95em">:root</code>
           block agents inline into every Vercel artifact.
         </p>
@@ -662,11 +723,9 @@
           Three steps, one platform.
         </h2>
         <p class="body-muted" style="margin-block-start: var(--space-4); max-width: 56ch">
-          DESIGN.md gives each stage its own workflow accent
-          (Develop Blue, Preview Pink, Ship Red). Those colors are
-          deliberately deferred here — they are pipeline labels, not
-          brand accents, and would each promote in as a C-extension
-          rather than ride on the shared accent slot.
+          DESIGN.md gives each stage its own workflow accent (Develop Blue, Preview Pink, Ship Red).
+          Those colors are deliberately deferred here — they are pipeline labels, not brand accents,
+          and would each promote in as a C-extension rather than ride on the shared accent slot.
         </p>
 
         <div class="pipeline">
@@ -674,8 +733,8 @@
             <p class="eyebrow">01 · Develop</p>
             <p class="step-title">Write the code.</p>
             <p class="step-body">
-              Local dev with hot-reload that mirrors the production
-              runtime. No surprises between localhost and the deploy.
+              Local dev with hot-reload that mirrors the production runtime. No surprises between
+              localhost and the deploy.
             </p>
           </article>
           <div class="pipeline-arrow" aria-hidden="true">&rarr;</div>
@@ -683,8 +742,8 @@
             <p class="eyebrow">02 · Preview</p>
             <p class="step-title">Share the branch.</p>
             <p class="step-body">
-              Every push gets a preview URL. Stakeholders review
-              against the same runtime that will serve production.
+              Every push gets a preview URL. Stakeholders review against the same runtime that will
+              serve production.
             </p>
           </article>
           <div class="pipeline-arrow" aria-hidden="true">&rarr;</div>
@@ -692,8 +751,7 @@
             <p class="eyebrow">03 · Ship</p>
             <p class="step-title">Promote, atomically.</p>
             <p class="step-body">
-              One click promotes the previewed build. Rollback is the
-              same one click in reverse.
+              One click promotes the previewed build. Rollback is the same one click in reverse.
             </p>
           </article>
         </div>
@@ -724,7 +782,9 @@
         <div class="stack-3">
           <p class="eyebrow">What this fixture exercises</p>
           <h2 style="max-width: 28ch">
-            Every component below pulls from <code style="font-family: var(--font-mono); font-size: 0.92em">var(--*)</code> — no raw hex, no off-token type.
+            Every component below pulls from
+            <code style="font-family: var(--font-mono); font-size: 0.92em">var(--*)</code> — no raw
+            hex, no off-token type.
           </h2>
         </div>
 
@@ -733,9 +793,8 @@
             <span class="badge badge-accent">Surface</span>
             <h3>Achromatic canvas, one accent.</h3>
             <p class="body-muted body-sm">
-              Pure white for the page, pure white for cards, no warm
-              tier. The whole system stays achromatic until the
-              accent moment — links, focus rings, badge tints.
+              Pure white for the page, pure white for cards, no warm tier. The whole system stays
+              achromatic until the accent moment — links, focus rings, badge tints.
             </p>
             <a href="./tokens.css" class="body-sm">Inspect tokens &rarr;</a>
           </article>
@@ -744,10 +803,11 @@
             <span class="badge badge-accent">Shadows</span>
             <h3>Edges live in the shadow layer.</h3>
             <p class="body-muted body-sm">
-              <code style="font-family: var(--font-mono); font-size: 0.95em">box-shadow: 0 0 0 1px rgba(0,0,0,.08)</code>
-              replaces traditional borders throughout. Cards layer
-              four shadows — ring, close, far, and inner glow — into
-              a single elevation.
+              <code style="font-family: var(--font-mono); font-size: 0.95em"
+                >box-shadow: 0 0 0 1px rgba(0,0,0,.08)</code
+              >
+              replaces traditional borders throughout. Cards layer four shadows — ring, close, far,
+              and inner glow — into a single elevation.
             </p>
             <a href="./DESIGN.md" class="body-sm">Read the rule &rarr;</a>
           </article>
@@ -756,10 +816,10 @@
             <span class="badge badge-accent">Type</span>
             <h3>Geist runs tight.</h3>
             <p class="body-muted body-sm">
-              Display tracking is <code style="font-family: var(--font-mono); font-size: 0.95em">-0.05em</code>
-              — the most aggressive negative tracking of any major
-              design system. Three weights only: 400 reads, 500
-              interacts, 600 announces.
+              Display tracking is
+              <code style="font-family: var(--font-mono); font-size: 0.95em">-0.05em</code>
+              — the most aggressive negative tracking of any major design system. Three weights
+              only: 400 reads, 500 interacts, 600 announces.
             </p>
             <a href="./tokens.css" class="body-sm">Inspect typography &rarr;</a>
           </article>
@@ -790,19 +850,17 @@
               unchanged — black fill, white label, 6px radius.
             </p>
             <p class="body-muted body-sm">
-              No new token is introduced for this section. The form
-              card uses
+              No new token is introduced for this section. The form card uses
               <code style="font-family: var(--font-mono); font-size: 0.95em">--elev-raised</code>
-              directly so the input shadow-borders read as recessed
-              beneath the form's outer ring.
+              directly so the input shadow-borders read as recessed beneath the form's outer ring.
             </p>
             <p class="body-meta">
-              Full reference at <a href="./tokens.css">tokens.css</a> ·
-              spec at <a href="./DESIGN.md">DESIGN.md</a>.
+              Full reference at <a href="./tokens.css">tokens.css</a> · spec at
+              <a href="./DESIGN.md">DESIGN.md</a>.
             </p>
           </div>
 
-          <form class="form" onsubmit="event.preventDefault();">
+          <form class="form" onsubmit="event.preventDefault()">
             <div class="row-between">
               <p class="eyebrow">Get the spec</p>
               <span class="badge badge-success">
@@ -819,17 +877,11 @@
                 autocomplete="email"
                 required
               />
-              <p class="field-help">
-                We'll send the spec PDF and nothing else.
-              </p>
+              <p class="field-help">We'll send the spec PDF and nothing else.</p>
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary">
-                Send the spec
-              </button>
-              <button type="button" class="btn btn-secondary">
-                Skip for now
-              </button>
+              <button type="submit" class="btn btn-primary">Send the spec</button>
+              <button type="button" class="btn btn-secondary">Skip for now</button>
             </div>
           </form>
         </div>

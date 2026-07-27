@@ -107,11 +107,7 @@ export function downloadReceipt(tx: ReceiptTx): void {
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  doc.text(
-    `${tx.status} · ${TYPE_LABELS[tx.type] ?? tx.type}`,
-    margin + 14,
-    bannerY + 17,
-  );
+  doc.text(`${tx.status} · ${TYPE_LABELS[tx.type] ?? tx.type}`, margin + 14, bannerY + 17);
 
   // ===== Amount headline =====
   const isCredit = tx.direction === "CREDIT";
@@ -222,18 +218,12 @@ export function downloadReceipt(tx: ReceiptTx): void {
   doc.setTextColor(107, 114, 128);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
-  doc.text(
-    "Turbopay MFB · Licensed partners · NDPR-aware",
-    pageWidth / 2,
-    footerY + 34,
-    { align: "center" },
-  );
-  doc.text(
-    `Generated ${new Date().toLocaleString("en-NG")}`,
-    pageWidth / 2,
-    footerY + 46,
-    { align: "center" },
-  );
+  doc.text("Turbopay MFB · Licensed partners · NDPR-aware", pageWidth / 2, footerY + 34, {
+    align: "center",
+  });
+  doc.text(`Generated ${new Date().toLocaleString("en-NG")}`, pageWidth / 2, footerY + 46, {
+    align: "center",
+  });
 
   const safeRef = (tx.reference || "receipt").replace(/[^a-zA-Z0-9_-]/g, "_");
   doc.save(`turbopay-receipt-${safeRef}.pdf`);

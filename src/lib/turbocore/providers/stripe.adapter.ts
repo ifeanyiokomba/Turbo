@@ -106,14 +106,26 @@ export const stripeCardPayment: ICardPaymentProvider = {
       const { body } = await http(
         `${BASE}/payment_intents`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string; status?: string; client_secret?: string; next_action?: { redirect_to_url?: { url?: string } } });
+      const data = body as {
+        id?: string;
+        status?: string;
+        client_secret?: string;
+        next_action?: { redirect_to_url?: { url?: string } };
+      };
       if (!data.id) {
-        return fail("UPSTREAM_ERROR", "Stripe returned no payment intent id", { providerCode: CODE, raw: sanitize(body) });
+        return fail("UPSTREAM_ERROR", "Stripe returned no payment intent id", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       }
       const status: "PENDING" | "SUCCESS" | "3DS_REQUIRED" =
-        data.status === "succeeded" ? "SUCCESS" : data.next_action?.redirect_to_url?.url ? "3DS_REQUIRED" : "PENDING";
+        data.status === "succeeded"
+          ? "SUCCESS"
+          : data.next_action?.redirect_to_url?.url
+            ? "3DS_REQUIRED"
+            : "PENDING";
       const authUrl = data.next_action?.redirect_to_url?.url;
       return ok({ providerRef: data.id, status, authUrl }, data.id, 0);
     } catch (e) {
@@ -137,12 +149,22 @@ export const stripeCardPayment: ICardPaymentProvider = {
       const { body } = await http(
         `${BASE}/payment_intents/${encodeURIComponent(providerRef)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: string; amount?: number; amount_received?: number; currency?: string });
+      const data = body as {
+        status?: string;
+        amount?: number;
+        amount_received?: number;
+        currency?: string;
+      };
       const status = data.status ?? "pending";
-      const amountSettledMinor = typeof data.amount_received === "number" ? data.amount_received : data.amount ?? 0;
-      return ok({ status, amountSettledMinor, currency: (data.currency ?? "NGN").toUpperCase() }, providerRef, 0);
+      const amountSettledMinor =
+        typeof data.amount_received === "number" ? data.amount_received : (data.amount ?? 0);
+      return ok(
+        { status, amountSettledMinor, currency: (data.currency ?? "NGN").toUpperCase() },
+        providerRef,
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe verifyCharge failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -170,13 +192,16 @@ export const stripeCardPayment: ICardPaymentProvider = {
       const { body } = await http(
         `${BASE}/refunds`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string; status?: string });
+      const data = body as { id?: string; status?: string };
       return ok(
-        { refundRef: data.id ?? `stripe-refund-${req.providerRef}`, status: data.status ?? "pending" },
+        {
+          refundRef: data.id ?? `stripe-refund-${req.providerRef}`,
+          status: data.status ?? "pending",
+        },
         data.id ?? "stripe-refund",
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe refund failed";
@@ -208,7 +233,7 @@ export const stripeIssuing: IVirtualCardIssuer = {
           expiry: generateExpiry(),
         },
         "mock",
-        80,
+        80
       );
     }
     const secretKey = creds.secrets.secretKey;
@@ -231,11 +256,14 @@ export const stripeIssuing: IVirtualCardIssuer = {
         const { body: chBody } = await http(
           `${BASE}/issuing/cardholders`,
           { method: "POST", headers: authHeaders(secretKey), body: chForm },
-          (s, b) => defaultHttpError(CODE, s, b),
+          (s, b) => defaultHttpError(CODE, s, b)
         );
         cardholderId = (chBody as { id?: string }).id ?? "";
         if (!cardholderId) {
-          return fail("UPSTREAM_ERROR", "Stripe cardholder creation failed", { providerCode: CODE, raw: sanitize(chBody) });
+          return fail("UPSTREAM_ERROR", "Stripe cardholder creation failed", {
+            providerCode: CODE,
+            raw: sanitize(chBody),
+          });
         }
       }
 
@@ -253,18 +281,30 @@ export const stripeIssuing: IVirtualCardIssuer = {
       const { body } = await http(
         `${BASE}/issuing/cards`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string; last4?: string; exp_month?: number; exp_year?: number; currency?: string });
+      const data = body as {
+        id?: string;
+        last4?: string;
+        exp_month?: number;
+        exp_year?: number;
+        currency?: string;
+      };
       if (!data.id) {
-        return fail("UPSTREAM_ERROR", "Stripe returned no card id", { providerCode: CODE, raw: sanitize(body) });
+        return fail("UPSTREAM_ERROR", "Stripe returned no card id", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       }
       // Stripe does NOT return the full PAN/CVV — only the last4 and a
       // card fingerprint. We store a placeholder encrypted token so the
       // schema's `panEnc`/`cvvEnc` columns stay non-null; the only way to
       // retrieve a real PAN is via Stripe's /issuing/cards/:id/number
       // sensitive endpoint, which is gated and not safe for this flow.
-      const expiry = data.exp_month && data.exp_year ? `${String(data.exp_month).padStart(2, "0")}/${String(data.exp_year).slice(-2)}` : generateExpiry();
+      const expiry =
+        data.exp_month && data.exp_year
+          ? `${String(data.exp_month).padStart(2, "0")}/${String(data.exp_year).slice(-2)}`
+          : generateExpiry();
       return ok(
         {
           providerRef: data.id,
@@ -274,7 +314,7 @@ export const stripeIssuing: IVirtualCardIssuer = {
           expiry,
         },
         data.id,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe issueCard failed";
@@ -303,9 +343,9 @@ export const stripeIssuing: IVirtualCardIssuer = {
       const { body } = await http(
         `${BASE}/issuing/cards/${encodeURIComponent(req.providerRef)}`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string; spending_controls?: { amount_spent?: number } });
+      const data = body as { id?: string; spending_controls?: { amount_spent?: number } };
       return ok({ status: data.id ? "SUCCESS" : "PENDING" }, req.providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe fundCard failed";
@@ -332,9 +372,9 @@ export const stripeIssuing: IVirtualCardIssuer = {
       const { body } = await http(
         `${BASE}/issuing/cards/${encodeURIComponent(req.providerRef)}`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string });
+      const data = body as { id?: string };
       return ok({ status: data.id ? "SUCCESS" : "PENDING" }, req.providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe withdrawCard failed";
@@ -357,9 +397,9 @@ export const stripeIssuing: IVirtualCardIssuer = {
       const { body } = await http(
         `${BASE}/issuing/cards/${encodeURIComponent(providerRef)}`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: string });
+      const data = body as { status?: string };
       return ok({ status: (data.status ?? "inactive").toUpperCase() }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe freezeCard failed";
@@ -382,9 +422,9 @@ export const stripeIssuing: IVirtualCardIssuer = {
       const { body } = await http(
         `${BASE}/issuing/cards/${encodeURIComponent(providerRef)}`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: string });
+      const data = body as { status?: string };
       return ok({ status: (data.status ?? "active").toUpperCase() }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe unfreezeCard failed";
@@ -407,9 +447,13 @@ export const stripeIssuing: IVirtualCardIssuer = {
       const { body } = await http(
         `${BASE}/issuing/cards/${encodeURIComponent(providerRef)}`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string; status?: string; spending_controls?: { amount_spent?: number } });
+      const data = body as {
+        id?: string;
+        status?: string;
+        spending_controls?: { amount_spent?: number };
+      };
       const refunded = data.spending_controls?.amount_spent ?? 0;
       return ok({ status: "TERMINATED", refundedMinor: refunded }, providerRef, 0);
     } catch (e) {
@@ -444,7 +488,18 @@ export const stripeCustomers: ICustomerProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       const id = `cus_mock_${Math.random().toString(36).slice(2, 12)}`;
-      return ok({ id, email: req.email, name: req.name, phone: req.phone, metadata: req.metadata, createdAt: new Date().toISOString() }, "mock", 60);
+      return ok(
+        {
+          id,
+          email: req.email,
+          name: req.name,
+          phone: req.phone,
+          metadata: req.metadata,
+          createdAt: new Date().toISOString(),
+        },
+        "mock",
+        60
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Stripe secretKey missing", { providerCode: CODE });
@@ -459,10 +514,14 @@ export const stripeCustomers: ICustomerProvider = {
       const { body } = await http(
         `${BASE}/customers`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { id?: string }).id ? (body as Record<string, unknown>) : null;
-      if (!data) return fail("UPSTREAM_ERROR", "Stripe createCustomer returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Stripe createCustomer returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapStripeCustomer(data), String(data.id), 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe createCustomer failed";
@@ -493,7 +552,7 @@ export const stripeCustomers: ICustomerProvider = {
       const { body } = await http(
         `${BASE}/customers${qs}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown>[]; has_more?: boolean }).data ?? [];
       const hasMore = (body as { has_more?: boolean }).has_more ?? false;
@@ -519,10 +578,14 @@ export const stripeCustomers: ICustomerProvider = {
       const { body } = await http(
         `${BASE}/customers/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { id?: string }).id ? (body as Record<string, unknown>) : null;
-      if (!data) return fail("UPSTREAM_ERROR", "Stripe fetchCustomer returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Stripe fetchCustomer returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapStripeCustomer(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe fetchCustomer failed";
@@ -536,7 +599,17 @@ export const stripeCustomers: ICustomerProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ id, email: req.email ?? "demo@turbopay.ng", name: req.name, phone: req.phone, metadata: req.metadata }, "mock", 30);
+      return ok(
+        {
+          id,
+          email: req.email ?? "demo@turbopay.ng",
+          name: req.name,
+          phone: req.phone,
+          metadata: req.metadata,
+        },
+        "mock",
+        30
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Stripe secretKey missing", { providerCode: CODE });
@@ -551,10 +624,14 @@ export const stripeCustomers: ICustomerProvider = {
       const { body } = await http(
         `${BASE}/customers/${encodeURIComponent(id)}`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { id?: string }).id ? (body as Record<string, unknown>) : null;
-      if (!data) return fail("UPSTREAM_ERROR", "Stripe updateCustomer returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Stripe updateCustomer returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapStripeCustomer(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe updateCustomer failed";
@@ -577,7 +654,7 @@ export const stripeCustomers: ICustomerProvider = {
       await http(
         `${BASE}/customers/${encodeURIComponent(id)}`,
         { method: "DELETE", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       return ok({ deleted: true }, id, 0);
     } catch (e) {
@@ -611,7 +688,17 @@ export const stripeProducts: IProductProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       const id = `prod_mock_${Math.random().toString(36).slice(2, 12)}`;
-      return ok({ id, name: req.name, description: req.description, active: true, createdAt: new Date().toISOString() }, "mock", 60);
+      return ok(
+        {
+          id,
+          name: req.name,
+          description: req.description,
+          active: true,
+          createdAt: new Date().toISOString(),
+        },
+        "mock",
+        60
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Stripe secretKey missing", { providerCode: CODE });
@@ -625,10 +712,14 @@ export const stripeProducts: IProductProvider = {
       const { body } = await http(
         `${BASE}/products`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { id?: string }).id ? (body as Record<string, unknown>) : null;
-      if (!data) return fail("UPSTREAM_ERROR", "Stripe createProduct returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Stripe createProduct returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapStripeProduct(data), String(data.id), 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe createProduct failed";
@@ -654,7 +745,7 @@ export const stripeProducts: IProductProvider = {
       const { body } = await http(
         `${BASE}/products${qs}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown>[]; has_more?: boolean }).data ?? [];
       const hasMore = (body as { has_more?: boolean }).has_more ?? false;
@@ -671,7 +762,8 @@ export const stripeProducts: IProductProvider = {
 // ---------------------------------------------------------------------------
 
 function mapStripePrice(d: Record<string, unknown>): import("../contracts").IPrice {
-  const recurring = (d.recurring ?? undefined) as { interval?: string; interval_count?: number } | undefined;
+  const recurring = (d.recurring ?? undefined) as
+    { interval?: string; interval_count?: number } | undefined;
   return {
     id: String(d.id ?? ""),
     currency: String(d.currency ?? "usd"),
@@ -704,7 +796,7 @@ export const stripePrices: IPriceProvider = {
           active: true,
         },
         "mock",
-        60,
+        60
       );
     }
     const secretKey = creds.secrets.secretKey;
@@ -727,10 +819,14 @@ export const stripePrices: IPriceProvider = {
       const { body } = await http(
         `${BASE}/prices`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { id?: string }).id ? (body as Record<string, unknown>) : null;
-      if (!data) return fail("UPSTREAM_ERROR", "Stripe createPrice returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Stripe createPrice returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapStripePrice(data), String(data.id), 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe createPrice failed";
@@ -757,7 +853,7 @@ export const stripePrices: IPriceProvider = {
       const { body } = await http(
         `${BASE}/prices${qs}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown>[]; has_more?: boolean }).data ?? [];
       const hasMore = (body as { has_more?: boolean }).has_more ?? false;
@@ -780,15 +876,28 @@ function mapStripeSubscription(d: Record<string, unknown>): import("../contracts
   return {
     code: String(d.id ?? ""),
     customer: String(d.customer ?? ""),
-    plan: String((d.items as { data?: { price?: { id?: string } }[] } | undefined)?.data?.[0]?.price?.id ?? ""),
+    plan: String(
+      (d.items as { data?: { price?: { id?: string } }[] } | undefined)?.data?.[0]?.price?.id ?? ""
+    ),
     status: String(d.status ?? "incomplete"),
-    startDate: typeof d.start_date === "number" ? new Date(d.start_date * 1000).toISOString() : typeof d.current_period_start === "number" ? new Date(d.current_period_start * 1000).toISOString() : undefined,
+    startDate:
+      typeof d.start_date === "number"
+        ? new Date(d.start_date * 1000).toISOString()
+        : typeof d.current_period_start === "number"
+          ? new Date(d.current_period_start * 1000).toISOString()
+          : undefined,
     items: Array.isArray(items)
       ? items.map((it) => ({
-          price: String((it as { price?: { id?: string } | string })?.price && typeof (it as { price: { id?: string } }).price === "object"
-            ? ((it as { price: { id?: string } }).price.id ?? "")
-            : (it as { price?: string }).price ?? ""),
-          quantity: typeof (it as { quantity?: number }).quantity === "number" ? (it as { quantity: number }).quantity : 1,
+          price: String(
+            (it as { price?: { id?: string } | string })?.price &&
+              typeof (it as { price: { id?: string } }).price === "object"
+              ? ((it as { price: { id?: string } }).price.id ?? "")
+              : ((it as { price?: string }).price ?? "")
+          ),
+          quantity:
+            typeof (it as { quantity?: number }).quantity === "number"
+              ? (it as { quantity: number }).quantity
+              : 1,
         }))
       : undefined,
   };
@@ -814,7 +923,7 @@ export const stripeSubscriptions: IRecurringBillingProvider = {
           startDate: new Date().toISOString(),
         },
         "mock",
-        70,
+        70
       );
     }
     const secretKey = creds.secrets.secretKey;
@@ -839,10 +948,14 @@ export const stripeSubscriptions: IRecurringBillingProvider = {
       const { body } = await http(
         `${BASE}/subscriptions`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { id?: string }).id ? (body as Record<string, unknown>) : null;
-      if (!data) return fail("UPSTREAM_ERROR", "Stripe createSubscription returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Stripe createSubscription returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapStripeSubscription(data), String(data.id), 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe createSubscription failed";
@@ -868,10 +981,14 @@ export const stripeSubscriptions: IRecurringBillingProvider = {
       const { body } = await http(
         `${BASE}/subscriptions${qs}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown>[]; has_more?: boolean }).data ?? [];
-      return ok({ subscriptions: data.map(mapStripeSubscription), total: data.length }, "stripe-sub-list", 0);
+      return ok(
+        { subscriptions: data.map(mapStripeSubscription), total: data.length },
+        "stripe-sub-list",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe listSubscriptions failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -884,7 +1001,11 @@ export const stripeSubscriptions: IRecurringBillingProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ code: id, customer: "cus_demo", plan: "price_demo", status: "active" }, "mock", 20);
+      return ok(
+        { code: id, customer: "cus_demo", plan: "price_demo", status: "active" },
+        "mock",
+        20
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Stripe secretKey missing", { providerCode: CODE });
@@ -893,10 +1014,14 @@ export const stripeSubscriptions: IRecurringBillingProvider = {
       const { body } = await http(
         `${BASE}/subscriptions/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { id?: string }).id ? (body as Record<string, unknown>) : null;
-      if (!data) return fail("UPSTREAM_ERROR", "Stripe fetchSubscription returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Stripe fetchSubscription returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapStripeSubscription(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe fetchSubscription failed";
@@ -919,7 +1044,7 @@ export const stripeSubscriptions: IRecurringBillingProvider = {
       const { body } = await http(
         `${BASE}/subscriptions/${encodeURIComponent(id)}`,
         { method: "DELETE", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { status?: string }).status ?? "canceled";
       return ok({ status: data }, id, 0);
@@ -935,7 +1060,11 @@ export const stripeSubscriptions: IRecurringBillingProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ code: id, customer: "cus_demo", plan: "price_demo", status: "active" }, "mock", 30);
+      return ok(
+        { code: id, customer: "cus_demo", plan: "price_demo", status: "active" },
+        "mock",
+        30
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Stripe secretKey missing", { providerCode: CODE });
@@ -945,10 +1074,14 @@ export const stripeSubscriptions: IRecurringBillingProvider = {
       const { body } = await http(
         `${BASE}/subscriptions/${encodeURIComponent(id)}`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { id?: string }).id ? (body as Record<string, unknown>) : null;
-      if (!data) return fail("UPSTREAM_ERROR", "Stripe updateSubscription returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Stripe updateSubscription returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapStripeSubscription(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe updateSubscription failed";
@@ -969,7 +1102,10 @@ function mapStripePayout(d: Record<string, unknown>): import("../contracts").IPa
     status: String(d.status ?? "pending"),
     destination: typeof d.destination === "string" ? d.destination : undefined,
     method: typeof d.method === "string" ? d.method : undefined,
-    arrivalDate: typeof d.arrival_date === "number" ? new Date(d.arrival_date * 1000).toISOString() : undefined,
+    arrivalDate:
+      typeof d.arrival_date === "number"
+        ? new Date(d.arrival_date * 1000).toISOString()
+        : undefined,
   };
 }
 
@@ -993,7 +1129,7 @@ export const stripePayouts: IPayoutProvider = {
           method: req.method ?? "STANDARD",
         },
         "mock",
-        80,
+        80
       );
     }
     const secretKey = creds.secrets.secretKey;
@@ -1011,10 +1147,14 @@ export const stripePayouts: IPayoutProvider = {
       const { body } = await http(
         `${BASE}/payouts`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { id?: string }).id ? (body as Record<string, unknown>) : null;
-      if (!data) return fail("UPSTREAM_ERROR", "Stripe createPayout returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Stripe createPayout returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapStripePayout(data), String(data.id), 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe createPayout failed";
@@ -1040,7 +1180,7 @@ export const stripePayouts: IPayoutProvider = {
       const { body } = await http(
         `${BASE}/payouts${qs}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown>[]; has_more?: boolean }).data ?? [];
       const hasMore = (body as { has_more?: boolean }).has_more ?? false;
@@ -1066,7 +1206,7 @@ export const stripePayouts: IPayoutProvider = {
       const { body } = await http(
         `${BASE}/payouts/${encodeURIComponent(id)}/cancel`,
         { method: "POST", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { status?: string }).status ?? "canceled";
       return ok({ status: data }, id, 0);
@@ -1115,10 +1255,14 @@ export const stripeRefunds: IRefundProvider = {
       const { body } = await http(
         `${BASE}/refunds${qs}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown>[]; has_more?: boolean }).data ?? [];
-      return ok({ refunds: data.map(mapStripeRefund), total: data.length }, "stripe-refund-list", 0);
+      return ok(
+        { refunds: data.map(mapStripeRefund), total: data.length },
+        "stripe-refund-list",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe listRefunds failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -1140,10 +1284,14 @@ export const stripeRefunds: IRefundProvider = {
       const { body } = await http(
         `${BASE}/refunds/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { id?: string }).id ? (body as Record<string, unknown>) : null;
-      if (!data) return fail("UPSTREAM_ERROR", "Stripe fetchRefund returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Stripe fetchRefund returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapStripeRefund(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe fetchRefund failed";
@@ -1158,7 +1306,18 @@ export const stripeRefunds: IRefundProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       const id = `re_mock_${Math.random().toString(36).slice(2, 12)}`;
-      return ok({ id, reference: req.paymentIntent, amountMinor: req.amountMinor, status: "pending", reason: req.reason, createdAt: new Date().toISOString() }, "mock", 60);
+      return ok(
+        {
+          id,
+          reference: req.paymentIntent,
+          amountMinor: req.amountMinor,
+          status: "pending",
+          reason: req.reason,
+          createdAt: new Date().toISOString(),
+        },
+        "mock",
+        60
+      );
     }
     const secretKey = creds.secrets.secretKey;
     if (!secretKey) return fail("AUTH_FAILED", "Stripe secretKey missing", { providerCode: CODE });
@@ -1174,10 +1333,14 @@ export const stripeRefunds: IRefundProvider = {
       const { body } = await http(
         `${BASE}/refunds`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { id?: string }).id ? (body as Record<string, unknown>) : null;
-      if (!data) return fail("UPSTREAM_ERROR", "Stripe createRefund returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Stripe createRefund returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapStripeRefund(data), String(data.id), 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe createRefund failed";
@@ -1229,10 +1392,14 @@ export const stripeWebhookEndpoints: IWebhookEndpointProvider = {
       const { body } = await http(
         `${BASE}/webhook_endpoints`,
         { method: "POST", headers: authHeaders(secretKey), body: form },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { id?: string }).id ? (body as Record<string, unknown>) : null;
-      if (!data) return fail("UPSTREAM_ERROR", "Stripe createWebhookEndpoint returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Stripe createWebhookEndpoint returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapStripeWebhook(data), String(data.id), 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Stripe createWebhookEndpoint failed";
@@ -1255,7 +1422,7 @@ export const stripeWebhookEndpoints: IWebhookEndpointProvider = {
       const { body } = await http(
         `${BASE}/webhook_endpoints?limit=100`,
         { method: "GET", headers: authHeaders(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown>[]; has_more?: boolean }).data ?? [];
       const hasMore = (body as { has_more?: boolean }).has_more ?? false;

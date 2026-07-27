@@ -75,20 +75,29 @@ async function publishOne(event: any, stats: PublishStats): Promise<void> {
     if (event.type === "PAYMENT_SETTLED" && event.aggregateType === "TRANSACTION") {
       const tx = await db.transaction.findUnique({
         where: { id: event.aggregateId },
-        select: { id: true, userId: true, reference: true, amountKobo: true, type: true, direction: true },
+        select: {
+          id: true,
+          userId: true,
+          reference: true,
+          amountKobo: true,
+          type: true,
+          direction: true,
+        },
       });
       if (tx) {
         const incoming = tx.direction === "CREDIT";
-        await db.inAppNotification.create({
-          data: {
-            userId: tx.userId,
-            type: "TRANSACTION",
-            title: incoming ? "Payment received" : "Payment sent",
-            body: `Ref ${tx.reference} • ₦${(tx.amountKobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-            priority: "NORMAL",
-            actionUrl: `/history?ref=${tx.reference}`,
-          },
-        }).catch(() => {});
+        await db.inAppNotification
+          .create({
+            data: {
+              userId: tx.userId,
+              type: "TRANSACTION",
+              title: incoming ? "Payment received" : "Payment sent",
+              body: `Ref ${tx.reference} • ₦${(tx.amountKobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              priority: "NORMAL",
+              actionUrl: `/history?ref=${tx.reference}`,
+            },
+          })
+          .catch(() => {});
         stats.inAppDispatched += 1;
       }
     }
@@ -136,24 +145,30 @@ async function publishOne(event: any, stats: PublishStats): Promise<void> {
       }).finally(() => clearTimeout(timeout));
 
       if (res.ok) {
-        await db.webhookEndpoint.update({
-          where: { id: ep.id },
-          data: { consecutiveFailures: 0, lastFailedAt: null },
-        }).catch(() => {});
+        await db.webhookEndpoint
+          .update({
+            where: { id: ep.id },
+            data: { consecutiveFailures: 0, lastFailedAt: null },
+          })
+          .catch(() => {});
       } else {
         allOk = false;
-        await db.webhookEndpoint.update({
-          where: { id: ep.id },
-          data: { consecutiveFailures: { increment: 1 }, lastFailedAt: new Date() },
-        }).catch(() => {});
+        await db.webhookEndpoint
+          .update({
+            where: { id: ep.id },
+            data: { consecutiveFailures: { increment: 1 }, lastFailedAt: new Date() },
+          })
+          .catch(() => {});
         console.warn(`[outbox] endpoint ${ep.id} returned ${res.status} for event ${event.id}`);
       }
     } catch (e) {
       allOk = false;
-      await db.webhookEndpoint.update({
-        where: { id: ep.id },
-        data: { consecutiveFailures: { increment: 1 }, lastFailedAt: new Date() },
-      }).catch(() => {});
+      await db.webhookEndpoint
+        .update({
+          where: { id: ep.id },
+          data: { consecutiveFailures: { increment: 1 }, lastFailedAt: new Date() },
+        })
+        .catch(() => {});
       console.warn(`[outbox] endpoint ${ep.id} fetch failed for event ${event.id}:`, e);
     }
   }

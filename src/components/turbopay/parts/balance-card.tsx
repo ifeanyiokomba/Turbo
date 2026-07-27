@@ -32,7 +32,7 @@ export function BalanceCard({
     setTimeout(() => setCopied(false), 1500);
   }
   return (
-    <div className="tp-wallet-card tp-float relative aspect-[1.7/1] w-full max-w-md rounded-3xl p-5 text-white tp-sheen sm:p-6">
+    <div className="tp-wallet-card tp-float tp-sheen relative aspect-[1.7/1] w-full max-w-md rounded-3xl p-5 text-white sm:p-6">
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs opacity-80">Available balance</p>
@@ -41,11 +41,7 @@ export function BalanceCard({
               {hideBalance ? (
                 "₦ ••••••"
               ) : (
-                <AnimatedNumber
-                  value={balanceKobo}
-                  duration={700}
-                  format={naira}
-                />
+                <AnimatedNumber value={balanceKobo} duration={700} format={naira} />
               )}
             </p>
             <button onClick={onToggleHide} className="opacity-70 hover:opacity-100">
@@ -63,9 +59,15 @@ export function BalanceCard({
               <p className="text-[10px] opacity-70">Virtual account</p>
               <p className="font-mono text-sm tracking-wider">{accountNumber}</p>
             </div>
-            {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4 opacity-60 group-hover:opacity-100" />}
+            {copied ? (
+              <Check className="h-4 w-4 text-emerald-300" />
+            ) : (
+              <Copy className="h-4 w-4 opacity-60 group-hover:opacity-100" />
+            )}
           </button>
-          <span className="rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-semibold">VISA</span>
+          <span className="rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-semibold">
+            VISA
+          </span>
         </div>
       )}
 

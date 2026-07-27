@@ -135,11 +135,7 @@ export const PERMISSION_CATEGORIES: {
   {
     label: "Transactions",
     description: "Inspect all transactions, reverse erroneous ones, export data.",
-    permissions: [
-      Permissions.TX_VIEW_ALL,
-      Permissions.TX_REVERSE,
-      Permissions.TX_EXPORT,
-    ],
+    permissions: [Permissions.TX_VIEW_ALL, Permissions.TX_REVERSE, Permissions.TX_EXPORT],
   },
   {
     label: "Providers",
@@ -178,11 +174,7 @@ export const PERMISSION_CATEGORIES: {
   {
     label: "KYC",
     description: "Review and approve customer identity verification.",
-    permissions: [
-      Permissions.KYC_VIEW,
-      Permissions.KYC_REVIEW,
-      Permissions.KYC_APPROVE,
-    ],
+    permissions: [Permissions.KYC_VIEW, Permissions.KYC_REVIEW, Permissions.KYC_APPROVE],
   },
   {
     label: "Finance",
@@ -198,60 +190,37 @@ export const PERMISSION_CATEGORIES: {
   {
     label: "Webhooks",
     description: "View and manage outbound webhook endpoints.",
-    permissions: [
-      Permissions.WEBHOOKS_VIEW,
-      Permissions.WEBHOOKS_MANAGE,
-    ],
+    permissions: [Permissions.WEBHOOKS_VIEW, Permissions.WEBHOOKS_MANAGE],
   },
   {
     label: "Feature Flags",
     description: "View and toggle feature flags + per-user overrides.",
-    permissions: [
-      Permissions.FLAGS_VIEW,
-      Permissions.FLAGS_MANAGE,
-    ],
+    permissions: [Permissions.FLAGS_VIEW, Permissions.FLAGS_MANAGE],
   },
   {
     label: "Config History",
     description: "View config snapshots and roll back to prior versions.",
-    permissions: [
-      Permissions.CONFIG_VIEW,
-      Permissions.CONFIG_MANAGE,
-      Permissions.CONFIG_ROLLBACK,
-    ],
+    permissions: [Permissions.CONFIG_VIEW, Permissions.CONFIG_MANAGE, Permissions.CONFIG_ROLLBACK],
   },
   {
     label: "Team",
     description: "View team members, invite new ones, manage roles.",
-    permissions: [
-      Permissions.TEAM_VIEW,
-      Permissions.TEAM_MANAGE,
-      Permissions.TEAM_INVITE,
-    ],
+    permissions: [Permissions.TEAM_VIEW, Permissions.TEAM_MANAGE, Permissions.TEAM_INVITE],
   },
   {
     label: "Audit Log",
     description: "Read audit trail and export it for external review.",
-    permissions: [
-      Permissions.AUDIT_VIEW,
-      Permissions.AUDIT_EXPORT,
-    ],
+    permissions: [Permissions.AUDIT_VIEW, Permissions.AUDIT_EXPORT],
   },
   {
     label: "Support",
     description: "View and manage customer support tickets.",
-    permissions: [
-      Permissions.SUPPORT_VIEW,
-      Permissions.SUPPORT_MANAGE,
-    ],
+    permissions: [Permissions.SUPPORT_VIEW, Permissions.SUPPORT_MANAGE],
   },
   {
     label: "Analytics",
     description: "View analytics dashboards and export reports.",
-    permissions: [
-      Permissions.ANALYTICS_VIEW,
-      Permissions.ANALYTICS_EXPORT,
-    ],
+    permissions: [Permissions.ANALYTICS_VIEW, Permissions.ANALYTICS_EXPORT],
   },
   {
     label: "Monitoring",
@@ -261,10 +230,7 @@ export const PERMISSION_CATEGORIES: {
   {
     label: "Virtual Cards",
     description: "View and manage virtual card issuance.",
-    permissions: [
-      Permissions.CARDS_VIEW,
-      Permissions.CARDS_MANAGE,
-    ],
+    permissions: [Permissions.CARDS_VIEW, Permissions.CARDS_MANAGE],
   },
   {
     label: "Savings & Investments",
@@ -279,10 +245,7 @@ export const PERMISSION_CATEGORIES: {
   {
     label: "Vouchers",
     description: "View and manage promotional voucher codes.",
-    permissions: [
-      Permissions.VOUCHERS_VIEW,
-      Permissions.VOUCHERS_MANAGE,
-    ],
+    permissions: [Permissions.VOUCHERS_VIEW, Permissions.VOUCHERS_MANAGE],
   },
 ];
 

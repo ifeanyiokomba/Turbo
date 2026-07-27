@@ -36,10 +36,18 @@ export async function POST(req: Request) {
   try {
     const user = await requireAdmin();
     const body = await req.json().catch(() => ({}));
-    const contract = String(body.contract ?? "").trim().toUpperCase();
-    const providerCode = String(body.providerCode ?? "").trim().toLowerCase();
-    const country = String(body.country ?? "ALL").trim().toUpperCase();
-    const currency = String(body.currency ?? "ALL").trim().toUpperCase();
+    const contract = String(body.contract ?? "")
+      .trim()
+      .toUpperCase();
+    const providerCode = String(body.providerCode ?? "")
+      .trim()
+      .toLowerCase();
+    const country = String(body.country ?? "ALL")
+      .trim()
+      .toUpperCase();
+    const currency = String(body.currency ?? "ALL")
+      .trim()
+      .toUpperCase();
     if (!contract || !providerCode) {
       return json({ error: "contract and providerCode are required" }, 400);
     }

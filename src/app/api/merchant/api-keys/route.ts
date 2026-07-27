@@ -70,9 +70,15 @@ export async function POST(req: Request) {
   try {
     const user = await requireUser();
     const body = (await req.json().catch(() => ({}))) as { name?: string; scopes?: string[] };
-    const name = String(body.name ?? "").trim().slice(0, 60);
+    const name = String(body.name ?? "")
+      .trim()
+      .slice(0, 60);
     if (!name) {
-      throw new ServiceError("Give your API key a name (e.g. 'Production webhook')", 400, "NAME_REQUIRED");
+      throw new ServiceError(
+        "Give your API key a name (e.g. 'Production webhook')",
+        400,
+        "NAME_REQUIRED"
+      );
     }
 
     const scopesRaw = Array.isArray(body.scopes) ? body.scopes : [];

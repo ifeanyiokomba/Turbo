@@ -4,11 +4,7 @@
     "name": "Agentic",
     "skillPath": "skills/agentic/SKILL.md",
     "designPath": "skills/agentic/DESIGN.md",
-    "mood": [
-      "极简",
-      "技术感",
-      "克制"
-    ],
+    "mood": ["极简", "技术感", "克制"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -19,10 +15,7 @@
     "name": "Artistic",
     "skillPath": "skills/artistic/SKILL.md",
     "designPath": "skills/artistic/DESIGN.md",
-    "mood": [
-      "戏剧化",
-      "活力/明亮"
-    ],
+    "mood": ["戏剧化", "活力/明亮"],
     "scheme": "light",
     "era": "现代",
     "formality": "low",
@@ -33,10 +26,7 @@
     "name": "Bold",
     "skillPath": "skills/bold/SKILL.md",
     "designPath": "skills/bold/DESIGN.md",
-    "mood": [
-      "戏剧化",
-      "活力/明亮"
-    ],
+    "mood": ["戏剧化", "活力/明亮"],
     "scheme": "light",
     "era": "现代",
     "formality": "low",
@@ -47,11 +37,7 @@
     "name": "Brutalism",
     "skillPath": "skills/brutalism/SKILL.md",
     "designPath": "skills/brutalism/DESIGN.md",
-    "mood": [
-      "戏剧化",
-      "技术感",
-      "复古/玩味"
-    ],
+    "mood": ["戏剧化", "技术感", "复古/玩味"],
     "scheme": "light",
     "era": "现代",
     "formality": "low",
@@ -62,10 +48,7 @@
     "name": "Cafe",
     "skillPath": "skills/cafe/SKILL.md",
     "designPath": "skills/cafe/DESIGN.md",
-    "mood": [
-      "极简",
-      "温暖"
-    ],
+    "mood": ["极简", "温暖"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -76,11 +59,7 @@
     "name": "Claymorphism",
     "skillPath": "skills/claymorphism/SKILL.md",
     "designPath": "skills/claymorphism/DESIGN.md",
-    "mood": [
-      "戏剧化",
-      "亲和/友好",
-      "活力/明亮"
-    ],
+    "mood": ["戏剧化", "亲和/友好", "活力/明亮"],
     "scheme": "light",
     "era": "现代",
     "formality": "low",
@@ -91,10 +70,7 @@
     "name": "Clean",
     "skillPath": "skills/clean/SKILL.md",
     "designPath": "skills/clean/DESIGN.md",
-    "mood": [
-      "极简",
-      "未来/科幻"
-    ],
+    "mood": ["极简", "未来/科幻"],
     "scheme": "light",
     "era": "未来",
     "formality": "medium",
@@ -105,13 +81,7 @@
     "name": "Colorful",
     "skillPath": "skills/colorful/SKILL.md",
     "designPath": "skills/colorful/DESIGN.md",
-    "mood": [
-      "奢华",
-      "戏剧化",
-      "亲和/友好",
-      "活力/明亮",
-      "渐变氛围"
-    ],
+    "mood": ["奢华", "戏剧化", "亲和/友好", "活力/明亮", "渐变氛围"],
     "scheme": "light",
     "era": "现代",
     "formality": "high",
@@ -122,13 +92,7 @@
     "name": "Contemporary",
     "skillPath": "skills/contemporary/SKILL.md",
     "designPath": "skills/contemporary/DESIGN.md",
-    "mood": [
-      "极简",
-      "精密/工程感",
-      "戏剧化",
-      "暗黑原生",
-      "亲和/友好"
-    ],
+    "mood": ["极简", "精密/工程感", "戏剧化", "暗黑原生", "亲和/友好"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -139,12 +103,7 @@
     "name": "Corporate",
     "skillPath": "skills/corporate/SKILL.md",
     "designPath": "skills/corporate/DESIGN.md",
-    "mood": [
-      "极简",
-      "精密/工程感",
-      "奢华",
-      "企业/可信"
-    ],
+    "mood": ["极简", "精密/工程感", "奢华", "企业/可信"],
     "scheme": "light",
     "era": "现代",
     "formality": "high",
@@ -155,11 +114,7 @@
     "name": "Cosmic",
     "skillPath": "skills/cosmic/SKILL.md",
     "designPath": "skills/cosmic/DESIGN.md",
-    "mood": [
-      "未来/科幻",
-      "戏剧化",
-      "暗黑原生"
-    ],
+    "mood": ["未来/科幻", "戏剧化", "暗黑原生"],
     "scheme": "dark",
     "era": "未来",
     "formality": "medium",
@@ -170,10 +125,7 @@
     "name": "Creative",
     "skillPath": "skills/creative/SKILL.md",
     "designPath": "skills/creative/DESIGN.md",
-    "mood": [
-      "戏剧化",
-      "亲和/友好"
-    ],
+    "mood": ["戏剧化", "亲和/友好"],
     "scheme": "light",
     "era": "现代",
     "formality": "low",
@@ -184,11 +136,7 @@
     "name": "Dithered",
     "skillPath": "skills/dithered/SKILL.md",
     "designPath": "skills/dithered/DESIGN.md",
-    "mood": [
-      "极简",
-      "戏剧化",
-      "复古/玩味"
-    ],
+    "mood": ["极简", "戏剧化", "复古/玩味"],
     "scheme": "light",
     "era": "复古",
     "formality": "medium",
@@ -199,10 +147,7 @@
     "name": "Doodle",
     "skillPath": "skills/doodle/SKILL.md",
     "designPath": "skills/doodle/DESIGN.md",
-    "mood": [
-      "亲和/友好",
-      "插画丰富"
-    ],
+    "mood": ["亲和/友好", "插画丰富"],
     "scheme": "light",
     "era": "现代",
     "formality": "low",
@@ -213,11 +158,7 @@
     "name": "Dramatic",
     "skillPath": "skills/dramatic/SKILL.md",
     "designPath": "skills/dramatic/DESIGN.md",
-    "mood": [
-      "极简",
-      "戏剧化",
-      "影像优先"
-    ],
+    "mood": ["极简", "戏剧化", "影像优先"],
     "scheme": "dark",
     "era": "现代",
     "formality": "medium",
@@ -228,13 +169,7 @@
     "name": "Editorial",
     "skillPath": "skills/editorial/SKILL.md",
     "designPath": "skills/editorial/DESIGN.md",
-    "mood": [
-      "克制",
-      "精密/工程感",
-      "奢华",
-      "编辑/杂志感",
-      "内容优先"
-    ],
+    "mood": ["克制", "精密/工程感", "奢华", "编辑/杂志感", "内容优先"],
     "scheme": "light",
     "era": "现代",
     "formality": "high",
@@ -245,11 +180,7 @@
     "name": "Elegant",
     "skillPath": "skills/elegant/SKILL.md",
     "designPath": "skills/elegant/DESIGN.md",
-    "mood": [
-      "极简",
-      "克制",
-      "奢华"
-    ],
+    "mood": ["极简", "克制", "奢华"],
     "scheme": "light",
     "era": "现代",
     "formality": "high",
@@ -260,10 +191,7 @@
     "name": "Energetic",
     "skillPath": "skills/energetic/SKILL.md",
     "designPath": "skills/energetic/DESIGN.md",
-    "mood": [
-      "戏剧化",
-      "活力/明亮"
-    ],
+    "mood": ["戏剧化", "活力/明亮"],
     "scheme": "light",
     "era": "现代",
     "formality": "low",
@@ -274,11 +202,7 @@
     "name": "Enterprise",
     "skillPath": "skills/enterprise/SKILL.md",
     "designPath": "skills/enterprise/DESIGN.md",
-    "mood": [
-      "极简",
-      "戏剧化",
-      "企业/可信"
-    ],
+    "mood": ["极简", "戏剧化", "企业/可信"],
     "scheme": "light",
     "era": "现代",
     "formality": "high",
@@ -289,11 +213,7 @@
     "name": "Expressive",
     "skillPath": "skills/expressive/SKILL.md",
     "designPath": "skills/expressive/DESIGN.md",
-    "mood": [
-      "戏剧化",
-      "亲和/友好",
-      "活力/明亮"
-    ],
+    "mood": ["戏剧化", "亲和/友好", "活力/明亮"],
     "scheme": "light",
     "era": "现代",
     "formality": "low",
@@ -304,10 +224,7 @@
     "name": "Fantasy",
     "skillPath": "skills/fantasy/SKILL.md",
     "designPath": "skills/fantasy/DESIGN.md",
-    "mood": [
-      "奢华",
-      "戏剧化"
-    ],
+    "mood": ["奢华", "戏剧化"],
     "scheme": "light",
     "era": "现代",
     "formality": "high",
@@ -318,12 +235,7 @@
     "name": "Flat",
     "skillPath": "skills/flat/SKILL.md",
     "designPath": "skills/flat/DESIGN.md",
-    "mood": [
-      "极简",
-      "亲和/友好",
-      "活力/明亮",
-      "企业/可信"
-    ],
+    "mood": ["极简", "亲和/友好", "活力/明亮", "企业/可信"],
     "scheme": "light",
     "era": "现代",
     "formality": "high",
@@ -334,13 +246,7 @@
     "name": "Friendly",
     "skillPath": "skills/friendly/SKILL.md",
     "designPath": "skills/friendly/DESIGN.md",
-    "mood": [
-      "极简",
-      "奢华",
-      "戏剧化",
-      "亲和/友好",
-      "未来/科幻"
-    ],
+    "mood": ["极简", "奢华", "戏剧化", "亲和/友好", "未来/科幻"],
     "scheme": "light",
     "era": "未来",
     "formality": "high",
@@ -351,11 +257,7 @@
     "name": "Futuristic",
     "skillPath": "skills/futuristic/SKILL.md",
     "designPath": "skills/futuristic/DESIGN.md",
-    "mood": [
-      "未来/科幻",
-      "技术感",
-      "精密/工程感"
-    ],
+    "mood": ["未来/科幻", "技术感", "精密/工程感"],
     "scheme": "dark",
     "era": "未来",
     "formality": "medium",
@@ -366,11 +268,7 @@
     "name": "Glassmorphism",
     "skillPath": "skills/glassmorphism/SKILL.md",
     "designPath": "skills/glassmorphism/DESIGN.md",
-    "mood": [
-      "渐变氛围",
-      "未来/科幻",
-      "克制"
-    ],
+    "mood": ["渐变氛围", "未来/科幻", "克制"],
     "scheme": "light",
     "era": "未来",
     "formality": "medium",
@@ -381,10 +279,7 @@
     "name": "Gradient",
     "skillPath": "skills/gradient/SKILL.md",
     "designPath": "skills/gradient/DESIGN.md",
-    "mood": [
-      "亲和/友好",
-      "渐变氛围"
-    ],
+    "mood": ["亲和/友好", "渐变氛围"],
     "scheme": "light",
     "era": "现代",
     "formality": "low",
@@ -395,11 +290,7 @@
     "name": "Luxury",
     "skillPath": "skills/luxury/SKILL.md",
     "designPath": "skills/luxury/DESIGN.md",
-    "mood": [
-      "奢华",
-      "戏剧化",
-      "暗黑原生"
-    ],
+    "mood": ["奢华", "戏剧化", "暗黑原生"],
     "scheme": "dark",
     "era": "现代",
     "formality": "high",
@@ -410,11 +301,7 @@
     "name": "Material",
     "skillPath": "skills/material/SKILL.md",
     "designPath": "skills/material/DESIGN.md",
-    "mood": [
-      "企业/可信",
-      "极简",
-      "活力/明亮"
-    ],
+    "mood": ["企业/可信", "极简", "活力/明亮"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -425,11 +312,7 @@
     "name": "Minimal",
     "skillPath": "skills/minimal/SKILL.md",
     "designPath": "skills/minimal/DESIGN.md",
-    "mood": [
-      "极简",
-      "克制",
-      "内容优先"
-    ],
+    "mood": ["极简", "克制", "内容优先"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -440,10 +323,7 @@
     "name": "Modern",
     "skillPath": "skills/modern/SKILL.md",
     "designPath": "skills/modern/DESIGN.md",
-    "mood": [
-      "极简",
-      "编辑/杂志感"
-    ],
+    "mood": ["极简", "编辑/杂志感"],
     "scheme": "dark",
     "era": "现代",
     "formality": "medium",
@@ -454,13 +334,7 @@
     "name": "Mono",
     "skillPath": "skills/mono/SKILL.md",
     "designPath": "skills/mono/DESIGN.md",
-    "mood": [
-      "极简",
-      "技术感",
-      "戏剧化",
-      "亲和/友好",
-      "未来/科幻"
-    ],
+    "mood": ["极简", "技术感", "戏剧化", "亲和/友好", "未来/科幻"],
     "scheme": "light",
     "era": "未来",
     "formality": "medium",
@@ -471,11 +345,7 @@
     "name": "Neobrutalism",
     "skillPath": "skills/neobrutalism/SKILL.md",
     "designPath": "skills/neobrutalism/DESIGN.md",
-    "mood": [
-      "极简",
-      "戏剧化",
-      "温暖"
-    ],
+    "mood": ["极简", "戏剧化", "温暖"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -486,11 +356,7 @@
     "name": "Neon",
     "skillPath": "skills/neon/SKILL.md",
     "designPath": "skills/neon/DESIGN.md",
-    "mood": [
-      "戏剧化",
-      "未来/科幻",
-      "渐变氛围"
-    ],
+    "mood": ["戏剧化", "未来/科幻", "渐变氛围"],
     "scheme": "dark",
     "era": "未来",
     "formality": "low",
@@ -501,12 +367,7 @@
     "name": "Neumorphism",
     "skillPath": "skills/neumorphism/SKILL.md",
     "designPath": "skills/neumorphism/DESIGN.md",
-    "mood": [
-      "极简",
-      "戏剧化",
-      "亲和/友好",
-      "未来/科幻"
-    ],
+    "mood": ["极简", "戏剧化", "亲和/友好", "未来/科幻"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -517,11 +378,7 @@
     "name": "Pacman",
     "skillPath": "skills/pacman/SKILL.md",
     "designPath": "skills/pacman/DESIGN.md",
-    "mood": [
-      "戏剧化",
-      "亲和/友好",
-      "复古/玩味"
-    ],
+    "mood": ["戏剧化", "亲和/友好", "复古/玩味"],
     "scheme": "dark",
     "era": "复古",
     "formality": "low",
@@ -532,11 +389,7 @@
     "name": "Paper",
     "skillPath": "skills/paper/SKILL.md",
     "designPath": "skills/paper/DESIGN.md",
-    "mood": [
-      "温暖",
-      "编辑/杂志感",
-      "内容优先"
-    ],
+    "mood": ["温暖", "编辑/杂志感", "内容优先"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -547,10 +400,7 @@
     "name": "Perspective",
     "skillPath": "skills/perspective/SKILL.md",
     "designPath": "skills/perspective/DESIGN.md",
-    "mood": [
-      "极简",
-      "戏剧化"
-    ],
+    "mood": ["极简", "戏剧化"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -561,11 +411,7 @@
     "name": "Premium",
     "skillPath": "skills/premium/SKILL.md",
     "designPath": "skills/premium/DESIGN.md",
-    "mood": [
-      "克制",
-      "精密/工程感",
-      "奢华"
-    ],
+    "mood": ["克制", "精密/工程感", "奢华"],
     "scheme": "light",
     "era": "现代",
     "formality": "high",
@@ -576,11 +422,7 @@
     "name": "Professional",
     "skillPath": "skills/professional/SKILL.md",
     "designPath": "skills/professional/DESIGN.md",
-    "mood": [
-      "企业/可信",
-      "克制",
-      "极简"
-    ],
+    "mood": ["企业/可信", "克制", "极简"],
     "scheme": "light",
     "era": "现代",
     "formality": "high",
@@ -591,11 +433,7 @@
     "name": "Publication",
     "skillPath": "skills/publication/SKILL.md",
     "designPath": "skills/publication/DESIGN.md",
-    "mood": [
-      "精密/工程感",
-      "戏剧化",
-      "编辑/杂志感"
-    ],
+    "mood": ["精密/工程感", "戏剧化", "编辑/杂志感"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -606,11 +444,7 @@
     "name": "Refined",
     "skillPath": "skills/refined/SKILL.md",
     "designPath": "skills/refined/DESIGN.md",
-    "mood": [
-      "极简",
-      "克制",
-      "奢华"
-    ],
+    "mood": ["极简", "克制", "奢华"],
     "scheme": "light",
     "era": "现代",
     "formality": "high",
@@ -621,10 +455,7 @@
     "name": "Retro",
     "skillPath": "skills/retro/SKILL.md",
     "designPath": "skills/retro/DESIGN.md",
-    "mood": [
-      "戏剧化",
-      "复古/玩味"
-    ],
+    "mood": ["戏剧化", "复古/玩味"],
     "scheme": "light",
     "era": "复古",
     "formality": "low",
@@ -635,11 +466,7 @@
     "name": "Shadcn",
     "skillPath": "skills/shadcn/SKILL.md",
     "designPath": "skills/shadcn/DESIGN.md",
-    "mood": [
-      "极简",
-      "克制",
-      "技术感"
-    ],
+    "mood": ["极简", "克制", "技术感"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -650,11 +477,7 @@
     "name": "Simple",
     "skillPath": "skills/simple/SKILL.md",
     "designPath": "skills/simple/DESIGN.md",
-    "mood": [
-      "极简",
-      "克制",
-      "亲和/友好"
-    ],
+    "mood": ["极简", "克制", "亲和/友好"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -665,10 +488,7 @@
     "name": "Skeumorphism",
     "skillPath": "skills/skeumorphism/SKILL.md",
     "designPath": "skills/skeumorphism/DESIGN.md",
-    "mood": [
-      "复古/玩味",
-      "插画丰富"
-    ],
+    "mood": ["复古/玩味", "插画丰富"],
     "scheme": "light",
     "era": "复古",
     "formality": "low",
@@ -679,10 +499,7 @@
     "name": "Sleek",
     "skillPath": "skills/sleek/SKILL.md",
     "designPath": "skills/sleek/DESIGN.md",
-    "mood": [
-      "极简",
-      "克制"
-    ],
+    "mood": ["极简", "克制"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -693,11 +510,7 @@
     "name": "Spacious",
     "skillPath": "skills/spacious/SKILL.md",
     "designPath": "skills/spacious/DESIGN.md",
-    "mood": [
-      "极简",
-      "精密/工程感",
-      "未来/科幻"
-    ],
+    "mood": ["极简", "精密/工程感", "未来/科幻"],
     "scheme": "light",
     "era": "未来",
     "formality": "medium",
@@ -708,11 +521,7 @@
     "name": "Storytelling",
     "skillPath": "skills/storytelling/SKILL.md",
     "designPath": "skills/storytelling/DESIGN.md",
-    "mood": [
-      "编辑/杂志感",
-      "亲和/友好",
-      "内容优先"
-    ],
+    "mood": ["编辑/杂志感", "亲和/友好", "内容优先"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -723,11 +532,7 @@
     "name": "Tetris",
     "skillPath": "skills/tetris/SKILL.md",
     "designPath": "skills/tetris/DESIGN.md",
-    "mood": [
-      "奢华",
-      "戏剧化",
-      "亲和/友好"
-    ],
+    "mood": ["奢华", "戏剧化", "亲和/友好"],
     "scheme": "light",
     "era": "现代",
     "formality": "high",
@@ -738,13 +543,7 @@
     "name": "Vibrant",
     "skillPath": "skills/vibrant/SKILL.md",
     "designPath": "skills/vibrant/DESIGN.md",
-    "mood": [
-      "极简",
-      "戏剧化",
-      "温暖",
-      "亲和/友好",
-      "活力/明亮"
-    ],
+    "mood": ["极简", "戏剧化", "温暖", "亲和/友好", "活力/明亮"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -755,10 +554,7 @@
     "name": "Vintage",
     "skillPath": "skills/vintage/SKILL.md",
     "designPath": "skills/vintage/DESIGN.md",
-    "mood": [
-      "极简",
-      "复古/玩味"
-    ],
+    "mood": ["极简", "复古/玩味"],
     "scheme": "light",
     "era": "复古",
     "formality": "medium",
@@ -769,10 +565,7 @@
     "name": "Levels",
     "skillPath": "skills/levels/SKILL.md",
     "designPath": "skills/levels/DESIGN.md",
-    "mood": [
-      "极简",
-      "企业/可信"
-    ],
+    "mood": ["极简", "企业/可信"],
     "scheme": "light",
     "era": "现代",
     "formality": "high",
@@ -783,11 +576,7 @@
     "name": "Bento",
     "skillPath": "skills/bento/SKILL.md",
     "designPath": "skills/bento/DESIGN.md",
-    "mood": [
-      "极简",
-      "克制",
-      "精密/工程感"
-    ],
+    "mood": ["极简", "克制", "精密/工程感"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -798,13 +587,7 @@
     "name": "Lingo",
     "skillPath": "skills/lingo/SKILL.md",
     "designPath": "skills/lingo/DESIGN.md",
-    "mood": [
-      "极简",
-      "戏剧化",
-      "亲和/友好",
-      "活力/明亮",
-      "插画丰富"
-    ],
+    "mood": ["极简", "戏剧化", "亲和/友好", "活力/明亮", "插画丰富"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -815,13 +598,7 @@
     "name": "Dashboard",
     "skillPath": "skills/dashboard/SKILL.md",
     "designPath": "skills/dashboard/DESIGN.md",
-    "mood": [
-      "极简",
-      "克制",
-      "精密/工程感",
-      "暗黑原生",
-      "渐变氛围"
-    ],
+    "mood": ["极简", "克制", "精密/工程感", "暗黑原生", "渐变氛围"],
     "scheme": "dark",
     "era": "现代",
     "formality": "medium",
@@ -832,11 +609,7 @@
     "name": "Application",
     "skillPath": "skills/application/SKILL.md",
     "designPath": "skills/application/DESIGN.md",
-    "mood": [
-      "极简",
-      "技术感",
-      "戏剧化"
-    ],
+    "mood": ["极简", "技术感", "戏剧化"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -847,11 +620,7 @@
     "name": "Ant",
     "skillPath": "skills/ant/SKILL.md",
     "designPath": "skills/ant/DESIGN.md",
-    "mood": [
-      "企业/可信",
-      "精密/工程感",
-      "极简"
-    ],
+    "mood": ["企业/可信", "精密/工程感", "极简"],
     "scheme": "light",
     "era": "现代",
     "formality": "high",
@@ -862,13 +631,7 @@
     "name": "Claude",
     "skillPath": "skills/claude/SKILL.md",
     "designPath": "skills/claude/DESIGN.md",
-    "mood": [
-      "极简",
-      "克制",
-      "暗黑原生",
-      "编辑/杂志感",
-      "温暖"
-    ],
+    "mood": ["极简", "克制", "暗黑原生", "编辑/杂志感", "温暖"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -879,11 +642,7 @@
     "name": "Codex",
     "skillPath": "skills/codex/SKILL.md",
     "designPath": "skills/codex/DESIGN.md",
-    "mood": [
-      "极简",
-      "暗黑原生",
-      "技术感"
-    ],
+    "mood": ["极简", "暗黑原生", "技术感"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -894,12 +653,7 @@
     "name": "Fiction",
     "skillPath": "skills/fiction/SKILL.md",
     "designPath": "skills/fiction/DESIGN.md",
-    "mood": [
-      "戏剧化",
-      "温暖",
-      "亲和/友好",
-      "未来/科幻"
-    ],
+    "mood": ["戏剧化", "温暖", "亲和/友好", "未来/科幻"],
     "scheme": "light",
     "era": "现代",
     "formality": "low",
@@ -910,10 +664,7 @@
     "name": "Immersive",
     "skillPath": "skills/immersive/SKILL.md",
     "designPath": "skills/immersive/DESIGN.md",
-    "mood": [
-      "极简",
-      "戏剧化"
-    ],
+    "mood": ["极简", "戏剧化"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -924,12 +675,7 @@
     "name": "Impeccable",
     "skillPath": "skills/impeccable/SKILL.md",
     "designPath": "skills/impeccable/DESIGN.md",
-    "mood": [
-      "极简",
-      "戏剧化",
-      "编辑/杂志感",
-      "温暖"
-    ],
+    "mood": ["极简", "戏剧化", "编辑/杂志感", "温暖"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -940,12 +686,7 @@
     "name": "Matrix",
     "skillPath": "skills/matrix/SKILL.md",
     "designPath": "skills/matrix/DESIGN.md",
-    "mood": [
-      "技术感",
-      "戏剧化",
-      "暗黑原生",
-      "未来/科幻"
-    ],
+    "mood": ["技术感", "戏剧化", "暗黑原生", "未来/科幻"],
     "scheme": "light",
     "era": "未来",
     "formality": "medium",
@@ -956,13 +697,7 @@
     "name": "Riso",
     "skillPath": "skills/riso/SKILL.md",
     "designPath": "skills/riso/DESIGN.md",
-    "mood": [
-      "极简",
-      "戏剧化",
-      "温暖",
-      "亲和/友好",
-      "复古/玩味"
-    ],
+    "mood": ["极简", "戏剧化", "温暖", "亲和/友好", "复古/玩味"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -973,10 +708,7 @@
     "name": "Sega",
     "skillPath": "skills/sega/SKILL.md",
     "designPath": "skills/sega/DESIGN.md",
-    "mood": [
-      "亲和/友好",
-      "复古/玩味"
-    ],
+    "mood": ["亲和/友好", "复古/玩味"],
     "scheme": "light",
     "era": "复古",
     "formality": "low",
@@ -987,12 +719,7 @@
     "name": "Sketch",
     "skillPath": "skills/sketch/SKILL.md",
     "designPath": "skills/sketch/DESIGN.md",
-    "mood": [
-      "极简",
-      "戏剧化",
-      "温暖",
-      "插画丰富"
-    ],
+    "mood": ["极简", "戏剧化", "温暖", "插画丰富"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -1003,13 +730,7 @@
     "name": "Terracotta",
     "skillPath": "skills/terracotta.md/SKILL.md",
     "designPath": "skills/terracotta.md/DESIGN.md",
-    "mood": [
-      "极简",
-      "戏剧化",
-      "编辑/杂志感",
-      "温暖",
-      "亲和/友好"
-    ],
+    "mood": ["极简", "戏剧化", "编辑/杂志感", "温暖", "亲和/友好"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -1020,10 +741,7 @@
     "name": "Atelier Zero",
     "skillPath": "skills/atelier-zero/SKILL.md",
     "designPath": "skills/atelier-zero/DESIGN.md",
-    "mood": [
-      "克制",
-      "编辑/杂志感"
-    ],
+    "mood": ["克制", "编辑/杂志感"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -1034,10 +752,7 @@
     "name": "Default",
     "skillPath": "skills/default/SKILL.md",
     "designPath": "skills/default/DESIGN.md",
-    "mood": [
-      "极简",
-      "克制"
-    ],
+    "mood": ["极简", "克制"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -1048,12 +763,7 @@
     "name": "Hud",
     "skillPath": "skills/hud/SKILL.md",
     "designPath": "skills/hud/DESIGN.md",
-    "mood": [
-      "技术感",
-      "未来/科幻",
-      "精密/工程感",
-      "暗黑原生"
-    ],
+    "mood": ["技术感", "未来/科幻", "精密/工程感", "暗黑原生"],
     "scheme": "dark",
     "era": "未来",
     "formality": "medium",
@@ -1064,11 +774,7 @@
     "name": "Mission Control",
     "skillPath": "skills/mission-control/SKILL.md",
     "designPath": "skills/mission-control/DESIGN.md",
-    "mood": [
-      "技术感",
-      "精密/工程感",
-      "暗黑原生"
-    ],
+    "mood": ["技术感", "精密/工程感", "暗黑原生"],
     "scheme": "dark",
     "era": "现代",
     "formality": "high",
@@ -1079,12 +785,7 @@
     "name": "Totality Festival",
     "skillPath": "skills/totality-festival/SKILL.md",
     "designPath": "skills/totality-festival/DESIGN.md",
-    "mood": [
-      "戏剧化",
-      "暗黑原生",
-      "渐变氛围",
-      "影像优先"
-    ],
+    "mood": ["戏剧化", "暗黑原生", "渐变氛围", "影像优先"],
     "scheme": "dark",
     "era": "未来",
     "formality": "low",
@@ -1095,10 +796,7 @@
     "name": "Trading Terminal",
     "skillPath": "skills/trading-terminal/SKILL.md",
     "designPath": "skills/trading-terminal/DESIGN.md",
-    "mood": [
-      "企业/可信",
-      "技术感"
-    ],
+    "mood": ["企业/可信", "技术感"],
     "scheme": "dark",
     "era": "现代",
     "formality": "high",
@@ -1109,10 +807,7 @@
     "name": "Urdu",
     "skillPath": "skills/urdu/SKILL.md",
     "designPath": "skills/urdu/DESIGN.md",
-    "mood": [
-      "编辑/杂志感",
-      "内容优先"
-    ],
+    "mood": ["编辑/杂志感", "内容优先"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -1123,10 +818,7 @@
     "name": "Warm Editorial",
     "skillPath": "skills/warm-editorial/SKILL.md",
     "designPath": "skills/warm-editorial/DESIGN.md",
-    "mood": [
-      "编辑/杂志感",
-      "温暖"
-    ],
+    "mood": ["编辑/杂志感", "温暖"],
     "scheme": "light",
     "era": "现代",
     "formality": "medium",
@@ -1137,12 +829,7 @@
     "name": "Parchment",
     "skillPath": "skills/parchment/SKILL.md",
     "designPath": "skills/parchment/DESIGN.md",
-    "mood": [
-      "编辑杂志感",
-      "正式",
-      "温暖",
-      "内容优先"
-    ],
+    "mood": ["编辑杂志感", "正式", "温暖", "内容优先"],
     "scheme": "light",
     "era": "经典",
     "formality": "high",

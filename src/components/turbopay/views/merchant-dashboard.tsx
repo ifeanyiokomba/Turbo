@@ -261,7 +261,7 @@ export default function MerchantDashboardView() {
   }));
 
   return (
-    <div className="space-y-5 tp-fade-rise">
+    <div className="tp-fade-rise space-y-5">
       <PageHeader
         title="Merchant Dashboard"
         subtitle="Track sales, manage payment links, and issue API keys."
@@ -278,7 +278,7 @@ export default function MerchantDashboardView() {
       />
 
       {/* ============ Merchant identity banner ============ */}
-      <Card className="relative overflow-hidden p-5 sm:p-6 tp-emerald-grad text-white tp-sheen">
+      <Card className="tp-emerald-grad tp-sheen relative overflow-hidden p-5 text-white sm:p-6">
         <div className="relative z-10 flex flex-wrap items-start justify-between gap-4">
           <div>
             <Badge className="bg-white/20 text-white">
@@ -295,7 +295,9 @@ export default function MerchantDashboardView() {
             <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white">
               {merchant?.status ?? "ACTIVE"}
             </span>
-            <span className="text-xs text-white/75">Settlement wallet · {stats?.walletStatus ?? "ACTIVE"}</span>
+            <span className="text-xs text-white/75">
+              Settlement wallet · {stats?.walletStatus ?? "ACTIVE"}
+            </span>
           </div>
         </div>
       </Card>
@@ -336,12 +338,14 @@ export default function MerchantDashboardView() {
       <Card className="p-5 sm:p-6">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Activity className="h-5 w-5 text-primary" />
+            <Activity className="text-primary h-5 w-5" />
             <h2 className="text-base font-semibold">Sales trend</h2>
-            <Badge variant="secondary" className="text-[10px]">14 days</Badge>
+            <Badge variant="secondary" className="text-[10px]">
+              14 days
+            </Badge>
           </div>
-          <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground tabular-nums">
+          <p className="text-muted-foreground text-sm">
+            <span className="text-foreground font-semibold tabular-nums">
               {nairaCompact(stats?.totalSalesKobo ?? 0)}
             </span>{" "}
             total
@@ -363,7 +367,11 @@ export default function MerchantDashboardView() {
                     <stop offset="100%" stopColor="#10b981" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.92 0.005 100)" vertical={false} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="oklch(0.92 0.005 100)"
+                  vertical={false}
+                />
                 <XAxis
                   dataKey="label"
                   tickLine={false}
@@ -408,27 +416,29 @@ export default function MerchantDashboardView() {
         {/* Top customers */}
         <Card className="p-5 sm:p-6">
           <div className="mb-4 flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+            <Sparkles className="text-primary h-5 w-5" />
             <h2 className="text-base font-semibold">Top customers</h2>
-            <Badge variant="secondary" className="ml-auto text-[10px]">30d</Badge>
+            <Badge variant="secondary" className="ml-auto text-[10px]">
+              30d
+            </Badge>
           </div>
           {data?.topCustomers && data.topCustomers.length > 0 ? (
-            <ul className="max-h-72 space-y-2 overflow-y-auto pr-1 scrollbar-thin">
+            <ul className="scrollbar-thin max-h-72 space-y-2 overflow-y-auto pr-1">
               {data.topCustomers.map((c, i) => (
                 <li
                   key={`${c.name}-${i}`}
-                  className="flex items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-muted/40"
+                  className="hover:bg-muted/40 flex items-center gap-3 rounded-xl border p-3 transition-colors"
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold uppercase text-emerald-600 dark:text-emerald-400">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-bold text-emerald-600 uppercase dark:text-emerald-400">
                     {c.name.slice(0, 2)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{c.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">
+                    <p className="text-muted-foreground truncate text-xs">
                       {c.count} {c.count === 1 ? "payment" : "payments"} · last {timeAgo(c.lastAt)}
                     </p>
                   </div>
-                  <p className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                  <p className="text-sm font-semibold text-emerald-600 tabular-nums dark:text-emerald-400">
                     {naira(c.total)}
                   </p>
                 </li>
@@ -446,7 +456,7 @@ export default function MerchantDashboardView() {
         {/* Active payment links summary */}
         <Card className="p-5 sm:p-6">
           <div className="mb-4 flex items-center gap-2">
-            <LinkIcon className="h-5 w-5 text-primary" />
+            <LinkIcon className="text-primary h-5 w-5" />
             <h2 className="text-base font-semibold">Recent payment links</h2>
             <Button
               size="sm"
@@ -468,7 +478,7 @@ export default function MerchantDashboardView() {
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{link.title}</p>
-                      <p className="truncate font-mono text-xs text-muted-foreground">
+                      <p className="text-muted-foreground truncate font-mono text-xs">
                         {link.slug} · {link.usesCount} uses
                       </p>
                     </div>
@@ -509,7 +519,7 @@ export default function MerchantDashboardView() {
       <Card className="p-5 sm:p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <KeyRound className="h-5 w-5 text-primary" />
+            <KeyRound className="text-primary h-5 w-5" />
             <h2 className="text-base font-semibold">API keys</h2>
             <Badge variant="secondary" className="text-[10px]">
               {apiKeys.filter((k) => k.active).length} active
@@ -550,7 +560,7 @@ export default function MerchantDashboardView() {
             {apiKeys.map((k) => {
               const name =
                 typeof k.scopes === "object" && !Array.isArray(k.scopes) && k.scopes !== null
-                  ? (k.scopes as { name?: string }).name ?? "Unnamed key"
+                  ? ((k.scopes as { name?: string }).name ?? "Unnamed key")
                   : "API key";
               const isRevoked = !!k.revokedAt;
               return (
@@ -567,19 +577,25 @@ export default function MerchantDashboardView() {
                     <div className="flex items-center gap-2">
                       <p className="truncate text-sm font-semibold">{name}</p>
                       {isRevoked ? (
-                        <Badge variant="outline" className="bg-red-500/10 text-[10px] text-red-600 dark:text-red-400">
+                        <Badge
+                          variant="outline"
+                          className="bg-red-500/10 text-[10px] text-red-600 dark:text-red-400"
+                        >
                           Revoked
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-emerald-500/10 text-[10px] text-emerald-600 dark:text-emerald-400">
+                        <Badge
+                          variant="outline"
+                          className="bg-emerald-500/10 text-[10px] text-emerald-600 dark:text-emerald-400"
+                        >
                           Active
                         </Badge>
                       )}
                     </div>
-                    <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                    <p className="text-muted-foreground mt-0.5 truncate font-mono text-xs">
                       {k.prefix}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    <p className="text-muted-foreground mt-0.5 text-[11px]">
                       Created {formatDate(k.createdAt, true)}
                       {k.lastUsedAt && ` · Last used ${timeAgo(k.lastUsedAt)}`}
                       {isRevoked && ` · Revoked ${timeAgo(k.revokedAt!)}`}
@@ -589,7 +605,7 @@ export default function MerchantDashboardView() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="gap-1.5 text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive gap-1.5"
                       disabled={revokingId === k.id}
                       onClick={() => revokeKey(k.id)}
                     >
@@ -614,7 +630,8 @@ export default function MerchantDashboardView() {
           <DialogHeader>
             <DialogTitle>Generate new API key</DialogTitle>
             <DialogDescription>
-              Give your key a name so you can recognize it later. The full key will be shown only once.
+              Give your key a name so you can recognize it later. The full key will be shown only
+              once.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
@@ -629,21 +646,29 @@ export default function MerchantDashboardView() {
                 autoFocus
               />
             </div>
-            <div className="rounded-xl border bg-muted/30 p-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="bg-muted/30 rounded-xl border p-3">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
                 Default scopes
               </p>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {["READ", "PAYMENTS", "LINKS"].map((s) => (
-                  <Badge key={s} variant="secondary" className="text-[10px]">{s}</Badge>
+                  <Badge key={s} variant="secondary" className="text-[10px]">
+                    {s}
+                  </Badge>
                 ))}
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={createKey} disabled={creating} className="gap-1.5">
-              {creating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+              {creating ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <KeyRound className="h-4 w-4" />
+              )}
               Generate key
             </Button>
           </DialogFooter>
@@ -659,38 +684,41 @@ export default function MerchantDashboardView() {
               Save your API key
             </DialogTitle>
             <DialogDescription>
-              Copy this key now and store it securely. For your security, we will never show it again.
+              Copy this key now and store it securely. For your security, we will never show it
+              again.
             </DialogDescription>
           </DialogHeader>
           {newKey && (
             <div className="space-y-3 py-2">
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+                <p className="text-xs font-semibold tracking-wide text-emerald-700 uppercase dark:text-emerald-400">
                   {newKey.name}
                 </p>
                 <button
                   onClick={copyNewKey}
-                  className="mt-2 flex w-full items-center gap-2 rounded-lg bg-background p-3 text-left font-mono text-xs"
+                  className="bg-background mt-2 flex w-full items-center gap-2 rounded-lg p-3 text-left font-mono text-xs"
                 >
                   <span className="min-w-0 flex-1 break-all">{newKey.key}</span>
                   {copiedKey ? (
                     <Check className="h-4 w-4 shrink-0 text-emerald-600" />
                   ) : (
-                    <Copy className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <Copy className="text-muted-foreground h-4 w-4 shrink-0" />
                   )}
                 </button>
               </div>
               <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                <p className="text-xs text-amber-700 dark:text-amber-300">
-                  {newKey.warning}
-                </p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">{newKey.warning}</p>
               </div>
             </div>
           )}
           <DialogFooter>
             <Button variant="outline" onClick={copyNewKey} className="gap-1.5">
-              {copiedKey ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+              {copiedKey ? (
+                <Check className="h-4 w-4 text-emerald-600" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
               Copy key
             </Button>
             <Button onClick={() => setNewKey(null)} className="gap-1.5">
@@ -727,13 +755,13 @@ function StatTile({
   return (
     <Card className="tp-card-hover p-5">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <p className="text-muted-foreground text-xs font-medium">{label}</p>
         <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${bg}`}>
           <Icon className="h-4 w-4" />
         </div>
       </div>
       <p className="mt-2.5 text-2xl font-bold tabular-nums">{value}</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
+      <p className="text-muted-foreground mt-0.5 text-xs">{hint}</p>
     </Card>
   );
 }

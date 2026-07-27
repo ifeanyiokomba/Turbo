@@ -144,14 +144,17 @@ export async function GET() {
           avgLatencyMs: avgLatency,
           sampleCount: samples.length,
         };
-      }),
+      })
     );
 
     // ---- Error breakdown (top 10) ----
     // Bucket failures by type + description.
     const errorBuckets: Record<string, { label: string; count: number }> = {};
     for (const t of txFailedRecent) {
-      const label = `${t.type}: ${t.description ?? t.counterpartyName ?? "Unknown error"}`.slice(0, 120);
+      const label = `${t.type}: ${t.description ?? t.counterpartyName ?? "Unknown error"}`.slice(
+        0,
+        120
+      );
       if (!errorBuckets[label]) errorBuckets[label] = { label, count: 0 };
       errorBuckets[label].count++;
     }
@@ -160,15 +163,15 @@ export async function GET() {
       .slice(0, 10);
 
     // ---- Derived metrics ----
-    const successRatePct = txTodayCount > 0
-      ? Math.round((txTodaySuccessCount / txTodayCount) * 1000) / 10
-      : 100;
+    const successRatePct =
+      txTodayCount > 0 ? Math.round((txTodaySuccessCount / txTodayCount) * 1000) / 10 : 100;
     const openAlerts = unresolvedAml + openComplianceCases + failedWebhookEndpoints;
 
     // Avg processing time: derive from latest ProviderHealthCheck avgLatency
-    const avgProcessingMs = providerHealth.length > 0
-      ? Math.round(providerHealth.reduce((s, p) => s + p.avgLatencyMs, 0) / providerHealth.length)
-      : 0;
+    const avgProcessingMs =
+      providerHealth.length > 0
+        ? Math.round(providerHealth.reduce((s, p) => s + p.avgLatencyMs, 0) / providerHealth.length)
+        : 0;
 
     return json({
       generatedAt: now.toISOString(),

@@ -90,14 +90,14 @@ export async function requirePermission(permission: Permission): Promise<User> {
     throw new ServiceError(
       "Account is " + session.user.status.toLowerCase(),
       403,
-      "ACCOUNT_INACTIVE",
+      "ACCOUNT_INACTIVE"
     );
   }
   if (!hasPermission(session.user.role, permission)) {
     throw new ServiceError(
       "Insufficient permissions: requires " + permission,
       403,
-      "INSUFFICIENT_PERMISSIONS",
+      "INSUFFICIENT_PERMISSIONS"
     );
   }
   return session.user;
@@ -107,9 +107,7 @@ export async function requirePermission(permission: Permission): Promise<User> {
  * Authenticates the current session and asserts that the user has ANY of the
  * supplied permissions. Returns the authenticated user on success.
  */
-export async function requireAnyPermission(
-  permissions: Permission[],
-): Promise<User> {
+export async function requireAnyPermission(permissions: Permission[]): Promise<User> {
   const session = await getSession();
   if (!session) {
     throw new ServiceError("Authentication required", 401, "UNAUTHENTICATED");
@@ -118,14 +116,14 @@ export async function requireAnyPermission(
     throw new ServiceError(
       "Account is " + session.user.status.toLowerCase(),
       403,
-      "ACCOUNT_INACTIVE",
+      "ACCOUNT_INACTIVE"
     );
   }
   if (!hasAnyPermission(session.user.role, permissions)) {
     throw new ServiceError(
       "Insufficient permissions: requires one of " + permissions.join(", "),
       403,
-      "INSUFFICIENT_PERMISSIONS",
+      "INSUFFICIENT_PERMISSIONS"
     );
   }
   return session.user;

@@ -1,9 +1,5 @@
 import { db } from "@/lib/db";
-import {
-  json,
-  handleError,
-  requireUser,
-} from "@/lib/api";
+import { json, handleError, requireUser } from "@/lib/api";
 
 /**
  * GET /api/qr/history

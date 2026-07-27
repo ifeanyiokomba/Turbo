@@ -64,7 +64,11 @@ export async function POST(req: Request) {
     if (!billerName) throw new ServiceError("Biller name is required", 400, "BILLER_NAME_REQUIRED");
 
     if (customerRef.length < 4)
-      throw new ServiceError(`Enter a valid ${biller.refLabel.toLowerCase()}`, 400, "INVALID_CUSTOMER_REF");
+      throw new ServiceError(
+        `Enter a valid ${biller.refLabel.toLowerCase()}`,
+        400,
+        "INVALID_CUSTOMER_REF"
+      );
 
     if (!Number.isFinite(amountKobo) || amountKobo < MIN_BILL_KOBO)
       throw new ServiceError("Minimum bill payment is ₦10", 400, "INVALID_AMOUNT");

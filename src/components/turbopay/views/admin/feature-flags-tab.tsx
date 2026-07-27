@@ -17,13 +17,29 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Plus, RefreshCw, Loader2, Trash2, Flag, ChevronDown, ChevronRight, Settings2,
+  Plus,
+  RefreshCw,
+  Loader2,
+  Trash2,
+  Flag,
+  ChevronDown,
+  ChevronRight,
+  Settings2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatDate } from "@/lib/money";
@@ -56,21 +72,33 @@ export default function FeatureFlagsTab() {
 
   const [addOpen, setAddOpen] = React.useState(false);
   const [addForm, setAddForm] = React.useState({
-    key: "", description: "", type: "BOOL",
-    boolValue: true, percentValue: 0, variantValue: "default", enabled: true,
+    key: "",
+    description: "",
+    type: "BOOL",
+    boolValue: true,
+    percentValue: 0,
+    variantValue: "default",
+    enabled: true,
   });
   const [adding, setAdding] = React.useState(false);
 
   // Override dialog
   const [overrideTarget, setOverrideTarget] = React.useState<FeatureFlagRow | null>(null);
-  const [overrideForm, setOverrideForm] = React.useState({ targetType: "USER", targetId: "", value: "" });
+  const [overrideForm, setOverrideForm] = React.useState({
+    targetType: "USER",
+    targetId: "",
+    value: "",
+  });
   const [addingOverride, setAddingOverride] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/feature-flags", { cache: "no-store" });
-      if (!res.ok) { toast.error("Failed to load feature flags"); return; }
+      if (!res.ok) {
+        toast.error("Failed to load feature flags");
+        return;
+      }
       const data = await res.json();
       setFlags(data.flags);
     } finally {
@@ -78,7 +106,9 @@ export default function FeatureFlagsTab() {
     }
   }, []);
 
-  React.useEffect(() => { load(); }, [load]);
+  React.useEffect(() => {
+    load();
+  }, [load]);
 
   function parseValue(f: FeatureFlagRow): boolean | number | string {
     try {
@@ -88,7 +118,12 @@ export default function FeatureFlagsTab() {
     }
   }
 
-  async function patchFlag(f: FeatureFlagRow, patch: Partial<Pick<FeatureFlagRow, "enabled" | "valueJSON">> & { override?: { targetType: string; targetId: string; valueJSON: string } }) {
+  async function patchFlag(
+    f: FeatureFlagRow,
+    patch: Partial<Pick<FeatureFlagRow, "enabled" | "valueJSON">> & {
+      override?: { targetType: string; targetId: string; valueJSON: string };
+    }
+  ) {
     const body: Record<string, unknown> = { ...patch };
     const res = await fetch(`/api/admin/feature-flags/${f.id}`, {
       method: "PATCH",
@@ -103,19 +138,19 @@ export default function FeatureFlagsTab() {
   }
 
   async function toggleEnabled(f: FeatureFlagRow, next: boolean) {
-    setFlags((cur) => cur?.map((x) => x.id === f.id ? { ...x, enabled: next } : x) ?? null);
+    setFlags((cur) => cur?.map((x) => (x.id === f.id ? { ...x, enabled: next } : x)) ?? null);
     try {
       await patchFlag(f, { enabled: next });
       toast.success(`Flag "${f.key}" ${next ? "enabled" : "disabled"}`);
     } catch (e) {
-      setFlags((cur) => cur?.map((x) => x.id === f.id ? { ...x, enabled: !next } : x) ?? null);
+      setFlags((cur) => cur?.map((x) => (x.id === f.id ? { ...x, enabled: !next } : x)) ?? null);
       toast.error(e instanceof Error ? e.message : "Failed to update flag");
     }
   }
 
   async function updateValue(f: FeatureFlagRow, value: boolean | number | string) {
     const valueJSON = JSON.stringify(value);
-    setFlags((cur) => cur?.map((x) => x.id === f.id ? { ...x, valueJSON } : x) ?? null);
+    setFlags((cur) => cur?.map((x) => (x.id === f.id ? { ...x, valueJSON } : x)) ?? null);
     try {
       await patchFlag(f, { valueJSON });
       toast.success(`Flag "${f.key}" value saved`);
@@ -139,7 +174,12 @@ export default function FeatureFlagsTab() {
   }
 
   async function deleteOverride(f: FeatureFlagRow, overrideId: string) {
-    setFlags((cur) => cur?.map((x) => x.id === f.id ? { ...x, overrides: x.overrides.filter((o) => o.id !== overrideId) } : x) ?? null);
+    setFlags(
+      (cur) =>
+        cur?.map((x) =>
+          x.id === f.id ? { ...x, overrides: x.overrides.filter((o) => o.id !== overrideId) } : x
+        ) ?? null
+    );
     try {
       await fetch(`/api/admin/feature-flags/${f.id}`, {
         method: "PATCH",
@@ -154,11 +194,18 @@ export default function FeatureFlagsTab() {
   }
 
   async function submitAdd() {
-    if (!addForm.key.trim()) { toast.error("Flag key is required"); return; }
-    const key = addForm.key.trim().toUpperCase().replace(/[^A-Z0-9_]/g, "_");
+    if (!addForm.key.trim()) {
+      toast.error("Flag key is required");
+      return;
+    }
+    const key = addForm.key
+      .trim()
+      .toUpperCase()
+      .replace(/[^A-Z0-9_]/g, "_");
     let valueJSON: string;
     if (addForm.type === "BOOL") valueJSON = JSON.stringify(addForm.boolValue);
-    else if (addForm.type === "PERCENT") valueJSON = JSON.stringify(Math.max(0, Math.min(1, addForm.percentValue / 100)));
+    else if (addForm.type === "PERCENT")
+      valueJSON = JSON.stringify(Math.max(0, Math.min(1, addForm.percentValue / 100)));
     else valueJSON = JSON.stringify(addForm.variantValue);
     setAdding(true);
     try {
@@ -190,12 +237,16 @@ export default function FeatureFlagsTab() {
 
   async function submitOverride() {
     if (!overrideTarget) return;
-    if (!overrideForm.targetId.trim()) { toast.error("Target ID is required"); return; }
+    if (!overrideForm.targetId.trim()) {
+      toast.error("Target ID is required");
+      return;
+    }
     setAddingOverride(true);
     try {
       let valueJSON: string;
       if (overrideTarget.type === "BOOL") valueJSON = JSON.stringify(overrideForm.value === "true");
-      else if (overrideTarget.type === "PERCENT") valueJSON = JSON.stringify(Math.max(0, Math.min(1, Number(overrideForm.value) / 100)));
+      else if (overrideTarget.type === "PERCENT")
+        valueJSON = JSON.stringify(Math.max(0, Math.min(1, Number(overrideForm.value) / 100)));
       else valueJSON = JSON.stringify(overrideForm.value);
       await patchFlag(overrideTarget, {
         override: {
@@ -218,7 +269,8 @@ export default function FeatureFlagsTab() {
   function toggleExpand(id: string) {
     setExpanded((cur) => {
       const next = new Set(cur);
-      if (next.has(id)) next.delete(id); else next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -229,7 +281,9 @@ export default function FeatureFlagsTab() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="text-sm font-semibold">Feature flags</h3>
-            <p className="text-xs text-muted-foreground">Toggle platform behavior. Per-user/country/KYC-tier overrides supported.</p>
+            <p className="text-muted-foreground text-xs">
+              Toggle platform behavior. Per-user/country/KYC-tier overrides supported.
+            </p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" className="gap-1.5" onClick={load}>
@@ -245,20 +299,22 @@ export default function FeatureFlagsTab() {
       <Card className="p-5">
         {loading && !flags ? (
           <div className="space-y-2">
-            {[0,1,2,3,4].map((i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-12 rounded-xl" />
+            ))}
           </div>
         ) : flags && flags.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="sticky top-0 z-10">
-                <tr className="text-left text-xs text-muted-foreground">
-                  <th className="pb-2 pr-2 font-medium w-8"></th>
-                  <th className="pb-2 pr-2 font-medium">Key</th>
-                  <th className="pb-2 pr-2 font-medium">Type</th>
-                  <th className="pb-2 pr-2 font-medium">Value</th>
-                  <th className="pb-2 pr-2 font-medium">Enabled</th>
-                  <th className="pb-2 pr-2 font-medium">Overrides</th>
-                  <th className="pb-2 font-medium text-right">Actions</th>
+                <tr className="text-muted-foreground text-left text-xs">
+                  <th className="w-8 pr-2 pb-2 font-medium"></th>
+                  <th className="pr-2 pb-2 font-medium">Key</th>
+                  <th className="pr-2 pb-2 font-medium">Type</th>
+                  <th className="pr-2 pb-2 font-medium">Value</th>
+                  <th className="pr-2 pb-2 font-medium">Enabled</th>
+                  <th className="pr-2 pb-2 font-medium">Overrides</th>
+                  <th className="pb-2 text-right font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -267,20 +323,31 @@ export default function FeatureFlagsTab() {
                   const val = parseValue(f);
                   return (
                     <React.Fragment key={f.id}>
-                      <tr className="border-t transition-colors hover:bg-muted/40">
+                      <tr className="hover:bg-muted/40 border-t transition-colors">
                         <td className="py-2 pr-2">
                           {f.overrides.length > 0 && (
-                            <button onClick={() => toggleExpand(f.id)} className="text-muted-foreground hover:text-foreground">
-                              {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                            <button
+                              onClick={() => toggleExpand(f.id)}
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              {isOpen ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
                             </button>
                           )}
                         </td>
                         <td className="py-2 pr-2">
                           <p className="font-mono text-xs font-semibold">{f.key}</p>
-                          {f.description && <p className="text-[10px] text-muted-foreground">{f.description}</p>}
+                          {f.description && (
+                            <p className="text-muted-foreground text-[10px]">{f.description}</p>
+                          )}
                         </td>
                         <td className="py-2 pr-2">
-                          <Badge variant="outline" className="text-[10px]">{f.type}</Badge>
+                          <Badge variant="outline" className="text-[10px]">
+                            {f.type}
+                          </Badge>
                         </td>
                         <td className="py-2 pr-2">
                           {f.type === "BOOL" ? (
@@ -290,14 +357,18 @@ export default function FeatureFlagsTab() {
                               aria-label="Flag value"
                             />
                           ) : f.type === "PERCENT" ? (
-                            <div className="flex items-center gap-2 w-44">
+                            <div className="flex w-44 items-center gap-2">
                               <Slider
                                 value={[Math.round((val as number) * 100)]}
-                                min={0} max={100} step={1}
+                                min={0}
+                                max={100}
+                                step={1}
                                 onValueCommit={(v) => updateValue(f, v[0] / 100)}
                                 className="flex-1"
                               />
-                              <span className="w-8 text-xs tabular-nums text-right">{Math.round((val as number) * 100)}%</span>
+                              <span className="w-8 text-right text-xs tabular-nums">
+                                {Math.round((val as number) * 100)}%
+                              </span>
                             </div>
                           ) : (
                             <Input
@@ -308,21 +379,43 @@ export default function FeatureFlagsTab() {
                           )}
                         </td>
                         <td className="py-2 pr-2">
-                          <Switch checked={f.enabled} onCheckedChange={(v) => toggleEnabled(f, v)} aria-label="Toggle flag" />
+                          <Switch
+                            checked={f.enabled}
+                            onCheckedChange={(v) => toggleEnabled(f, v)}
+                            aria-label="Toggle flag"
+                          />
                         </td>
                         <td className="py-2 pr-2 text-xs">
                           {f.overrides.length > 0 ? (
-                            <Badge variant="secondary" className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400">{f.overrides.length}</Badge>
+                            <Badge
+                              variant="secondary"
+                              className="bg-amber-500/10 text-[10px] text-amber-600 dark:text-amber-400"
+                            >
+                              {f.overrides.length}
+                            </Badge>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
                         </td>
                         <td className="py-2 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs gap-1" onClick={() => { setOverrideTarget(f); setOverrideForm({ targetType: "USER", targetId: "", value: "" }); }}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 gap-1 px-2 text-xs"
+                              onClick={() => {
+                                setOverrideTarget(f);
+                                setOverrideForm({ targetType: "USER", targetId: "", value: "" });
+                              }}
+                            >
                               <Settings2 className="h-3.5 w-3.5" /> Override
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600" onClick={() => deleteFlag(f)}>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-red-600"
+                              onClick={() => deleteFlag(f)}
+                            >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
@@ -330,24 +423,33 @@ export default function FeatureFlagsTab() {
                       </tr>
                       {isOpen && f.overrides.length > 0 && (
                         <tr className="bg-muted/30">
-                          <td colSpan={7} className="py-2 px-6">
+                          <td colSpan={7} className="px-6 py-2">
                             <table className="w-full text-xs">
                               <thead>
-                                <tr className="text-left text-muted-foreground">
-                                  <th className="pb-1 pr-2 font-medium">Target type</th>
-                                  <th className="pb-1 pr-2 font-medium">Target ID</th>
-                                  <th className="pb-1 pr-2 font-medium">Value</th>
-                                  <th className="pb-1 font-medium text-right">Action</th>
+                                <tr className="text-muted-foreground text-left">
+                                  <th className="pr-2 pb-1 font-medium">Target type</th>
+                                  <th className="pr-2 pb-1 font-medium">Target ID</th>
+                                  <th className="pr-2 pb-1 font-medium">Value</th>
+                                  <th className="pb-1 text-right font-medium">Action</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {f.overrides.map((o) => (
                                   <tr key={o.id} className="border-t">
-                                    <td className="py-1 pr-2"><Badge variant="outline" className="text-[10px]">{o.targetType}</Badge></td>
+                                    <td className="py-1 pr-2">
+                                      <Badge variant="outline" className="text-[10px]">
+                                        {o.targetType}
+                                      </Badge>
+                                    </td>
                                     <td className="py-1 pr-2 font-mono">{o.targetId}</td>
                                     <td className="py-1 pr-2 font-mono">{o.valueJSON}</td>
                                     <td className="py-1 text-right">
-                                      <Button size="sm" variant="ghost" className="h-6 px-2 text-red-600" onClick={() => deleteOverride(f, o.id)}>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 px-2 text-red-600"
+                                        onClick={() => deleteOverride(f, o.id)}
+                                      >
                                         <Trash2 className="h-3 w-3" />
                                       </Button>
                                     </td>
@@ -366,9 +468,11 @@ export default function FeatureFlagsTab() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-14 text-center">
-            <Flag className="h-6 w-6 text-muted-foreground" />
+            <Flag className="text-muted-foreground h-6 w-6" />
             <p className="mt-3 font-medium">No feature flags configured</p>
-            <p className="mt-1 text-sm text-muted-foreground">Add your first flag to start gating features.</p>
+            <p className="text-muted-foreground mt-1 text-sm">
+              Add your first flag to start gating features.
+            </p>
           </div>
         )}
       </Card>
@@ -377,21 +481,36 @@ export default function FeatureFlagsTab() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add feature flag</DialogTitle>
-            <DialogDescription>BOOL = on/off · PERCENT = 0-100% rollout · VARIANT = pick a string bucket.</DialogDescription>
+            <DialogDescription>
+              BOOL = on/off · PERCENT = 0-100% rollout · VARIANT = pick a string bucket.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
               <Label>Key</Label>
-              <Input placeholder="NEW_CHECKOUT_FLOW" value={addForm.key} onChange={(e) => setAddForm({ ...addForm, key: e.target.value })} />
+              <Input
+                placeholder="NEW_CHECKOUT_FLOW"
+                value={addForm.key}
+                onChange={(e) => setAddForm({ ...addForm, key: e.target.value })}
+              />
             </div>
             <div>
               <Label>Description (optional)</Label>
-              <Input placeholder="What does this flag control?" value={addForm.description} onChange={(e) => setAddForm({ ...addForm, description: e.target.value })} />
+              <Input
+                placeholder="What does this flag control?"
+                value={addForm.description}
+                onChange={(e) => setAddForm({ ...addForm, description: e.target.value })}
+              />
             </div>
             <div>
               <Label>Type</Label>
-              <Select value={addForm.type} onValueChange={(v) => setAddForm({ ...addForm, type: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={addForm.type}
+                onValueChange={(v) => setAddForm({ ...addForm, type: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="BOOL">BOOL</SelectItem>
                   <SelectItem value="PERCENT">PERCENT</SelectItem>
@@ -402,8 +521,13 @@ export default function FeatureFlagsTab() {
             <div>
               <Label>Value</Label>
               {addForm.type === "BOOL" ? (
-                <Select value={addForm.boolValue ? "true" : "false"} onValueChange={(v) => setAddForm({ ...addForm, boolValue: v === "true" })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={addForm.boolValue ? "true" : "false"}
+                  onValueChange={(v) => setAddForm({ ...addForm, boolValue: v === "true" })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="true">true</SelectItem>
                     <SelectItem value="false">false</SelectItem>
@@ -411,19 +535,38 @@ export default function FeatureFlagsTab() {
                 </Select>
               ) : addForm.type === "PERCENT" ? (
                 <div className="flex items-center gap-2">
-                  <Slider value={[addForm.percentValue]} min={0} max={100} step={1} onValueChange={(v) => setAddForm({ ...addForm, percentValue: v[0] })} className="flex-1" />
-                  <span className="w-10 text-xs tabular-nums text-right">{addForm.percentValue}%</span>
+                  <Slider
+                    value={[addForm.percentValue]}
+                    min={0}
+                    max={100}
+                    step={1}
+                    onValueChange={(v) => setAddForm({ ...addForm, percentValue: v[0] })}
+                    className="flex-1"
+                  />
+                  <span className="w-10 text-right text-xs tabular-nums">
+                    {addForm.percentValue}%
+                  </span>
                 </div>
               ) : (
-                <Input placeholder="variantA" value={addForm.variantValue} onChange={(e) => setAddForm({ ...addForm, variantValue: e.target.value })} />
+                <Input
+                  placeholder="variantA"
+                  value={addForm.variantValue}
+                  onChange={(e) => setAddForm({ ...addForm, variantValue: e.target.value })}
+                />
               )}
             </div>
             <label className="flex items-center gap-2 text-sm">
-              <Switch checked={addForm.enabled} onCheckedChange={(v) => setAddForm({ ...addForm, enabled: v })} /> Enabled
+              <Switch
+                checked={addForm.enabled}
+                onCheckedChange={(v) => setAddForm({ ...addForm, enabled: v })}
+              />{" "}
+              Enabled
             </label>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={submitAdd} disabled={adding}>
               {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Create flag
@@ -436,13 +579,20 @@ export default function FeatureFlagsTab() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add override · {overrideTarget?.key}</DialogTitle>
-            <DialogDescription>Override this flag for a specific user, country, or KYC tier.</DialogDescription>
+            <DialogDescription>
+              Override this flag for a specific user, country, or KYC tier.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div>
               <Label>Target type</Label>
-              <Select value={overrideForm.targetType} onValueChange={(v) => setOverrideForm({ ...overrideForm, targetType: v })}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Select
+                value={overrideForm.targetType}
+                onValueChange={(v) => setOverrideForm({ ...overrideForm, targetType: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="USER">USER</SelectItem>
                   <SelectItem value="COUNTRY">COUNTRY</SelectItem>
@@ -453,7 +603,13 @@ export default function FeatureFlagsTab() {
             <div>
               <Label>Target ID</Label>
               <Input
-                placeholder={overrideForm.targetType === "USER" ? "user_abc123" : overrideForm.targetType === "COUNTRY" ? "NG" : "2"}
+                placeholder={
+                  overrideForm.targetType === "USER"
+                    ? "user_abc123"
+                    : overrideForm.targetType === "COUNTRY"
+                      ? "NG"
+                      : "2"
+                }
                 value={overrideForm.targetId}
                 onChange={(e) => setOverrideForm({ ...overrideForm, targetId: e.target.value })}
               />
@@ -461,22 +617,40 @@ export default function FeatureFlagsTab() {
             <div>
               <Label>Value</Label>
               {overrideTarget?.type === "BOOL" ? (
-                <Select value={overrideForm.value || "false"} onValueChange={(v) => setOverrideForm({ ...overrideForm, value: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Select
+                  value={overrideForm.value || "false"}
+                  onValueChange={(v) => setOverrideForm({ ...overrideForm, value: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="true">true</SelectItem>
                     <SelectItem value="false">false</SelectItem>
                   </SelectContent>
                 </Select>
               ) : overrideTarget?.type === "PERCENT" ? (
-                <Input type="number" min={0} max={100} placeholder="50" value={overrideForm.value} onChange={(e) => setOverrideForm({ ...overrideForm, value: e.target.value })} />
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  placeholder="50"
+                  value={overrideForm.value}
+                  onChange={(e) => setOverrideForm({ ...overrideForm, value: e.target.value })}
+                />
               ) : (
-                <Input placeholder="variantA" value={overrideForm.value} onChange={(e) => setOverrideForm({ ...overrideForm, value: e.target.value })} />
+                <Input
+                  placeholder="variantA"
+                  value={overrideForm.value}
+                  onChange={(e) => setOverrideForm({ ...overrideForm, value: e.target.value })}
+                />
               )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOverrideTarget(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setOverrideTarget(null)}>
+              Cancel
+            </Button>
             <Button onClick={submitOverride} disabled={addingOverride}>
               {addingOverride ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               Add override

@@ -75,11 +75,12 @@ export const paystackCardPayment: ICardPaymentProvider = {
           authUrl: `${BASE}/mock/authorize?ref=${encodeURIComponent(req.reference)}`,
         },
         "mock",
-        50,
+        50
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
@@ -96,9 +97,11 @@ export const paystackCardPayment: ICardPaymentProvider = {
             callback_url: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/paystack/return`,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { reference?: string; authorization_url?: string; status?: string } }).data;
+      const data = (
+        body as { data?: { reference?: string; authorization_url?: string; status?: string } }
+      ).data;
       if (!data || !data.reference) {
         return fail("UPSTREAM_ERROR", "Paystack initialize returned no reference", {
           providerCode: CODE,
@@ -107,11 +110,7 @@ export const paystackCardPayment: ICardPaymentProvider = {
       }
       const authUrl = data.authorization_url;
       const status: "PENDING" | "3DS_REQUIRED" = authUrl ? "3DS_REQUIRED" : "PENDING";
-      return ok(
-        { providerRef: data.reference, status, authUrl },
-        data.reference,
-        0,
-      );
+      return ok({ providerRef: data.reference, status, authUrl }, data.reference, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack initialize failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -127,15 +126,17 @@ export const paystackCardPayment: ICardPaymentProvider = {
       return ok({ status: "success", amountSettledMinor: 0, currency: "NGN" }, "mock", 30);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/transaction/verify/${encodeURIComponent(providerRef)}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { status?: string; amount?: number; currency?: string } }).data;
+      const data = (body as { data?: { status?: string; amount?: number; currency?: string } })
+        .data;
       const status = data?.status ?? "pending";
       const amountSettledMinor = typeof data?.amount === "number" ? data.amount : 0;
       const currency = data?.currency ?? "NGN";
@@ -155,7 +156,8 @@ export const paystackCardPayment: ICardPaymentProvider = {
       return ok({ refundRef: `ps-refund-${req.providerRef}`, status: "pending" }, "mock", 60);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const payload: Record<string, unknown> = { transaction: req.providerRef };
@@ -164,13 +166,16 @@ export const paystackCardPayment: ICardPaymentProvider = {
       const { body } = await http(
         `${BASE}/refund`,
         { method: "POST", headers: authHeader(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { reference?: string; status?: string } }).data;
       return ok(
-        { refundRef: data?.reference ?? generateReference("PS-RFD"), status: data?.status ?? "pending" },
+        {
+          refundRef: data?.reference ?? generateReference("PS-RFD"),
+          status: data?.status ?? "pending",
+        },
         data?.reference ?? "ps-refund",
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack refund failed";
@@ -192,21 +197,33 @@ export const paystackBankTransfer: IBankTransferProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok(UNIQUE_BANKS.map((b) => ({ ...b, country })), "mock", 12);
+      return ok(
+        UNIQUE_BANKS.map((b) => ({ ...b, country })),
+        "mock",
+        12
+      );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/bank?country=${encodeURIComponent(country)}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: Array<{ code?: string; name?: string; longform_code?: string }> }).data ?? [];
+      const data =
+        (body as { data?: Array<{ code?: string; name?: string; longform_code?: string }> }).data ??
+        [];
       const banks = data
         .filter((b) => b.code && b.name)
-        .map((b) => ({ code: String(b.code), name: String(b.name), short: String(b.longform_code ?? b.name), country }));
+        .map((b) => ({
+          code: String(b.code),
+          name: String(b.name),
+          short: String(b.longform_code ?? b.name),
+          country,
+        }));
       // Fall back to the local bank directory if Paystack returns an empty list
       // (happens with test keys + unknown country codes).
       return ok(banks.length ? banks : UNIQUE_BANKS.map((b) => ({ ...b, country })), "ps-banks", 0);
@@ -224,18 +241,22 @@ export const paystackBankTransfer: IBankTransferProvider = {
       mockWarnOnce(CODE);
       const known = NIGERIAN_BANKS.find((b) => b.code === req.bankCode);
       return ok(
-        { accountName: `MOCK ${req.accountNumber.slice(-4)}`, bankName: known?.name ?? "Unknown Bank" },
+        {
+          accountName: `MOCK ${req.accountNumber.slice(-4)}`,
+          bankName: known?.name ?? "Unknown Bank",
+        },
         "mock",
-        20,
+        20
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const url = `${BASE}/bank/resolve?account_number=${encodeURIComponent(req.accountNumber)}&bank_code=${encodeURIComponent(req.bankCode)}`;
       const { body } = await http(url, { method: "GET", headers: authHeader(secretKey) }, (s, b) =>
-        defaultHttpError(CODE, s, b),
+        defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { account_name?: string; bank_name?: string } }).data;
       if (!data?.account_name) {
@@ -248,7 +269,7 @@ export const paystackBankTransfer: IBankTransferProvider = {
       return ok(
         { accountName: data.account_name, bankName: data.bank_name ?? known?.name ?? req.bankCode },
         "ps-resolve",
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack resolve failed";
@@ -268,7 +289,8 @@ export const paystackBankTransfer: IBankTransferProvider = {
       return ok({ providerRef: `ps-trf-${req.reference}`, status: "PENDING" }, "mock", 100);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       // Step 1 — create transfer recipient
@@ -285,7 +307,7 @@ export const paystackBankTransfer: IBankTransferProvider = {
             currency: req.currency,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const recipData = (recipBody as { data?: { recipient_code?: string } }).data;
       const recipientCode = recipData?.recipient_code;
@@ -311,7 +333,7 @@ export const paystackBankTransfer: IBankTransferProvider = {
             reference: req.reference,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { transfer_code?: string; status?: string } }).data;
       const providerRef = data?.transfer_code ?? `ps-trf-${req.reference}`;
@@ -333,19 +355,25 @@ export const paystackBankTransfer: IBankTransferProvider = {
       return ok({ status: "SUCCESS", settlementTime: new Date().toISOString() }, "mock", 15);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/transfer/${encodeURIComponent(providerRef)}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { status?: string; created_at?: string; settled_at?: string } }).data;
+      const data = (
+        body as { data?: { status?: string; created_at?: string; settled_at?: string } }
+      ).data;
       return ok(
-        { status: (data?.status ?? "pending").toUpperCase(), settlementTime: data?.settled_at ?? data?.created_at },
+        {
+          status: (data?.status ?? "pending").toUpperCase(),
+          settlementTime: data?.settled_at ?? data?.created_at,
+        },
         providerRef,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack getTransferStatus failed";
@@ -367,12 +395,15 @@ export const paystackBankTransfer: IBankTransferProvider = {
     // Real implementation: hit /transfer/disable-on-failure or mark as failed.
     // For now we delegate to the mock refund path since Paystack has no public
     // direct reversal endpoint — callers should issue a refund instead.
-    const refundResult = await paystackCardPayment.refund({ providerRef: req.providerRef, reason: req.reason });
+    const refundResult = await paystackCardPayment.refund({
+      providerRef: req.providerRef,
+      reason: req.reason,
+    });
     if (!refundResult.ok) return refundResult;
     return ok(
       { reversalRef: refundResult.data.refundRef, status: refundResult.data.status },
       refundResult.providerRequestId,
-      refundResult.latencyMs,
+      refundResult.latencyMs
     );
   },
 };
@@ -396,13 +427,19 @@ export const paystackVirtualAccount: IVirtualAccountProvider = {
       mockWarnOnce(CODE);
       const acc = generateAccountNumber();
       return ok(
-        { accountNumber: acc, bankCode: "000", bankName: "Turbopay MFB", providerRef: `ps-va-${acc}` },
+        {
+          accountNumber: acc,
+          bankCode: "000",
+          bankName: "Turbopay MFB",
+          providerRef: `ps-va-${acc}`,
+        },
         "mock",
-        80,
+        80
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       // Step 1 — create or fetch a customer
@@ -418,7 +455,7 @@ export const paystackVirtualAccount: IVirtualAccountProvider = {
             phone: undefined,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const custData = (custBody as { data?: { customer_code?: string; id?: number } }).data;
       const customerCode = custData?.customer_code;
@@ -437,15 +474,17 @@ export const paystackVirtualAccount: IVirtualAccountProvider = {
           headers: authHeader(secretKey),
           body: JSON.stringify({ customer: customerCode }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as {
-        data?: {
-          account_name?: string;
-          account_number?: string;
-          bank?: { name?: string; slug?: string };
-        };
-      }).data;
+      const data = (
+        body as {
+          data?: {
+            account_name?: string;
+            account_number?: string;
+            bank?: { name?: string; slug?: string };
+          };
+        }
+      ).data;
       const accountNumber = data?.account_number ?? generateAccountNumber();
       const bankName = data?.bank?.name ?? "Paystack DVA";
       const bankCode = data?.bank?.slug ?? "paystack";
@@ -463,14 +502,18 @@ export const paystackVirtualAccount: IVirtualAccountProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ status: "ACTIVE", accountNumber: providerRef.split("-").pop() ?? "" }, "mock", 10);
+      return ok(
+        { status: "ACTIVE", accountNumber: providerRef.split("-").pop() ?? "" },
+        "mock",
+        10
+      );
     }
     // Paystack exposes dedicated account by ID; we treat the providerRef as a
     // handle and return ACTIVE if it parses.
     return ok(
       { status: "ACTIVE", accountNumber: providerRef.replace(/^ps-va-/, "") },
       providerRef,
-      0,
+      0
     );
   },
 
@@ -483,13 +526,14 @@ export const paystackVirtualAccount: IVirtualAccountProvider = {
       return ok({ deactivated: true }, "mock", 10);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
     const id = providerRef.replace(/^ps-va-/, "");
     try {
       await http(
         `${BASE}/dedicated_account/${encodeURIComponent(id)}`,
         { method: "DELETE", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       return ok({ deactivated: true }, providerRef, 0);
     } catch (e) {
@@ -516,22 +560,43 @@ export const paystackKyc: IKYCProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ tier: req.idType === "BVN" ? 3 : 2, verified: true, firstName: "Verified", lastName: "User" }, "mock", 200);
+      return ok(
+        {
+          tier: req.idType === "BVN" ? 3 : 2,
+          verified: true,
+          firstName: "Verified",
+          lastName: "User",
+        },
+        "mock",
+        200
+      );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     if (req.idType !== "BVN") {
-      return fail("NOT_SUPPORTED", `Paystack KYC only supports BVN (got ${req.idType})`, { providerCode: CODE });
+      return fail("NOT_SUPPORTED", `Paystack KYC only supports BVN (got ${req.idType})`, {
+        providerCode: CODE,
+      });
     }
 
     try {
       const { body } = await http(
         `${BASE}/bvn/verify/${encodeURIComponent(req.idValue)}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { first_name?: string; last_name?: string; mobile?: string; is_blacklisted?: boolean } }).data;
+      const data = (
+        body as {
+          data?: {
+            first_name?: string;
+            last_name?: string;
+            mobile?: string;
+            is_blacklisted?: boolean;
+          };
+        }
+      ).data;
       const verified = !data?.is_blacklisted;
       return ok(
         {
@@ -542,7 +607,7 @@ export const paystackKyc: IKYCProvider = {
           phone: data?.mobile,
         },
         `ps-bvn-${req.idValue.slice(-4)}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack BVN verify failed";
@@ -555,7 +620,9 @@ export const paystackKyc: IKYCProvider = {
 // 5. Subaccounts / split payments — POST /subaccount, GET /subaccount(/:id), PUT, DELETE
 // ---------------------------------------------------------------------------
 
-function mapPaystackSubaccount(d: Record<string, unknown>): import("../contracts").ISubaccountSummary {
+function mapPaystackSubaccount(
+  d: Record<string, unknown>
+): import("../contracts").ISubaccountSummary {
   const bank = (d.settlement_bank ?? d.bank ?? {}) as Record<string, unknown>;
   return {
     subaccountCode: String(d.subaccount_code ?? d.code ?? d.id ?? ""),
@@ -563,7 +630,12 @@ function mapPaystackSubaccount(d: Record<string, unknown>): import("../contracts
     businessName: typeof d.business_name === "string" ? d.business_name : undefined,
     accountName: typeof d.business_name === "string" ? d.business_name : undefined,
     accountNumber: typeof d.account_number === "string" ? d.account_number : undefined,
-    bankCode: typeof d.settlement_bank === "string" ? d.settlement_bank : typeof bank.code === "string" ? bank.code : undefined,
+    bankCode:
+      typeof d.settlement_bank === "string"
+        ? d.settlement_bank
+        : typeof bank.code === "string"
+          ? bank.code
+          : undefined,
     settlementBank: typeof d.settlement_bank === "string" ? d.settlement_bank : undefined,
     currency: typeof d.currency === "string" ? d.currency : "NGN",
     percentageCharge: typeof d.percentage_charge === "number" ? d.percentage_charge : undefined,
@@ -595,11 +667,12 @@ export const paystackSubaccounts: ISplitPaymentProvider = {
           defaultPercentage: req.percentageCharge ?? req.defaultPercentage,
         },
         "mock",
-        80,
+        80
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
@@ -616,10 +689,14 @@ export const paystackSubaccounts: ISplitPaymentProvider = {
             description: req.description ?? "",
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack createSubaccount returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack createSubaccount returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapPaystackSubaccount(data), String(data.subaccount_code ?? "ps-sub"), 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack createSubaccount failed";
@@ -636,7 +713,8 @@ export const paystackSubaccounts: ISplitPaymentProvider = {
       return ok([], "mock", 30);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const params = new URLSearchParams();
@@ -646,7 +724,7 @@ export const paystackSubaccounts: ISplitPaymentProvider = {
       const { body } = await http(
         `${BASE}/subaccount${qs}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown>[] }).data ?? [];
       return ok(data.map(mapPaystackSubaccount), "ps-sub-list", 0);
@@ -674,20 +752,25 @@ export const paystackSubaccounts: ISplitPaymentProvider = {
           percentageCharge: 5,
         },
         "mock",
-        20,
+        20
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/subaccount/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack fetchSubaccount returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack fetchSubaccount returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapPaystackSubaccount(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack fetchSubaccount failed";
@@ -713,11 +796,12 @@ export const paystackSubaccounts: ISplitPaymentProvider = {
           percentageCharge: req.percentageCharge ?? req.defaultPercentage ?? 0,
         },
         "mock",
-        40,
+        40
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const payload: Record<string, unknown> = {};
@@ -729,10 +813,14 @@ export const paystackSubaccounts: ISplitPaymentProvider = {
       const { body } = await http(
         `${BASE}/subaccount/${encodeURIComponent(id)}`,
         { method: "PUT", headers: authHeader(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack updateSubaccount returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack updateSubaccount returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapPaystackSubaccount(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack updateSubaccount failed";
@@ -749,13 +837,14 @@ export const paystackSubaccounts: ISplitPaymentProvider = {
       return ok({ deleted: true }, "mock", 20);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       await http(
         `${BASE}/subaccount/${encodeURIComponent(id)}`,
         { method: "DELETE", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       return ok({ deleted: true }, id, 0);
     } catch (e) {
@@ -800,11 +889,12 @@ export const paystackPlans: IRecurringBillingProvider = {
           invoiceLimit: req.invoiceLimit,
         },
         "mock",
-        70,
+        70
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
@@ -820,10 +910,14 @@ export const paystackPlans: IRecurringBillingProvider = {
             invoice_limit: req.invoiceLimit ?? 0,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack createPlan returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack createPlan returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapPaystackPlan(data), String(data.plan_code ?? "ps-plan"), 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack createPlan failed";
@@ -840,7 +934,8 @@ export const paystackPlans: IRecurringBillingProvider = {
       return ok({ plans: [], total: 0 }, "mock", 25);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const params = new URLSearchParams();
@@ -850,9 +945,10 @@ export const paystackPlans: IRecurringBillingProvider = {
       const { body } = await http(
         `${BASE}/plan${qs}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: Record<string, unknown>[]; meta?: { total?: number } }).data ?? [];
+      const data =
+        (body as { data?: Record<string, unknown>[]; meta?: { total?: number } }).data ?? [];
       const total = (body as { meta?: { total?: number } }).meta?.total ?? data.length;
       return ok({ plans: data.map(mapPaystackPlan), total }, "ps-plan-list", 0);
     } catch (e) {
@@ -868,22 +964,34 @@ export const paystackPlans: IRecurringBillingProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       return ok(
-        { code: id, name: "Demo Plan", amountMinor: 50000, currency: "NGN", interval: "monthly", invoiceLimit: 0 },
+        {
+          code: id,
+          name: "Demo Plan",
+          amountMinor: 50000,
+          currency: "NGN",
+          interval: "monthly",
+          invoiceLimit: 0,
+        },
         "mock",
-        20,
+        20
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/plan/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack fetchPlan returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack fetchPlan returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapPaystackPlan(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack fetchPlan failed";
@@ -906,11 +1014,12 @@ export const paystackPlans: IRecurringBillingProvider = {
           interval: req.interval ?? "monthly",
         },
         "mock",
-        30,
+        30
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const payload: Record<string, unknown> = {};
@@ -920,10 +1029,14 @@ export const paystackPlans: IRecurringBillingProvider = {
       const { body } = await http(
         `${BASE}/plan/${encodeURIComponent(id)}`,
         { method: "PUT", headers: authHeader(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack updatePlan returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack updatePlan returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapPaystackPlan(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack updatePlan failed";
@@ -942,7 +1055,12 @@ function mapPaystackSubscription(d: Record<string, unknown>): import("../contrac
     customer: String(d.customer ?? d.customer_code ?? d.customer_email ?? ""),
     plan: String(d.plan ?? d.plan_code ?? ""),
     status: String(d.status ?? "active"),
-    startDate: typeof d.start_date === "string" ? d.start_date : typeof d.created_at === "string" ? d.created_at : undefined,
+    startDate:
+      typeof d.start_date === "string"
+        ? d.start_date
+        : typeof d.created_at === "string"
+          ? d.created_at
+          : undefined,
   };
 }
 
@@ -965,11 +1083,12 @@ export const paystackSubscriptions: IRecurringBillingProvider = {
           startDate: req.start_date ?? new Date().toISOString(),
         },
         "mock",
-        90,
+        90
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const payload: Record<string, unknown> = {
@@ -981,10 +1100,14 @@ export const paystackSubscriptions: IRecurringBillingProvider = {
       const { body } = await http(
         `${BASE}/subscription`,
         { method: "POST", headers: authHeader(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack createSubscription returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack createSubscription returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapPaystackSubscription(data), String(data.subscription_code ?? "ps-sub"), 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack createSubscription failed";
@@ -1001,7 +1124,8 @@ export const paystackSubscriptions: IRecurringBillingProvider = {
       return ok({ subscriptions: [], total: 0 }, "mock", 25);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const params = new URLSearchParams();
@@ -1011,9 +1135,10 @@ export const paystackSubscriptions: IRecurringBillingProvider = {
       const { body } = await http(
         `${BASE}/subscription${qs}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: Record<string, unknown>[]; meta?: { total?: number } }).data ?? [];
+      const data =
+        (body as { data?: Record<string, unknown>[]; meta?: { total?: number } }).data ?? [];
       const total = (body as { meta?: { total?: number } }).meta?.total ?? data.length;
       return ok({ subscriptions: data.map(mapPaystackSubscription), total }, "ps-sub-list", 0);
     } catch (e) {
@@ -1029,22 +1154,33 @@ export const paystackSubscriptions: IRecurringBillingProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       return ok(
-        { code: id, customer: "cust_demo", plan: "pln_demo", status: "active", startDate: new Date().toISOString() },
+        {
+          code: id,
+          customer: "cust_demo",
+          plan: "pln_demo",
+          status: "active",
+          startDate: new Date().toISOString(),
+        },
         "mock",
-        20,
+        20
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/subscription/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack fetchSubscription returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack fetchSubscription returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapPaystackSubscription(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack fetchSubscription failed";
@@ -1061,13 +1197,18 @@ export const paystackSubscriptions: IRecurringBillingProvider = {
       return ok({ status: "disabled" }, "mock", 25);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/subscription/disable`,
-        { method: "POST", headers: authHeader(secretKey), body: JSON.stringify({ code: req.code, token: req.token }) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        {
+          method: "POST",
+          headers: authHeader(secretKey),
+          body: JSON.stringify({ code: req.code, token: req.token }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { status?: boolean; status_string?: string } }).data;
       const status = data?.status ? "disabled" : (data?.status_string ?? "disabled");
@@ -1087,13 +1228,18 @@ export const paystackSubscriptions: IRecurringBillingProvider = {
       return ok({ status: "active" }, "mock", 25);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/subscription/enable`,
-        { method: "POST", headers: authHeader(secretKey), body: JSON.stringify({ code: req.code, token: req.token }) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        {
+          method: "POST",
+          headers: authHeader(secretKey),
+          body: JSON.stringify({ code: req.code, token: req.token }),
+        },
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { status?: boolean; status_string?: string } }).data;
       const status = data?.status ? "active" : (data?.status_string ?? "active");
@@ -1133,7 +1279,8 @@ export const paystackRefunds: IRefundProvider = {
       return ok({ refunds: [], total: 0 }, "mock", 25);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const params = new URLSearchParams();
@@ -1145,9 +1292,10 @@ export const paystackRefunds: IRefundProvider = {
       const { body } = await http(
         `${BASE}/refund${qs}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: Record<string, unknown>[]; meta?: { total?: number } }).data ?? [];
+      const data =
+        (body as { data?: Record<string, unknown>[]; meta?: { total?: number } }).data ?? [];
       const total = (body as { meta?: { total?: number } }).meta?.total ?? data.length;
       return ok({ refunds: data.map(mapPaystackRefund), total }, "ps-refund-list", 0);
     } catch (e) {
@@ -1165,16 +1313,21 @@ export const paystackRefunds: IRefundProvider = {
       return ok({ id, status: "pending" }, "mock", 20);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/refund/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack fetchRefund returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack fetchRefund returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapPaystackRefund(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack fetchRefund failed";
@@ -1221,11 +1374,12 @@ export const paystackPaymentPages: ICheckoutProvider = {
           url: `${BASE}/mock/page/${id}`,
         },
         "mock",
-        70,
+        70
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const payload: Record<string, unknown> = { name: req.name };
@@ -1236,10 +1390,14 @@ export const paystackPaymentPages: ICheckoutProvider = {
       const { body } = await http(
         `${BASE}/page`,
         { method: "POST", headers: authHeader(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack createPaymentPage returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack createPaymentPage returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapPaystackPage(data), String(data.id ?? "ps-page"), 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack createPaymentPage failed";
@@ -1256,7 +1414,8 @@ export const paystackPaymentPages: ICheckoutProvider = {
       return ok({ pages: [], total: 0 }, "mock", 25);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const params = new URLSearchParams();
@@ -1266,9 +1425,10 @@ export const paystackPaymentPages: ICheckoutProvider = {
       const { body } = await http(
         `${BASE}/page${qs}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: Record<string, unknown>[]; meta?: { total?: number } }).data ?? [];
+      const data =
+        (body as { data?: Record<string, unknown>[]; meta?: { total?: number } }).data ?? [];
       const total = (body as { meta?: { total?: number } }).meta?.total ?? data.length;
       return ok({ pages: data.map(mapPaystackPage), total }, "ps-page-list", 0);
     } catch (e) {
@@ -1286,20 +1446,25 @@ export const paystackPaymentPages: ICheckoutProvider = {
       return ok(
         { id, name: "Demo Page", description: "", currency: "NGN", url: `${BASE}/mock/page/${id}` },
         "mock",
-        20,
+        20
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const { body } = await http(
         `${BASE}/page/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack fetchPaymentPage returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack fetchPaymentPage returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapPaystackPage(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack fetchPaymentPage failed";
@@ -1322,11 +1487,12 @@ export const paystackPaymentPages: ICheckoutProvider = {
           currency: req.currency ?? "NGN",
         },
         "mock",
-        30,
+        30
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const payload: Record<string, unknown> = {};
@@ -1337,10 +1503,14 @@ export const paystackPaymentPages: ICheckoutProvider = {
       const { body } = await http(
         `${BASE}/page/${encodeURIComponent(id)}`,
         { method: "PUT", headers: authHeader(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: Record<string, unknown> }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack updatePaymentPage returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack updatePaymentPage returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(mapPaystackPage(data), id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack updatePaymentPage failed";
@@ -1376,7 +1546,8 @@ export const paystackSettlements: ISettlementProvider = {
       return ok({ settlements: [], total: 0 }, "mock", 25);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const params = new URLSearchParams();
@@ -1388,9 +1559,10 @@ export const paystackSettlements: ISettlementProvider = {
       const { body } = await http(
         `${BASE}/settlement${qs}`,
         { method: "GET", headers: authHeader(secretKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: Record<string, unknown>[]; meta?: { total?: number } }).data ?? [];
+      const data =
+        (body as { data?: Record<string, unknown>[]; meta?: { total?: number } }).data ?? [];
       const total = (body as { meta?: { total?: number } }).meta?.total ?? data.length;
       return ok({ settlements: data.map(mapPaystackSettlement), total }, "ps-settlement-list", 0);
     } catch (e) {
@@ -1424,11 +1596,12 @@ export const paystackUssd: IUssdProvider = {
           expiresAt: new Date(Date.now() + 30 * 60_000).toISOString(),
         },
         "mock",
-        90,
+        90
       );
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const payload: Record<string, unknown> = {
@@ -1440,10 +1613,25 @@ export const paystackUssd: IUssdProvider = {
       const { body } = await http(
         `${BASE}/ussd`,
         { method: "POST", headers: authHeader(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: { reference?: string; amount?: number; currency?: string; ussd_code?: string; expiration?: string; bank?: { name?: string; code?: string } } }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack generateUssd returned no data", { providerCode: CODE, raw: sanitize(body) });
+      const data = (
+        body as {
+          data?: {
+            reference?: string;
+            amount?: number;
+            currency?: string;
+            ussd_code?: string;
+            expiration?: string;
+            bank?: { name?: string; code?: string };
+          };
+        }
+      ).data;
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack generateUssd returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(
         {
           ussdCode: data.ussd_code ?? "",
@@ -1454,7 +1642,7 @@ export const paystackUssd: IUssdProvider = {
           expiresAt: data.expiration,
         },
         data.reference ?? "ps-ussd",
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack generateUssd failed";
@@ -1477,14 +1665,11 @@ export const paystackApplePay: IApplePayProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       const ref = req.reference ?? generateReference("PS-APAY");
-      return ok(
-        { providerRef: ref, status: "success", reference: ref },
-        "mock",
-        80,
-      );
+      return ok({ providerRef: ref, status: "success", reference: ref }, "mock", 80);
     }
     const secretKey = creds.secrets.secretKey;
-    if (!secretKey) return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
+    if (!secretKey)
+      return fail("AUTH_FAILED", "Paystack secretKey missing", { providerCode: CODE });
 
     try {
       const payload: Record<string, unknown> = {
@@ -1498,14 +1683,22 @@ export const paystackApplePay: IApplePayProvider = {
       const { body } = await http(
         `${BASE}/charge/apple_pay`,
         { method: "POST", headers: authHeader(secretKey), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = (body as { data?: { reference?: string; status?: string } }).data;
-      if (!data) return fail("UPSTREAM_ERROR", "Paystack submitApplePay returned no data", { providerCode: CODE, raw: sanitize(body) });
+      if (!data)
+        return fail("UPSTREAM_ERROR", "Paystack submitApplePay returned no data", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       return ok(
-        { providerRef: data.reference ?? req.reference ?? "", status: data.status ?? "pending", reference: data.reference ?? "" },
+        {
+          providerRef: data.reference ?? req.reference ?? "",
+          status: data.status ?? "pending",
+          reference: data.reference ?? "",
+        },
         data.reference ?? "ps-apple-pay",
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paystack submitApplePay failed";

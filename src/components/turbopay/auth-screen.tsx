@@ -8,14 +8,40 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Mail, Lock, User, Phone, AtSign, Eye, EyeOff, ArrowRight, Check, Zap, Fingerprint, KeyRound, ShieldCheck, RotateCcw, ArrowLeft } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  User,
+  Phone,
+  AtSign,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  Check,
+  Zap,
+  Fingerprint,
+  KeyRound,
+  ShieldCheck,
+  RotateCcw,
+  ArrowLeft,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useApp } from "./store";
 import { startAuthentication } from "@simplewebauthn/browser";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
-import { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator } from "@/components/ui/input-otp";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+  InputOTPSeparator,
+} from "@/components/ui/input-otp";
 import { Progress } from "@/components/ui/progress";
 
 const COUNTRIES = [
@@ -40,7 +66,7 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
     setWebAuthnSupported(
       typeof window !== "undefined" &&
         typeof window.PublicKeyCredential !== "undefined" &&
-        typeof navigator !== "undefined",
+        typeof navigator !== "undefined"
     );
   }, []);
 
@@ -98,7 +124,14 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          firstName, lastName, username, email, phone, country, password: regPassword, referral,
+          firstName,
+          lastName,
+          username,
+          email,
+          phone,
+          country,
+          password: regPassword,
+          referral,
         }),
       });
       const data = await res.json();
@@ -286,7 +319,13 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
   const newPwdStrengthLabel =
     newPwdScore <= 1 ? "Weak" : newPwdScore === 2 ? "Fair" : newPwdScore === 3 ? "Good" : "Strong";
   const newPwdStrengthColor =
-    newPwdScore <= 1 ? "text-red-500" : newPwdScore === 2 ? "text-amber-500" : newPwdScore === 3 ? "text-emerald-500" : "text-emerald-600";
+    newPwdScore <= 1
+      ? "text-red-500"
+      : newPwdScore === 2
+        ? "text-amber-500"
+        : newPwdScore === 3
+          ? "text-emerald-500"
+          : "text-emerald-600";
 
   const pwdChecks = [
     { ok: regPassword.length >= 8, label: "8+ characters" },
@@ -299,16 +338,17 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* Brand panel */}
-      <div className="relative hidden flex-col justify-between overflow-hidden tp-wallet-card p-12 text-white lg:flex">
+      <div className="tp-wallet-card relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:flex">
         <div className="tp-grain absolute inset-0 opacity-40" />
         <div className="relative flex items-center gap-2">
           <Logo size={36} />
           <Wordmark size={22} />
         </div>
         <div className="relative">
-          <h2 className="text-4xl font-bold leading-tight">The fast lane to your money.</h2>
+          <h2 className="text-4xl leading-tight font-bold">The fast lane to your money.</h2>
           <p className="mt-4 max-w-sm text-white/80">
-            Send, save, spend and invest — all from one beautiful wallet built for Nigeria and beyond.
+            Send, save, spend and invest — all from one beautiful wallet built for Nigeria and
+            beyond.
           </p>
           <ul className="mt-8 space-y-3">
             {[
@@ -326,13 +366,18 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
             ))}
           </ul>
         </div>
-        <p className="relative text-xs text-white/60">© {new Date().getFullYear()} Turbopay · Licensed partners · NDPR-aware</p>
+        <p className="relative text-xs text-white/60">
+          © {new Date().getFullYear()} Turbopay · Licensed partners · NDPR-aware
+        </p>
       </div>
 
       {/* Form panel */}
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-md">
-          <button onClick={onBack} className="mb-6 flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+          <button
+            onClick={onBack}
+            className="text-muted-foreground hover:text-foreground mb-6 flex items-center gap-2 text-sm transition-colors"
+          >
             <ArrowRight className="h-4 w-4 rotate-180" /> Back to home
           </button>
           <div className="mb-6 flex items-center gap-2 lg:hidden">
@@ -340,9 +385,15 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
             <Wordmark size={20} />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Welcome to Turbopay</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sign in or create your free account in seconds.</p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Sign in or create your free account in seconds.
+          </p>
 
-          <Tabs value={tab} onValueChange={(v) => setTab(v as "login" | "register")} className="mt-6">
+          <Tabs
+            value={tab}
+            onValueChange={(v) => setTab(v as "login" | "register")}
+            className="mt-6"
+          >
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Sign in</TabsTrigger>
               <TabsTrigger value="register">Create account</TabsTrigger>
@@ -354,7 +405,7 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                 <div className="space-y-2">
                   <Label htmlFor="identifier">Email, phone or username</Label>
                   <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                     <Input
                       id="identifier"
                       value={identifier}
@@ -368,28 +419,42 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="pwd">Password</Label>
-                    <button type="button" className="text-xs text-primary hover:underline" onClick={openForgot}>
+                    <button
+                      type="button"
+                      className="text-primary text-xs hover:underline"
+                      onClick={openForgot}
+                    >
                       Forgot?
                     </button>
                   </div>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Lock className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                     <Input
                       id="pwd"
                       type={showPwd ? "text" : "password"}
                       value={loginPassword}
                       onChange={(e) => setLoginPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="pl-9 pr-9"
+                      className="pr-9 pl-9"
                       autoComplete="current-password"
                     />
-                    <button type="button" onClick={() => setShowPwd((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <button
+                      type="button"
+                      onClick={() => setShowPwd((v) => !v)}
+                      className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
+                    >
                       {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
                 <Button type="submit" className="w-full gap-1.5" disabled={loading}>
-                  {loading ? "Signing in..." : <>Sign in <ArrowRight className="h-4 w-4" /></>}
+                  {loading ? (
+                    "Signing in..."
+                  ) : (
+                    <>
+                      Sign in <ArrowRight className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
 
                 {webAuthnSupported && (
@@ -420,34 +485,69 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                   <div className="space-y-2">
                     <Label htmlFor="fn">First name</Label>
                     <div className="relative">
-                      <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input id="fn" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="pl-9" placeholder="Adaeze" />
+                      <User className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                      <Input
+                        id="fn"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="pl-9"
+                        placeholder="Adaeze"
+                      />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="ln">Last name</Label>
-                    <Input id="ln" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Okafor" />
+                    <Input
+                      id="ln"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Okafor"
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="un">Username</Label>
                   <div className="relative">
-                    <AtSign className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input id="un" value={username} onChange={(e) => setUsername(e.target.value.replace(/\s/g, "").toLowerCase())} className="pl-9" placeholder="adaeze" />
+                    <AtSign className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                    <Input
+                      id="un"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value.replace(/\s/g, "").toLowerCase())}
+                      className="pl-9"
+                      placeholder="adaeze"
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="em">Email <span className="text-muted-foreground">(optional)</span></Label>
-                    <Input id="em" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
+                    <Label htmlFor="em">
+                      Email <span className="text-muted-foreground">(optional)</span>
+                    </Label>
+                    <Input
+                      id="em"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="ph">Phone <span className="text-muted-foreground">(optional)</span></Label>
+                    <Label htmlFor="ph">
+                      Phone <span className="text-muted-foreground">(optional)</span>
+                    </Label>
                     <div className="flex gap-1.5">
-                      <span className="flex items-center rounded-md border bg-muted px-2.5 text-sm tabular-nums">{selectedCountry.dial}</span>
+                      <span className="bg-muted flex items-center rounded-md border px-2.5 text-sm tabular-nums">
+                        {selectedCountry.dial}
+                      </span>
                       <div className="relative flex-1">
-                        <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input id="ph" value={phone} onChange={(e) => setPhone(e.target.value)} className="pl-9" placeholder="801 234 5678" />
+                        <Phone className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                        <Input
+                          id="ph"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="pl-9"
+                          placeholder="801 234 5678"
+                        />
                       </div>
                     </div>
                   </div>
@@ -458,34 +558,45 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                     id="country"
                     value={country}
                     onChange={(e) => setCountry(e.target.value)}
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="border-input ring-offset-background focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 text-sm focus-visible:ring-2 focus-visible:outline-none"
                   >
                     {COUNTRIES.map((c) => (
-                      <option key={c.code} value={c.code}>{c.flag} {c.name} ({c.dial})</option>
+                      <option key={c.code} value={c.code}>
+                        {c.flag} {c.name} ({c.dial})
+                      </option>
                     ))}
                   </select>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="rp">Password</Label>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Lock className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                     <Input
                       id="rp"
                       type={showRegPwd ? "text" : "password"}
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
-                      className="pl-9 pr-9"
+                      className="pr-9 pl-9"
                       placeholder="Create a strong password"
                     />
-                    <button type="button" onClick={() => setShowRegPwd((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPwd((v) => !v)}
+                      className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
+                    >
                       {showRegPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                   {regPassword && (
                     <div className="flex flex-wrap gap-2 pt-1">
                       {pwdChecks.map((c) => (
-                        <span key={c.label} className={`flex items-center gap-1 text-[11px] ${c.ok ? "text-primary" : "text-muted-foreground"}`}>
-                          <span className={`flex h-3.5 w-3.5 items-center justify-center rounded-full ${c.ok ? "bg-primary/20" : "bg-muted"}`}>
+                        <span
+                          key={c.label}
+                          className={`flex items-center gap-1 text-[11px] ${c.ok ? "text-primary" : "text-muted-foreground"}`}
+                        >
+                          <span
+                            className={`flex h-3.5 w-3.5 items-center justify-center rounded-full ${c.ok ? "bg-primary/20" : "bg-muted"}`}
+                          >
                             {c.ok && <Check className="h-2.5 w-2.5" />}
                           </span>
                           {c.label}
@@ -495,38 +606,74 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="ref">Referral code <span className="text-muted-foreground">(optional)</span></Label>
-                  <Input id="ref" value={referral} onChange={(e) => setReferral(e.target.value)} placeholder="TURBOA1B2" />
+                  <Label htmlFor="ref">
+                    Referral code <span className="text-muted-foreground">(optional)</span>
+                  </Label>
+                  <Input
+                    id="ref"
+                    value={referral}
+                    onChange={(e) => setReferral(e.target.value)}
+                    placeholder="TURBOA1B2"
+                  />
                 </div>
                 <label className="flex items-start gap-2 text-sm">
-                  <Checkbox checked={terms} onCheckedChange={(v) => setTerms(v === true)} className="mt-0.5" />
+                  <Checkbox
+                    checked={terms}
+                    onCheckedChange={(v) => setTerms(v === true)}
+                    className="mt-0.5"
+                  />
                   <span className="text-muted-foreground">
-                    I agree to the <span className="text-primary hover:underline">Terms</span> and <span className="text-primary hover:underline">Privacy Policy</span>.
+                    I agree to the <span className="text-primary hover:underline">Terms</span> and{" "}
+                    <span className="text-primary hover:underline">Privacy Policy</span>.
                   </span>
                 </label>
                 <Button type="submit" className="w-full gap-1.5" disabled={loading}>
-                  {loading ? "Creating account..." : <>Create wallet <Zap className="h-4 w-4" /></>}
+                  {loading ? (
+                    "Creating account..."
+                  ) : (
+                    <>
+                      Create wallet <Zap className="h-4 w-4" />
+                    </>
+                  )}
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
 
           <div className="mt-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground">or</span>
-            <div className="h-px flex-1 bg-border" />
+            <div className="bg-border h-px flex-1" />
+            <span className="text-muted-foreground text-xs">or</span>
+            <div className="bg-border h-px flex-1" />
           </div>
           <Button
             variant="outline"
             className="mt-4 w-full"
             onClick={() => toast.info("Google sign-in coming soon")}
           >
-            <svg className="h-4 w-4" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38z"/></svg>
+            <svg className="h-4 w-4" viewBox="0 0 24 24">
+              <path
+                fill="#4285F4"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.84 14.1a6.6 6.6 0 0 1 0-4.2V7.06H2.18a11 11 0 0 0 0 9.88l3.66-2.84z"
+              />
+              <path
+                fill="#EA4335"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.06l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38z"
+              />
+            </svg>
             Continue with Google
           </Button>
 
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            Demo admin: <span className="font-mono text-foreground">admin@turbopay.ng</span> / <span className="font-mono text-foreground">Admin@1234</span>
+          <p className="text-muted-foreground mt-6 text-center text-xs">
+            Demo admin: <span className="text-foreground font-mono">admin@turbopay.ng</span> /{" "}
+            <span className="text-foreground font-mono">Admin@1234</span>
           </p>
         </div>
       </div>
@@ -535,14 +682,14 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
       <Dialog open={forgotOpen} onOpenChange={(v) => setForgotOpen(v)}>
         <DialogContent className="max-w-md overflow-hidden p-0">
           {/* Emerald+amber brand header */}
-          <div className="relative tp-wallet-card overflow-hidden p-6 text-white">
+          <div className="tp-wallet-card relative overflow-hidden p-6 text-white">
             <div className="tp-grain absolute inset-0 opacity-40" />
             <div className="relative flex items-center gap-2">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
                 <KeyRound className="h-4 w-4" />
               </span>
               <div>
-                <DialogTitle className="text-base font-semibold leading-tight">
+                <DialogTitle className="text-base leading-tight font-semibold">
                   {forgotStep === 1 ? "Reset your password" : "Verify it's you"}
                 </DialogTitle>
                 <DialogDescription className="mt-0.5 text-xs text-white/80">
@@ -554,8 +701,12 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
             </div>
             {/* Step indicator */}
             <div className="relative mt-4 flex items-center gap-2">
-              <div className={`h-1.5 flex-1 rounded-full ${forgotStep >= 1 ? "bg-amber-300" : "bg-white/30"}`} />
-              <div className={`h-1.5 flex-1 rounded-full ${forgotStep >= 2 ? "bg-amber-300" : "bg-white/30"}`} />
+              <div
+                className={`h-1.5 flex-1 rounded-full ${forgotStep >= 1 ? "bg-amber-300" : "bg-white/30"}`}
+              />
+              <div
+                className={`h-1.5 flex-1 rounded-full ${forgotStep >= 2 ? "bg-amber-300" : "bg-white/30"}`}
+              />
             </div>
             <p className="relative mt-2 text-[11px] text-white/70">Step {forgotStep} of 2</p>
           </div>
@@ -566,7 +717,7 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                 <div className="space-y-2">
                   <Label htmlFor="forgot-identifier">Email, phone or username</Label>
                   <div className="relative">
-                    <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                     <Input
                       id="forgot-identifier"
                       value={forgotIdentifier}
@@ -577,7 +728,7 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                       autoComplete="username"
                     />
                   </div>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-muted-foreground text-[11px]">
                     If an account exists, we'll send a one-time code that expires in 10 minutes.
                   </p>
                 </div>
@@ -593,7 +744,7 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                 <button
                   type="button"
                   onClick={() => setForgotOpen(false)}
-                  className="flex w-full items-center justify-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-1.5 text-xs transition-colors"
                 >
                   <ArrowLeft className="h-3 w-3" /> Back to sign in
                 </button>
@@ -624,11 +775,9 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                     </InputOTP>
                   </div>
                   <div className="flex items-center justify-between">
-                    <p className="text-[11px] text-muted-foreground">
-                      Code expires in 10 minutes.
-                    </p>
+                    <p className="text-muted-foreground text-[11px]">Code expires in 10 minutes.</p>
                     {resendCooldown > 0 ? (
-                      <span className="text-[11px] text-muted-foreground">
+                      <span className="text-muted-foreground text-[11px]">
                         Resend in {resendCooldown}s
                       </span>
                     ) : (
@@ -636,7 +785,7 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                         type="button"
                         onClick={handleSendCode}
                         disabled={forgotLoading}
-                        className="text-[11px] text-primary hover:underline disabled:opacity-50"
+                        className="text-primary text-[11px] hover:underline disabled:opacity-50"
                       >
                         Resend code
                       </button>
@@ -647,20 +796,20 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                 <div className="space-y-2">
                   <Label htmlFor="new-pwd">New password</Label>
                   <div className="relative">
-                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Lock className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                     <Input
                       id="new-pwd"
                       type={showNewPwd ? "text" : "password"}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Create a strong password"
-                      className="pl-9 pr-9"
+                      className="pr-9 pl-9"
                       autoComplete="new-password"
                     />
                     <button
                       type="button"
                       onClick={() => setShowNewPwd((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
                     >
                       {showNewPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -708,15 +857,15 @@ export function AuthScreen({ onBack }: { onBack: () => void }) {
                 <button
                   type="button"
                   onClick={() => setForgotStep(1)}
-                  className="flex w-full items-center justify-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground flex w-full items-center justify-center gap-1.5 text-xs transition-colors"
                 >
                   <RotateCcw className="h-3 w-3" /> Use a different identifier
                 </button>
               </form>
             )}
           </div>
-          <DialogFooter className="px-6 pb-4 pt-0 sm:justify-center">
-            <p className="text-center text-[11px] text-muted-foreground">
+          <DialogFooter className="px-6 pt-0 pb-4 sm:justify-center">
+            <p className="text-muted-foreground text-center text-[11px]">
               For your security, all active sessions will be signed out after reset.
             </p>
           </DialogFooter>

@@ -8,26 +8,13 @@
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import {
-  json,
-  handleError,
-  audit,
-  getClientIp,
-  getUserAgent,
-  ServiceError,
-} from "@/lib/api";
+import { json, handleError, audit, getClientIp, getUserAgent, ServiceError } from "@/lib/api";
 import { requirePermission } from "@/lib/turbocore/rbac";
 import { Permissions } from "@/lib/turbocore/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
-const TYPES = new Set([
-  "CASHBACK",
-  "DISCOUNT",
-  "FEE_WAIVER",
-  "PERCENT_OFF",
-  "FLAT_OFF",
-]);
+const TYPES = new Set(["CASHBACK", "DISCOUNT", "FEE_WAIVER", "PERCENT_OFF", "FLAT_OFF"]);
 
 export async function GET() {
   try {
@@ -70,20 +57,19 @@ export async function POST(req: NextRequest) {
     const admin = await requirePermission(Permissions.VOUCHERS_MANAGE);
     const body = await req.json().catch(() => ({}));
 
-    const rawCode = String(body.code ?? "").trim().toUpperCase().replace(/\s+/g, "-");
+    const rawCode = String(body.code ?? "")
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "-");
     if (!/^[A-Z0-9\-]{4,40}$/.test(rawCode))
-      throw new ServiceError(
-        "Code must be 4-40 chars: A-Z, 0-9, hyphen",
-        400,
-        "INVALID_CODE",
-      );
+      throw new ServiceError("Code must be 4-40 chars: A-Z, 0-9, hyphen", 400, "INVALID_CODE");
 
     const type = String(body.type ?? "CASHBACK").toUpperCase();
     if (!TYPES.has(type))
       throw new ServiceError(
         "Type must be CASHBACK, DISCOUNT, FEE_WAIVER, PERCENT_OFF, or FLAT_OFF",
         400,
-        "INVALID_TYPE",
+        "INVALID_TYPE"
       );
 
     const valueKobo = Math.max(0, Math.floor(Number(body.valueKobo ?? 0)));
@@ -106,8 +92,7 @@ export async function POST(req: NextRequest) {
     let validUntil: Date | null = null;
     if (body.validUntil) {
       const d = new Date(body.validUntil);
-      if (isNaN(d.getTime()))
-        throw new ServiceError("Invalid validUntil", 400, "VALIDATION");
+      if (isNaN(d.getTime())) throw new ServiceError("Invalid validUntil", 400, "VALIDATION");
       if (d.getTime() < Date.now())
         throw new ServiceError("validUntil cannot be in the past", 400, "VALIDATION");
       validUntil = d;
@@ -115,8 +100,7 @@ export async function POST(req: NextRequest) {
 
     // Uniqueness check (DB will also enforce)
     const exists = await db.voucher.findUnique({ where: { code: rawCode } });
-    if (exists)
-      throw new ServiceError("Voucher code already exists", 409, "CODE_TAKEN");
+    if (exists) throw new ServiceError("Voucher code already exists", 409, "CODE_TAKEN");
 
     const voucher = await db.voucher.create({
       data: {

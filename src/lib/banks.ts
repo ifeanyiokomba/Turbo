@@ -35,16 +35,22 @@ export const NIGERIAN_BANKS: Bank[] = [
 ];
 
 // Deduplicate by code (audit fix — original Turbopay had duplicate Sterling code 232)
-export const BANKS_BY_CODE: Record<string, Bank> = NIGERIAN_BANKS.reduce((acc, b) => {
-  if (!acc[b.code]) acc[b.code] = b;
-  return acc;
-}, {} as Record<string, Bank>);
-
-export const UNIQUE_BANKS: Bank[] = Object.values(BANKS_BY_CODE).sort((a, b) =>
-  a.name.localeCompare(b.name),
+export const BANKS_BY_CODE: Record<string, Bank> = NIGERIAN_BANKS.reduce(
+  (acc, b) => {
+    if (!acc[b.code]) acc[b.code] = b;
+    return acc;
+  },
+  {} as Record<string, Bank>
 );
 
-export const BILLERS: Record<string, Array<{ code: string; name: string; refLabel: string; refType: string }>> = {
+export const UNIQUE_BANKS: Bank[] = Object.values(BANKS_BY_CODE).sort((a, b) =>
+  a.name.localeCompare(b.name)
+);
+
+export const BILLERS: Record<
+  string,
+  Array<{ code: string; name: string; refLabel: string; refType: string }>
+> = {
   ELECTRICITY: [
     { code: "EKO", name: "Eko Electric (EKEDC)", refLabel: "Meter Number", refType: "meter" },
     { code: "IKEDC", name: "Ikeja Electric", refLabel: "Meter Number", refType: "meter" },
@@ -88,7 +94,10 @@ export const BILLERS: Record<string, Array<{ code: string; name: string; refLabe
   ],
 };
 
-export const DATA_PLANS: Record<string, Array<{ id: string; name: string; amountKobo: number; validity: string }>> = {
+export const DATA_PLANS: Record<
+  string,
+  Array<{ id: string; name: string; amountKobo: number; validity: string }>
+> = {
   MTN: [
     { id: "MTN-50", name: "50MB — 1 Day", amountKobo: 5_000, validity: "1 Day" },
     { id: "MTN-350", name: "1GB — 1 Day", amountKobo: 35_000, validity: "1 Day" },

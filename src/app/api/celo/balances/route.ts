@@ -4,11 +4,7 @@
 
 import { json, handleError, requireUser, ServiceError } from "@/lib/api";
 import { getPublicClient } from "@/lib/wagmi";
-import {
-  getTokens,
-  isValidAddress,
-  CELO_MAINNET_CHAIN_ID,
-} from "@/lib/minipay";
+import { getTokens, isValidAddress, CELO_MAINNET_CHAIN_ID } from "@/lib/minipay";
 import { erc20Abi, formatUnits, getAddress } from "viem";
 import type { Address } from "viem";
 
@@ -70,7 +66,7 @@ export async function GET(req: Request) {
             address: t.address,
           };
         }
-      }),
+      })
     );
 
     let totalUsd = 0;

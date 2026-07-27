@@ -6,12 +6,18 @@ import { json, errorJson, handleError, audit, getClientIp, getUserAgent } from "
 import { rateLimitMiddleware } from "@/lib/rate-limit-helpers";
 import { ensureSeed } from "@/lib/seed";
 import { generateAccountNumber, generateReference } from "@/lib/money";
+import { trackDevice } from "@/lib/device";
+import { logSecurityEvent } from "@/lib/security-log";
 import { z } from "zod";
 
 const schema = z.object({
   firstName: z.string().min(1).max(50),
   lastName: z.string().min(1).max(50),
-  username: z.string().min(3).max(20).regex(/^[a-z0-9_]+$/i, "Letters, numbers, underscore only"),
+  username: z
+    .string()
+    .min(3)
+    .max(20)
+    .regex(/^[a-z0-9_]+$/i, "Letters, numbers, underscore only"),
   email: z.string().email().optional().or(z.literal("")),
   phone: z.string().optional().or(z.literal("")),
   country: z.string().default("NG"),
@@ -27,14 +33,17 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) return errorJson(parsed.error.issues[0].message, 422);
-    const { firstName, lastName, username, email, phone, country, password, referral } = parsed.data;
+    const { firstName, lastName, username, email, phone, country, password, referral } =
+      parsed.data;
 
     if (!email && !phone) return errorJson("Provide an email or phone number", 400);
     const pwdError = validatePassword(password);
     if (pwdError) return errorJson(pwdError, 400);
 
     // Uniqueness
-    const existingUsername = await db.user.findUnique({ where: { username: username.toLowerCase() } });
+    const existingUsername = await db.user.findUnique({
+      where: { username: username.toLowerCase() },
+    });
     if (existingUsername) return errorJson("Username already taken", 409);
     if (email) {
       const e = await db.user.findUnique({ where: { email } });
@@ -78,7 +87,9 @@ export async function POST(req: NextRequest) {
 
     // Referral bonus (welcome ₦500 to referrer, ₦500 to new user)
     if (referral) {
-      const referrer = await db.user.findUnique({ where: { username: referral.toLowerCase().replace(/^@/, "") } });
+      const referrer = await db.user.findUnique({
+        where: { username: referral.toLowerCase().replace(/^@/, "") },
+      });
       if (referrer) {
         await db.user.update({ where: { id: user.id }, data: {} });
         await db.transaction.create({
@@ -112,7 +123,13 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       ip: getClientIp(req),
       userAgent: getUserAgent(req),
+      role: user.role,
+      kycTier: user.kycTier,
     });
+    void session;
+
+    // Track the device used to register.
+    const device = await trackDevice(user.id, req);
 
     await audit({
       userId: user.id,
@@ -121,6 +138,13 @@ export async function POST(req: NextRequest) {
       ip: getClientIp(req),
       userAgent: getUserAgent(req),
       metadata: { username, email, referral: !!referral },
+    });
+    await logSecurityEvent({
+      userId: user.id,
+      type: "LOGIN_SUCCESS",
+      ip: getClientIp(req),
+      userAgent: getUserAgent(req),
+      metadata: { method: "register", deviceId: device.id },
     });
 
     return json({

@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       throw new ServiceError(
         `You are already on tier ${user.kycTier}. Higher tiers unlock higher limits.`,
         400,
-        "ALREADY_VERIFIED",
+        "ALREADY_VERIFIED"
       );
 
     const nin = body?.nin ? digitsOnly(String(body.nin)) : null;
@@ -109,7 +109,10 @@ export async function POST(req: Request) {
       metadata: {
         tier,
         verificationId: verification.id,
-        identifier: tier === 2 ? nin?.slice(0, 4) + "•••" + nin?.slice(-3) : bvn?.slice(0, 4) + "•••" + bvn?.slice(-3),
+        identifier:
+          tier === 2
+            ? nin?.slice(0, 4) + "•••" + nin?.slice(-3)
+            : bvn?.slice(0, 4) + "•••" + bvn?.slice(-3),
       },
     });
 

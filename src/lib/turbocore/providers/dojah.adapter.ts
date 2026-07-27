@@ -39,7 +39,10 @@ function authHeaders(creds: { secrets: Record<string, string> }): Record<string,
 // Map our idType enum to Dojah's lookup endpoint. Dojah splits BVN/NIN/etc into
 // separate endpoints (/bvn/verify, /nin/verify, /kra, /ghana_card, ...) — we
 // pick the right one per idType.
-function lookupEndpoint(idType: string, idValue: string): { endpoint: string; params: Record<string, string> } | null {
+function lookupEndpoint(
+  idType: string,
+  idValue: string
+): { endpoint: string; params: Record<string, string> } | null {
   const t = idType.toUpperCase();
   switch (t) {
     case "BVN":
@@ -71,9 +74,14 @@ export const dojahKyc: IKYCProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       return ok(
-        { tier: req.idType === "BVN" ? 3 : 2, verified: true, firstName: "Verified", lastName: "User" },
+        {
+          tier: req.idType === "BVN" ? 3 : 2,
+          verified: true,
+          firstName: "Verified",
+          lastName: "User",
+        },
         "mock",
-        300,
+        300
       );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
@@ -82,7 +90,9 @@ export const dojahKyc: IKYCProvider = {
 
     const lookup = lookupEndpoint(req.idType, req.idValue);
     if (!lookup) {
-      return fail("NOT_SUPPORTED", `Dojah does not support idType ${req.idType}`, { providerCode: CODE });
+      return fail("NOT_SUPPORTED", `Dojah does not support idType ${req.idType}`, {
+        providerCode: CODE,
+      });
     }
 
     try {
@@ -90,7 +100,7 @@ export const dojahKyc: IKYCProvider = {
       const { body } = await http(
         `${lookup.endpoint}?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       // Dojah wraps the actual data under `entity` (for BVN/NIN) or
       // `data` (for KRA/Ghana). We try both.
@@ -125,7 +135,10 @@ export const dojahKyc: IKYCProvider = {
       const lastName = e.last_name ?? e.lastname ?? d.last_name ?? d.personal?.lastName ?? "";
       const phone = e.mobile ?? e.phone ?? e.telephoneno ?? d.phone ?? d.mobile ?? "";
       if (!firstName && !lastName) {
-        return fail("UPSTREAM_ERROR", "Dojah returned no name fields", { providerCode: CODE, raw: sanitize(body) });
+        return fail("UPSTREAM_ERROR", "Dojah returned no name fields", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       }
       const tier = req.idType === "BVN" || req.idType === "NIN" ? 3 : 2;
       return ok(
@@ -137,17 +150,18 @@ export const dojahKyc: IKYCProvider = {
           phone: phone || undefined,
         },
         `dojah-${req.idType.toLowerCase()}-${req.idValue.slice(-4)}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah verifyIdentity failed";
       // Dojah returns 400/422 when the ID is invalid — map that to a
       // compliance-reject so callers can surface "verify your ID again".
-      const code: "UPSTREAM_ERROR" | "COMPLIANCE_REJECT" | "INVALID_REQUEST" = /404|not found|invalid/i.test(msg)
-        ? "COMPLIANCE_REJECT"
-        : /400|422/.test(msg)
-          ? "INVALID_REQUEST"
-          : "UPSTREAM_ERROR";
+      const code: "UPSTREAM_ERROR" | "COMPLIANCE_REJECT" | "INVALID_REQUEST" =
+        /404|not found|invalid/i.test(msg)
+          ? "COMPLIANCE_REJECT"
+          : /400|422/.test(msg)
+            ? "INVALID_REQUEST"
+            : "UPSTREAM_ERROR";
       return fail(code, msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
     }
   },
@@ -165,23 +179,61 @@ export const dojahKyc: IKYCProvider = {
 export interface DojahAdditionalKYC {
   readonly contract: "KYC";
   verifyDriversLicense(req: { licenseNumber: string; dob: string }): Promise<
-    ProviderResult<{ firstName?: string; lastName?: string; dateOfBirth?: string; gender?: string; issuedDate?: string; expiryDate?: string }>
+    ProviderResult<{
+      firstName?: string;
+      lastName?: string;
+      dateOfBirth?: string;
+      gender?: string;
+      issuedDate?: string;
+      expiryDate?: string;
+    }>
   >;
   verifyVotersCard(req: { voterNumber: string; state: string; lastName: string }): Promise<
-    ProviderResult<{ firstName?: string; lastName?: string; gender?: string; state?: string; valid?: boolean }>
+    ProviderResult<{
+      firstName?: string;
+      lastName?: string;
+      gender?: string;
+      state?: string;
+      valid?: boolean;
+    }>
   >;
   verifyPassport(req: { passportNumber: string; firstName: string; lastName: string }): Promise<
-    ProviderResult<{ firstName?: string; lastName?: string; dateOfBirth?: string; gender?: string; nationality?: string; expiryDate?: string }>
+    ProviderResult<{
+      firstName?: string;
+      lastName?: string;
+      dateOfBirth?: string;
+      gender?: string;
+      nationality?: string;
+      expiryDate?: string;
+    }>
   >;
   verifyNINSlip(req: { nin: string }): Promise<
-    ProviderResult<{ firstName?: string; lastName?: string; middleName?: string; dateOfBirth?: string; gender?: string; address?: string; photoUrl?: string }>
+    ProviderResult<{
+      firstName?: string;
+      lastName?: string;
+      middleName?: string;
+      dateOfBirth?: string;
+      gender?: string;
+      address?: string;
+      photoUrl?: string;
+    }>
   >;
   verifyBVNAdvanced(req: { bvn: string }): Promise<
-    ProviderResult<{ firstName?: string; lastName?: string; middleName?: string; dateOfBirth?: string; gender?: string; phone?: string; address?: string; photoUrl?: string }>
+    ProviderResult<{
+      firstName?: string;
+      lastName?: string;
+      middleName?: string;
+      dateOfBirth?: string;
+      gender?: string;
+      phone?: string;
+      address?: string;
+      photoUrl?: string;
+    }>
   >;
-  verifyAccountNumber(req: { accountNumber: string; bankCode: string }): Promise<
-    ProviderResult<{ accountName: string; bankName?: string }>
-  >;
+  verifyAccountNumber(req: {
+    accountNumber: string;
+    bankCode: string;
+  }): Promise<ProviderResult<{ accountName: string; bankName?: string }>>;
 }
 
 export const dojahAdditionalKYC: DojahAdditionalKYC = {
@@ -193,17 +245,31 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ firstName: "John", lastName: "Doe", dateOfBirth: req.dob, gender: "M", issuedDate: "2021-01-01", expiryDate: "2025-01-01" }, "mock", 250);
+      return ok(
+        {
+          firstName: "John",
+          lastName: "Doe",
+          dateOfBirth: req.dob,
+          gender: "M",
+          issuedDate: "2021-01-01",
+          expiryDate: "2025-01-01",
+        },
+        "mock",
+        250
+      );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
     }
     try {
-      const qs = new URLSearchParams({ license_number: req.licenseNumber, dob: req.dob }).toString();
+      const qs = new URLSearchParams({
+        license_number: req.licenseNumber,
+        dob: req.dob,
+      }).toString();
       const { body } = await http(
         `${BASE}/kyc/drivers-license?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const e = (body as { entity?: Record<string, string> })?.entity ?? {};
       return ok(
@@ -216,7 +282,7 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
           expiryDate: e.expiry_date ?? e.expiryDate,
         },
         `dojah-dl-${req.licenseNumber.slice(-4)}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah verifyDriversLicense failed";
@@ -230,17 +296,25 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ firstName: "Voter", lastName: req.lastName, gender: "F", state: req.state, valid: true }, "mock", 250);
+      return ok(
+        { firstName: "Voter", lastName: req.lastName, gender: "F", state: req.state, valid: true },
+        "mock",
+        250
+      );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
     }
     try {
-      const qs = new URLSearchParams({ voter_number: req.voterNumber, state: req.state, last_name: req.lastName }).toString();
+      const qs = new URLSearchParams({
+        voter_number: req.voterNumber,
+        state: req.state,
+        last_name: req.lastName,
+      }).toString();
       const { body } = await http(
         `${BASE}/kyc/voters-card?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const e = (body as { entity?: Record<string, string> })?.entity ?? {};
       return ok(
@@ -252,7 +326,7 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
           valid: true,
         },
         `dojah-vc-${req.voterNumber.slice(-4)}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah verifyVotersCard failed";
@@ -266,7 +340,17 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ firstName: req.firstName, lastName: req.lastName, nationality: "NIGERIAN", gender: "M", expiryDate: "2030-01-01" }, "mock", 250);
+      return ok(
+        {
+          firstName: req.firstName,
+          lastName: req.lastName,
+          nationality: "NIGERIAN",
+          gender: "M",
+          expiryDate: "2030-01-01",
+        },
+        "mock",
+        250
+      );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
@@ -280,7 +364,7 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
       const { body } = await http(
         `${BASE}/kyc/passport?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const e = (body as { entity?: Record<string, string> })?.entity ?? {};
       return ok(
@@ -293,7 +377,7 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
           expiryDate: e.expiry_date ?? e.expiryDate,
         },
         `dojah-pp-${req.passportNumber.slice(-4)}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah verifyPassport failed";
@@ -307,7 +391,19 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ firstName: "NIN", lastName: "Holder", middleName: "Middle", dateOfBirth: "1990-01-01", gender: "M", address: "Lagos, Nigeria", photoUrl: "mock://nin/photo.jpg" }, "mock", 250);
+      return ok(
+        {
+          firstName: "NIN",
+          lastName: "Holder",
+          middleName: "Middle",
+          dateOfBirth: "1990-01-01",
+          gender: "M",
+          address: "Lagos, Nigeria",
+          photoUrl: "mock://nin/photo.jpg",
+        },
+        "mock",
+        250
+      );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
@@ -317,7 +413,7 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
       const { body } = await http(
         `${BASE}/kyc/nin/slips?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const e = (body as { entity?: Record<string, string> })?.entity ?? {};
       return ok(
@@ -331,7 +427,7 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
           photoUrl: e.photo ?? e.slip_image,
         },
         `dojah-ninslip-${req.nin.slice(-4)}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah verifyNINSlip failed";
@@ -345,7 +441,20 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ firstName: "Advanced", lastName: "Bvn", middleName: "M", dateOfBirth: "1985-06-15", gender: "M", phone: "+2348012345678", address: "123 Marina, Lagos", photoUrl: "mock://bvn/photo.jpg" }, "mock", 300);
+      return ok(
+        {
+          firstName: "Advanced",
+          lastName: "Bvn",
+          middleName: "M",
+          dateOfBirth: "1985-06-15",
+          gender: "M",
+          phone: "+2348012345678",
+          address: "123 Marina, Lagos",
+          photoUrl: "mock://bvn/photo.jpg",
+        },
+        "mock",
+        300
+      );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
@@ -355,7 +464,7 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
       const { body } = await http(
         `${BASE}/kyc/bvn/advanced?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const e = (body as { entity?: Record<string, string> })?.entity ?? {};
       return ok(
@@ -370,7 +479,7 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
           photoUrl: e.photo ?? e.image,
         },
         `dojah-bvn-adv-${req.bvn.slice(-4)}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah verifyBVNAdvanced failed";
@@ -385,27 +494,40 @@ export const dojahAdditionalKYC: DojahAdditionalKYC = {
     if (!creds) {
       mockWarnOnce(CODE);
       const names = ["JOHN DOE", "JANE SMITH", "ADEKUNLE CIROMA"];
-      return ok({ accountName: names[parseInt(req.accountNumber.slice(-1)) % names.length], bankName: "Demo Bank" }, "mock", 200);
+      return ok(
+        {
+          accountName: names[parseInt(req.accountNumber.slice(-1)) % names.length],
+          bankName: "Demo Bank",
+        },
+        "mock",
+        200
+      );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
     }
     try {
-      const qs = new URLSearchParams({ account_number: req.accountNumber, bank_code: req.bankCode }).toString();
+      const qs = new URLSearchParams({
+        account_number: req.accountNumber,
+        bank_code: req.bankCode,
+      }).toString();
       const { body } = await http(
         `${BASE}/kyc/account/verify?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const e = (body as { entity?: Record<string, string> })?.entity ?? {};
       const accountName = e.account_name ?? e.accountName ?? "";
       if (!accountName) {
-        return fail("UPSTREAM_ERROR", "Dojah returned no account name", { providerCode: CODE, raw: sanitize(body) });
+        return fail("UPSTREAM_ERROR", "Dojah returned no account name", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       }
       return ok(
         { accountName, bankName: e.bank_name ?? e.bankName },
         `dojah-acct-${req.accountNumber.slice(-4)}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah verifyAccountNumber failed";
@@ -428,7 +550,11 @@ export const dojahAML: IAMLProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ hit: false, matches: [], screeningId: `mock-aml-name-${Date.now()}` }, "mock", 400);
+      return ok(
+        { hit: false, matches: [], screeningId: `mock-aml-name-${Date.now()}` },
+        "mock",
+        400
+      );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
@@ -442,21 +568,33 @@ export const dojahAML: IAMLProvider = {
       const { body } = await http(
         `${BASE}/kyc/aml/name-screening?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const wrapped = body as { entity?: { hits?: number; matches?: Array<Record<string, unknown>>; id?: string }; data?: { hits?: number; matches?: Array<Record<string, unknown>>; id?: string } };
+      const wrapped = body as {
+        entity?: { hits?: number; matches?: Array<Record<string, unknown>>; id?: string };
+        data?: { hits?: number; matches?: Array<Record<string, unknown>>; id?: string };
+      };
       const e = wrapped.entity ?? wrapped.data ?? {};
       const rawMatches = (e.matches ?? []) as Array<Record<string, unknown>>;
       const matches: AMLMatch[] = rawMatches.map((m) => ({
         name: String(m.name ?? m.full_name ?? ""),
         list: String(m.list ?? m.watchlist ?? "AML"),
         country: m.country ? String(m.country) : undefined,
-        score: typeof m.score === "number" ? m.score : typeof m.match_rate === "number" ? m.match_rate : undefined,
+        score:
+          typeof m.score === "number"
+            ? m.score
+            : typeof m.match_rate === "number"
+              ? m.match_rate
+              : undefined,
         position: m.position ? String(m.position) : undefined,
         matchType: m.match_type ? String(m.match_type) : undefined,
       }));
       const hit = (e.hits ?? matches.length) > 0;
-      return ok({ hit, matches, screeningId: e.id ? String(e.id) : `dojah-aml-name-${Date.now()}` }, "dojah-aml-name", 0);
+      return ok(
+        { hit, matches, screeningId: e.id ? String(e.id) : `dojah-aml-name-${Date.now()}` },
+        "dojah-aml-name",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah AML screenName failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -469,7 +607,11 @@ export const dojahAML: IAMLProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ hit: false, riskScore: 12, matches: [], screeningId: `mock-aml-txn-${Date.now()}` }, "mock", 500);
+      return ok(
+        { hit: false, riskScore: 12, matches: [], screeningId: `mock-aml-txn-${Date.now()}` },
+        "mock",
+        500
+      );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
@@ -486,9 +628,22 @@ export const dojahAML: IAMLProvider = {
       const { body } = await http(
         `${BASE}/kyc/aml/transaction-screening?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const wrapped = body as { entity?: { hits?: number; risk_score?: number; matches?: Array<Record<string, unknown>>; id?: string }; data?: { hits?: number; risk_score?: number; matches?: Array<Record<string, unknown>>; id?: string } };
+      const wrapped = body as {
+        entity?: {
+          hits?: number;
+          risk_score?: number;
+          matches?: Array<Record<string, unknown>>;
+          id?: string;
+        };
+        data?: {
+          hits?: number;
+          risk_score?: number;
+          matches?: Array<Record<string, unknown>>;
+          id?: string;
+        };
+      };
       const e = wrapped.entity ?? wrapped.data ?? {};
       const rawMatches = (e.matches ?? []) as Array<Record<string, unknown>>;
       const matches: AMLMatch[] = rawMatches.map((m) => ({
@@ -500,7 +655,16 @@ export const dojahAML: IAMLProvider = {
       }));
       const hit = (e.hits ?? matches.length) > 0;
       const riskScore = typeof e.risk_score === "number" ? e.risk_score : hit ? 80 : 10;
-      return ok({ hit, riskScore, matches, screeningId: e.id ? String(e.id) : `dojah-aml-txn-${Date.now()}` }, "dojah-aml-txn", 0);
+      return ok(
+        {
+          hit,
+          riskScore,
+          matches,
+          screeningId: e.id ? String(e.id) : `dojah-aml-txn-${Date.now()}`,
+        },
+        "dojah-aml-txn",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah AML screenTransaction failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -519,13 +683,19 @@ export const dojahAML: IAMLProvider = {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
     }
     try {
-      const qs = new URLSearchParams({ name: req.name, ...(req.country ? { country: req.country } : {}) }).toString();
+      const qs = new URLSearchParams({
+        name: req.name,
+        ...(req.country ? { country: req.country } : {}),
+      }).toString();
       const { body } = await http(
         `${BASE}/kyc/aml/peps?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const wrapped = body as { entity?: { matches?: Array<Record<string, unknown>> }; data?: { matches?: Array<Record<string, unknown>> } };
+      const wrapped = body as {
+        entity?: { matches?: Array<Record<string, unknown>> };
+        data?: { matches?: Array<Record<string, unknown>> };
+      };
       const e = wrapped.entity ?? wrapped.data ?? {};
       const rawMatches = (e.matches ?? []) as Array<Record<string, unknown>>;
       const matches: AMLMatch[] = rawMatches.map((m) => ({
@@ -554,13 +724,19 @@ export const dojahAML: IAMLProvider = {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
     }
     try {
-      const qs = new URLSearchParams({ name: req.name, ...(req.country ? { country: req.country } : {}) }).toString();
+      const qs = new URLSearchParams({
+        name: req.name,
+        ...(req.country ? { country: req.country } : {}),
+      }).toString();
       const { body } = await http(
         `${BASE}/kyc/aml/sanctions?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const wrapped = body as { entity?: { matches?: Array<Record<string, unknown>> }; data?: { matches?: Array<Record<string, unknown>> } };
+      const wrapped = body as {
+        entity?: { matches?: Array<Record<string, unknown>> };
+        data?: { matches?: Array<Record<string, unknown>> };
+      };
       const e = wrapped.entity ?? wrapped.data ?? {};
       const rawMatches = (e.matches ?? []) as Array<Record<string, unknown>>;
       const matches: AMLMatch[] = rawMatches.map((m) => ({
@@ -590,17 +766,30 @@ export const dojahBusinessKYC: IBusinessKYCProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ verified: true, companyName: "Demo Company Ltd", address: "Victoria Island, Lagos", status: "ACTIVE", directors: ["JOHN DOE", "JANE SMITH"] }, "mock", 400);
+      return ok(
+        {
+          verified: true,
+          companyName: "Demo Company Ltd",
+          address: "Victoria Island, Lagos",
+          status: "ACTIVE",
+          directors: ["JOHN DOE", "JANE SMITH"],
+        },
+        "mock",
+        400
+      );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
     }
     try {
-      const qs = new URLSearchParams({ rc_number: req.rcNumber, ...(req.companyType ? { company_type: req.companyType } : {}) }).toString();
+      const qs = new URLSearchParams({
+        rc_number: req.rcNumber,
+        ...(req.companyType ? { company_type: req.companyType } : {}),
+      }).toString();
       const { body } = await http(
         `${BASE}/kyc/rc/verify?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const wrapped = body as { entity?: Record<string, unknown> };
       const e = wrapped.entity ?? {};
@@ -611,10 +800,12 @@ export const dojahBusinessKYC: IBusinessKYCProvider = {
           companyName: String(e.company_name ?? e.name ?? ""),
           address: e.address ? String(e.address) : undefined,
           status: e.status ? String(e.status) : "ACTIVE",
-          directors: Array.isArray(directorsRaw) ? directorsRaw.map((d) => String(d.name ?? d.full_name ?? "")) : undefined,
+          directors: Array.isArray(directorsRaw)
+            ? directorsRaw.map((d) => String(d.name ?? d.full_name ?? ""))
+            : undefined,
         },
         `dojah-rc-${req.rcNumber}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah verifyRCNumber failed";
@@ -628,7 +819,11 @@ export const dojahBusinessKYC: IBusinessKYCProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ verified: true, companyName: "Demo Taxpayer Ltd", tin: req.tin, status: "ACTIVE" }, "mock", 300);
+      return ok(
+        { verified: true, companyName: "Demo Taxpayer Ltd", tin: req.tin, status: "ACTIVE" },
+        "mock",
+        300
+      );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
@@ -638,7 +833,7 @@ export const dojahBusinessKYC: IBusinessKYCProvider = {
       const { body } = await http(
         `${BASE}/kyc/tin/verify?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const wrapped = body as { entity?: Record<string, unknown> };
       const e = wrapped.entity ?? {};
@@ -650,7 +845,7 @@ export const dojahBusinessKYC: IBusinessKYCProvider = {
           status: e.status ? String(e.status) : "ACTIVE",
         },
         `dojah-tin-${req.tin.slice(-4)}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah verifyTIN failed";
@@ -664,7 +859,14 @@ export const dojahBusinessKYC: IBusinessKYCProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ verified: true, matches: [{ name: req.businessName, rcNumber: "RC123456", status: "ACTIVE" }] }, "mock", 350);
+      return ok(
+        {
+          verified: true,
+          matches: [{ name: req.businessName, rcNumber: "RC123456", status: "ACTIVE" }],
+        },
+        "mock",
+        350
+      );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
@@ -674,9 +876,11 @@ export const dojahBusinessKYC: IBusinessKYCProvider = {
       const { body } = await http(
         `${BASE}/kyc/business/name-verify?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const wrapped = body as { entity?: { matches?: Array<Record<string, unknown>>; verified?: boolean } };
+      const wrapped = body as {
+        entity?: { matches?: Array<Record<string, unknown>>; verified?: boolean };
+      };
       const e = wrapped.entity ?? {};
       const rawMatches = (e.matches ?? []) as Array<Record<string, unknown>>;
       const matches: BusinessMatch[] = rawMatches.map((m) => ({
@@ -687,7 +891,7 @@ export const dojahBusinessKYC: IBusinessKYCProvider = {
       return ok(
         { verified: Boolean(e.verified ?? matches.length > 0), matches },
         `dojah-bn-${req.businessName.slice(0, 10).replace(/\s+/g, "-").toLowerCase()}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah verifyBusinessName failed";
@@ -709,7 +913,11 @@ export const dojahFraudScreening: IFraudScreeningProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ riskScore: 5, carrier: "MTN", country: "NG", ported: false, valid: true }, "mock", 200);
+      return ok(
+        { riskScore: 5, carrier: "MTN", country: "NG", ported: false, valid: true },
+        "mock",
+        200
+      );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
@@ -719,20 +927,30 @@ export const dojahFraudScreening: IFraudScreeningProvider = {
       const { body } = await http(
         `${BASE}/kyc/phone/lookup?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const wrapped = body as { entity?: Record<string, unknown> };
       const e = wrapped.entity ?? {};
       return ok(
         {
-          riskScore: typeof e.risk_score === "number" ? e.risk_score : typeof e.fraud_score === "number" ? e.fraud_score : 10,
+          riskScore:
+            typeof e.risk_score === "number"
+              ? e.risk_score
+              : typeof e.fraud_score === "number"
+                ? e.fraud_score
+                : 10,
           carrier: e.carrier ? String(e.carrier) : e.network ? String(e.network) : undefined,
           country: e.country ? String(e.country) : undefined,
           ported: typeof e.ported === "boolean" ? e.ported : undefined,
-          valid: typeof e.status === "string" ? e.status.toLowerCase() === "valid" : typeof e.valid === "boolean" ? e.valid : true,
+          valid:
+            typeof e.status === "string"
+              ? e.status.toLowerCase() === "valid"
+              : typeof e.valid === "boolean"
+                ? e.valid
+                : true,
         },
         `dojah-phone-${req.phone.slice(-4)}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah screenPhone failed";
@@ -756,20 +974,30 @@ export const dojahFraudScreening: IFraudScreeningProvider = {
       const { body } = await http(
         `${BASE}/kyc/email/lookup?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const wrapped = body as { entity?: Record<string, unknown> };
       const e = wrapped.entity ?? {};
-      const breaches = typeof e.breaches === "number" ? e.breaches : Array.isArray(e.breach_list) ? e.breach_list.length : 0;
+      const breaches =
+        typeof e.breaches === "number"
+          ? e.breaches
+          : Array.isArray(e.breach_list)
+            ? e.breach_list.length
+            : 0;
       return ok(
         {
           riskScore: typeof e.risk_score === "number" ? e.risk_score : breaches > 0 ? 60 : 10,
-          deliverable: typeof e.deliverable === "boolean" ? e.deliverable : typeof e.deliverability === "string" ? e.deliverability.toLowerCase() === "delivered" : true,
+          deliverable:
+            typeof e.deliverable === "boolean"
+              ? e.deliverable
+              : typeof e.deliverability === "string"
+                ? e.deliverability.toLowerCase() === "delivered"
+                : true,
           breached: breaches > 0,
           breaches,
         },
         `dojah-email-${req.email.split("@")[0].slice(-4)}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah screenEmail failed";
@@ -783,7 +1011,18 @@ export const dojahFraudScreening: IFraudScreeningProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ riskScore: 5, country: "NG", city: "Lagos", proxy: false, vpn: false, isp: "MTN Nigeria" }, "mock", 200);
+      return ok(
+        {
+          riskScore: 5,
+          country: "NG",
+          city: "Lagos",
+          proxy: false,
+          vpn: false,
+          isp: "MTN Nigeria",
+        },
+        "mock",
+        200
+      );
     }
     if (!creds.secrets.appId || !creds.secrets.privateKey) {
       return fail("AUTH_FAILED", "Dojah appId/privateKey missing", { providerCode: CODE });
@@ -793,21 +1032,35 @@ export const dojahFraudScreening: IFraudScreeningProvider = {
       const { body } = await http(
         `${BASE}/kyc/ip/lookup?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const wrapped = body as { entity?: Record<string, unknown> };
       const e = wrapped.entity ?? {};
       return ok(
         {
           riskScore: typeof e.risk_score === "number" ? e.risk_score : 10,
-          country: e.country ? String(e.country) : e.country_code ? String(e.country_code) : undefined,
+          country: e.country
+            ? String(e.country)
+            : e.country_code
+              ? String(e.country_code)
+              : undefined,
           city: e.city ? String(e.city) : undefined,
-          proxy: typeof e.is_proxy === "boolean" ? e.is_proxy : typeof e.proxy === "boolean" ? e.proxy : undefined,
-          vpn: typeof e.is_vpn === "boolean" ? e.is_vpn : typeof e.vpn === "boolean" ? e.vpn : undefined,
+          proxy:
+            typeof e.is_proxy === "boolean"
+              ? e.is_proxy
+              : typeof e.proxy === "boolean"
+                ? e.proxy
+                : undefined,
+          vpn:
+            typeof e.is_vpn === "boolean"
+              ? e.is_vpn
+              : typeof e.vpn === "boolean"
+                ? e.vpn
+                : undefined,
           isp: e.isp ? String(e.isp) : e.org ? String(e.org) : undefined,
         },
         `dojah-ip-${req.ip.replace(/\./g, "-")}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah screenIP failed";
@@ -831,7 +1084,7 @@ export const dojahFraudScreening: IFraudScreeningProvider = {
       const { body } = await http(
         `${BASE}/kyc/bin/check?${qs}`,
         { method: "GET", headers: authHeaders(creds) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const wrapped = body as { entity?: Record<string, unknown> };
       const e = wrapped.entity ?? {};
@@ -840,10 +1093,14 @@ export const dojahFraudScreening: IFraudScreeningProvider = {
           bank: e.bank ? String(e.bank) : e.bank_name ? String(e.bank_name) : undefined,
           brand: e.brand ? String(e.brand) : e.card_brand ? String(e.card_brand) : undefined,
           type: e.type ? String(e.type) : e.card_type ? String(e.card_type) : undefined,
-          country: e.country ? String(e.country) : e.country_code ? String(e.country_code) : undefined,
+          country: e.country
+            ? String(e.country)
+            : e.country_code
+              ? String(e.country_code)
+              : undefined,
         },
         `dojah-bin-${req.bin.slice(0, 6)}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Dojah checkBIN failed";

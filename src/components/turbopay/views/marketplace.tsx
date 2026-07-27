@@ -100,14 +100,46 @@ const CATEGORY_META: Record<
   string,
   { label: string; icon: React.ComponentType<{ className?: string }>; tint: string }
 > = {
-  SHOPPING: { label: "Shopping", icon: ShoppingBag, tint: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-  FOOD: { label: "Food", icon: UtensilsCrossed, tint: "bg-orange-500/10 text-orange-600 dark:text-orange-400" },
-  TRANSPORT: { label: "Transport", icon: Car, tint: "bg-sky-500/10 text-sky-600 dark:text-sky-400" },
-  UTILITIES: { label: "Utilities", icon: Zap, tint: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400" },
-  ENTERTAINMENT: { label: "Entertainment", icon: Clapperboard, tint: "bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400" },
-  HEALTH: { label: "Health", icon: HeartPulse, tint: "bg-rose-500/10 text-rose-600 dark:text-rose-400" },
-  EDUCATION: { label: "Education", icon: GraduationCap, tint: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-  TRAVEL: { label: "Travel", icon: Plane, tint: "bg-violet-500/10 text-violet-600 dark:text-violet-400" },
+  SHOPPING: {
+    label: "Shopping",
+    icon: ShoppingBag,
+    tint: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+  },
+  FOOD: {
+    label: "Food",
+    icon: UtensilsCrossed,
+    tint: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+  },
+  TRANSPORT: {
+    label: "Transport",
+    icon: Car,
+    tint: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
+  },
+  UTILITIES: {
+    label: "Utilities",
+    icon: Zap,
+    tint: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
+  },
+  ENTERTAINMENT: {
+    label: "Entertainment",
+    icon: Clapperboard,
+    tint: "bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-400",
+  },
+  HEALTH: {
+    label: "Health",
+    icon: HeartPulse,
+    tint: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
+  },
+  EDUCATION: {
+    label: "Education",
+    icon: GraduationCap,
+    tint: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+  },
+  TRAVEL: {
+    label: "Travel",
+    icon: Plane,
+    tint: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  },
 };
 
 function categoryMeta(key: string) {
@@ -313,7 +345,7 @@ export default function MarketplaceView() {
               rating: json.avgRating ?? prev.rating,
               reviewCount: json.totalReviews ?? prev.reviewCount,
             }
-          : prev,
+          : prev
       );
     } finally {
       setReviewSubmitting(false);
@@ -374,11 +406,14 @@ export default function MarketplaceView() {
     }
   }
 
-  const featured = React.useMemo(() => merchants.filter((m) => m.featured).slice(0, 8), [merchants]);
+  const featured = React.useMemo(
+    () => merchants.filter((m) => m.featured).slice(0, 8),
+    [merchants]
+  );
   const showEmptyState = !loading && merchants.length === 0;
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="Marketplace"
         subtitle="Discover verified merchants and pay them instantly from your Turbopay wallet."
@@ -394,33 +429,34 @@ export default function MarketplaceView() {
         <div
           className="absolute inset-0 -z-0"
           style={{
-            background:
-              "linear-gradient(135deg, #047857 0%, #10b981 45%, #f59e0b 130%)",
+            background: "linear-gradient(135deg, #047857 0%, #10b981 45%, #f59e0b 130%)",
           }}
           aria-hidden
         />
         <div className="relative z-10 flex flex-col gap-3 p-6 sm:p-8">
           <div className="flex items-center gap-2 text-white">
             <Sparkles className="h-5 w-5" />
-            <span className="text-sm font-semibold tracking-wide uppercase">Pay anyone, anywhere</span>
+            <span className="text-sm font-semibold tracking-wide uppercase">
+              Pay anyone, anywhere
+            </span>
           </div>
           <h2 className="max-w-2xl text-2xl font-bold text-white sm:text-3xl">
             Search 20+ verified merchants to pay in seconds.
           </h2>
           <div className="relative mt-1 max-w-xl">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-100/80" />
+            <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-emerald-100/80" />
             <Input
               placeholder="Search merchants..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-11 border-0 bg-white/95 pl-9 text-sm shadow-lg placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-white"
+              className="placeholder:text-muted-foreground h-11 border-0 bg-white/95 pl-9 text-sm shadow-lg focus-visible:ring-2 focus-visible:ring-white"
             />
           </div>
         </div>
       </Card>
 
       {/* Category chips */}
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <CategoryChip
           label="All"
           count={total}
@@ -450,15 +486,20 @@ export default function MarketplaceView() {
             <h3 className="flex items-center gap-2 text-base font-semibold">
               <Sparkles className="h-4 w-4 text-amber-500" /> Featured merchants
             </h3>
-            <span className="text-xs text-muted-foreground">Swipe →</span>
+            <span className="text-muted-foreground text-xs">Swipe →</span>
           </div>
-          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {loading
               ? Array.from({ length: 4 }).map((_, i) => (
                   <Skeleton key={i} className="h-44 w-64 shrink-0 rounded-2xl" />
                 ))
               : featured.map((m) => (
-                  <FeaturedCard key={m.id} m={m} onPay={() => openPay(m)} onOpen={() => openDetail(m)} />
+                  <FeaturedCard
+                    key={m.id}
+                    m={m}
+                    onPay={() => openPay(m)}
+                    onOpen={() => openDetail(m)}
+                  />
                 ))}
           </div>
         </section>
@@ -469,7 +510,7 @@ export default function MarketplaceView() {
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-base font-semibold">
             {activeCategory === "ALL" ? "All merchants" : categoryMeta(activeCategory).label}
-            <span className="ml-2 text-xs font-normal text-muted-foreground">
+            <span className="text-muted-foreground ml-2 text-xs font-normal">
               {merchants.length} found
             </span>
           </h3>
@@ -485,7 +526,11 @@ export default function MarketplaceView() {
           <EmptyState
             icon={Search}
             title="No merchants match your search"
-            description={search ? `Try a different keyword or category.` : `Try a different category or come back later.`}
+            description={
+              search
+                ? `Try a different keyword or category.`
+                : `Try a different category or come back later.`
+            }
             action={
               <Button
                 size="sm"
@@ -564,9 +609,15 @@ export default function MarketplaceView() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPayTarget(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setPayTarget(null)}>
+              Cancel
+            </Button>
             <Button onClick={confirmPay} disabled={paying} className="gap-1.5">
-              {paying ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+              {paying ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowRight className="h-4 w-4" />
+              )}
               Pay now
             </Button>
           </DialogFooter>
@@ -582,7 +633,7 @@ export default function MarketplaceView() {
                 <div className="flex items-start gap-4">
                   <div
                     className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${merchantHue(
-                      detail.name,
+                      detail.name
                     )} text-xl font-bold text-white shadow-md`}
                   >
                     {initials(detail.name)}
@@ -595,8 +646,13 @@ export default function MarketplaceView() {
                       )}
                     </DialogTitle>
                     <DialogDescription className="mt-1 flex flex-wrap items-center gap-2">
-                      <Badge variant="outline" className={`gap-1 text-[10px] ${categoryMeta(detail.category).tint}`}>
-                        {React.createElement(categoryMeta(detail.category).icon, { className: "h-3 w-3" })}
+                      <Badge
+                        variant="outline"
+                        className={`gap-1 text-[10px] ${categoryMeta(detail.category).tint}`}
+                      >
+                        {React.createElement(categoryMeta(detail.category).icon, {
+                          className: "h-3 w-3",
+                        })}
                         {categoryMeta(detail.category).label}
                       </Badge>
                       <span className="flex items-center gap-1 text-amber-500">
@@ -609,18 +665,16 @@ export default function MarketplaceView() {
               </DialogHeader>
 
               <div className="space-y-4 py-2">
-                <p className="text-sm leading-relaxed text-muted-foreground">{detail.description}</p>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {detail.description}
+                </p>
 
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {detail.address && (
                     <InfoRow icon={MapPin} label="Address" value={detail.address} />
                   )}
-                  {detail.phone && (
-                    <InfoRow icon={Phone} label="Phone" value={detail.phone} />
-                  )}
-                  {detail.email && (
-                    <InfoRow icon={Mail} label="Email" value={detail.email} />
-                  )}
+                  {detail.phone && <InfoRow icon={Phone} label="Phone" value={detail.phone} />}
+                  {detail.email && <InfoRow icon={Mail} label="Email" value={detail.email} />}
                   {detail.website && (
                     <InfoRow icon={Globe} label="Website" value={detail.website} />
                   )}
@@ -630,7 +684,7 @@ export default function MarketplaceView() {
                   <Skeleton className="h-16 w-full rounded-xl" />
                 ) : detailSimilar.length > 0 ? (
                   <div>
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">
                       Similar merchants
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -638,17 +692,17 @@ export default function MarketplaceView() {
                         <button
                           key={s.id}
                           onClick={() => openDetail(s)}
-                          className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-xs transition-colors hover:bg-muted"
+                          className="bg-card hover:bg-muted inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors"
                         >
                           <span
                             className={`flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br ${merchantHue(
-                              s.name,
+                              s.name
                             )} text-[10px] font-bold text-white`}
                           >
                             {initials(s.name)}
                           </span>
                           {s.name}
-                          <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                          <ChevronRight className="text-muted-foreground h-3 w-3" />
                         </button>
                       ))}
                     </div>
@@ -664,7 +718,9 @@ export default function MarketplaceView() {
               </div>
 
               <DialogFooter>
-                <Button variant="outline" onClick={() => setDetail(null)}>Close</Button>
+                <Button variant="outline" onClick={() => setDetail(null)}>
+                  Close
+                </Button>
                 <Button
                   onClick={() => {
                     setDetail(null);
@@ -707,7 +763,7 @@ export default function MarketplaceView() {
                       onMouseEnter={() => setReviewHover(value)}
                       onMouseLeave={() => setReviewHover(0)}
                       aria-label={`${value} star${value > 1 ? "s" : ""}`}
-                      className="rounded-md p-1 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                      className="rounded-md p-1 transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-emerald-500/40 focus-visible:outline-none"
                     >
                       <Star
                         className={`h-7 w-7 transition-colors ${
@@ -719,10 +775,8 @@ export default function MarketplaceView() {
                     </button>
                   );
                 })}
-                <span className="ml-2 text-sm font-medium text-muted-foreground">
-                  {reviewRating > 0
-                    ? `${reviewRating} / 5`
-                    : "Tap a star to rate"}
+                <span className="text-muted-foreground ml-2 text-sm font-medium">
+                  {reviewRating > 0 ? `${reviewRating} / 5` : "Tap a star to rate"}
                 </span>
               </div>
             </div>
@@ -736,7 +790,7 @@ export default function MarketplaceView() {
                 onChange={(e) => setReviewComment(e.target.value)}
                 maxLength={1000}
               />
-              <p className="text-right text-[10px] text-muted-foreground">
+              <p className="text-muted-foreground text-right text-[10px]">
                 {reviewComment.length} / 1000
               </p>
             </div>
@@ -788,7 +842,7 @@ function CategoryChip({
       className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-medium transition-all ${
         active
           ? "border-emerald-500 bg-emerald-500 text-white shadow-sm"
-          : "border-border bg-card text-muted-foreground hover:border-emerald-400/50 hover:text-foreground"
+          : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-emerald-400/50"
       }`}
     >
       <Icon className="h-3.5 w-3.5" />
@@ -819,7 +873,7 @@ function FeaturedCard({
       tabIndex={0}
       onClick={onOpen}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpen()}
-      className="group relative flex w-64 shrink-0 cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+      className="group bg-card relative flex w-64 shrink-0 cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg"
     >
       <div
         className="absolute inset-x-0 top-0 h-1"
@@ -829,7 +883,7 @@ function FeaturedCard({
       <div className="flex items-start gap-3">
         <div
           className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${merchantHue(
-            m.name,
+            m.name
           )} text-base font-bold text-white shadow`}
         >
           {initials(m.name)}
@@ -839,15 +893,15 @@ function FeaturedCard({
             <p className="truncate text-sm font-semibold">{m.name}</p>
             {m.verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-emerald-500" />}
           </div>
-          <div className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+          <div className="text-muted-foreground mt-0.5 flex items-center gap-1 text-xs">
             <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-            <span className="font-medium text-foreground">{m.rating.toFixed(1)}</span>
+            <span className="text-foreground font-medium">{m.rating.toFixed(1)}</span>
             <span>·</span>
             <span>{m.reviewCount.toLocaleString()} reviews</span>
           </div>
         </div>
       </div>
-      <p className="mt-3 line-clamp-2 text-xs text-muted-foreground">{m.description}</p>
+      <p className="text-muted-foreground mt-3 line-clamp-2 text-xs">{m.description}</p>
       <div className="mt-4 flex items-center justify-between">
         <Badge variant="outline" className={`text-[10px] ${categoryMeta(m.category).tint}`}>
           {categoryMeta(m.category).label}
@@ -886,7 +940,7 @@ function MerchantCard({
         <button
           onClick={onOpen}
           className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br ${merchantHue(
-            m.name,
+            m.name
           )} text-base font-bold text-white shadow transition-transform group-hover:scale-105`}
           aria-label={`View ${m.name} details`}
         >
@@ -900,15 +954,17 @@ function MerchantCard({
           </button>
           <div className="mt-1 flex items-center gap-1.5">
             <Stars value={m.rating} />
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-muted-foreground text-[11px]">
               {m.rating.toFixed(1)} ({m.reviewCount.toLocaleString()})
             </span>
-            {m.verified && <BadgeCheck className="h-3.5 w-3.5 text-emerald-500" aria-label="Verified" />}
+            {m.verified && (
+              <BadgeCheck className="h-3.5 w-3.5 text-emerald-500" aria-label="Verified" />
+            )}
           </div>
         </div>
       </div>
 
-      <p className="line-clamp-2 text-xs text-muted-foreground">{m.description}</p>
+      <p className="text-muted-foreground line-clamp-2 text-xs">{m.description}</p>
 
       <div className="mt-auto flex items-center justify-between gap-2">
         <Badge variant="outline" className={`gap-1 text-[10px] ${categoryMeta(m.category).tint}`}>
@@ -933,10 +989,12 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <div className="flex items-start gap-2 rounded-xl border bg-muted/30 px-3 py-2">
+    <div className="bg-muted/30 flex items-start gap-2 rounded-xl border px-3 py-2">
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
       <div className="min-w-0">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="text-muted-foreground text-[10px] font-semibold tracking-wide uppercase">
+          {label}
+        </p>
         <p className="truncate text-xs font-medium">{value}</p>
       </div>
     </div>
@@ -957,7 +1015,7 @@ function ReviewsSection({
   onWriteReview: () => void;
 }) {
   return (
-    <section className="rounded-2xl border bg-card/50 p-4">
+    <section className="bg-card/50 rounded-2xl border p-4">
       <div className="mb-3 flex items-center justify-between">
         <h4 className="flex items-center gap-2 text-sm font-semibold">
           <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
@@ -974,19 +1032,17 @@ function ReviewsSection({
           <Skeleton className="h-16 w-full rounded-xl" />
         </div>
       ) : !reviews ? (
-        <p className="py-4 text-center text-xs text-muted-foreground">
-          Could not load reviews.
-        </p>
+        <p className="text-muted-foreground py-4 text-center text-xs">Could not load reviews.</p>
       ) : (
         <>
           {/* Summary block */}
-          <div className="flex flex-col gap-4 rounded-xl bg-muted/40 p-4 sm:flex-row sm:items-center">
+          <div className="bg-muted/40 flex flex-col gap-4 rounded-xl p-4 sm:flex-row sm:items-center">
             <div className="flex shrink-0 flex-col items-center justify-center sm:w-28">
-              <p className="text-4xl font-bold tabular-nums text-foreground">
+              <p className="text-foreground text-4xl font-bold tabular-nums">
                 {reviews.avgRating.toFixed(1)}
               </p>
               <Stars value={reviews.avgRating} />
-              <p className="mt-1 text-[11px] text-muted-foreground">
+              <p className="text-muted-foreground mt-1 text-[11px]">
                 {reviews.totalReviews.toLocaleString()} review
                 {reviews.totalReviews === 1 ? "" : "s"}
               </p>
@@ -996,23 +1052,24 @@ function ReviewsSection({
             <div className="flex-1 space-y-1.5">
               {[5, 4, 3, 2, 1].map((star) => {
                 const count = reviews.ratingDistribution[String(star)] ?? 0;
-                const realTotal = Object.values(
-                  reviews.ratingDistribution,
-                ).reduce((a, b) => a + b, 0);
+                const realTotal = Object.values(reviews.ratingDistribution).reduce(
+                  (a, b) => a + b,
+                  0
+                );
                 const pct = realTotal > 0 ? (count / realTotal) * 100 : 0;
                 return (
                   <div key={star} className="flex items-center gap-2 text-[11px]">
-                    <span className="flex w-6 items-center gap-0.5 text-muted-foreground">
+                    <span className="text-muted-foreground flex w-6 items-center gap-0.5">
                       {star}
                       <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
                     </span>
-                    <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div className="bg-muted h-1.5 flex-1 overflow-hidden rounded-full">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="w-6 text-right tabular-nums text-muted-foreground">
+                    <span className="text-muted-foreground w-6 text-right tabular-nums">
                       {count}
                     </span>
                   </div>
@@ -1024,9 +1081,9 @@ function ReviewsSection({
           {/* Reviews list */}
           {reviews.reviews.length === 0 ? (
             <div className="mt-4 rounded-xl border border-dashed py-6 text-center">
-              <Star className="mx-auto h-6 w-6 text-muted-foreground/40" />
+              <Star className="text-muted-foreground/40 mx-auto h-6 w-6" />
               <p className="mt-2 text-sm font-medium">No written reviews yet</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">
+              <p className="text-muted-foreground mt-0.5 text-xs">
                 Be the first to share your experience.
               </p>
             </div>
@@ -1049,7 +1106,7 @@ function ReviewItem({ review }: { review: Review }) {
   const [helpful, setHelpful] = React.useState<"up" | "down" | null>(null);
 
   return (
-    <article className="rounded-xl border bg-card p-3">
+    <article className="bg-card rounded-xl border p-3">
       <div className="flex items-start gap-3">
         <Avatar className="h-9 w-9 border bg-emerald-500/10">
           <AvatarFallback className="bg-transparent text-xs font-semibold text-emerald-600 dark:text-emerald-400">
@@ -1059,23 +1116,22 @@ function ReviewItem({ review }: { review: Review }) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
             <p className="truncate text-sm font-semibold">{review.userFullName}</p>
-            <span className="text-[10px] text-muted-foreground" title={formatDate(review.createdAt, true)}>
+            <span
+              className="text-muted-foreground text-[10px]"
+              title={formatDate(review.createdAt, true)}
+            >
               {timeAgo(review.createdAt)}
             </span>
           </div>
           <div className="mt-0.5 flex items-center gap-2">
             <Stars value={review.rating} />
-            <span className="text-[10px] font-medium text-muted-foreground">
-              {review.rating}.0
-            </span>
+            <span className="text-muted-foreground text-[10px] font-medium">{review.rating}.0</span>
           </div>
           {review.comment && (
-            <p className="mt-2 text-xs leading-relaxed text-foreground/90">
-              {review.comment}
-            </p>
+            <p className="text-foreground/90 mt-2 text-xs leading-relaxed">{review.comment}</p>
           )}
           <div className="mt-2 flex items-center gap-1">
-            <span className="mr-1 text-[10px] text-muted-foreground">Helpful?</span>
+            <span className="text-muted-foreground mr-1 text-[10px]">Helpful?</span>
             <button
               type="button"
               onClick={() => setHelpful((h) => (h === "up" ? null : "up"))}

@@ -61,7 +61,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
     const total = samples.length;
     const okCount = samples.filter((s) => s.ok).length;
     const successRate = total > 0 ? Math.round((okCount / total) * 100) : 100;
-    const avgLatencyMs = total > 0 ? Math.round(samples.reduce((sum, s) => sum + s.latencyMs, 0) / total) : 0;
+    const avgLatencyMs =
+      total > 0 ? Math.round(samples.reduce((sum, s) => sum + s.latencyMs, 0) / total) : 0;
 
     const failureBreakdown: Record<string, number> = {};
     for (const s of samples) {
@@ -109,7 +110,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   }
 }
 
-export async function POST(req: Request, { params }: { params: Promise<{ providerCode: string }> }) {
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ providerCode: string }> }
+) {
   try {
     const user = await requireAdmin();
     const { providerCode } = await params;
@@ -145,9 +149,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
       // Find a contract registered for this provider that supports a "list" method.
       // Prefer BANK_TRANSFER (listBanks) then BILL_PAYMENT (listBillers), falling
       // back to whatever's first.
-      const contractsForProvider = ALL_CONTRACTS.filter((c) =>
-        registry.list(c).includes(code),
-      );
+      const contractsForProvider = ALL_CONTRACTS.filter((c) => registry.list(c).includes(code));
 
       const preferredOrder: ContractName[] = [
         "BANK_TRANSFER",
@@ -158,8 +160,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
         "MOBILE_MONEY",
       ];
       const contract =
-        preferredOrder.find((c) => contractsForProvider.includes(c)) ??
-        contractsForProvider[0];
+        preferredOrder.find((c) => contractsForProvider.includes(c)) ?? contractsForProvider[0];
 
       if (!contract) {
         return json({ error: "Provider has no testable contract", code: "NO_CONTRACT" }, 400);
@@ -184,7 +185,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
             result = await adapter.listBanks(country);
           } else if (contract === "BILL_PAYMENT" && typeof adapter.listBillers === "function") {
             result = await adapter.listBillers({ country });
-          } else if (contract === "VIRTUAL_ACCOUNT" && typeof adapter.listSupportedBanks === "function") {
+          } else if (
+            contract === "VIRTUAL_ACCOUNT" &&
+            typeof adapter.listSupportedBanks === "function"
+          ) {
             result = await adapter.listSupportedBanks(country);
           } else if (contract === "AIRTIME" && typeof adapter.listNetworks === "function") {
             result = await adapter.listNetworks(country);
@@ -204,10 +208,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ provide
             detail = result?.error?.message ?? null;
           } else {
             const data = result?.data;
-            detail =
-              Array.isArray(data) ? `${data.length} items`
-              : (data && typeof data === "object" && "length" in data) ? `${(data as any).length} items`
-              : "ok";
+            detail = Array.isArray(data)
+              ? `${data.length} items`
+              : data && typeof data === "object" && "length" in data
+                ? `${(data as any).length} items`
+                : "ok";
           }
         } catch (e: any) {
           latencyMs = Date.now() - start;

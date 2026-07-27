@@ -47,11 +47,14 @@ function signPayload(body: string, secretKey: string): string {
   return createHmac("sha512", secretKey).update(body).digest("hex");
 }
 
-function authHeaders(creds: { secrets: Record<string, string> }, body: string): Record<string, string> {
+function authHeaders(
+  creds: { secrets: Record<string, string> },
+  body: string
+): Record<string, string> {
   const signature = signPayload(body, creds.secrets.secretKey);
   return {
     "Content-Type": "application/json",
-    "apiKey": creds.secrets.apiKey,
+    apiKey: creds.secrets.apiKey,
     "X-Paga-Auth": signature,
   };
 }
@@ -73,11 +76,15 @@ export const pagaMobileMoney: IMobileMoneyProvider = {
       const { body: resp } = await http(
         `${base}/accountbalance`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = resp as { balance?: string; currency?: string };
       const bal = Number(data?.balance ?? 0) * 100;
-      return ok({ balanceMinor: Math.round(bal), currency: data?.currency ?? "NGN" }, `paga-bal-${Date.now()}`, 0);
+      return ok(
+        { balanceMinor: Math.round(bal), currency: data?.currency ?? "NGN" },
+        `paga-bal-${Date.now()}`,
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga getBalance failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -93,7 +100,9 @@ export const pagaMobileMoney: IMobileMoneyProvider = {
       return ok({ providerRef: `paga-deposit-${req.reference}`, status: "PENDING" }, "mock", 200);
     }
     const base = creds.sandbox ? STAGING_BASE : LIVE_BASE;
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/turbocore/paga`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ??
+      `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/turbocore/paga`;
     try {
       const body = JSON.stringify({
         reference: req.reference,
@@ -106,12 +115,22 @@ export const pagaMobileMoney: IMobileMoneyProvider = {
       const { body: resp } = await http(
         `${base}/deposit`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = resp as { transactionReference?: string; statusCode?: string; status?: string; message?: string };
+      const data = resp as {
+        transactionReference?: string;
+        statusCode?: string;
+        status?: string;
+        message?: string;
+      };
       const providerRef = data?.transactionReference ?? `paga-${req.reference}`;
       const st = String(data?.status ?? data?.statusCode ?? "PENDING").toUpperCase();
-      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      const status =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       return ok({ providerRef, status }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga collect failed";
@@ -128,7 +147,9 @@ export const pagaMobileMoney: IMobileMoneyProvider = {
       return ok({ providerRef: `paga-transfer-${req.reference}`, status: "PENDING" }, "mock", 200);
     }
     const base = creds.sandbox ? STAGING_BASE : LIVE_BASE;
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/turbocore/paga`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ??
+      `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/turbocore/paga`;
     try {
       const body = JSON.stringify({
         reference: req.reference,
@@ -140,12 +161,17 @@ export const pagaMobileMoney: IMobileMoneyProvider = {
       const { body: resp } = await http(
         `${base}/transfer`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = resp as { transactionReference?: string; status?: string; statusCode?: string };
       const providerRef = data?.transactionReference ?? `paga-transfer-${req.reference}`;
       const st = String(data?.status ?? data?.statusCode ?? "PENDING").toUpperCase();
-      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      const status =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       return ok({ providerRef, status }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga disburse failed";
@@ -167,11 +193,16 @@ export const pagaMobileMoney: IMobileMoneyProvider = {
       const { body: resp } = await http(
         `${base}/transactionstatus`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = resp as { status?: string; statusCode?: string };
       const st = String(data?.status ?? data?.statusCode ?? "PENDING").toUpperCase();
-      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      const status =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       return ok({ status }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga status query failed";
@@ -190,15 +221,23 @@ export const pagaBillPayment: IBillPaymentProvider = {
     if (blocked) {
       // Fall back to local directory
       const { BILLERS } = await import("@/lib/banks");
-      const billers = req.category ? BILLERS[req.category] ?? [] : Object.values(BILLERS).flat();
-      return ok(billers.map((b) => ({ ...b, category: req.category ?? "OTHERS", country: req.country })), "local-fallback", 5);
+      const billers = req.category ? (BILLERS[req.category] ?? []) : Object.values(BILLERS).flat();
+      return ok(
+        billers.map((b) => ({ ...b, category: req.category ?? "OTHERS", country: req.country })),
+        "local-fallback",
+        5
+      );
     }
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
       const { BILLERS } = await import("@/lib/banks");
-      const billers = req.category ? BILLERS[req.category] ?? [] : Object.values(BILLERS).flat();
-      return ok(billers.map((b) => ({ ...b, category: req.category ?? "OTHERS", country: req.country })), "mock", 10);
+      const billers = req.category ? (BILLERS[req.category] ?? []) : Object.values(BILLERS).flat();
+      return ok(
+        billers.map((b) => ({ ...b, category: req.category ?? "OTHERS", country: req.country })),
+        "mock",
+        10
+      );
     }
     const base = creds.sandbox ? STAGING_BASE : LIVE_BASE;
     try {
@@ -206,28 +245,40 @@ export const pagaBillPayment: IBillPaymentProvider = {
       const { body: resp } = await http(
         `${base}/billers`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = resp as { billers?: any[] };
       if (data?.billers && data.billers.length > 0) {
-        return ok(data.billers.map((b: any) => ({
-          code: b.code ?? b.billerCode,
-          name: b.name ?? b.billerName,
-          category: b.category ?? req.category ?? "OTHERS",
-          country: req.country,
-          refLabel: b.refLabel ?? "Customer Reference",
-          refType: b.refType ?? "account",
-        })), "paga", 100);
+        return ok(
+          data.billers.map((b: any) => ({
+            code: b.code ?? b.billerCode,
+            name: b.name ?? b.billerName,
+            category: b.category ?? req.category ?? "OTHERS",
+            country: req.country,
+            refLabel: b.refLabel ?? "Customer Reference",
+            refType: b.refType ?? "account",
+          })),
+          "paga",
+          100
+        );
       }
       // Fall back to local directory
       const { BILLERS } = await import("@/lib/banks");
-      const billers = req.category ? BILLERS[req.category] ?? [] : Object.values(BILLERS).flat();
-      return ok(billers.map((b) => ({ ...b, category: req.category ?? "OTHERS", country: req.country })), "local-fallback", 10);
+      const billers = req.category ? (BILLERS[req.category] ?? []) : Object.values(BILLERS).flat();
+      return ok(
+        billers.map((b) => ({ ...b, category: req.category ?? "OTHERS", country: req.country })),
+        "local-fallback",
+        10
+      );
     } catch {
       // Fall back to local directory on error
       const { BILLERS } = await import("@/lib/banks");
-      const billers = req.category ? BILLERS[req.category] ?? [] : Object.values(BILLERS).flat();
-      return ok(billers.map((b) => ({ ...b, category: req.category ?? "OTHERS", country: req.country })), "local-fallback", 10);
+      const billers = req.category ? (BILLERS[req.category] ?? []) : Object.values(BILLERS).flat();
+      return ok(
+        billers.map((b) => ({ ...b, category: req.category ?? "OTHERS", country: req.country })),
+        "local-fallback",
+        10
+      );
     }
   },
 
@@ -245,10 +296,14 @@ export const pagaBillPayment: IBillPaymentProvider = {
       const { body: resp } = await http(
         `${base}/validatecustomer`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = resp as { customerName?: string; valid?: boolean };
-      return ok({ customerName: data?.customerName ?? "VALIDATED", valid: data?.valid ?? true }, "paga", 50);
+      return ok(
+        { customerName: data?.customerName ?? "VALIDATED", valid: data?.valid ?? true },
+        "paga",
+        50
+      );
     } catch {
       return ok({ customerName: `CUSTOMER ${req.customerRef.slice(-4)}`, valid: true }, "mock", 40);
     }
@@ -260,13 +315,20 @@ export const pagaBillPayment: IBillPaymentProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      const token = req.billerCode.startsWith("E") || /^elec/i.test(req.billerCode)
-        ? Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("")
-        : undefined;
-      return ok({ providerRef: `paga-bill-${req.reference}`, status: "SUCCESS", token }, "mock", 150);
+      const token =
+        req.billerCode.startsWith("E") || /^elec/i.test(req.billerCode)
+          ? Array.from({ length: 20 }, () => Math.floor(Math.random() * 10)).join("")
+          : undefined;
+      return ok(
+        { providerRef: `paga-bill-${req.reference}`, status: "SUCCESS", token },
+        "mock",
+        150
+      );
     }
     const base = creds.sandbox ? STAGING_BASE : LIVE_BASE;
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/turbocore/paga`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ??
+      `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/turbocore/paga`;
     try {
       const body = JSON.stringify({
         reference: req.reference,
@@ -280,12 +342,22 @@ export const pagaBillPayment: IBillPaymentProvider = {
       const { body: resp } = await http(
         `${base}/paybill`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = resp as { transactionReference?: string; status?: string; statusCode?: string; token?: string };
+      const data = resp as {
+        transactionReference?: string;
+        status?: string;
+        statusCode?: string;
+        token?: string;
+      };
       const providerRef = data?.transactionReference ?? `paga-bill-${req.reference}`;
       const st = String(data?.status ?? data?.statusCode ?? "SUCCESS").toUpperCase();
-      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      const status =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       return ok({ providerRef, status, token: data?.token }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga payBill failed";
@@ -307,11 +379,16 @@ export const pagaBillPayment: IBillPaymentProvider = {
       const { body: resp } = await http(
         `${base}/transactionstatus`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = resp as { status?: string; statusCode?: string; token?: string };
       const st = String(data?.status ?? data?.statusCode ?? "PENDING").toUpperCase();
-      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      const status =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       return ok({ status, token: data?.token }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga queryBillPayment failed";
@@ -334,11 +411,19 @@ export const pagaBankTransfer: IBankTransferProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok(UNIQUE_BANKS.map((b) => ({ ...b, country })), "mock", 15);
+      return ok(
+        UNIQUE_BANKS.map((b) => ({ ...b, country })),
+        "mock",
+        15
+      );
     }
     // Paga does not expose a banks list endpoint; reuse the local NG bank
     // directory and tag the result so the UI knows it isn't a live fetch.
-    return ok(NIGERIAN_BANKS.map((b) => ({ ...b, country })), "paga-local-banks", 0);
+    return ok(
+      NIGERIAN_BANKS.map((b) => ({ ...b, country })),
+      "paga-local-banks",
+      0
+    );
   },
 
   async resolveAccountName(req) {
@@ -348,7 +433,11 @@ export const pagaBankTransfer: IBankTransferProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       const known = NIGERIAN_BANKS.find((b) => b.code === req.bankCode);
-      return ok({ accountName: `MOCK ${req.accountNumber.slice(-4)}`, bankName: known?.name ?? "Unknown" }, "mock", 25);
+      return ok(
+        { accountName: `MOCK ${req.accountNumber.slice(-4)}`, bankName: known?.name ?? "Unknown" },
+        "mock",
+        25
+      );
     }
     const base = creds.sandbox ? STAGING_BASE : LIVE_BASE;
     try {
@@ -359,18 +448,32 @@ export const pagaBankTransfer: IBankTransferProvider = {
       const { body: resp } = await http(
         `${base}/resolveaccount`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = resp as { accountName?: string; account_name?: string; name?: string; bankName?: string };
+      const data = resp as {
+        accountName?: string;
+        account_name?: string;
+        name?: string;
+        bankName?: string;
+      };
       const accountName = data?.accountName ?? data?.account_name ?? data?.name ?? "";
       if (!accountName) {
-        return fail("BENEFICIARY_INVALID", "Paga could not resolve account name", { providerCode: CODE, raw: sanitize(resp) });
+        return fail("BENEFICIARY_INVALID", "Paga could not resolve account name", {
+          providerCode: CODE,
+          raw: sanitize(resp),
+        });
       }
       const known = NIGERIAN_BANKS.find((b) => b.code === req.bankCode);
-      return ok({ accountName, bankName: data?.bankName ?? known?.name ?? req.bankCode }, "paga-resolve", 0);
+      return ok(
+        { accountName, bankName: data?.bankName ?? known?.name ?? req.bankCode },
+        "paga-resolve",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga resolveAccountName failed";
-      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found|invalid/i.test(msg) ? "BENEFICIARY_INVALID" : "UPSTREAM_ERROR";
+      const code: "UPSTREAM_ERROR" | "BENEFICIARY_INVALID" = /404|not found|invalid/i.test(msg)
+        ? "BENEFICIARY_INVALID"
+        : "UPSTREAM_ERROR";
       return fail(code, msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
     }
   },
@@ -384,7 +487,9 @@ export const pagaBankTransfer: IBankTransferProvider = {
       return ok({ providerRef: `paga-btrf-${req.reference}`, status: "PENDING" }, "mock", 200);
     }
     const base = creds.sandbox ? STAGING_BASE : LIVE_BASE;
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/turbocore/paga`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ??
+      `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/turbocore/paga`;
     try {
       const body = JSON.stringify({
         reference: req.reference,
@@ -399,12 +504,17 @@ export const pagaBankTransfer: IBankTransferProvider = {
       const { body: resp } = await http(
         `${base}/transfer`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = resp as { transactionReference?: string; status?: string; statusCode?: string };
       const providerRef = data?.transactionReference ?? `paga-btrf-${req.reference}`;
       const st = String(data?.status ?? data?.statusCode ?? "PENDING").toUpperCase();
-      const status: "PENDING" | "SUCCESS" | "FAILED" = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      const status: "PENDING" | "SUCCESS" | "FAILED" =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       return ok({ providerRef, status }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga initiateTransfer failed";
@@ -426,12 +536,26 @@ export const pagaBankTransfer: IBankTransferProvider = {
       const { body: resp } = await http(
         `${base}/transactionstatus`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = resp as { status?: string; statusCode?: string; settlementTime?: string; completedAt?: string };
+      const data = resp as {
+        status?: string;
+        statusCode?: string;
+        settlementTime?: string;
+        completedAt?: string;
+      };
       const st = String(data?.status ?? data?.statusCode ?? "PENDING").toUpperCase();
-      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
-      return ok({ status, settlementTime: data?.settlementTime ?? data?.completedAt }, providerRef, 0);
+      const status =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
+      return ok(
+        { status, settlementTime: data?.settlementTime ?? data?.completedAt },
+        providerRef,
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga getTransferStatus failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -455,12 +579,24 @@ export const pagaBankTransfer: IBankTransferProvider = {
       const { body: resp } = await http(
         `${base}/reversal`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = resp as { reversalReference?: string; reference?: string; status?: string; statusCode?: string };
-      const reversalRef = String(data?.reversalReference ?? data?.reference ?? `paga-rev-${req.providerRef}`);
+      const data = resp as {
+        reversalReference?: string;
+        reference?: string;
+        status?: string;
+        statusCode?: string;
+      };
+      const reversalRef = String(
+        data?.reversalReference ?? data?.reference ?? `paga-rev-${req.providerRef}`
+      );
       const st = String(data?.status ?? data?.statusCode ?? "PENDING").toUpperCase();
-      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      const status =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       return ok({ reversalRef, status }, reversalRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga reverseTransfer failed";
@@ -483,11 +619,19 @@ export const pagaAirtime: IAirtimeProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok(NETWORKS.map((n) => ({ id: n.id, name: n.name, country, color: n.color })), "mock", 10);
+      return ok(
+        NETWORKS.map((n) => ({ id: n.id, name: n.name, country, color: n.color })),
+        "mock",
+        10
+      );
     }
     // Paga exposes a networks endpoint via the billers API; reuse the local
     // NETWORKS directory for the picker UI.
-    return ok(NETWORKS.map((n) => ({ id: n.id, name: n.name, country, color: n.color })), "paga-networks", 0);
+    return ok(
+      NETWORKS.map((n) => ({ id: n.id, name: n.name, country, color: n.color })),
+      "paga-networks",
+      0
+    );
   },
 
   async listDataPlans(req) {
@@ -496,9 +640,29 @@ export const pagaAirtime: IAirtimeProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok((DATA_PLANS[req.network] ?? []).map((p) => ({ id: p.id, name: p.name, amountMinor: p.amountKobo, validity: p.validity, network: req.network })), "mock", 12);
+      return ok(
+        (DATA_PLANS[req.network] ?? []).map((p) => ({
+          id: p.id,
+          name: p.name,
+          amountMinor: p.amountKobo,
+          validity: p.validity,
+          network: req.network,
+        })),
+        "mock",
+        12
+      );
     }
-    return ok((DATA_PLANS[req.network] ?? []).map((p) => ({ id: p.id, name: p.name, amountMinor: p.amountKobo, validity: p.validity, network: req.network })), "paga-plans", 0);
+    return ok(
+      (DATA_PLANS[req.network] ?? []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        amountMinor: p.amountKobo,
+        validity: p.validity,
+        network: req.network,
+      })),
+      "paga-plans",
+      0
+    );
   },
 
   async purchase(req) {
@@ -510,7 +674,9 @@ export const pagaAirtime: IAirtimeProvider = {
       return ok({ providerRef: `paga-airtime-${req.reference}`, status: "SUCCESS" }, "mock", 200);
     }
     const base = creds.sandbox ? STAGING_BASE : LIVE_BASE;
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/turbocore/paga`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ??
+      `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/turbocore/paga`;
     try {
       const body = JSON.stringify({
         reference: req.reference,
@@ -525,12 +691,17 @@ export const pagaAirtime: IAirtimeProvider = {
       const { body: resp } = await http(
         `${base}/airtime`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = resp as { transactionReference?: string; status?: string; statusCode?: string };
       const providerRef = data?.transactionReference ?? `paga-airtime-${req.reference}`;
       const st = String(data?.status ?? data?.statusCode ?? "PENDING").toUpperCase();
-      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      const status =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       return ok({ providerRef, status }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga airtime purchase failed";
@@ -552,11 +723,16 @@ export const pagaAirtime: IAirtimeProvider = {
       const { body: resp } = await http(
         `${base}/transactionstatus`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = resp as { status?: string; statusCode?: string };
       const st = String(data?.status ?? data?.statusCode ?? "PENDING").toUpperCase();
-      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      const status =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       return ok({ status }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga airtime getStatus failed";
@@ -586,7 +762,9 @@ export const pagaMerchantPayment = {
       return ok({ providerRef: `paga-merchant-${req.reference}`, status: "PENDING" }, "mock", 200);
     }
     const base = creds.sandbox ? STAGING_BASE : LIVE_BASE;
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/turbocore/paga`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ??
+      `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/turbocore/paga`;
     try {
       const body = JSON.stringify({
         reference: req.reference,
@@ -599,12 +777,17 @@ export const pagaMerchantPayment = {
       const { body: resp } = await http(
         `${base}/merchant/pay`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const data = resp as { transactionReference?: string; status?: string; statusCode?: string };
       const providerRef = data?.transactionReference ?? `paga-merchant-${req.reference}`;
       const st = String(data?.status ?? data?.statusCode ?? "PENDING").toUpperCase();
-      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      const status =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       return ok({ providerRef, status }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga payMerchant failed";
@@ -619,7 +802,11 @@ export const pagaMerchantPayment = {
 // ---------------------------------------------------------------------------
 
 export const pagaAccountBalance = {
-  async getAccountBalance(req: { accountNumber: string }): Promise<ProviderResult<{ balanceMinor: number; currency: string; availableBalanceMinor?: number }>> {
+  async getAccountBalance(req: {
+    accountNumber: string;
+  }): Promise<
+    ProviderResult<{ balanceMinor: number; currency: string; availableBalanceMinor?: number }>
+  > {
     const blocked = await requireCreds(CODE);
     if (blocked) return blocked;
     const creds = await loadCreds(CODE);
@@ -633,11 +820,19 @@ export const pagaAccountBalance = {
       const { body: resp } = await http(
         `${base}/accountbalance`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = resp as { balance?: string | number; availableBalance?: string | number; currency?: string };
-      const bal = typeof data?.balance === "string" ? parseFloat(data.balance) : (data?.balance ?? 0);
-      const avail = typeof data?.availableBalance === "string" ? parseFloat(data.availableBalance) : data?.availableBalance;
+      const data = resp as {
+        balance?: string | number;
+        availableBalance?: string | number;
+        currency?: string;
+      };
+      const bal =
+        typeof data?.balance === "string" ? parseFloat(data.balance) : (data?.balance ?? 0);
+      const avail =
+        typeof data?.availableBalance === "string"
+          ? parseFloat(data.availableBalance)
+          : data?.availableBalance;
       return ok(
         {
           balanceMinor: Math.round((bal ?? 0) * 100),
@@ -645,7 +840,7 @@ export const pagaAccountBalance = {
           availableBalanceMinor: avail != null ? Math.round(avail * 100) : undefined,
         },
         `paga-bal-${Date.now()}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga getAccountBalance failed";
@@ -660,7 +855,14 @@ export const pagaAccountBalance = {
 // ---------------------------------------------------------------------------
 
 export const pagaTransactionStatus = {
-  async getTransactionStatus(req: { transactionReference: string }): Promise<ProviderResult<{ status: string; transactionReference: string; amountMinor?: number; currency?: string }>> {
+  async getTransactionStatus(req: { transactionReference: string }): Promise<
+    ProviderResult<{
+      status: string;
+      transactionReference: string;
+      amountMinor?: number;
+      currency?: string;
+    }>
+  > {
     const blocked = await requireCreds(CODE);
     if (blocked) return blocked;
     const creds = await loadCreds(CODE);
@@ -674,11 +876,21 @@ export const pagaTransactionStatus = {
       const { body: resp } = await http(
         `${base}/transactionstatus`,
         { method: "POST", headers: authHeaders(creds, body), body },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = resp as { status?: string; statusCode?: string; amount?: string | number; currency?: string };
+      const data = resp as {
+        status?: string;
+        statusCode?: string;
+        amount?: string | number;
+        currency?: string;
+      };
       const st = String(data?.status ?? data?.statusCode ?? "PENDING").toUpperCase();
-      const status = st === "SUCCESS" || st === "SUCCESSFUL" ? "SUCCESS" : st === "FAILED" ? "FAILED" : "PENDING";
+      const status =
+        st === "SUCCESS" || st === "SUCCESSFUL"
+          ? "SUCCESS"
+          : st === "FAILED"
+            ? "FAILED"
+            : "PENDING";
       const amount = typeof data?.amount === "string" ? parseFloat(data.amount) : data?.amount;
       return ok(
         {
@@ -688,7 +900,7 @@ export const pagaTransactionStatus = {
           currency: data?.currency,
         },
         req.transactionReference,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Paga getTransactionStatus failed";

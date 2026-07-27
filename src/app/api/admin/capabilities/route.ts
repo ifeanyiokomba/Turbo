@@ -52,11 +52,21 @@ export async function POST(req: Request) {
   try {
     const user = await requirePermission(Permissions.CAPABILITIES_MANAGE);
     const body = await req.json().catch(() => ({}));
-    const providerCode = String(body.providerCode ?? "").trim().toLowerCase();
-    const contract = String(body.contract ?? "").trim().toUpperCase();
-    const country = String(body.country ?? "ALL").trim().toUpperCase();
-    const currency = String(body.currency ?? "ALL").trim().toUpperCase();
-    const direction = String(body.direction ?? "INBOUND").trim().toUpperCase();
+    const providerCode = String(body.providerCode ?? "")
+      .trim()
+      .toLowerCase();
+    const contract = String(body.contract ?? "")
+      .trim()
+      .toUpperCase();
+    const country = String(body.country ?? "ALL")
+      .trim()
+      .toUpperCase();
+    const currency = String(body.currency ?? "ALL")
+      .trim()
+      .toUpperCase();
+    const direction = String(body.direction ?? "INBOUND")
+      .trim()
+      .toUpperCase();
     if (!providerCode || !contract) {
       return json({ error: "providerCode and contract are required" }, 400);
     }

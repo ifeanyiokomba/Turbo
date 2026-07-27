@@ -24,13 +24,11 @@ export async function GET(req: Request) {
       MAX_PAGE_SIZE,
       Math.max(
         1,
-        Number(url.searchParams.get("limit") ?? String(DEFAULT_PAGE_SIZE)) ||
-          DEFAULT_PAGE_SIZE,
-      ),
+        Number(url.searchParams.get("limit") ?? String(DEFAULT_PAGE_SIZE)) || DEFAULT_PAGE_SIZE
+      )
     );
     const category = url.searchParams.get("category")?.trim().toUpperCase() ?? "";
-    const severity =
-      url.searchParams.get("severity")?.trim().toUpperCase() ?? "";
+    const severity = url.searchParams.get("severity")?.trim().toUpperCase() ?? "";
 
     const where: { category?: string; severity?: string } = {};
     if (category) where.category = category;

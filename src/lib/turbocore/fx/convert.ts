@@ -20,26 +20,36 @@ const DEMO_RATES: Record<string, number> = {
   "GHS-USD": 1 / 14.2,
   "USD-GBP": 0.79,
   "GBP-USD": 1 / 0.79,
-  "NGN-ZAR": 0.080,
-  "ZAR-NGN": 1 / 0.080,
+  "NGN-ZAR": 0.08,
+  "ZAR-NGN": 1 / 0.08,
 };
 
-export async function getRate(base: string, quote: string): Promise<{ rate: number; source: string; fetchedAt: Date; expiresAt: Date }> {
+export async function getRate(
+  base: string,
+  quote: string
+): Promise<{ rate: number; source: string; fetchedAt: Date; expiresAt: Date }> {
   // Check DB snapshot
   const recent = await db.fxRateSnapshot.findFirst({
     where: { base, quote, expiresAt: { gt: new Date() } },
     orderBy: { fetchedAt: "desc" },
   });
   if (recent) {
-    return { rate: recent.rate, source: recent.source, fetchedAt: recent.fetchedAt, expiresAt: recent.expiresAt };
+    return {
+      rate: recent.rate,
+      source: recent.source,
+      fetchedAt: recent.fetchedAt,
+      expiresAt: recent.expiresAt,
+    };
   }
   // Fallback to demo rate
   const rate = DEMO_RATES[`${base}-${quote}`] ?? 1;
   const now = new Date();
   const expiresAt = new Date(now.getTime() + RATE_TTL_MS);
-  await db.fxRateSnapshot.create({
-    data: { base, quote, rate, source: "demo-market", fetchedAt: now, expiresAt },
-  }).catch(() => {});
+  await db.fxRateSnapshot
+    .create({
+      data: { base, quote, rate, source: "demo-market", fetchedAt: now, expiresAt },
+    })
+    .catch(() => {});
   return { rate, source: "demo-market", fetchedAt: now, expiresAt };
 }
 
@@ -64,7 +74,11 @@ export interface FxQuote {
   expiresAt: string;
 }
 
-export async function getQuote(req: { from: string; to: string; amountMinor: number }): Promise<FxQuote> {
+export async function getQuote(req: {
+  from: string;
+  to: string;
+  amountMinor: number;
+}): Promise<FxQuote> {
   const { rate } = await getRate(req.from, req.to);
   const cfg = await getFxConfig(req.from, req.to);
   const spreadMultiplier = 1 + (cfg.spreadBps + cfg.markupBps) / 10000;
@@ -94,8 +108,20 @@ export async function convertCurrency(req: {
   const quote = await getQuote({ from: req.from, to: req.to, amountMinor: req.amountMinor });
   // Debit source currency wallet
   try {
-    await debitCurrencyWallet({ userId: req.userId, currency: req.from, amountMinor: quote.totalDebitMinor, refType: "FX_CONVERT", description: `FX ${req.from}→${req.to}` });
-    await creditCurrencyWallet({ userId: req.userId, currency: req.to, amountMinor: quote.totalCreditMinor, refType: "FX_CONVERT", description: `FX ${req.from}→${req.to}` });
+    await debitCurrencyWallet({
+      userId: req.userId,
+      currency: req.from,
+      amountMinor: quote.totalDebitMinor,
+      refType: "FX_CONVERT",
+      description: `FX ${req.from}→${req.to}`,
+    });
+    await creditCurrencyWallet({
+      userId: req.userId,
+      currency: req.to,
+      amountMinor: quote.totalCreditMinor,
+      refType: "FX_CONVERT",
+      description: `FX ${req.from}→${req.to}`,
+    });
     return { ok: true, creditMinor: quote.totalCreditMinor };
   } catch (e: any) {
     return { ok: false, error: e.message ?? "Conversion failed" };
@@ -103,10 +129,22 @@ export async function convertCurrency(req: {
 }
 
 // Multi-currency wallet helpers (mirror ledger.ts but for CurrencyWallet)
-export async function creditCurrencyWallet(opts: { userId: string; currency: string; amountMinor: number; refType: string; refId?: string; description: string; pairId?: string }) {
-  let wallet = await db.currencyWallet.findUnique({ where: { userId_currency: { userId: opts.userId, currency: opts.currency } } });
+export async function creditCurrencyWallet(opts: {
+  userId: string;
+  currency: string;
+  amountMinor: number;
+  refType: string;
+  refId?: string;
+  description: string;
+  pairId?: string;
+}) {
+  let wallet = await db.currencyWallet.findUnique({
+    where: { userId_currency: { userId: opts.userId, currency: opts.currency } },
+  });
   if (!wallet) {
-    wallet = await db.currencyWallet.create({ data: { userId: opts.userId, currency: opts.currency, balanceMinor: 0 } });
+    wallet = await db.currencyWallet.create({
+      data: { userId: opts.userId, currency: opts.currency, balanceMinor: 0 },
+    });
   }
   if (wallet.status !== "ACTIVE") throw new Error(`Wallet ${opts.currency} is ${wallet.status}`);
   const newBalance = wallet.balanceMinor + opts.amountMinor;
@@ -124,15 +162,29 @@ export async function creditCurrencyWallet(opts: { userId: string; currency: str
       description: opts.description,
     },
   });
-  await db.currencyWallet.update({ where: { id: wallet.id }, data: { balanceMinor: newBalance, version: { increment: 1 } } });
+  await db.currencyWallet.update({
+    where: { id: wallet.id },
+    data: { balanceMinor: newBalance, version: { increment: 1 } },
+  });
   return { wallet, entry, newBalance };
 }
 
-export async function debitCurrencyWallet(opts: { userId: string; currency: string; amountMinor: number; refType: string; refId?: string; description: string; pairId?: string }) {
-  const wallet = await db.currencyWallet.findUnique({ where: { userId_currency: { userId: opts.userId, currency: opts.currency } } });
+export async function debitCurrencyWallet(opts: {
+  userId: string;
+  currency: string;
+  amountMinor: number;
+  refType: string;
+  refId?: string;
+  description: string;
+  pairId?: string;
+}) {
+  const wallet = await db.currencyWallet.findUnique({
+    where: { userId_currency: { userId: opts.userId, currency: opts.currency } },
+  });
   if (!wallet) throw new Error(`${opts.currency} wallet not found`);
   if (wallet.status !== "ACTIVE") throw new Error(`Wallet ${opts.currency} is ${wallet.status}`);
-  if (wallet.balanceMinor < opts.amountMinor) throw new Error(`Insufficient ${opts.currency} balance`);
+  if (wallet.balanceMinor < opts.amountMinor)
+    throw new Error(`Insufficient ${opts.currency} balance`);
   const updated = await db.currencyWallet.updateMany({
     where: { id: wallet.id, balanceMinor: { gte: opts.amountMinor }, status: "ACTIVE" },
     data: { balanceMinor: { decrement: opts.amountMinor }, version: { increment: 1 } },

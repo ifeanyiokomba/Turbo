@@ -12,7 +12,10 @@ export async function GET(req: Request) {
     const page = Math.max(1, Number(url.searchParams.get("page") ?? "1") || 1);
     const limit = Math.min(
       MAX_PAGE_SIZE,
-      Math.max(1, Number(url.searchParams.get("limit") ?? String(DEFAULT_PAGE_SIZE)) || DEFAULT_PAGE_SIZE),
+      Math.max(
+        1,
+        Number(url.searchParams.get("limit") ?? String(DEFAULT_PAGE_SIZE)) || DEFAULT_PAGE_SIZE
+      )
     );
 
     const where = search

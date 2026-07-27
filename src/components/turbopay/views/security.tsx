@@ -113,36 +113,48 @@ function parseUA(ua: string | null | undefined): { device: string; browser: stri
   const device = /iPhone|iPad/.test(ua)
     ? "iPhone"
     : /Android/.test(ua)
-    ? "Android"
-    : /Mac/.test(ua)
-    ? "Mac"
-    : /Windows/.test(ua)
-    ? "Windows PC"
-    : /Linux/.test(ua)
-    ? "Linux"
-    : "Device";
+      ? "Android"
+      : /Mac/.test(ua)
+        ? "Mac"
+        : /Windows/.test(ua)
+          ? "Windows PC"
+          : /Linux/.test(ua)
+            ? "Linux"
+            : "Device";
   const browser = /Edg/.test(ua)
     ? "Edge"
     : /Chrome/.test(ua)
-    ? "Chrome"
-    : /Firefox/.test(ua)
-    ? "Firefox"
-    : /Safari/.test(ua)
-    ? "Safari"
-    : "Browser";
+      ? "Chrome"
+      : /Firefox/.test(ua)
+        ? "Firefox"
+        : /Safari/.test(ua)
+          ? "Safari"
+          : "Browser";
   return { device, browser };
 }
 
 function severityTone(s: string): { icon: React.ReactNode; color: string } {
   switch (s.toUpperCase()) {
     case "CRITICAL":
-      return { icon: <ShieldAlert className="h-4 w-4" />, color: "text-red-600 dark:text-red-400 bg-red-500/10" };
+      return {
+        icon: <ShieldAlert className="h-4 w-4" />,
+        color: "text-red-600 dark:text-red-400 bg-red-500/10",
+      };
     case "ERROR":
-      return { icon: <AlertTriangle className="h-4 w-4" />, color: "text-red-600 dark:text-red-400 bg-red-500/10" };
+      return {
+        icon: <AlertTriangle className="h-4 w-4" />,
+        color: "text-red-600 dark:text-red-400 bg-red-500/10",
+      };
     case "WARN":
-      return { icon: <AlertTriangle className="h-4 w-4" />, color: "text-amber-600 dark:text-amber-400 bg-amber-500/10" };
+      return {
+        icon: <AlertTriangle className="h-4 w-4" />,
+        color: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
+      };
     default:
-      return { icon: <Shield className="h-4 w-4" />, color: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10" };
+      return {
+        icon: <Shield className="h-4 w-4" />,
+        color: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10",
+      };
   }
 }
 
@@ -171,7 +183,7 @@ function PasskeysSection({ onChange }: { onChange?: () => void }) {
 
   React.useEffect(() => {
     setWebAuthnSupported(
-      typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined",
+      typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined"
     );
   }, []);
 
@@ -219,16 +231,15 @@ function PasskeysSection({ onChange }: { onChange?: () => void }) {
         }
         throw err;
       }
-      const deviceName =
-        /iPhone|iPad/.test(navigator.userAgent)
-          ? "iPhone / iPad"
-          : /Android/.test(navigator.userAgent)
+      const deviceName = /iPhone|iPad/.test(navigator.userAgent)
+        ? "iPhone / iPad"
+        : /Android/.test(navigator.userAgent)
           ? "Android device"
           : /Mac/.test(navigator.userAgent)
-          ? "Mac"
-          : /Windows/.test(navigator.userAgent)
-          ? "Windows PC"
-          : "This device";
+            ? "Mac"
+            : /Windows/.test(navigator.userAgent)
+              ? "Windows PC"
+              : "This device";
 
       const verifyRes = await fetch("/api/auth/passkey/register/verify", {
         method: "POST",
@@ -272,13 +283,20 @@ function PasskeysSection({ onChange }: { onChange?: () => void }) {
     <Card className="p-5 sm:p-6">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Fingerprint className="h-5 w-5 text-primary" />
+          <Fingerprint className="text-primary h-5 w-5" />
           <div>
             <h2 className="text-base font-semibold">Passkeys</h2>
-            <p className="text-xs text-muted-foreground">Sign in with Face ID, Touch ID, or a security key.</p>
+            <p className="text-muted-foreground text-xs">
+              Sign in with Face ID, Touch ID, or a security key.
+            </p>
           </div>
         </div>
-        <Button size="sm" className="gap-1.5" onClick={addPasskey} disabled={adding || !webAuthnSupported}>
+        <Button
+          size="sm"
+          className="gap-1.5"
+          onClick={addPasskey}
+          disabled={adding || !webAuthnSupported}
+        >
           {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
           Add
         </Button>
@@ -298,16 +316,13 @@ function PasskeysSection({ onChange }: { onChange?: () => void }) {
       ) : list && list.length > 0 ? (
         <ul className="space-y-2">
           {list.map((p) => (
-            <li
-              key={p.id}
-              className="flex items-center gap-3 rounded-xl border p-3"
-            >
+            <li key={p.id} className="flex items-center gap-3 rounded-xl border p-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                 <Fingerprint className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{p.deviceName ?? "Passkey"}</p>
-                <p className="truncate text-xs text-muted-foreground">
+                <p className="text-muted-foreground truncate text-xs">
                   {p.deviceType === "singleDevice" ? "This device only" : "Synced across devices"} ·{" "}
                   {p.lastUsedAt ? `used ${timeAgo(p.lastUsedAt)}` : `added ${timeAgo(p.createdAt)}`}
                 </p>
@@ -315,7 +330,7 @@ function PasskeysSection({ onChange }: { onChange?: () => void }) {
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-8 w-8 p-0 text-muted-foreground hover:bg-red-500/10 hover:text-red-600"
+                className="text-muted-foreground h-8 w-8 p-0 hover:bg-red-500/10 hover:text-red-600"
                 onClick={() => setDeleteTarget(p)}
                 aria-label="Delete passkey"
               >
@@ -330,7 +345,13 @@ function PasskeysSection({ onChange }: { onChange?: () => void }) {
           title="No passkeys yet"
           description="Add a passkey to sign in instantly with biometrics — no password needed."
           action={
-            <Button size="sm" variant="outline" className="mt-2 gap-1.5" onClick={addPasskey} disabled={adding}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-2 gap-1.5"
+              onClick={addPasskey}
+              disabled={adding}
+            >
               {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               Add your first passkey
             </Button>
@@ -345,8 +366,9 @@ function PasskeysSection({ onChange }: { onChange?: () => void }) {
             <AlertDialogDescription>
               {deleteTarget ? (
                 <>
-                  The passkey <span className="font-medium">{deleteTarget.deviceName ?? "Passkey"}</span> will no longer
-                  work for sign-in. You can always add it again later.
+                  The passkey{" "}
+                  <span className="font-medium">{deleteTarget.deviceName ?? "Passkey"}</span> will
+                  no longer work for sign-in. You can always add it again later.
                 </>
               ) : (
                 "This passkey will be removed."
@@ -510,7 +532,7 @@ function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () =
   function copyAll(codes: string[]) {
     navigator.clipboard.writeText(codes.join("\n")).then(
       () => toast.success("Codes copied"),
-      () => toast.error("Copy failed"),
+      () => toast.error("Copy failed")
     );
   }
 
@@ -520,44 +542,72 @@ function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () =
     <Card className="p-5 sm:p-6">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-primary" />
+          <ShieldCheck className="text-primary h-5 w-5" />
           <div>
             <h2 className="text-base font-semibold">Two-Factor Authentication</h2>
-            <p className="text-xs text-muted-foreground">Add a one-time code from your authenticator app.</p>
+            <p className="text-muted-foreground text-xs">
+              Add a one-time code from your authenticator app.
+            </p>
           </div>
         </div>
         {enabled ? (
-          <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <Badge
+            variant="secondary"
+            className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+          >
             <CheckCircle2 className="h-3 w-3" /> Enabled
           </Badge>
         ) : (
-          <Badge variant="outline" className="text-amber-600 dark:text-amber-400">Off</Badge>
+          <Badge variant="outline" className="text-amber-600 dark:text-amber-400">
+            Off
+          </Badge>
         )}
       </div>
 
       {enabled ? (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             Your account is protected with an authenticator app
             {mfa?.enabledAt ? ` since ${formatDate(mfa.enabledAt)}` : ""}.
           </p>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { setViewOpen(true); setViewPwd(""); setViewedCodes(null); }}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                setViewOpen(true);
+                setViewPwd("");
+                setViewedCodes(null);
+              }}
+            >
               <Key className="h-4 w-4" /> View backup codes
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5 text-red-600 hover:bg-red-500/10 hover:text-red-700" onClick={() => { setDisableOpen(true); setDisablePwd(""); }}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-red-600 hover:bg-red-500/10 hover:text-red-700"
+              onClick={() => {
+                setDisableOpen(true);
+                setDisablePwd("");
+              }}
+            >
               <Lock className="h-4 w-4" /> Disable 2FA
             </Button>
           </div>
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Add an extra layer of security. After enabling, you&apos;ll enter a code from an authenticator app
-            (like Google Authenticator or Authy) each time you sign in.
+          <p className="text-muted-foreground text-sm">
+            Add an extra layer of security. After enabling, you&apos;ll enter a code from an
+            authenticator app (like Google Authenticator or Authy) each time you sign in.
           </p>
           <Button size="sm" className="gap-1.5" onClick={startSetup} disabled={busy}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+            {busy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ShieldCheck className="h-4 w-4" />
+            )}
             Enable 2FA
           </Button>
         </div>
@@ -568,15 +618,19 @@ function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () =
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-primary" />
-              {step === "qr" ? "Scan QR code" : step === "verify" ? "Enter verification code" : "Save your backup codes"}
+              <ShieldCheck className="text-primary h-5 w-5" />
+              {step === "qr"
+                ? "Scan QR code"
+                : step === "verify"
+                  ? "Enter verification code"
+                  : "Save your backup codes"}
             </DialogTitle>
             <DialogDescription>
               {step === "qr"
                 ? "Scan with Google Authenticator, Authy, or any TOTP app."
                 : step === "verify"
-                ? "Enter the 6-digit code shown in your authenticator app."
-                : "Save these one-time codes somewhere safe. You can use them if you lose your device."}
+                  ? "Enter the 6-digit code shown in your authenticator app."
+                  : "Save these one-time codes somewhere safe. You can use them if you lose your device."}
             </DialogDescription>
           </DialogHeader>
 
@@ -587,21 +641,27 @@ function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () =
                   <div className="rounded-2xl border bg-white p-4">
                     <QRCodeSVG value={uri} size={200} level="M" />
                   </div>
-                  <p className="text-xs text-muted-foreground">Can&apos;t scan? Enter this code manually:</p>
-                  <code className="rounded-md bg-muted px-3 py-1.5 text-center text-xs tracking-wider break-all">
+                  <p className="text-muted-foreground text-xs">
+                    Can&apos;t scan? Enter this code manually:
+                  </p>
+                  <code className="bg-muted rounded-md px-3 py-1.5 text-center text-xs tracking-wider break-all">
                     {secret}
                   </code>
                 </div>
               ) : (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
                 </div>
               )}
               <DialogFooter className="gap-2">
                 <Button variant="outline" onClick={() => setSetupOpen(false)} disabled={busy}>
                   Cancel
                 </Button>
-                <Button onClick={() => setStep("verify")} className="gap-1.5" disabled={!uri || busy}>
+                <Button
+                  onClick={() => setStep("verify")}
+                  className="gap-1.5"
+                  disabled={!uri || busy}
+                >
                   Next <ArrowRight className="h-4 w-4" />
                 </Button>
               </DialogFooter>
@@ -621,13 +681,17 @@ function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () =
                     <InputOTPSlot index={5} />
                   </InputOTPGroup>
                 </InputOTP>
-                <p className="text-xs text-muted-foreground">Code refreshes every 30 seconds.</p>
+                <p className="text-muted-foreground text-xs">Code refreshes every 30 seconds.</p>
               </div>
               <DialogFooter className="gap-2">
                 <Button variant="outline" onClick={() => setStep("qr")} disabled={busy}>
                   Back
                 </Button>
-                <Button onClick={verifyToken} className="gap-1.5" disabled={busy || token.length !== 6}>
+                <Button
+                  onClick={verifyToken}
+                  className="gap-1.5"
+                  disabled={busy || token.length !== 6}
+                >
                   {busy && <Loader2 className="h-4 w-4 animate-spin" />}
                   Verify & enable
                 </Button>
@@ -639,29 +703,53 @@ function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () =
             <div className="space-y-4">
               <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
                 <AlertTriangle className="mb-1 inline h-4 w-4" /> These codes are shown only once.
-                Save them somewhere safe — you&apos;ll need them if you lose your authenticator device.
+                Save them somewhere safe — you&apos;ll need them if you lose your authenticator
+                device.
               </div>
               <div className="grid grid-cols-2 gap-2">
                 {backupCodes.map((c) => (
-                  <code key={c} className="rounded-md bg-muted px-2 py-2 text-center text-sm tracking-wider font-mono">
+                  <code
+                    key={c}
+                    className="bg-muted rounded-md px-2 py-2 text-center font-mono text-sm tracking-wider"
+                  >
                     {c}
                   </code>
                 ))}
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => copyAll(backupCodes)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => copyAll(backupCodes)}
+                >
                   <Copy className="h-3.5 w-3.5" /> Copy all
                 </Button>
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => downloadBackupCodes(backupCodes)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => downloadBackupCodes(backupCodes)}
+                >
                   <Download className="h-3.5 w-3.5" /> Download .txt
                 </Button>
               </div>
               <label className="flex items-start gap-2 text-sm">
-                <Checkbox checked={savedCodes} onCheckedChange={(v) => setSavedCodes(v === true)} className="mt-0.5" />
-                <span className="text-muted-foreground">I&apos;ve saved these codes somewhere safe.</span>
+                <Checkbox
+                  checked={savedCodes}
+                  onCheckedChange={(v) => setSavedCodes(v === true)}
+                  className="mt-0.5"
+                />
+                <span className="text-muted-foreground">
+                  I&apos;ve saved these codes somewhere safe.
+                </span>
               </label>
               <DialogFooter>
-                <Button onClick={() => setSetupOpen(false)} disabled={!savedCodes} className="gap-1.5">
+                <Button
+                  onClick={() => setSetupOpen(false)}
+                  disabled={!savedCodes}
+                  className="gap-1.5"
+                >
                   <CheckCircle2 className="h-4 w-4" /> Done
                 </Button>
               </DialogFooter>
@@ -678,7 +766,8 @@ function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () =
               <Lock className="h-5 w-5" /> Disable 2FA?
             </DialogTitle>
             <DialogDescription>
-              For your security, please enter your password to confirm. Backup codes will be cleared.
+              For your security, please enter your password to confirm. Backup codes will be
+              cleared.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
@@ -695,7 +784,7 @@ function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () =
               <button
                 type="button"
                 onClick={() => setDisableShow((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
                 aria-label="Toggle password visibility"
               >
                 {disableShow ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -706,7 +795,12 @@ function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () =
             <Button variant="outline" onClick={() => setDisableOpen(false)} disabled={disabling}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={confirmDisable} disabled={disabling} className="gap-1.5">
+            <Button
+              variant="destructive"
+              onClick={confirmDisable}
+              disabled={disabling}
+              className="gap-1.5"
+            >
               {disabling && <Loader2 className="h-4 w-4 animate-spin" />}
               Disable 2FA
             </Button>
@@ -722,7 +816,8 @@ function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () =
               <Key className="h-5 w-5" /> View backup codes
             </DialogTitle>
             <DialogDescription>
-              Enter your password to generate a fresh set of backup codes. The previous codes will be invalidated.
+              Enter your password to generate a fresh set of backup codes. The previous codes will
+              be invalidated.
             </DialogDescription>
           </DialogHeader>
           {!viewedCodes ? (
@@ -741,7 +836,7 @@ function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () =
                   <button
                     type="button"
                     onClick={() => setViewShow((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="text-muted-foreground hover:text-foreground absolute top-1/2 right-3 -translate-y-1/2"
                     aria-label="Toggle password visibility"
                   >
                     {viewShow ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -762,16 +857,29 @@ function MfaSection({ mfa, onChanged }: { mfa: MfaStatus | null; onChanged: () =
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-2">
                 {viewedCodes.map((c) => (
-                  <code key={c} className="rounded-md bg-muted px-2 py-2 text-center text-sm tracking-wider font-mono">
+                  <code
+                    key={c}
+                    className="bg-muted rounded-md px-2 py-2 text-center font-mono text-sm tracking-wider"
+                  >
                     {c}
                   </code>
                 ))}
               </div>
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => copyAll(viewedCodes)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => copyAll(viewedCodes)}
+                >
                   <Copy className="h-3.5 w-3.5" /> Copy all
                 </Button>
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => downloadBackupCodes(viewedCodes)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => downloadBackupCodes(viewedCodes)}
+                >
                   <Download className="h-3.5 w-3.5" /> Download .txt
                 </Button>
               </div>
@@ -841,7 +949,7 @@ export default function SecurityView() {
       <div className="space-y-5">
         <PageHeader title="Security Center" subtitle="Protect your account and devices" />
         <div className="grid gap-5 lg:grid-cols-3">
-          <div className="lg:col-span-2 space-y-5">
+          <div className="space-y-5 lg:col-span-2">
             <Skeleton className="h-44 rounded-2xl" />
             <Skeleton className="h-64 rounded-2xl" />
             <Skeleton className="h-48 rounded-2xl" />
@@ -867,10 +975,22 @@ export default function SecurityView() {
   const riskLabel = score >= 80 ? "Low risk" : score >= 50 ? "Medium risk" : "High risk";
   const riskTone =
     score >= 80
-      ? { color: "text-emerald-600 dark:text-emerald-400", bar: "bg-emerald-500", badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" }
+      ? {
+          color: "text-emerald-600 dark:text-emerald-400",
+          bar: "bg-emerald-500",
+          badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+        }
       : score >= 50
-      ? { color: "text-amber-600 dark:text-amber-400", bar: "bg-amber-500", badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400" }
-      : { color: "text-red-600 dark:text-red-400", bar: "bg-red-500", badge: "bg-red-500/10 text-red-600 dark:text-red-400" };
+        ? {
+            color: "text-amber-600 dark:text-amber-400",
+            bar: "bg-amber-500",
+            badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+          }
+        : {
+            color: "text-red-600 dark:text-red-400",
+            bar: "bg-red-500",
+            badge: "bg-red-500/10 text-red-600 dark:text-red-400",
+          };
 
   const checklistItems: {
     label: string;
@@ -928,7 +1048,7 @@ export default function SecurityView() {
           {/* Risk score */}
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <Shield className="h-5 w-5 text-primary" />
+              <Shield className="text-primary h-5 w-5" />
               <h2 className="text-base font-semibold">Account risk score</h2>
             </div>
             <div className="flex flex-wrap items-end justify-between gap-3">
@@ -938,40 +1058,50 @@ export default function SecurityView() {
                   {riskLabel}
                 </Badge>
               </div>
-              <p className="max-w-xs text-xs text-muted-foreground">
-                Based on PIN, email verification, KYC status, and 2FA. Complete more items to lower your risk.
+              <p className="text-muted-foreground max-w-xs text-xs">
+                Based on PIN, email verification, KYC status, and 2FA. Complete more items to lower
+                your risk.
               </p>
             </div>
-            <div className="mt-4 h-2.5 w-full overflow-hidden rounded-full bg-muted">
-              <div className={`h-full rounded-full ${riskTone.bar} transition-all`} style={{ width: `${score}%` }} />
+            <div className="bg-muted mt-4 h-2.5 w-full overflow-hidden rounded-full">
+              <div
+                className={`h-full rounded-full ${riskTone.bar} transition-all`}
+                style={{ width: `${score}%` }}
+              />
             </div>
           </Card>
 
           {/* Checklist */}
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-primary" />
+              <ShieldCheck className="text-primary h-5 w-5" />
               <h2 className="text-base font-semibold">Security checklist</h2>
             </div>
             <div className="space-y-2">
               {checklistItems.map((it) => (
-                <div
-                  key={it.label}
-                  className="flex items-center gap-3 rounded-xl border p-3"
-                >
-                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${it.done ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>
-                    {it.done ? <CheckCircle2 className="h-5 w-5" /> : <it.icon className="h-5 w-5" />}
+                <div key={it.label} className="flex items-center gap-3 rounded-xl border p-3">
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${it.done ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}
+                  >
+                    {it.done ? (
+                      <CheckCircle2 className="h-5 w-5" />
+                    ) : (
+                      <it.icon className="h-5 w-5" />
+                    )}
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">{it.label}</p>
-                    <p className="truncate text-xs text-muted-foreground">{it.desc}</p>
+                    <p className="text-muted-foreground truncate text-xs">{it.desc}</p>
                   </div>
                   {it.cta ? (
                     <Button size="sm" variant="outline" onClick={() => setView(it.cta!.view)}>
                       {it.cta.label}
                     </Button>
                   ) : it.done ? (
-                    <Badge variant="secondary" className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <Badge
+                      variant="secondary"
+                      className="gap-1 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                    >
                       <CheckCircle2 className="h-3 w-3" /> Done
                     </Badge>
                   ) : (
@@ -993,11 +1123,11 @@ export default function SecurityView() {
           {/* Recent security events */}
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
+              <Clock className="text-primary h-5 w-5" />
               <h2 className="text-base font-semibold">Recent security events</h2>
             </div>
             {data?.events && data.events.length > 0 ? (
-              <ul className="max-h-96 overflow-y-auto pr-1 scrollbar-thin">
+              <ul className="scrollbar-thin max-h-96 overflow-y-auto pr-1">
                 {data.events.map((ev) => {
                   const tone = severityTone(ev.severity);
                   return (
@@ -1005,12 +1135,19 @@ export default function SecurityView() {
                       key={ev.id}
                       className="flex items-start gap-3 border-b py-3 last:border-b-0 last:pb-0"
                     >
-                      <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${tone.color}`}>
+                      <div
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${tone.color}`}
+                      >
                         {actionIcon(ev.action)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium">{ev.action.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}</p>
-                        <p className="truncate text-xs text-muted-foreground">
+                        <p className="text-sm font-medium">
+                          {ev.action
+                            .replace(/_/g, " ")
+                            .toLowerCase()
+                            .replace(/\b\w/g, (c) => c.toUpperCase())}
+                        </p>
+                        <p className="text-muted-foreground truncate text-xs">
                           {ev.ip ?? "unknown IP"} · {formatDate(ev.createdAt, true)}
                         </p>
                       </div>
@@ -1036,7 +1173,7 @@ export default function SecurityView() {
           {/* Active sessions */}
           <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
-              <Monitor className="h-5 w-5 text-primary" />
+              <Monitor className="text-primary h-5 w-5" />
               <h2 className="text-base font-semibold">Active sessions</h2>
             </div>
             {data?.sessions && data.sessions.length > 0 ? (
@@ -1050,19 +1187,26 @@ export default function SecurityView() {
                         s.isCurrent ? "border-emerald-500/40 bg-emerald-500/5" : ""
                       }`}
                     >
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                        {device === "iPhone" || device === "Android" ? <Smartphone className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
+                      <div className="bg-muted text-muted-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-full">
+                        {device === "iPhone" || device === "Android" ? (
+                          <Smartphone className="h-4 w-4" />
+                        ) : (
+                          <Monitor className="h-4 w-4" />
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">
                           {device} · {browser}
                           {s.isCurrent && (
-                            <Badge variant="secondary" className="ml-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                            <Badge
+                              variant="secondary"
+                              className="ml-2 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                            >
                               This device
                             </Badge>
                           )}
                         </p>
-                        <p className="truncate text-xs text-muted-foreground">
+                        <p className="text-muted-foreground truncate text-xs">
                           {s.ip ?? "unknown IP"} · {timeAgo(s.createdAt)}
                         </p>
                       </div>
@@ -1070,7 +1214,7 @@ export default function SecurityView() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 w-8 p-0 text-muted-foreground hover:bg-red-500/10 hover:text-red-600"
+                          className="text-muted-foreground h-8 w-8 p-0 hover:bg-red-500/10 hover:text-red-600"
                           onClick={() => setRevokeTarget(s)}
                           aria-label="Revoke session"
                         >
@@ -1093,10 +1237,10 @@ export default function SecurityView() {
           {/* Quick links */}
           <Card className="p-5 sm:p-6">
             <div className="mb-3 flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-primary" />
+              <MapPin className="text-primary h-5 w-5" />
               <h2 className="text-base font-semibold">Quick security tips</h2>
             </div>
-            <ul className="space-y-2 text-xs text-muted-foreground">
+            <ul className="text-muted-foreground space-y-2 text-xs">
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
                 Use a unique password you don&apos;t reuse elsewhere.
@@ -1129,8 +1273,10 @@ export default function SecurityView() {
             <AlertDialogDescription>
               {revokeTarget ? (
                 <>
-                  The device <span className="font-medium">{parseUA(revokeTarget.userAgent).device}</span> at{" "}
-                  <span className="font-medium">{revokeTarget.ip ?? "unknown IP"}</span> will be signed out immediately.
+                  The device{" "}
+                  <span className="font-medium">{parseUA(revokeTarget.userAgent).device}</span> at{" "}
+                  <span className="font-medium">{revokeTarget.ip ?? "unknown IP"}</span> will be
+                  signed out immediately.
                 </>
               ) : (
                 "This device will be signed out."

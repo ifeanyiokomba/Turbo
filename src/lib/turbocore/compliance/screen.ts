@@ -58,17 +58,19 @@ export async function screenEntity(req: {
     if (score > best.score) best = { score, matchedEntryId: entry.id };
   }
   const hit = best.score >= 0.85;
-  await db.screeningResult.create({
-    data: {
-      entityType: req.entityType ?? "TRANSACTION",
-      entityName: req.name,
-      transactionId: req.transactionId ?? null,
-      userId: req.userId ?? null,
-      hit,
-      score: best.score,
-      matchedEntryId: best.matchedEntryId ?? null,
-    },
-  }).catch(() => {});
+  await db.screeningResult
+    .create({
+      data: {
+        entityType: req.entityType ?? "TRANSACTION",
+        entityName: req.name,
+        transactionId: req.transactionId ?? null,
+        userId: req.userId ?? null,
+        hit,
+        score: best.score,
+        matchedEntryId: best.matchedEntryId ?? null,
+      },
+    })
+    .catch(() => {});
   return best;
 }
 
@@ -89,29 +91,68 @@ export async function runAmlRules(req: {
     where: { userId: req.userId, createdAt: { gte: tenMinAgo }, status: "SUCCESS" },
   });
   if (recentCount >= 5) {
-    await flagAml({ userId: req.userId, rule: "VELOCITY", severity: "MEDIUM", description: `${recentCount} transactions in 10 minutes` });
-    return { flagged: true, rule: "VELOCITY", severity: "MEDIUM", description: "High velocity detected" };
+    await flagAml({
+      userId: req.userId,
+      rule: "VELOCITY",
+      severity: "MEDIUM",
+      description: `${recentCount} transactions in 10 minutes`,
+    });
+    return {
+      flagged: true,
+      rule: "VELOCITY",
+      severity: "MEDIUM",
+      description: "High velocity detected",
+    };
   }
 
   // LARGE_AMOUNT
   const thresholds = [50_000_000, 500_000_000, 5_000_000_000]; // tier 1/2/3 in kobo
   const threshold = thresholds[Math.min(req.kycTier - 1, 2)];
   if (req.amountMinor >= threshold) {
-    await flagAml({ userId: req.userId, rule: "LARGE_AMOUNT", severity: "HIGH", description: `Transaction ≥ ${threshold} kobo` });
-    return { flagged: true, rule: "LARGE_AMOUNT", severity: "HIGH", description: "Large transaction" };
+    await flagAml({
+      userId: req.userId,
+      rule: "LARGE_AMOUNT",
+      severity: "HIGH",
+      description: `Transaction ≥ ${threshold} kobo`,
+    });
+    return {
+      flagged: true,
+      rule: "LARGE_AMOUNT",
+      severity: "HIGH",
+      description: "Large transaction",
+    };
   }
 
   // RAPID_TRANSFER: 3+ outgoing within 60s of funding
   if (req.direction === "DEBIT") {
     const recentDebits = await db.transaction.count({
-      where: { userId: req.userId, direction: "DEBIT", createdAt: { gte: hourAgo }, status: "SUCCESS" },
+      where: {
+        userId: req.userId,
+        direction: "DEBIT",
+        createdAt: { gte: hourAgo },
+        status: "SUCCESS",
+      },
     });
     const recentCredits = await db.transaction.findFirst({
-      where: { userId: req.userId, direction: "CREDIT", createdAt: { gte: new Date(now.getTime() - 5 * 60_000) } },
+      where: {
+        userId: req.userId,
+        direction: "CREDIT",
+        createdAt: { gte: new Date(now.getTime() - 5 * 60_000) },
+      },
     });
     if (recentDebits >= 3 && recentCredits) {
-      await flagAml({ userId: req.userId, rule: "RAPID_TRANSFER", severity: "HIGH", description: "Rapid transfers after funding" });
-      return { flagged: true, rule: "RAPID_TRANSFER", severity: "HIGH", description: "Rapid transfer pattern" };
+      await flagAml({
+        userId: req.userId,
+        rule: "RAPID_TRANSFER",
+        severity: "HIGH",
+        description: "Rapid transfers after funding",
+      });
+      return {
+        flagged: true,
+        rule: "RAPID_TRANSFER",
+        severity: "HIGH",
+        description: "Rapid transfer pattern",
+      };
     }
   }
 
@@ -127,14 +168,29 @@ export async function runAmlRules(req: {
     },
   });
   if (structuring >= 3) {
-    await flagAml({ userId: req.userId, rule: "STRUCTURING", severity: "HIGH", description: "Possible smurfing pattern" });
-    return { flagged: true, rule: "STRUCTURING", severity: "HIGH", description: "Structuring pattern detected" };
+    await flagAml({
+      userId: req.userId,
+      rule: "STRUCTURING",
+      severity: "HIGH",
+      description: "Possible smurfing pattern",
+    });
+    return {
+      flagged: true,
+      rule: "STRUCTURING",
+      severity: "HIGH",
+      description: "Structuring pattern detected",
+    };
   }
 
   return { flagged: false };
 }
 
-async function flagAml(opts: { userId: string; rule: string; severity: string; description: string }) {
+async function flagAml(opts: {
+  userId: string;
+  rule: string;
+  severity: string;
+  description: string;
+}) {
   await db.amlFlag.create({
     data: {
       userId: opts.userId,
@@ -160,7 +216,11 @@ async function flagAml(opts: { userId: string; rule: string; severity: string; d
 }
 
 // --- Per-country KYC validation ---
-export function validateKycId(country: string, idType: string, idValue: string): { valid: boolean; error?: string } {
+export function validateKycId(
+  country: string,
+  idType: string,
+  idValue: string
+): { valid: boolean; error?: string } {
   const cleaned = idValue.replace(/\s/g, "");
   switch (idType) {
     case "NIN":
@@ -168,10 +228,12 @@ export function validateKycId(country: string, idType: string, idValue: string):
       if (!/^\d{11}$/.test(cleaned)) return { valid: false, error: `${idType} must be 11 digits` };
       break;
     case "KRA_PIN":
-      if (!/^[A-Z]\d{9}[A-Z]$/.test(cleaned.toUpperCase())) return { valid: false, error: "KRA PIN format invalid (e.g. A123456789B)" };
+      if (!/^[A-Z]\d{9}[A-Z]$/.test(cleaned.toUpperCase()))
+        return { valid: false, error: "KRA PIN format invalid (e.g. A123456789B)" };
       break;
     case "GHANA_CARD":
-      if (!/^GHA-\d{9}-\d$/.test(cleaned.toUpperCase())) return { valid: false, error: "Ghana Card format: GHA-XXXXXXXXX-X" };
+      if (!/^GHA-\d{9}-\d$/.test(cleaned.toUpperCase()))
+        return { valid: false, error: "Ghana Card format: GHA-XXXXXXXXX-X" };
       break;
     case "SA_ID":
       if (!/^\d{13}$/.test(cleaned)) return { valid: false, error: "SA ID must be 13 digits" };

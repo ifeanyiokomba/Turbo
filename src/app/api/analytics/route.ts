@@ -28,7 +28,10 @@ export async function GET() {
     let totalIncome30 = 0;
     let totalExpense30 = 0;
     let txCount30 = 0;
-    const byCategory: Record<string, { count: number; total: number; income: number; expense: number }> = {};
+    const byCategory: Record<
+      string,
+      { count: number; total: number; income: number; expense: number }
+    > = {};
     const byDayOfWeek: Record<string, { income: number; expense: number }> = {};
     const byHour: number[] = new Array(24).fill(0);
     const days30 = new Set(days.map((d) => d.date));
@@ -101,10 +104,16 @@ export async function GET() {
 
     // Average transaction size
     const allTx30 = recent.filter((t) => new Date(t.createdAt) >= thirtyAgo);
-    const avgTxSize = allTx30.length > 0 ? Math.round(allTx30.reduce((s, t) => s + t.amountKobo, 0) / allTx30.length) : 0;
+    const avgTxSize =
+      allTx30.length > 0
+        ? Math.round(allTx30.reduce((s, t) => s + t.amountKobo, 0) / allTx30.length)
+        : 0;
 
     // Largest transaction (30d)
-    const largest = allTx30.length > 0 ? allTx30.reduce((max, t) => (t.amountKobo > max.amountKobo ? t : max)) : null;
+    const largest =
+      allTx30.length > 0
+        ? allTx30.reduce((max, t) => (t.amountKobo > max.amountKobo ? t : max))
+        : null;
 
     // Category breakdown for pie chart
     const spendingByCategory = Object.entries(byCategory)
@@ -138,10 +147,16 @@ export async function GET() {
         avgTxSize,
         thisWeekExpense,
         lastWeekExpense,
-        weekChange: lastWeekExpense > 0 ? Math.round(((thisWeekExpense - lastWeekExpense) / lastWeekExpense) * 100) : 0,
+        weekChange:
+          lastWeekExpense > 0
+            ? Math.round(((thisWeekExpense - lastWeekExpense) / lastWeekExpense) * 100)
+            : 0,
         thisWeekIncome,
         lastWeekIncome,
-        incomeWeekChange: lastWeekIncome > 0 ? Math.round(((thisWeekIncome - lastWeekIncome) / lastWeekIncome) * 100) : 0,
+        incomeWeekChange:
+          lastWeekIncome > 0
+            ? Math.round(((thisWeekIncome - lastWeekIncome) / lastWeekIncome) * 100)
+            : 0,
       },
       spendingByCategory,
       incomeByCategory,
@@ -149,7 +164,14 @@ export async function GET() {
       dowData,
       hourData,
       largest: largest
-        ? { type: largest.type, amountKobo: largest.amountKobo, counterpartyName: largest.counterpartyName, description: largest.description, createdAt: largest.createdAt, direction: largest.direction }
+        ? {
+            type: largest.type,
+            amountKobo: largest.amountKobo,
+            counterpartyName: largest.counterpartyName,
+            description: largest.description,
+            createdAt: largest.createdAt,
+            direction: largest.direction,
+          }
         : null,
     });
   } catch (e) {

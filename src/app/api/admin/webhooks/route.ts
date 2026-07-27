@@ -48,9 +48,7 @@ export async function GET(req: Request) {
         processedAt: e.processedAt,
         transactionId: e.transactionId,
         payloadPreview:
-          e.payloadJSON && e.payloadJSON.length > 0
-            ? e.payloadJSON.slice(0, 200)
-            : "",
+          e.payloadJSON && e.payloadJSON.length > 0 ? e.payloadJSON.slice(0, 200) : "",
         createdAt: e.createdAt,
       })),
       endpoints: endpoints.map((ep) => ({
@@ -118,7 +116,7 @@ export async function POST(req: Request) {
         },
         secret, // plaintext — shown once
       },
-      201,
+      201
     );
   } catch (e) {
     return handleError(e);

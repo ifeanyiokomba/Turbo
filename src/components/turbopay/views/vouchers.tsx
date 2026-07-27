@@ -84,7 +84,10 @@ const TYPE_TONE: Record<string, string> = {
 };
 
 function typeLabel(t: string) {
-  return t.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  return t
+    .replace(/_/g, " ")
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function typeIcon(t: string) {
@@ -248,15 +251,15 @@ export default function VouchersView() {
       />
 
       {/* Quick redeem strip */}
-      <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-emerald-500/10 via-background to-amber-500/5 p-5 sm:p-6">
+      <Card className="border-primary/20 via-background overflow-hidden bg-gradient-to-br from-emerald-500/10 to-amber-500/5 p-5 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <div className="bg-primary/15 text-primary flex h-11 w-11 shrink-0 items-center justify-center rounded-xl">
               <Gift className="h-5 w-5" />
             </div>
             <div>
               <p className="font-semibold">Have a voucher code?</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
+              <p className="text-muted-foreground mt-0.5 text-sm">
                 Enter your code to redeem cashback, discounts, or fee waivers.
               </p>
             </div>
@@ -270,7 +273,7 @@ export default function VouchersView() {
       {/* Active vouchers */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
-          <Ticket className="h-5 w-5 text-primary" />
+          <Ticket className="text-primary h-5 w-5" />
           <h2 className="text-base font-semibold">Available vouchers</h2>
           {data && (
             <Badge variant="secondary" className="ml-auto">
@@ -303,7 +306,7 @@ export default function VouchersView() {
       {/* Redemption history */}
       <section className="space-y-3">
         <div className="flex items-center gap-2">
-          <History className="h-5 w-5 text-primary" />
+          <History className="text-primary h-5 w-5" />
           <h2 className="text-base font-semibold">My redemptions</h2>
           {data && (
             <Badge variant="secondary" className="ml-auto">
@@ -350,7 +353,7 @@ export default function VouchersView() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Gift className="h-4 w-4 text-primary" /> Redeem voucher
+              <Gift className="text-primary h-4 w-4" /> Redeem voucher
             </DialogTitle>
             <DialogDescription>
               Enter your voucher code and confirm with your transaction PIN.
@@ -371,7 +374,7 @@ export default function VouchersView() {
                 disabled={!!redeemTarget}
               />
               {redeemTarget && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   {describeVoucher(redeemTarget)} ·{" "}
                   {redeemTarget.minAmountKobo > 0
                     ? `min ${naira(redeemTarget.minAmountKobo)}`
@@ -383,11 +386,7 @@ export default function VouchersView() {
             <div className="space-y-1.5">
               <Label>PIN</Label>
               <div className="flex flex-col items-center gap-2">
-                <InputOTP
-                  maxLength={4}
-                  value={otp}
-                  onChange={(v) => setOtp(v)}
-                >
+                <InputOTP maxLength={4} value={otp} onChange={(v) => setOtp(v)}>
                   <InputOTPGroup>
                     <InputOTPSlot index={0} />
                     <InputOTPSlot index={1} />
@@ -395,19 +394,13 @@ export default function VouchersView() {
                     <InputOTPSlot index={3} />
                   </InputOTPGroup>
                 </InputOTP>
-                <p className="text-xs text-muted-foreground">
-                  Enter your 4-digit transaction PIN
-                </p>
+                <p className="text-muted-foreground text-xs">Enter your 4-digit transaction PIN</p>
               </div>
             </div>
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setRedeemOpen(false)}
-              disabled={submitting}
-            >
+            <Button variant="outline" onClick={() => setRedeemOpen(false)} disabled={submitting}>
               Cancel
             </Button>
             <Button
@@ -430,13 +423,7 @@ export default function VouchersView() {
 }
 
 // ---------- Voucher card ----------
-function VoucherCard({
-  v,
-  onRedeem,
-}: {
-  v: VoucherItem;
-  onRedeem: () => void;
-}) {
+function VoucherCard({ v, onRedeem }: { v: VoucherItem; onRedeem: () => void }) {
   const [copied, setCopied] = React.useState(false);
 
   async function copyCode() {
@@ -451,9 +438,7 @@ function VoucherCard({
   }
 
   const remaining =
-    v.maxRedemptions > 0
-      ? Math.max(0, v.maxRedemptions - v.redemptionsCount)
-      : null;
+    v.maxRedemptions > 0 ? Math.max(0, v.maxRedemptions - v.redemptionsCount) : null;
 
   return (
     <Card className="flex flex-col overflow-hidden p-0">
@@ -479,28 +464,17 @@ function VoucherCard({
             </Badge>
           )}
         </div>
-        <p className="mt-3 text-2xl font-bold tabular-nums">
-          {describeVoucher(v)}
-        </p>
-        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-          {v.description}
-        </p>
+        <p className="mt-3 text-2xl font-bold tabular-nums">{describeVoucher(v)}</p>
+        <p className="text-muted-foreground mt-1 line-clamp-2 text-xs">{v.description}</p>
       </div>
 
       {/* Code block */}
-      <div className="flex items-center justify-between gap-2 border-y border-dashed bg-muted/30 px-5 py-3">
+      <div className="bg-muted/30 flex items-center justify-between gap-2 border-y border-dashed px-5 py-3">
         <div className="flex items-center gap-1.5">
-          <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-          <code className="font-mono text-sm font-semibold tracking-wider">
-            {v.code}
-          </code>
+          <Hash className="text-muted-foreground h-3.5 w-3.5" />
+          <code className="font-mono text-sm font-semibold tracking-wider">{v.code}</code>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={copyCode}
-          className="h-8 gap-1 px-2 text-xs"
-        >
+        <Button variant="ghost" size="sm" onClick={copyCode} className="h-8 gap-1 px-2 text-xs">
           {copied ? (
             <>
               <Check className="h-3.5 w-3.5 text-emerald-500" /> Copied
@@ -519,9 +493,7 @@ function VoucherCard({
           {v.minAmountKobo > 0 && (
             <div>
               <p className="text-muted-foreground">Min amount</p>
-              <p className="font-semibold tabular-nums">
-                {naira(v.minAmountKobo)}
-              </p>
+              <p className="font-semibold tabular-nums">{naira(v.minAmountKobo)}</p>
             </div>
           )}
           <div>
@@ -566,9 +538,7 @@ function RedemptionRow({ r }: { r: Redemption }) {
             {typeLabel(r.voucher.type)}
           </Badge>
         </div>
-        <p className="mt-0.5 truncate text-xs text-muted-foreground">
-          {r.voucher.description}
-        </p>
+        <p className="text-muted-foreground mt-0.5 truncate text-xs">{r.voucher.description}</p>
       </div>
       <div className="text-right">
         <p className="text-sm font-semibold tabular-nums">
@@ -578,9 +548,7 @@ function RedemptionRow({ r }: { r: Redemption }) {
               ? "Waived"
               : naira(r.valueAppliedKobo)}
         </p>
-        <p className="text-[11px] text-muted-foreground">
-          {timeAgo(r.createdAt)}
-        </p>
+        <p className="text-muted-foreground text-[11px]">{timeAgo(r.createdAt)}</p>
       </div>
       <span
         className={`flex h-2 w-2 shrink-0 rounded-full ${

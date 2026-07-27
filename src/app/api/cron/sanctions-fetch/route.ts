@@ -36,7 +36,12 @@ const DEMO_ENTRIES: ParsedEntry[] = [
   { entityType: "ENTITY", primaryName: "AL-QAEDA", program: "SDGT", country: "AF" },
   { entityType: "ENTITY", primaryName: "TALIBAN", program: "SDGT", country: "AF" },
   { entityType: "INDIVIDUAL", primaryName: "KIM JONG UN", program: "DPRK2", country: "KP" },
-  { entityType: "ENTITY", primaryName: "ISLAMIC STATE OF IRAQ AND THE LEVANT", program: "SDGT", country: "IQ" },
+  {
+    entityType: "ENTITY",
+    primaryName: "ISLAMIC STATE OF IRAQ AND THE LEVANT",
+    program: "SDGT",
+    country: "IQ",
+  },
 ];
 
 export async function POST(req: Request) {
@@ -57,7 +62,10 @@ export async function POST(req: Request) {
         entries = parseSdnXml(xml);
         source = "ofac-xml";
       } catch (e) {
-        console.warn(`[cron:sanctions-fetch] XML fetch failed:`, e instanceof Error ? e.message : e);
+        console.warn(
+          `[cron:sanctions-fetch] XML fetch failed:`,
+          e instanceof Error ? e.message : e
+        );
         try {
           const csv = await fetchTextWithTimeout(SDN_CSV_URL);
           entries = parseSdnCsv(csv);
@@ -65,7 +73,7 @@ export async function POST(req: Request) {
         } catch (e2) {
           console.warn(
             `[cron:sanctions-fetch] CSV fetch failed — using demo entries:`,
-            e2 instanceof Error ? e2.message : e2,
+            e2 instanceof Error ? e2.message : e2
           );
           entries = DEMO_ENTRIES;
           source = "demo-fallback";
@@ -120,7 +128,7 @@ export async function POST(req: Request) {
           // log and continue.
           console.warn(
             `[cron:sanctions-fetch] upsert failed for "${entry.primaryName}":`,
-            e instanceof Error ? e.message : e,
+            e instanceof Error ? e.message : e
           );
         }
       }
@@ -128,9 +136,16 @@ export async function POST(req: Request) {
       const fetched = entries.length;
       const finishedAt = new Date().toISOString();
       console.log(
-        `[cron:sanctions-fetch] done at ${finishedAt} — source=${source} fetched=${fetched} upserted=${upserted}`,
+        `[cron:sanctions-fetch] done at ${finishedAt} — source=${source} fetched=${fetched} upserted=${upserted}`
       );
-      return { source, fetched, upserted, capped: entries.length > MAX_UPSERTS, startedAt, finishedAt };
+      return {
+        source,
+        fetched,
+        upserted,
+        capped: entries.length > MAX_UPSERTS,
+        startedAt,
+        finishedAt,
+      };
     });
 
     return json(result ?? { fetched: 0, upserted: 0, skipped: true });
@@ -176,7 +191,12 @@ function parseSdnXml(xml: string): ParsedEntry[] {
     const typeMatch = block.match(/<ns2:EntityType>([\s\S]*?)<\/ns2:EntityType>/);
     const entityType = typeMatch ? typeMatch[1].trim().toUpperCase() : "ENTITY";
     const programMatch = block.match(/<ns2:ProgramList>([\s\S]*?)<\/ns2:ProgramList>/);
-    const program = programMatch ? programMatch[1].replace(/<[^>]+>/g, " ").trim().split(/\s+/)[0] : undefined;
+    const program = programMatch
+      ? programMatch[1]
+          .replace(/<[^>]+>/g, " ")
+          .trim()
+          .split(/\s+/)[0]
+      : undefined;
     const countryMatch = block.match(/<ns2:Country>([\s\S]*?)<\/ns2:Country>/);
     const country = countryMatch ? countryMatch[1].trim() : undefined;
     entries.push({ entityType, primaryName, program, country });

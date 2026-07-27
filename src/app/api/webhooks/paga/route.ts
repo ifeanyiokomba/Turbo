@@ -60,7 +60,7 @@ function normalizeStatus(body: PagaCallback): string {
 function verifyPagaSignature(
   rawBody: string,
   headers: Headers,
-  secret: string | null,
+  secret: string | null
 ): { valid: boolean; scheme: string; reason?: string } {
   if (!secret) {
     return { valid: true, scheme: "paga:none", reason: "no-secret" };
@@ -130,21 +130,24 @@ export async function POST(req: Request) {
 
     if (!verifyResult.valid) {
       console.warn(
-        `[webhook:paga] signature invalid — scheme=${verifyResult.scheme} reason=${verifyResult.reason ?? "mismatch"}`,
+        `[webhook:paga] signature invalid — scheme=${verifyResult.scheme} reason=${verifyResult.reason ?? "mismatch"}`
       );
       await audit({
         action: "WEBHOOK_SIGNATURE_INVALID",
         category: "SECURITY",
         severity: "WARN",
-        metadata: { provider: PROVIDER_CODE, eventId, scheme: verifyResult.scheme, reason: verifyResult.reason },
+        metadata: {
+          provider: PROVIDER_CODE,
+          eventId,
+          scheme: verifyResult.scheme,
+          reason: verifyResult.reason,
+        },
       }).catch(() => {});
       return json({ ok: false, reason: "invalid-signature" }, 200);
     }
 
     // Find the transaction by providerRef === transactionReference.
-    const candidateRefs = [transactionReference, internalReference].filter(
-      (v): v is string => !!v,
-    );
+    const candidateRefs = [transactionReference, internalReference].filter((v): v is string => !!v);
     let tx: { id: string; state: string; reference: string; userId: string } | null = null;
     for (const ref of candidateRefs) {
       tx = await db.transaction.findFirst({
@@ -155,9 +158,7 @@ export async function POST(req: Request) {
     }
 
     if (!tx) {
-      console.log(
-        `[webhook:paga] no tx for refs=${JSON.stringify(candidateRefs)} — recorded only`,
-      );
+      console.log(`[webhook:paga] no tx for refs=${JSON.stringify(candidateRefs)} — recorded only`);
       await db.webhookEvent.updateMany({
         where: { eventId },
         data: { processedAt: new Date() },
@@ -175,14 +176,10 @@ export async function POST(req: Request) {
       return json({ ok: true, processed: false, reason: `status-${status.toLowerCase()}` }, 200);
     }
 
-    const outcome = await confirmOrReverseTransaction(
-      tx.id,
-      status,
-      `webhook:${PROVIDER_CODE}`,
-    );
+    const outcome = await confirmOrReverseTransaction(tx.id, status, `webhook:${PROVIDER_CODE}`);
 
     console.log(
-      `[webhook:paga] tx ${tx.reference} → ${outcome.outcome} (${outcome.reason ?? "ok"})`,
+      `[webhook:paga] tx ${tx.reference} → ${outcome.outcome} (${outcome.reason ?? "ok"})`
     );
 
     await audit({
@@ -202,18 +199,21 @@ export async function POST(req: Request) {
       },
     }).catch(() => {});
 
-    return json({
-      ok: true,
-      processed: true,
-      outcome: outcome.outcome,
-      reference: tx.reference,
-      startedAt,
-    }, 200);
+    return json(
+      {
+        ok: true,
+        processed: true,
+        outcome: outcome.outcome,
+        reference: tx.reference,
+        startedAt,
+      },
+      200
+    );
   } catch (e) {
     console.error(`[webhook:paga] handler error:`, e);
     return json(
       { ok: false, error: e instanceof Error ? e.message : "internal-error", startedAt },
-      200,
+      200
     );
   }
 }

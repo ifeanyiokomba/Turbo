@@ -41,13 +41,35 @@ const BASE = "https://api.termii.com/api";
 // ---------------------------------------------------------------------------
 
 export interface TermiiNotificationExtensions {
-  sendVoice(req: { to: string; message: string }): Promise<ProviderResult<{ messageId: string; status: string }>>;
-  sendWhatsApp(req: { to: string; message: string; messageType?: string }): Promise<ProviderResult<{ messageId: string; status: string }>>;
-  requestSenderID(req: { senderId: string; company: string; usecase: string }): Promise<ProviderResult<{ senderId: string; status: string }>>;
-  listSenderIDs(): Promise<ProviderResult<{ senderIds: Array<{ senderId: string; status: string }> }>>;
-  addTemplate(req: { name: string; template: string }): Promise<ProviderResult<{ templateId: string; status: string }>>;
-  listTemplates(): Promise<ProviderResult<{ templates: Array<{ id: string; name: string; template: string }> }>>;
-  sendTemplate(req: { to: string; templateId: string; data?: Record<string, string> }): Promise<ProviderResult<{ messageId: string; status: string }>>;
+  sendVoice(req: {
+    to: string;
+    message: string;
+  }): Promise<ProviderResult<{ messageId: string; status: string }>>;
+  sendWhatsApp(req: {
+    to: string;
+    message: string;
+    messageType?: string;
+  }): Promise<ProviderResult<{ messageId: string; status: string }>>;
+  requestSenderID(req: {
+    senderId: string;
+    company: string;
+    usecase: string;
+  }): Promise<ProviderResult<{ senderId: string; status: string }>>;
+  listSenderIDs(): Promise<
+    ProviderResult<{ senderIds: Array<{ senderId: string; status: string }> }>
+  >;
+  addTemplate(req: {
+    name: string;
+    template: string;
+  }): Promise<ProviderResult<{ templateId: string; status: string }>>;
+  listTemplates(): Promise<
+    ProviderResult<{ templates: Array<{ id: string; name: string; template: string }> }>
+  >;
+  sendTemplate(req: {
+    to: string;
+    templateId: string;
+    data?: Record<string, string>;
+  }): Promise<ProviderResult<{ messageId: string; status: string }>>;
 }
 
 export const termiiNotification: INotificationProvider & TermiiNotificationExtensions = {
@@ -88,11 +110,21 @@ export const termiiNotification: INotificationProvider & TermiiNotificationExten
       }
       const { body: resp } = await http(
         endpoint,
-        { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(body) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify(body),
+        },
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (resp as { message_id?: string; messageId?: string; data?: { message_id?: string }; status?: string });
-      const messageId = data.message_id ?? data.messageId ?? data.data?.message_id ?? `termii-${Date.now()}`;
+      const data = resp as {
+        message_id?: string;
+        messageId?: string;
+        data?: { message_id?: string };
+        status?: string;
+      };
+      const messageId =
+        data.message_id ?? data.messageId ?? data.data?.message_id ?? `termii-${Date.now()}`;
       return ok({ messageId, status: "sent" }, messageId, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Termii send failed";
@@ -114,9 +146,13 @@ export const termiiNotification: INotificationProvider & TermiiNotificationExten
       const { body } = await http(
         `${BASE}/sms/${encodeURIComponent(messageId)}?api_key=${encodeURIComponent(apiKey)}`,
         { method: "GET", headers: { Accept: "application/json" } },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: string; delivered_at?: string; data?: { status?: string; delivered_at?: string } });
+      const data = body as {
+        status?: string;
+        delivered_at?: string;
+        data?: { status?: string; delivered_at?: string };
+      };
       const status = (data.status ?? data.data?.status ?? "pending").toLowerCase();
       const deliveredAt = data.delivered_at ?? data.data?.delivered_at;
       return ok({ status, deliveredAt }, messageId, 0);
@@ -144,9 +180,9 @@ export const termiiNotification: INotificationProvider & TermiiNotificationExten
           headers: { "Content-Type": "application/json", Accept: "application/json" },
           body: JSON.stringify({ to: req.to, message: req.message, api_key: apiKey }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (resp as { message_id?: string; data?: { message_id?: string }; code?: string });
+      const data = resp as { message_id?: string; data?: { message_id?: string }; code?: string };
       const messageId = data.message_id ?? data.data?.message_id ?? `termii-voice-${Date.now()}`;
       return ok({ messageId, status: "sent" }, messageId, 0);
     } catch (e) {
@@ -178,9 +214,9 @@ export const termiiNotification: INotificationProvider & TermiiNotificationExten
             api_key: apiKey,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (resp as { message_id?: string; data?: { message_id?: string } });
+      const data = resp as { message_id?: string; data?: { message_id?: string } };
       const messageId = data.message_id ?? data.data?.message_id ?? `termii-wa-${Date.now()}`;
       return ok({ messageId, status: "sent" }, messageId, 0);
     } catch (e) {
@@ -212,13 +248,16 @@ export const termiiNotification: INotificationProvider & TermiiNotificationExten
             api_key: apiKey,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (resp as { data?: { sender_id?: string; status?: string }; status?: string });
+      const data = resp as { data?: { sender_id?: string; status?: string }; status?: string };
       return ok(
-        { senderId: data.data?.sender_id ?? req.senderId, status: data.data?.status ?? data.status ?? "pending" },
+        {
+          senderId: data.data?.sender_id ?? req.senderId,
+          status: data.data?.status ?? data.status ?? "pending",
+        },
         `termii-senderid-${req.senderId}`,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Termii requestSenderID failed";
@@ -240,9 +279,11 @@ export const termiiNotification: INotificationProvider & TermiiNotificationExten
       const { body } = await http(
         `${BASE}/sender-id?api_key=${encodeURIComponent(apiKey)}`,
         { method: "GET", headers: { Accept: "application/json" } },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: Array<{ sender_id?: string; sender_name?: string; status?: string }> });
+      const data = body as {
+        data?: Array<{ sender_id?: string; sender_name?: string; status?: string }>;
+      };
       const senderIds = (data.data ?? []).map((s) => ({
         senderId: s.sender_id ?? s.sender_name ?? "",
         status: (s.status ?? "active").toLowerCase(),
@@ -272,10 +313,12 @@ export const termiiNotification: INotificationProvider & TermiiNotificationExten
           headers: { "Content-Type": "application/json", Accept: "application/json" },
           body: JSON.stringify({ name: req.name, template: req.template, api_key: apiKey }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (resp as { data?: { id?: string; template_id?: string }; message?: string });
-      const templateId = String(data.data?.id ?? data.data?.template_id ?? `termii-tpl-${Date.now()}`);
+      const data = resp as { data?: { id?: string; template_id?: string }; message?: string };
+      const templateId = String(
+        data.data?.id ?? data.data?.template_id ?? `termii-tpl-${Date.now()}`
+      );
       return ok({ templateId, status: "pending" }, templateId, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Termii addTemplate failed";
@@ -289,7 +332,15 @@ export const termiiNotification: INotificationProvider & TermiiNotificationExten
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ templates: [{ id: "tpl_1", name: "Welcome", template: "Hi {{name}}, welcome to Turbopay" }] }, "mock", 50);
+      return ok(
+        {
+          templates: [
+            { id: "tpl_1", name: "Welcome", template: "Hi {{name}}, welcome to Turbopay" },
+          ],
+        },
+        "mock",
+        50
+      );
     }
     const apiKey = creds.secrets.apiKey;
     if (!apiKey) return fail("AUTH_FAILED", "Termii apiKey missing", { providerCode: CODE });
@@ -297,9 +348,9 @@ export const termiiNotification: INotificationProvider & TermiiNotificationExten
       const { body } = await http(
         `${BASE}/templates?api_key=${encodeURIComponent(apiKey)}`,
         { method: "GET", headers: { Accept: "application/json" } },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: Array<Record<string, unknown>> });
+      const data = body as { data?: Array<Record<string, unknown>> };
       const templates = (data.data ?? []).map((t) => ({
         id: String(t.id ?? t.template_id ?? ""),
         name: String(t.name ?? t.template_name ?? ""),
@@ -335,9 +386,9 @@ export const termiiNotification: INotificationProvider & TermiiNotificationExten
             api_key: apiKey,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (resp as { message_id?: string; data?: { message_id?: string } });
+      const data = resp as { message_id?: string; data?: { message_id?: string } };
       const messageId = data.message_id ?? data.data?.message_id ?? `termii-tplsend-${Date.now()}`;
       return ok({ messageId, status: "sent" }, messageId, 0);
     } catch (e) {
@@ -361,7 +412,11 @@ export const termiiOTP: IOTPProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ pinId: `mock-pin-${Date.now()}`, status: "sent", deliveredTo: req.to }, "mock", 200);
+      return ok(
+        { pinId: `mock-pin-${Date.now()}`, status: "sent", deliveredTo: req.to },
+        "mock",
+        200
+      );
     }
     const apiKey = creds.secrets.apiKey;
     if (!apiKey) return fail("AUTH_FAILED", "Termii apiKey missing", { providerCode: CODE });
@@ -387,9 +442,14 @@ export const termiiOTP: IOTPProvider = {
           headers: { "Content-Type": "application/json", Accept: "application/json" },
           body: JSON.stringify(body),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (resp as { pinId?: string; pin_id?: string; data?: { pin_id?: string; phone?: string }; status?: string });
+      const data = resp as {
+        pinId?: string;
+        pin_id?: string;
+        data?: { pin_id?: string; phone?: string };
+        status?: string;
+      };
       const pinId = data.pinId ?? data.pin_id ?? data.data?.pin_id ?? `termii-pin-${Date.now()}`;
       const deliveredTo = data.data?.phone ?? req.to;
       return ok({ pinId, status: "sent", deliveredTo }, pinId, 0);
@@ -419,9 +479,14 @@ export const termiiOTP: IOTPProvider = {
           headers: { "Content-Type": "application/json", Accept: "application/json" },
           body: JSON.stringify({ api_key: apiKey, pin_id: req.pinId, pin: req.pin }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (resp as { verified?: boolean; data?: { verified?: boolean }; status?: string; message?: string });
+      const data = resp as {
+        verified?: boolean;
+        data?: { verified?: boolean };
+        status?: string;
+        message?: string;
+      };
       const verified = data.verified ?? data.data?.verified ?? false;
       const status = verified ? "verified" : (data.status ?? "failed").toLowerCase();
       return ok({ verified, status }, req.pinId, 0);
@@ -455,10 +520,11 @@ export const termiiOTP: IOTPProvider = {
             pin_length: req.pinLength ?? 6,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (resp as { pinId?: string; pin_id?: string; data?: { pin_id?: string } });
-      const pinId = data.pinId ?? data.pin_id ?? data.data?.pin_id ?? `termii-voice-pin-${Date.now()}`;
+      const data = resp as { pinId?: string; pin_id?: string; data?: { pin_id?: string } };
+      const pinId =
+        data.pinId ?? data.pin_id ?? data.data?.pin_id ?? `termii-voice-pin-${Date.now()}`;
       return ok({ pinId, status: "sent" }, pinId, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Termii sendVoiceOTP failed";
@@ -490,9 +556,9 @@ export const termiiOTP: IOTPProvider = {
             pin_length: req.pinLength ?? 6,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (resp as { pinId?: string; pin_id?: string; data?: { pin_id?: string } });
+      const data = resp as { pinId?: string; pin_id?: string; data?: { pin_id?: string } };
       const pinId = data.pinId ?? data.pin_id ?? data.data?.pin_id ?? `termii-wa-pin-${Date.now()}`;
       return ok({ pinId, status: "sent" }, pinId, 0);
     } catch (e) {

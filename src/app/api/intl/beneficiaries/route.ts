@@ -10,7 +10,24 @@ import {
 } from "@/lib/api";
 
 const COUNTRY_CODES = new Set([
-  "NG", "KE", "GH", "ZA", "GB", "US", "CA", "AU", "DE", "FR", "IT", "ES", "NL", "IE", "IN", "CN", "JP", "AE",
+  "NG",
+  "KE",
+  "GH",
+  "ZA",
+  "GB",
+  "US",
+  "CA",
+  "AU",
+  "DE",
+  "FR",
+  "IT",
+  "ES",
+  "NL",
+  "IE",
+  "IN",
+  "CN",
+  "JP",
+  "AE",
 ]);
 
 interface IntlBeneficiaryBody {
@@ -109,10 +126,14 @@ export async function POST(req: Request) {
     const body = (await req.json().catch(() => ({}))) as IntlBeneficiaryBody;
 
     const name = String(body.name ?? "").trim();
-    const country = String(body.country ?? "").toUpperCase().trim();
+    const country = String(body.country ?? "")
+      .toUpperCase()
+      .trim();
     const bankName = String(body.bankName ?? "").trim();
     const accountNumber = String(body.accountNumber ?? body.iban ?? body.mobileWallet ?? "").trim();
-    const currency = String(body.currency ?? "USD").toUpperCase().trim();
+    const currency = String(body.currency ?? "USD")
+      .toUpperCase()
+      .trim();
 
     if (!name) throw new ServiceError("Beneficiary name is required", 400, "MISSING_NAME");
     if (!country || !COUNTRY_CODES.has(country)) {
@@ -122,7 +143,11 @@ export async function POST(req: Request) {
       throw new ServiceError("Bank name is required (or mobile wallet)", 400, "MISSING_BANK");
     }
     if (!accountNumber) {
-      throw new ServiceError("Account number / IBAN / mobile wallet is required", 400, "MISSING_ACCOUNT");
+      throw new ServiceError(
+        "Account number / IBAN / mobile wallet is required",
+        400,
+        "MISSING_ACCOUNT"
+      );
     }
 
     // Dedupe by name + accountNumber

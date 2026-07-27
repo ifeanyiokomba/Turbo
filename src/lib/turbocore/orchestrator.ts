@@ -47,21 +47,34 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
   const idKey = req.idempotencyKey ?? hashKey(req);
   const existing = await db.idempotencyRecord.findUnique({ where: { key: idKey } });
   if (existing?.completedAt) {
-    return { ok: true, transaction: existing.responseBody ? JSON.parse(existing.responseBody) : null };
+    return {
+      ok: true,
+      transaction: existing.responseBody ? JSON.parse(existing.responseBody) : null,
+    };
   }
   if (existing && !existing.completedAt && Date.now() - existing.createdAt.getTime() < 30_000) {
     return { ok: false, error: { code: "DUPLICATE_REF", message: "Request in flight" } };
   }
   await db.idempotencyRecord.upsert({
     where: { key: idKey },
-    create: { key: idKey, userId: req.userId, endpoint: req.contract, requestBody: JSON.stringify({ a: req.amountMinor }), status: 202 },
+    create: {
+      key: idKey,
+      userId: req.userId,
+      endpoint: req.contract,
+      requestBody: JSON.stringify({ a: req.amountMinor }),
+      status: 202,
+    },
     update: {},
   });
 
   // 2. Load user + PIN verify
   const user = await db.user.findUnique({ where: { id: req.userId } });
   if (!user) return { ok: false, error: { code: "INVALID_REQUEST", message: "User not found" } };
-  if (user.status !== "ACTIVE") return { ok: false, error: { code: "INVALID_REQUEST", message: "Account " + user.status.toLowerCase() } };
+  if (user.status !== "ACTIVE")
+    return {
+      ok: false,
+      error: { code: "INVALID_REQUEST", message: "Account " + user.status.toLowerCase() },
+    };
 
   try {
     if (user.transactionPinHash) verifyPin(req.pin, user.transactionPinHash);
@@ -86,7 +99,10 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
   });
 
   if (decision.reason === "none" || !decision.providerCode) {
-    return { ok: false, error: { code: "NOT_SUPPORTED", message: "No provider available for this request" } };
+    return {
+      ok: false,
+      error: { code: "NOT_SUPPORTED", message: "No provider available for this request" },
+    };
   }
 
   // 4. Create pending transaction
@@ -105,11 +121,21 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       counterpartyBank: req.counterpartyBank ?? null,
       description: req.description,
       provider: decision.providerCode,
-      metadata: JSON.stringify({ requestId, decision: { reason: decision.reason, scores: decision.scores } }),
+      metadata: JSON.stringify({
+        requestId,
+        decision: { reason: decision.reason, scores: decision.scores },
+      }),
     },
   });
   await persistDecision(decision, requestId, tx.id);
-  await db.paymentFlowLog.create({ data: { transactionId: tx.id, step: "ROUTED", status: decision.providerCode, providerCode: decision.providerCode } });
+  await db.paymentFlowLog.create({
+    data: {
+      transactionId: tx.id,
+      step: "ROUTED",
+      status: decision.providerCode,
+      providerCode: decision.providerCode,
+    },
+  });
 
   // 5. HOLD DEBIT (for OUTBOUND) — debit now, confirm/reverse later
   let holdDebitId: string | null = null;
@@ -124,10 +150,23 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
         description: `HOLD: ${req.description}`,
       });
       holdDebitId = hold.entry.id;
-      await db.paymentFlowLog.create({ data: { transactionId: tx.id, step: "HOLD_DEBIT", status: "SUCCESS", payloadJSON: JSON.stringify({ holdDebitId }) } });
+      await db.paymentFlowLog.create({
+        data: {
+          transactionId: tx.id,
+          step: "HOLD_DEBIT",
+          status: "SUCCESS",
+          payloadJSON: JSON.stringify({ holdDebitId }),
+        },
+      });
     } catch (e: any) {
-      await db.transaction.update({ where: { id: tx.id }, data: { status: "FAILED", state: "REVERSED" } });
-      return { ok: false, error: { code: "INSUFFICIENT_FUNDS", message: e.message ?? "Insufficient balance" } };
+      await db.transaction.update({
+        where: { id: tx.id },
+        data: { status: "FAILED", state: "REVERSED" },
+      });
+      return {
+        ok: false,
+        error: { code: "INSUFFICIENT_FUNDS", message: e.message ?? "Insufficient balance" },
+      };
     }
   }
 
@@ -135,7 +174,11 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
   //    decision.alternatives if the primary returns a retryable error.
   //    Up to MAX_ATTEMPTS total provider calls (1 primary + 2 failovers).
   const providerRef = generateReference("PRV");
-  const { result, providerCode: actualProviderCode, failovers } = await tryWithFailover(req, decision, tx.id, providerRef);
+  const {
+    result,
+    providerCode: actualProviderCode,
+    failovers,
+  } = await tryWithFailover(req, decision, tx.id, providerRef);
 
   // If a failover happened, mutate the tx row so the audit trail reflects the
   // provider that actually handled the call.
@@ -209,7 +252,12 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       data: { responseBody: JSON.stringify(tx), status: 200, completedAt: new Date() },
     });
 
-    return { ok: true, transaction: tx, newBalanceMinor: wallet?.balanceKobo, providerRef: realProviderRef };
+    return {
+      ok: true,
+      transaction: tx,
+      newBalanceMinor: wallet?.balanceKobo,
+      providerRef: realProviderRef,
+    };
   }
 
   // AUTO-REVERSE — all attempts (primary + failovers) failed.
@@ -225,7 +273,10 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       });
     } catch {}
   }
-  await db.transaction.update({ where: { id: tx.id }, data: { status: "REVERSED", state: "REVERSED", provider: actualProviderCode } });
+  await db.transaction.update({
+    where: { id: tx.id },
+    data: { status: "REVERSED", state: "REVERSED", provider: actualProviderCode },
+  });
   await db.paymentFlowLog.create({
     data: {
       transactionId: tx.id,
@@ -270,7 +321,10 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
     ok: false,
     transaction: tx,
     newBalanceMinor: wallet?.balanceKobo,
-    error: { code: result.ok ? result.data.status : result.error.code, message: result.ok ? "Provider returned failure" : result.error.message },
+    error: {
+      code: result.ok ? result.data.status : result.error.code,
+      message: result.ok ? "Provider returned failure" : result.error.message,
+    },
   };
 }
 
@@ -294,11 +348,17 @@ async function tryWithFailover(
   req: OrchestrateRequest,
   decision: RoutingDecision,
   txId: string,
-  providerRef: string,
+  providerRef: string
 ): Promise<{ result: ProviderResult<any>; providerCode: string; failovers: FailoverEvent[] }> {
-  const chain = [decision.providerCode, ...decision.alternatives].slice(0, 1 + MAX_FAILOVER_ATTEMPTS);
+  const chain = [decision.providerCode, ...decision.alternatives].slice(
+    0,
+    1 + MAX_FAILOVER_ATTEMPTS
+  );
   const failovers: FailoverEvent[] = [];
-  let lastResult: ProviderResult<any> = { ok: false, error: { code: "UNKNOWN", message: "No provider attempted", retryable: false } };
+  let lastResult: ProviderResult<any> = {
+    ok: false,
+    error: { code: "UNKNOWN", message: "No provider attempted", retryable: false },
+  };
   let lastProviderCode = decision.providerCode;
 
   for (let i = 0; i < chain.length; i++) {
@@ -307,7 +367,12 @@ async function tryWithFailover(
     // Record a FAILOVER log entry when we are NOT on the primary attempt.
     if (i > 0) {
       const reason = !lastResult.ok ? lastResult.error.code : "UNKNOWN";
-      failovers.push({ from: lastProviderCode, to: providerCode, reason, at: new Date().toISOString() });
+      failovers.push({
+        from: lastProviderCode,
+        to: providerCode,
+        reason,
+        at: new Date().toISOString(),
+      });
       await db.paymentFlowLog.create({
         data: {
           transactionId: txId,

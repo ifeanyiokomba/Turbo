@@ -54,11 +54,13 @@ export function TransactionItem({
   return (
     <button
       onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-muted/60"
+      className="hover:bg-muted/60 flex w-full items-center gap-3 rounded-xl px-2 py-2.5 text-left transition-colors"
     >
       <div
         className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-          isCredit ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+          isCredit
+            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+            : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
         }`}
       >
         <Icon className="h-4.5 w-4.5" />
@@ -78,16 +80,25 @@ export function TransactionItem({
             </span>
           )}
         </div>
-        <p className="truncate text-xs text-muted-foreground">
-          {tx.description ? (tx.counterpartyName ? tx.description : timeAgo(tx.createdAt)) : timeAgo(tx.createdAt)}
+        <p className="text-muted-foreground truncate text-xs">
+          {tx.description
+            ? tx.counterpartyName
+              ? tx.description
+              : timeAgo(tx.createdAt)
+            : timeAgo(tx.createdAt)}
         </p>
       </div>
       <div className="text-right">
-        <p className={`text-sm font-semibold tabular-nums ${isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}>
-          {isCredit ? "+" : "−"}{naira(tx.amountKobo)}
+        <p
+          className={`text-sm font-semibold tabular-nums ${isCredit ? "text-emerald-600 dark:text-emerald-400" : "text-foreground"}`}
+        >
+          {isCredit ? "+" : "−"}
+          {naira(tx.amountKobo)}
         </p>
         {tx.status !== "SUCCESS" && (
-          <Badge variant="outline" className="mt-0.5 text-[10px]">{tx.status}</Badge>
+          <Badge variant="outline" className="mt-0.5 text-[10px]">
+            {tx.status}
+          </Badge>
         )}
       </div>
     </button>

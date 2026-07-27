@@ -141,7 +141,7 @@ function BrandLogo({ variant }: { variant: CardVariant }) {
     );
   }
   return (
-    <span className="rounded-md bg-white/95 px-2 py-0.5 text-sm font-bold italic tracking-[0.18em] text-slate-900 shadow-sm">
+    <span className="rounded-md bg-white/95 px-2 py-0.5 text-sm font-bold tracking-[0.18em] text-slate-900 italic shadow-sm">
       VISA
     </span>
   );
@@ -164,9 +164,9 @@ function CardChip() {
     <div className="relative h-7 w-10 overflow-hidden rounded-md bg-gradient-to-br from-amber-200 via-amber-300 to-amber-500 shadow-inner ring-1 ring-amber-700/30">
       <div className="absolute inset-x-1 top-1/2 h-px -translate-y-1/2 bg-amber-700/40" />
       <div className="absolute inset-y-1 left-1/2 w-px -translate-x-1/2 bg-amber-700/40" />
-      <div className="absolute left-1 top-1 h-1.5 w-2 rounded-sm border border-amber-700/40" />
+      <div className="absolute top-1 left-1 h-1.5 w-2 rounded-sm border border-amber-700/40" />
       <div className="absolute right-1 bottom-1 h-1.5 w-2 rounded-sm border border-amber-700/40" />
-      <div className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-amber-700/30" />
+      <div className="absolute top-1/2 left-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-sm border border-amber-700/30" />
     </div>
   );
 }
@@ -181,14 +181,14 @@ function CardFaceFront({ card, variant }: { card: VCard; variant: CardVariant })
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.18),transparent_55%)]" />
 
       {/* status pill */}
-      <div className="absolute right-3 top-3 z-10">
+      <div className="absolute top-3 right-3 z-10">
         <span
-          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide backdrop-blur ${
+          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide uppercase backdrop-blur ${
             card.status === "ACTIVE"
               ? "bg-emerald-400/30 text-emerald-50"
               : card.status === "FROZEN"
-              ? "bg-amber-400/30 text-amber-50"
-              : "bg-red-400/30 text-red-50"
+                ? "bg-amber-400/30 text-amber-50"
+                : "bg-red-400/30 text-red-50"
           }`}
         >
           {card.status}
@@ -198,7 +198,7 @@ function CardFaceFront({ card, variant }: { card: VCard; variant: CardVariant })
       {/* Top row: brand text + NFC + brand logo */}
       <div className="relative flex items-start justify-between">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.25em] opacity-70">TURBOPAY</p>
+          <p className="text-[10px] tracking-[0.25em] uppercase opacity-70">TURBOPAY</p>
           <p className="mt-0.5 text-xs font-medium opacity-90">Virtual Card</p>
         </div>
         <div className="flex items-center gap-2 pt-1">
@@ -218,13 +218,13 @@ function CardFaceFront({ card, variant }: { card: VCard; variant: CardVariant })
       {/* Bottom row: cardholder + expiry */}
       <div className="relative flex items-end justify-between">
         <div className="min-w-0">
-          <p className="text-[9px] uppercase tracking-widest opacity-70">Cardholder</p>
-          <p className="truncate text-xs font-semibold uppercase tracking-wide">
+          <p className="text-[9px] tracking-widest uppercase opacity-70">Cardholder</p>
+          <p className="truncate text-xs font-semibold tracking-wide uppercase">
             {card.cardholder}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[9px] uppercase tracking-widest opacity-70">Expires</p>
+          <p className="text-[9px] tracking-widest uppercase opacity-70">Expires</p>
           <p className="font-mono text-xs">{card.expiry}</p>
         </div>
       </div>
@@ -234,7 +234,7 @@ function CardFaceFront({ card, variant }: { card: VCard; variant: CardVariant })
 
 function CardFaceBack({ card, variant }: { card: VCard; variant: CardVariant }) {
   // CVV derived deterministically from last4 (3 digits)
-  const cvv = String((parseInt(card.last4 || "0000", 10) * 7) % 900 + 100);
+  const cvv = String(((parseInt(card.last4 || "0000", 10) * 7) % 900) + 100);
   return (
     <div
       className={`tp-card-face tp-card-face--back ${CardGradient({ variant })} relative flex aspect-[1.586/1] w-full flex-col overflow-hidden rounded-2xl text-white shadow-xl ring-1 ring-white/10`}
@@ -258,7 +258,7 @@ function CardFaceBack({ card, variant }: { card: VCard; variant: CardVariant }) 
             </p>
           </div>
           <div className="flex h-8 w-14 flex-col items-center justify-center rounded-sm bg-white/95">
-            <p className="text-[7px] font-semibold uppercase tracking-wide text-slate-500">CVV</p>
+            <p className="text-[7px] font-semibold tracking-wide text-slate-500 uppercase">CVV</p>
             <p className="font-mono text-xs font-bold text-slate-900">{cvv}</p>
           </div>
         </div>
@@ -267,10 +267,10 @@ function CardFaceBack({ card, variant }: { card: VCard; variant: CardVariant }) 
       {/* Footer */}
       <div className="mt-auto flex items-end justify-between px-5 pb-5">
         <div>
-          <p className="text-[9px] uppercase tracking-widest opacity-70">Authorised signature</p>
+          <p className="text-[9px] tracking-widest uppercase opacity-70">Authorised signature</p>
           <p className="text-[10px] opacity-70">Not valid unless signed</p>
         </div>
-        <p className="text-[10px] font-medium uppercase tracking-[0.2em] opacity-80">
+        <p className="text-[10px] font-medium tracking-[0.2em] uppercase opacity-80">
           TURBOPAY MFB
         </p>
       </div>
@@ -281,13 +281,7 @@ function CardFaceBack({ card, variant }: { card: VCard; variant: CardVariant }) 
   );
 }
 
-function CardVisual({
-  card,
-  onClick,
-}: {
-  card: VCard;
-  onClick?: () => void;
-}) {
+function CardVisual({ card, onClick }: { card: VCard; onClick?: () => void }) {
   const [flipped, setFlipped] = React.useState(false);
   const variant = pickVariant(card);
   const usage = card.spendingLimitKobo > 0 ? (card.balanceKobo / card.spendingLimitKobo) * 100 : 0;
@@ -319,18 +313,19 @@ function CardVisual({
       {/* balance / limit row */}
       <div className="mt-3 px-1">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">Card balance</span>
+          <span className="text-muted-foreground text-xs">Card balance</span>
           <span className="text-sm font-bold tabular-nums">{naira(card.balanceKobo)}</span>
         </div>
         <div className="mt-1.5 flex items-center gap-2">
           <Progress value={usage} className="h-1.5" />
-          <span className="shrink-0 text-[10px] text-muted-foreground tabular-nums">
+          <span className="text-muted-foreground shrink-0 text-[10px] tabular-nums">
             {usage.toFixed(0)}%
           </span>
         </div>
-        <p className="mt-1 text-[10px] text-muted-foreground">
+        <p className="text-muted-foreground mt-1 text-[10px]">
           Limit {naira(card.spendingLimitKobo)} · {card.transactionsCount} txn
-          {card.transactionsCount === 1 ? "" : "s"} · <span className="text-primary/80">Click card to flip</span>
+          {card.transactionsCount === 1 ? "" : "s"} ·{" "}
+          <span className="text-primary/80">Click card to flip</span>
         </p>
       </div>
     </div>
@@ -358,7 +353,13 @@ export default function CardsView() {
 
   // reveal dialog
   const [revealOpen, setRevealOpen] = React.useState(false);
-  const [revealData, setRevealData] = React.useState<{ pan: string; cvv: string; expiry: string; cardholder: string; brand: string } | null>(null);
+  const [revealData, setRevealData] = React.useState<{
+    pan: string;
+    cvv: string;
+    expiry: string;
+    cardholder: string;
+    brand: string;
+  } | null>(null);
   const [revealCountdown, setRevealCountdown] = React.useState(30);
   const [revealCopied, setRevealCopied] = React.useState<string | null>(null);
 
@@ -480,7 +481,7 @@ export default function CardsView() {
       toast.success(
         amountMode === "FUND"
           ? `Card funded with ${naira(amountKobo)}`
-          : `${naira(amountKobo)} withdrawn to wallet`,
+          : `${naira(amountKobo)} withdrawn to wallet`
       );
       setAmountOpen(false);
       setAmountInput("");
@@ -578,13 +579,19 @@ export default function CardsView() {
   const cards = data?.cards ?? [];
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="Virtual Cards"
         subtitle="Spend anywhere Visa or Mastercard is accepted."
         actions={
           <>
-            <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={load}
+              disabled={loading}
+              className="gap-1.5"
+            >
               <RefreshCw className={loading ? "h-4 w-4 animate-spin" : "h-4 w-4"} /> Refresh
             </Button>
             <FeatureGate
@@ -694,7 +701,8 @@ export default function CardsView() {
           <DialogHeader>
             <DialogTitle>Create a virtual card</DialogTitle>
             <DialogDescription>
-              Instant issuance. Card number is encrypted at rest. Default limit is ₦5,000 — fund the card from your wallet to spend.
+              Instant issuance. Card number is encrypted at rest. Default limit is ₦5,000 — fund the
+              card from your wallet to spend.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-1">
@@ -709,8 +717,8 @@ export default function CardsView() {
                 maxLength={40}
               />
             </div>
-            <div className="rounded-xl border bg-muted/40 p-3 text-xs text-muted-foreground">
-              <p className="font-medium text-foreground">Heads up</p>
+            <div className="bg-muted/40 text-muted-foreground rounded-xl border p-3 text-xs">
+              <p className="text-foreground font-medium">Heads up</p>
               <ul className="mt-1 list-disc space-y-1 pl-4">
                 <li>A 16-digit PAN, CVV and expiry will be generated.</li>
                 <li>Brand (Visa / Mastercard) is selected automatically.</li>
@@ -719,9 +727,15 @@ export default function CardsView() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={createCard} disabled={creating} className="gap-1.5">
-              {creating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {creating ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
               Create card
             </Button>
           </DialogFooter>
@@ -732,9 +746,7 @@ export default function CardsView() {
       <Dialog open={amountOpen} onOpenChange={(o) => !busy && setAmountOpen(o)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {amountMode === "FUND" ? "Fund card" : "Withdraw from card"}
-            </DialogTitle>
+            <DialogTitle>{amountMode === "FUND" ? "Fund card" : "Withdraw from card"}</DialogTitle>
             <DialogDescription>
               {amountMode === "FUND"
                 ? `Move money from your wallet to card •••• ${activeCard?.last4 ?? ""}.`
@@ -757,7 +769,7 @@ export default function CardsView() {
                     key={a.label}
                     type="button"
                     onClick={() => setAmountInput(String(a.kobo / 100))}
-                    className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                    className="border-border bg-background hover:border-primary hover:bg-primary/5 rounded-full border px-2.5 py-1 text-xs font-medium"
                   >
                     {a.label}
                   </button>
@@ -765,7 +777,7 @@ export default function CardsView() {
               </div>
             </div>
             {amountKobo > 0 && (
-              <div className="rounded-xl border bg-muted/40 p-3 text-sm">
+              <div className="bg-muted/40 rounded-xl border p-3 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">
                     {amountMode === "FUND" ? "Card balance after" : "Card balance after"}
@@ -773,7 +785,7 @@ export default function CardsView() {
                   <span className="font-semibold tabular-nums">
                     {naira(
                       (activeCard?.balanceKobo ?? 0) +
-                        (amountMode === "FUND" ? amountKobo : -amountKobo),
+                        (amountMode === "FUND" ? amountKobo : -amountKobo)
                     )}
                   </span>
                 </div>
@@ -781,9 +793,15 @@ export default function CardsView() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setAmountOpen(false)} disabled={busy}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setAmountOpen(false)} disabled={busy}>
+              Cancel
+            </Button>
             <Button onClick={submitAmount} disabled={busy || amountKobo <= 0} className="gap-1.5">
-              {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {busy ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
               Continue
             </Button>
           </DialogFooter>
@@ -803,7 +821,9 @@ export default function CardsView() {
             <div className="space-y-3 py-1">
               <div className="rounded-2xl bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 p-4 text-white">
                 <div className="flex items-start justify-between">
-                  <p className="text-[10px] uppercase tracking-widest opacity-70">{revealData.brand}</p>
+                  <p className="text-[10px] tracking-widest uppercase opacity-70">
+                    {revealData.brand}
+                  </p>
                   <BrandLogo variant={revealData.brand === "MASTERCARD" ? "MASTERCARD" : "VISA"} />
                 </div>
                 <p className="mt-4 font-mono text-lg tracking-wider">{revealData.pan}</p>
@@ -814,17 +834,37 @@ export default function CardsView() {
                   </div>
                   <div className="text-right">
                     <p className="text-[9px] uppercase opacity-70">EXP / CVV</p>
-                    <p className="font-mono">{revealData.expiry} · {revealData.cvv}</p>
+                    <p className="font-mono">
+                      {revealData.expiry} · {revealData.cvv}
+                    </p>
                   </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => copyReveal("PAN", revealData.pan)}>
-                  {revealCopied === "PAN" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => copyReveal("PAN", revealData.pan)}
+                >
+                  {revealCopied === "PAN" ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-600" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
                   Copy PAN
                 </Button>
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => copyReveal("CVV", revealData.cvv)}>
-                  {revealCopied === "CVV" ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => copyReveal("CVV", revealData.cvv)}
+                >
+                  {revealCopied === "CVV" ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-600" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
                   Copy CVV
                 </Button>
               </div>
@@ -849,10 +889,11 @@ export default function CardsView() {
           <DialogHeader>
             <DialogTitle>Card transactions</DialogTitle>
             <DialogDescription>
-              Card •••• {txCard?.last4 ?? ""} · last {txCard?.recentTransactions.length ?? 0} transactions.
+              Card •••• {txCard?.last4 ?? ""} · last {txCard?.recentTransactions.length ?? 0}{" "}
+              transactions.
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-96 overflow-y-auto scrollbar-thin">
+          <div className="scrollbar-thin max-h-96 overflow-y-auto">
             {txCard && txCard.recentTransactions.length > 0 ? (
               <div className="space-y-1">
                 {txCard.recentTransactions.map((t) => {
@@ -860,7 +901,7 @@ export default function CardsView() {
                   return (
                     <div
                       key={t.id}
-                      className="flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-muted/60"
+                      className="hover:bg-muted/60 flex items-center gap-3 rounded-xl px-2 py-2.5"
                     >
                       <div
                         className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
@@ -877,7 +918,7 @@ export default function CardsView() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">{t.description || t.type}</p>
-                        <p className="truncate text-xs text-muted-foreground">
+                        <p className="text-muted-foreground truncate text-xs">
                           {t.type} · {timeAgo(t.createdAt)}
                         </p>
                       </div>
@@ -894,7 +935,7 @@ export default function CardsView() {
                 })}
               </div>
             ) : (
-              <div className="py-10 text-center text-sm text-muted-foreground">
+              <div className="text-muted-foreground py-10 text-center text-sm">
                 No transactions yet.
               </div>
             )}
@@ -908,7 +949,8 @@ export default function CardsView() {
           <AlertDialogHeader>
             <AlertDialogTitle>Terminate card •••• {terminateCard?.last4 ?? ""}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. The card will be permanently disabled. Any remaining balance should be withdrawn first.
+              This action cannot be undone. The card will be permanently disabled. Any remaining
+              balance should be withdrawn first.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -927,4 +969,3 @@ export default function CardsView() {
     </div>
   );
 }
-

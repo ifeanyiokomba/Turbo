@@ -44,7 +44,9 @@ export async function POST(req: Request) {
   try {
     const user = await requirePermission(Permissions.PROVIDERS_CREDENTIALS);
     const body = await req.json().catch(() => ({}));
-    const providerCode = String(body.providerCode ?? "").trim().toLowerCase();
+    const providerCode = String(body.providerCode ?? "")
+      .trim()
+      .toLowerCase();
     const secretsJSON = body.secretsJSON;
     if (!providerCode) return json({ error: "providerCode is required" }, 400);
     if (!secretsJSON || typeof secretsJSON !== "object") {
@@ -106,7 +108,7 @@ export async function POST(req: Request) {
           rotatedAt: result.rotatedAt,
         },
       },
-      201,
+      201
     );
   } catch (e) {
     return handleError(e);

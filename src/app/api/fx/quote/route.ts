@@ -1,9 +1,4 @@
-import {
-  json,
-  handleError,
-  requireUser,
-  ServiceError,
-} from "@/lib/api";
+import { json, handleError, requireUser, ServiceError } from "@/lib/api";
 import { getQuote } from "@/lib/turbocore/fx/convert";
 
 export async function GET(req: Request) {
@@ -18,21 +13,21 @@ export async function GET(req: Request) {
       throw new ServiceError(
         "Both 'from' and 'to' currency params are required",
         400,
-        "MISSING_PARAMS",
+        "MISSING_PARAMS"
       );
     }
     if (from.length !== 3 || to.length !== 3) {
       throw new ServiceError(
         "Currency codes must be 3 letters (ISO 4217)",
         400,
-        "INVALID_CURRENCY",
+        "INVALID_CURRENCY"
       );
     }
     if (!Number.isFinite(amountMinor) || amountMinor <= 0) {
       throw new ServiceError(
         "amountMinor must be a positive integer (minor units)",
         400,
-        "INVALID_AMOUNT",
+        "INVALID_AMOUNT"
       );
     }
 

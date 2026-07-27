@@ -62,15 +62,30 @@ export interface WiseTransferExtensions {
     sourceAmount: number; // major units
     targetType?: "BALANCE" | "BANK_ACCOUNT";
     targetAccount?: string;
-  }): Promise<ProviderResult<{ quoteId: string; rate: number; feeMinor: number; totalMinor: number; expiresAt: string }>>;
+  }): Promise<
+    ProviderResult<{
+      quoteId: string;
+      rate: number;
+      feeMinor: number;
+      totalMinor: number;
+      expiresAt: string;
+    }>
+  >;
   createTransfer(req: {
     targetAccount: string;
     quoteUuid: string;
     details?: Record<string, unknown>;
     customerTransactionId: string;
   }): Promise<ProviderResult<{ transferId: string; status: string }>>;
-  fundTransfer(req: { profileId: string; transferId: string; type?: "BALANCE" }): Promise<ProviderResult<{ transferId: string; status: string; estimatedDelivery?: string }>>;
-  estimateTransferTime(req: { sourceCurrency: string; targetCurrency: string }): Promise<ProviderResult<{ estimatedDelivery: string; speed: string }>>;
+  fundTransfer(req: {
+    profileId: string;
+    transferId: string;
+    type?: "BALANCE";
+  }): Promise<ProviderResult<{ transferId: string; status: string; estimatedDelivery?: string }>>;
+  estimateTransferTime(req: {
+    sourceCurrency: string;
+    targetCurrency: string;
+  }): Promise<ProviderResult<{ estimatedDelivery: string; speed: string }>>;
 }
 
 // Wise profiles — personal/business onboarding.
@@ -87,7 +102,9 @@ export interface WiseProfiles {
       businessType?: string;
     };
   }): Promise<ProviderResult<{ profileId: string; type: string; status: string }>>;
-  getProfiles(): Promise<ProviderResult<{ profiles: Array<{ id: string; type: string; status?: string }> }>>;
+  getProfiles(): Promise<
+    ProviderResult<{ profiles: Array<{ id: string; type: string; status?: string }> }>
+  >;
 }
 
 // ---------------------------------------------------------------------------
@@ -104,7 +121,16 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
     if (!creds) {
       mockWarnOnce(CODE);
       const rate = req.sourceCurrency === "NGN" && req.targetCurrency === "USD" ? 1 / 1480 : 1;
-      return ok({ rate, feeMinor: 500, totalMinor: req.amountMinor + 500, expiresAt: new Date(Date.now() + 60_000).toISOString() }, "mock", 80);
+      return ok(
+        {
+          rate,
+          feeMinor: 500,
+          totalMinor: req.amountMinor + 500,
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        },
+        "mock",
+        80
+      );
     }
     const apiToken = creds.secrets.apiToken;
     if (!apiToken) return fail("AUTH_FAILED", "Wise apiToken missing", { providerCode: CODE });
@@ -122,9 +148,9 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
             targetType: "BALANCE",
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as {
+      const data = body as {
         id?: string;
         rate?: number;
         fee?: number;
@@ -134,10 +160,11 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
         rateType?: string;
         createdTime?: string;
         deliveryEstimate?: string;
-      });
+      };
       const rate = Number(data?.rate ?? 0);
       const feeMinor = typeof data?.fee === "number" ? Math.round(data.fee * 100) : 0;
-      const totalMinor = typeof data?.total === "number" ? Math.round(data.total * 100) : req.amountMinor + feeMinor;
+      const totalMinor =
+        typeof data?.total === "number" ? Math.round(data.total * 100) : req.amountMinor + feeMinor;
       return ok(
         {
           rate,
@@ -146,7 +173,7 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
           expiresAt: data?.deliveryEstimate ?? new Date(Date.now() + 60_000).toISOString(),
         },
         data?.id ?? "wise-quote",
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Wise getQuote failed";
@@ -160,7 +187,15 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ providerRef: `wise-intl-${req.reference}`, status: "PENDING", estimatedDelivery: new Date(Date.now() + 24 * 3600_000).toISOString() }, "mock", 200);
+      return ok(
+        {
+          providerRef: `wise-intl-${req.reference}`,
+          status: "PENDING",
+          estimatedDelivery: new Date(Date.now() + 24 * 3600_000).toISOString(),
+        },
+        "mock",
+        200
+      );
     }
     const apiToken = creds.secrets.apiToken;
     if (!apiToken) return fail("AUTH_FAILED", "Wise apiToken missing", { providerCode: CODE });
@@ -182,11 +217,14 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
             targetType: "BALANCE",
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       const quoteId = (quoteBody as { id?: string }).id;
       if (!quoteId) {
-        return fail("UPSTREAM_ERROR", "Wise quote creation failed", { providerCode: CODE, raw: sanitize(quoteBody) });
+        return fail("UPSTREAM_ERROR", "Wise quote creation failed", {
+          providerCode: CODE,
+          raw: sanitize(quoteBody),
+        });
       }
 
       // Step 2 — create a recipient account (lookup or create). For brevity
@@ -195,7 +233,11 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
       // to the mock path so callers can still test the happy path.
       const targetAccount = req.beneficiary.routingNumber ?? req.beneficiary.accountNumber ?? "";
       if (!targetAccount) {
-        return fail("INVALID_REQUEST", "Wise transfer requires beneficiary.routingNumber (recipientId)", { providerCode: CODE });
+        return fail(
+          "INVALID_REQUEST",
+          "Wise transfer requires beneficiary.routingNumber (recipientId)",
+          { providerCode: CODE }
+        );
       }
 
       // Step 3 — create the transfer.
@@ -215,9 +257,13 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
             customerTransactionId: req.reference,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: number; status?: string; details?: { reference?: string; estimatedDelivery?: string } });
+      const data = body as {
+        id?: number;
+        status?: string;
+        details?: { reference?: string; estimatedDelivery?: string };
+      };
       const providerRef = String(data?.id ?? `wise-intl-${req.reference}`);
       return ok(
         {
@@ -226,7 +272,7 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
           estimatedDelivery: data?.details?.estimatedDelivery,
         },
         providerRef,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Wise sendTransfer failed";
@@ -240,7 +286,11 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ status: "PENDING", timeline: [{ status: "initiated", at: new Date().toISOString() }] }, "mock", 20);
+      return ok(
+        { status: "PENDING", timeline: [{ status: "initiated", at: new Date().toISOString() }] },
+        "mock",
+        20
+      );
     }
     const apiToken = creds.secrets.apiToken;
     if (!apiToken) return fail("AUTH_FAILED", "Wise apiToken missing", { providerCode: CODE });
@@ -249,16 +299,16 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
       const { body } = await http(
         `${base}/v1/transfers/${encodeURIComponent(providerRef)}`,
         { method: "GET", headers: authHeaders(apiToken) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as {
+      const data = body as {
         status?: string;
         details?: {
           reference?: string;
           estimatedDelivery?: string;
           transferState?: string;
         };
-      });
+      };
       const timeline: { status: string; at: string; note?: string }[] = [];
       if (data?.details?.estimatedDelivery) {
         timeline.push({ status: "estimated_delivery", at: data.details.estimatedDelivery });
@@ -290,9 +340,9 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
           headers: authHeaders(apiToken),
           body: JSON.stringify({ reason: "Customer requested cancellation" }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: string });
+      const data = body as { status?: string };
       return ok({ status: (data?.status ?? "cancelled").toUpperCase() }, providerRef, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Wise cancel failed";
@@ -316,9 +366,15 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
       const feeMinor = 500;
       const totalMinor = Math.round(req.sourceAmount * 100) + feeMinor;
       return ok(
-        { quoteId: `wise-quote-mock-${Date.now()}`, rate, feeMinor, totalMinor, expiresAt: new Date(Date.now() + 60_000).toISOString() },
+        {
+          quoteId: `wise-quote-mock-${Date.now()}`,
+          rate,
+          feeMinor,
+          totalMinor,
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        },
         "mock",
-        80,
+        80
       );
     }
     const apiToken = creds.secrets.apiToken;
@@ -335,19 +391,28 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
       const { body } = await http(
         `${base}/v2/quotes`,
         { method: "POST", headers: authHeaders(apiToken), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string; rate?: number; fee?: number; total?: number; deliveryEstimate?: string });
+      const data = body as {
+        id?: string;
+        rate?: number;
+        fee?: number;
+        total?: number;
+        deliveryEstimate?: string;
+      };
       return ok(
         {
           quoteId: String(data?.id ?? `wise-quote-${Date.now()}`),
           rate: Number(data?.rate ?? 0),
           feeMinor: typeof data?.fee === "number" ? Math.round(data.fee * 100) : 0,
-          totalMinor: typeof data?.total === "number" ? Math.round(data.total * 100) : Math.round(req.sourceAmount * 100),
+          totalMinor:
+            typeof data?.total === "number"
+              ? Math.round(data.total * 100)
+              : Math.round(req.sourceAmount * 100),
           expiresAt: data?.deliveryEstimate ?? new Date(Date.now() + 60_000).toISOString(),
         },
         data?.id ?? "wise-quote",
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Wise createQuote failed";
@@ -365,7 +430,11 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ transferId: `wise-transfer-mock-${Date.now()}`, status: "incoming_payment_waiting" }, "mock", 150);
+      return ok(
+        { transferId: `wise-transfer-mock-${Date.now()}`, status: "incoming_payment_waiting" },
+        "mock",
+        150
+      );
     }
     const apiToken = creds.secrets.apiToken;
     if (!apiToken) return fail("AUTH_FAILED", "Wise apiToken missing", { providerCode: CODE });
@@ -388,13 +457,16 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
             customerTransactionId: req.customerTransactionId,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: number; status?: string });
+      const data = body as { id?: number; status?: string };
       return ok(
-        { transferId: String(data?.id ?? `wise-transfer-${Date.now()}`), status: (data?.status ?? "incoming_payment_waiting").toUpperCase() },
+        {
+          transferId: String(data?.id ?? `wise-transfer-${Date.now()}`),
+          status: (data?.status ?? "incoming_payment_waiting").toUpperCase(),
+        },
         String(data?.id ?? "wise-transfer"),
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Wise createTransfer failed";
@@ -413,7 +485,15 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ transferId: req.transferId, status: "OUTGOING_PAYMENT_SENT", estimatedDelivery: new Date(Date.now() + 24 * 3600_000).toISOString() }, "mock", 200);
+      return ok(
+        {
+          transferId: req.transferId,
+          status: "OUTGOING_PAYMENT_SENT",
+          estimatedDelivery: new Date(Date.now() + 24 * 3600_000).toISOString(),
+        },
+        "mock",
+        200
+      );
     }
     const apiToken = creds.secrets.apiToken;
     if (!apiToken) return fail("AUTH_FAILED", "Wise apiToken missing", { providerCode: CODE });
@@ -426,9 +506,14 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
           headers: authHeaders(apiToken),
           body: JSON.stringify({ type: req.type ?? "BALANCE" }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: number; status?: string; estimatedDelivery?: string; details?: { estimatedDelivery?: string } });
+      const data = body as {
+        id?: number;
+        status?: string;
+        estimatedDelivery?: string;
+        details?: { estimatedDelivery?: string };
+      };
       return ok(
         {
           transferId: String(data?.id ?? req.transferId),
@@ -436,7 +521,7 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
           estimatedDelivery: data?.estimatedDelivery ?? data?.details?.estimatedDelivery,
         },
         String(req.transferId),
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Wise fundTransfer failed";
@@ -454,26 +539,39 @@ export const wiseIntl: IInternationalTransferProvider & WiseTransferExtensions =
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ estimatedDelivery: new Date(Date.now() + 24 * 3600_000).toISOString(), speed: "INSTANT_OR_SAME_DAY" }, "mock", 60);
+      return ok(
+        {
+          estimatedDelivery: new Date(Date.now() + 24 * 3600_000).toISOString(),
+          speed: "INSTANT_OR_SAME_DAY",
+        },
+        "mock",
+        60
+      );
     }
     const apiToken = creds.secrets.apiToken;
     if (!apiToken) return fail("AUTH_FAILED", "Wise apiToken missing", { providerCode: CODE });
     const base = pickBase(creds);
     try {
-      const qs = new URLSearchParams({ sourceCurrency: req.sourceCurrency, targetCurrency: req.targetCurrency }).toString();
+      const qs = new URLSearchParams({
+        sourceCurrency: req.sourceCurrency,
+        targetCurrency: req.targetCurrency,
+      }).toString();
       const { body } = await http(
         `${base}/v1/delivery-estimates?${qs}`,
         { method: "GET", headers: authHeaders(apiToken) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { estimatedDelivery?: string; speed?: string; date?: string });
+      const data = body as { estimatedDelivery?: string; speed?: string; date?: string };
       return ok(
         {
-          estimatedDelivery: data.estimatedDelivery ?? data.date ?? new Date(Date.now() + 24 * 3600_000).toISOString(),
+          estimatedDelivery:
+            data.estimatedDelivery ??
+            data.date ??
+            new Date(Date.now() + 24 * 3600_000).toISOString(),
           speed: data.speed ?? "INSTANT_OR_SAME_DAY",
         },
         "wise-delivery-estimate",
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Wise estimateTransferTime failed";
@@ -495,8 +593,21 @@ export const wiseExchangeRate: IExchangeRateProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      const rates: Record<string, number> = { "NGN-USD": 1 / 1480, "USD-NGN": 1480, "NGN-KES": 11.4, "USD-KES": 168 };
-      return ok({ rate: rates[`${req.base}-${req.quote}`] ?? 1, source: "mock", timestamp: new Date().toISOString() }, "mock", 20);
+      const rates: Record<string, number> = {
+        "NGN-USD": 1 / 1480,
+        "USD-NGN": 1480,
+        "NGN-KES": 11.4,
+        "USD-KES": 168,
+      };
+      return ok(
+        {
+          rate: rates[`${req.base}-${req.quote}`] ?? 1,
+          source: "mock",
+          timestamp: new Date().toISOString(),
+        },
+        "mock",
+        20
+      );
     }
     const apiToken = creds.secrets.apiToken;
     if (!apiToken) return fail("AUTH_FAILED", "Wise apiToken missing", { providerCode: CODE });
@@ -506,13 +617,24 @@ export const wiseExchangeRate: IExchangeRateProvider = {
       const { body } = await http(
         `${base}/v1/rates?source=${encodeURIComponent(req.base)}&target=${encodeURIComponent(req.quote)}`,
         { method: "GET", headers: authHeaders(apiToken) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { rate?: number; source?: string; target?: string; time?: string });
+      const data = body as { rate?: number; source?: string; target?: string; time?: string };
       if (typeof data?.rate !== "number") {
-        return fail("UPSTREAM_ERROR", "Wise returned no rate", { providerCode: CODE, raw: sanitize(body) });
+        return fail("UPSTREAM_ERROR", "Wise returned no rate", {
+          providerCode: CODE,
+          raw: sanitize(body),
+        });
       }
-      return ok({ rate: Number(data.rate), source: "wise", timestamp: data.time ?? new Date().toISOString() }, "wise-rate", 0);
+      return ok(
+        {
+          rate: Number(data.rate),
+          source: "wise",
+          timestamp: data.time ?? new Date().toISOString(),
+        },
+        "wise-rate",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Wise getRate failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -525,7 +647,17 @@ export const wiseExchangeRate: IExchangeRateProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ pairs: [{ base: "NGN", quote: "USD" }, { base: "USD", quote: "KES" }, { base: "USD", quote: "GBP" }] }, "mock", 10);
+      return ok(
+        {
+          pairs: [
+            { base: "NGN", quote: "USD" },
+            { base: "USD", quote: "KES" },
+            { base: "USD", quote: "GBP" },
+          ],
+        },
+        "mock",
+        10
+      );
     }
     // Wise doesn't expose a "list all supported pairs" endpoint — we return
     // a curated set of the most-traded pairs against USD + NGN + KES.
@@ -557,7 +689,16 @@ export const wiseRecipients: IRecipientProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ recipientId: `wise-recipient-mock-${Date.now()}`, currency: req.currency, type: req.type, active: true }, "mock", 150);
+      return ok(
+        {
+          recipientId: `wise-recipient-mock-${Date.now()}`,
+          currency: req.currency,
+          type: req.type,
+          active: true,
+        },
+        "mock",
+        150
+      );
     }
     const apiToken = creds.secrets.apiToken;
     if (!apiToken) return fail("AUTH_FAILED", "Wise apiToken missing", { providerCode: CODE });
@@ -578,9 +719,9 @@ export const wiseRecipients: IRecipientProvider = {
       const { body } = await http(
         `${base}/v1/recipients`,
         { method: "POST", headers: authHeaders(apiToken), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: number; currency?: string; type?: string; active?: boolean });
+      const data = body as { id?: number; currency?: string; type?: string; active?: boolean };
       return ok(
         {
           recipientId: String(data?.id ?? `wise-recipient-${Date.now()}`),
@@ -589,7 +730,7 @@ export const wiseRecipients: IRecipientProvider = {
           active: data?.active ?? true,
         },
         String(data?.id ?? "wise-recipient"),
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Wise createRecipient failed";
@@ -613,9 +754,12 @@ export const wiseRecipients: IRecipientProvider = {
       const { body } = await http(
         `${base}/v1/recipients?${qs}`,
         { method: "GET", headers: authHeaders(apiToken) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { recipients?: Array<Record<string, unknown>>; data?: Array<Record<string, unknown>> });
+      const data = body as {
+        recipients?: Array<Record<string, unknown>>;
+        data?: Array<Record<string, unknown>>;
+      };
       const list = data.recipients ?? data.data ?? [];
       const recipients: RecipientSummary[] = list.map((r) => ({
         id: String(r.id ?? ""),
@@ -646,11 +790,21 @@ export const wiseRecipients: IRecipientProvider = {
       const { body } = await http(
         `${base}/v1/recipients/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeaders(apiToken) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as Record<string, unknown>);
+      const data = body as Record<string, unknown>;
       const bankDetails: Record<string, unknown> = {};
-      const knownMeta = new Set(["id", "currency", "type", "accountHolderName", "account_holder_name", "active", "profile", "ownedByCustomer", "name"]);
+      const knownMeta = new Set([
+        "id",
+        "currency",
+        "type",
+        "accountHolderName",
+        "account_holder_name",
+        "active",
+        "profile",
+        "ownedByCustomer",
+        "name",
+      ]);
       for (const [k, v] of Object.entries(data)) {
         if (!knownMeta.has(k)) bankDetails[k] = v;
       }
@@ -663,7 +817,7 @@ export const wiseRecipients: IRecipientProvider = {
           bankDetails: Object.keys(bankDetails).length > 0 ? bankDetails : undefined,
         },
         id,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Wise getRecipient failed";
@@ -693,9 +847,9 @@ export const wiseRecipients: IRecipientProvider = {
       const { body } = await http(
         `${base}/v1/recipients/${encodeURIComponent(id)}`,
         { method: "PATCH", headers: authHeaders(apiToken), body: JSON.stringify(payload) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: number });
+      const data = body as { id?: number };
       return ok({ id: String(data?.id ?? id), updated: true }, id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Wise updateRecipient failed";
@@ -718,7 +872,7 @@ export const wiseRecipients: IRecipientProvider = {
       await http(
         `${base}/v1/recipients/${encodeURIComponent(id)}`,
         { method: "DELETE", headers: authHeaders(apiToken) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       return ok({ deleted: true }, id, 0);
     } catch (e) {
@@ -750,7 +904,7 @@ export const wiseBalances: IMultiCurrencyBalanceProvider = {
           ],
         },
         "mock",
-        80,
+        80
       );
     }
     const apiToken = creds.secrets.apiToken;
@@ -761,20 +915,23 @@ export const wiseBalances: IMultiCurrencyBalanceProvider = {
       const { body } = await http(
         `${base}/v1/balances?${qs}`,
         { method: "GET", headers: authHeaders(apiToken) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { balances?: Array<Record<string, unknown>> });
+      const data = body as { balances?: Array<Record<string, unknown>> };
       const list = data.balances ?? [];
       const balances: BalanceSummary[] = list.map((b) => ({
         id: String(b.id ?? ""),
         currency: String(b.currency ?? ""),
-        amountMinor: typeof b.amount === "object" && b.amount && "value" in (b.amount as Record<string, unknown>)
-          ? Math.round(Number((b.amount as { value?: unknown }).value) * 100)
-          : typeof b.amountValue === "number"
-            ? Math.round(b.amountValue * 100)
-            : typeof b.amount === "number"
-              ? Math.round(b.amount * 100)
-              : 0,
+        amountMinor:
+          typeof b.amount === "object" &&
+          b.amount &&
+          "value" in (b.amount as Record<string, unknown>)
+            ? Math.round(Number((b.amount as { value?: unknown }).value) * 100)
+            : typeof b.amountValue === "number"
+              ? Math.round(b.amountValue * 100)
+              : typeof b.amount === "number"
+                ? Math.round(b.amount * 100)
+                : 0,
         type: typeof b.type === "string" ? b.type : "STANDARD",
       }));
       return ok({ balances }, "wise-balances", 0);
@@ -790,7 +947,11 @@ export const wiseBalances: IMultiCurrencyBalanceProvider = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ id: balanceId, currency: "NGN", amountMinor: 1_500_000_00, type: "STANDARD" }, "mock", 50);
+      return ok(
+        { id: balanceId, currency: "NGN", amountMinor: 1_500_000_00, type: "STANDARD" },
+        "mock",
+        50
+      );
     }
     const apiToken = creds.secrets.apiToken;
     if (!apiToken) return fail("AUTH_FAILED", "Wise apiToken missing", { providerCode: CODE });
@@ -799,18 +960,22 @@ export const wiseBalances: IMultiCurrencyBalanceProvider = {
       const { body } = await http(
         `${base}/v1/balances/${encodeURIComponent(balanceId)}`,
         { method: "GET", headers: authHeaders(apiToken) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as Record<string, unknown>);
+      const data = body as Record<string, unknown>;
       const amountRaw = data.amount;
-      const amountMinor = typeof amountRaw === "object" && amountRaw && "value" in (amountRaw as Record<string, unknown>)
-        ? Math.round(Number((amountRaw as { value?: unknown }).value) * 100)
-        : typeof amountRaw === "number"
-          ? Math.round(amountRaw * 100)
-          : 0;
-      const bankDetails: Record<string, unknown> | undefined = typeof data.bankDetails === "object" && data.bankDetails
-        ? (data.bankDetails as Record<string, unknown>)
-        : undefined;
+      const amountMinor =
+        typeof amountRaw === "object" &&
+        amountRaw &&
+        "value" in (amountRaw as Record<string, unknown>)
+          ? Math.round(Number((amountRaw as { value?: unknown }).value) * 100)
+          : typeof amountRaw === "number"
+            ? Math.round(amountRaw * 100)
+            : 0;
+      const bankDetails: Record<string, unknown> | undefined =
+        typeof data.bankDetails === "object" && data.bankDetails
+          ? (data.bankDetails as Record<string, unknown>)
+          : undefined;
       return ok(
         {
           id: String(data.id ?? balanceId),
@@ -820,7 +985,7 @@ export const wiseBalances: IMultiCurrencyBalanceProvider = {
           bankDetails,
         },
         balanceId,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Wise getBalance failed";
@@ -842,7 +1007,11 @@ export const wiseProfiles: WiseProfiles = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ profileId: `wise-profile-mock-${Date.now()}`, type: req.type, status: "ACTIVE" }, "mock", 200);
+      return ok(
+        { profileId: `wise-profile-mock-${Date.now()}`, type: req.type, status: "ACTIVE" },
+        "mock",
+        200
+      );
     }
     const apiToken = creds.secrets.apiToken;
     if (!apiToken) return fail("AUTH_FAILED", "Wise apiToken missing", { providerCode: CODE });
@@ -862,13 +1031,17 @@ export const wiseProfiles: WiseProfiles = {
           headers: authHeaders(apiToken),
           body: JSON.stringify({ type: req.type, details }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: number; type?: string; status?: string });
+      const data = body as { id?: number; type?: string; status?: string };
       return ok(
-        { profileId: String(data?.id ?? `wise-profile-${Date.now()}`), type: data?.type ?? req.type, status: data?.status ?? "ACTIVE" },
+        {
+          profileId: String(data?.id ?? `wise-profile-${Date.now()}`),
+          type: data?.type ?? req.type,
+          status: data?.status ?? "ACTIVE",
+        },
         String(data?.id ?? "wise-profile"),
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Wise createProfile failed";
@@ -882,7 +1055,11 @@ export const wiseProfiles: WiseProfiles = {
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ profiles: [{ id: "mock-profile", type: "PERSONAL", status: "ACTIVE" }] }, "mock", 60);
+      return ok(
+        { profiles: [{ id: "mock-profile", type: "PERSONAL", status: "ACTIVE" }] },
+        "mock",
+        60
+      );
     }
     const apiToken = creds.secrets.apiToken;
     if (!apiToken) return fail("AUTH_FAILED", "Wise apiToken missing", { providerCode: CODE });
@@ -891,10 +1068,11 @@ export const wiseProfiles: WiseProfiles = {
       const { body } = await http(
         `${base}/v1/profiles`,
         { method: "GET", headers: authHeaders(apiToken) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as Array<Record<string, unknown>> | { data?: Array<Record<string, unknown>> });
-      const list = Array.isArray(data) ? data : data.data ?? [];
+      const data = body as
+        Array<Record<string, unknown>> | { data?: Array<Record<string, unknown>> };
+      const list = Array.isArray(data) ? data : (data.data ?? []);
       const profiles = list.map((p) => ({
         id: String(p.id ?? ""),
         type: String(p.type ?? "PERSONAL"),

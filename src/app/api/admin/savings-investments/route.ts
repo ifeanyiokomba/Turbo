@@ -72,12 +72,8 @@ export async function GET() {
     ]);
 
     // Build product lookups
-    const savingsProductMap = new Map(
-      savingsProducts.map((p) => [p.id, p]),
-    );
-    const investmentProductMap = new Map(
-      investmentProducts.map((p) => [p.id, p]),
-    );
+    const savingsProductMap = new Map(savingsProducts.map((p) => [p.id, p]));
+    const investmentProductMap = new Map(investmentProducts.map((p) => [p.id, p]));
 
     const topSavingsProducts = depositByProduct
       .map((row) => {

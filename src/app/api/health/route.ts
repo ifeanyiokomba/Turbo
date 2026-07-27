@@ -26,9 +26,9 @@ const startedAt = Date.now();
 // Read app version from package.json once (works in dev + standalone build).
 const APP_VERSION: string = (() => {
   try {
-    const pkg = JSON.parse(
-      readFileSync(join(process.cwd(), "package.json"), "utf8"),
-    ) as { version?: string };
+    const pkg = JSON.parse(readFileSync(join(process.cwd(), "package.json"), "utf8")) as {
+      version?: string;
+    };
     return pkg.version ?? "unknown";
   } catch {
     return "unknown";
@@ -43,10 +43,7 @@ export async function GET() {
     await db.user.count();
     dbStatus = "connected";
   } catch (e) {
-    console.error(
-      "[health] DB check failed:",
-      e instanceof Error ? e.message : e,
-    );
+    console.error("[health] DB check failed:", e instanceof Error ? e.message : e);
   }
 
   const healthy = dbStatus === "connected";
@@ -65,6 +62,6 @@ export async function GET() {
         "Cache-Control": "no-store, no-cache, must-revalidate",
         Pragma: "no-cache",
       },
-    },
+    }
   );
 }

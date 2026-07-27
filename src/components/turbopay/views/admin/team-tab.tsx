@@ -147,7 +147,9 @@ export default function TeamTab() {
         toast.error(data.error ?? "Failed to update member");
         return;
       }
-      toast.success(status === "ACTIVE" ? `${member.fullName} activated` : `${member.fullName} deactivated`);
+      toast.success(
+        status === "ACTIVE" ? `${member.fullName} activated` : `${member.fullName} deactivated`
+      );
       load();
     } catch {
       toast.error("Network error");
@@ -181,12 +183,18 @@ export default function TeamTab() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-sm font-semibold">Team members</h2>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Manage who has access to the Turbopay admin console.
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={load} disabled={loading} className="gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={load}
+              disabled={loading}
+              className="gap-1.5"
+            >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
             </Button>
             <Button size="sm" onClick={openInvite} className="gap-1.5">
@@ -209,22 +217,22 @@ export default function TeamTab() {
             <div className="hidden overflow-x-auto md:block">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-muted-foreground">
-                    <th className="pb-2 pr-2 font-medium">Member</th>
-                    <th className="pb-2 pr-2 font-medium">Email</th>
-                    <th className="pb-2 pr-2 font-medium">Role</th>
-                    <th className="pb-2 pr-2 font-medium">Status</th>
-                    <th className="pb-2 pr-2 font-medium">Invited</th>
-                    <th className="pb-2 pr-2 font-medium">Last login</th>
-                    <th className="pb-2 font-medium text-right">Actions</th>
+                  <tr className="text-muted-foreground text-left text-xs">
+                    <th className="pr-2 pb-2 font-medium">Member</th>
+                    <th className="pr-2 pb-2 font-medium">Email</th>
+                    <th className="pr-2 pb-2 font-medium">Role</th>
+                    <th className="pr-2 pb-2 font-medium">Status</th>
+                    <th className="pr-2 pb-2 font-medium">Invited</th>
+                    <th className="pr-2 pb-2 font-medium">Last login</th>
+                    <th className="pb-2 text-right font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {members.map((m) => (
-                    <tr key={m.id} className="border-t transition-colors hover:bg-muted/40">
+                    <tr key={m.id} className="hover:bg-muted/40 border-t transition-colors">
                       <td className="py-3 pr-2">
                         <div className="flex items-center gap-2">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                          <div className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold">
                             {m.fullName
                               .split(" ")
                               .map((n) => n[0])
@@ -235,21 +243,27 @@ export default function TeamTab() {
                           <span className="font-medium">{m.fullName}</span>
                         </div>
                       </td>
-                      <td className="py-3 pr-2 text-xs text-muted-foreground">{m.email}</td>
+                      <td className="text-muted-foreground py-3 pr-2 text-xs">{m.email}</td>
                       <td className="py-3 pr-2">
-                        <Badge variant="secondary" className={`text-[10px] ${ROLE_TONE[m.role] ?? ""}`}>
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] ${ROLE_TONE[m.role] ?? ""}`}
+                        >
                           {m.role}
                         </Badge>
                       </td>
                       <td className="py-3 pr-2">
-                        <Badge variant="secondary" className={`text-[10px] ${STATUS_TONE[m.status] ?? ""}`}>
+                        <Badge
+                          variant="secondary"
+                          className={`text-[10px] ${STATUS_TONE[m.status] ?? ""}`}
+                        >
                           {m.status}
                         </Badge>
                       </td>
-                      <td className="py-3 pr-2 text-xs text-muted-foreground">
+                      <td className="text-muted-foreground py-3 pr-2 text-xs">
                         {formatDate(m.invitedAt)}
                       </td>
-                      <td className="py-3 pr-2 text-xs text-muted-foreground">
+                      <td className="text-muted-foreground py-3 pr-2 text-xs">
                         {m.lastLoginAt ? timeAgo(m.lastLoginAt) : "Never"}
                       </td>
                       <td className="py-3 text-right">
@@ -309,7 +323,7 @@ export default function TeamTab() {
                 <div key={m.id} className="rounded-xl border p-3">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                      <div className="bg-primary/10 text-primary flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold">
                         {m.fullName
                           .split(" ")
                           .map((n) => n[0])
@@ -319,7 +333,7 @@ export default function TeamTab() {
                       </div>
                       <div className="min-w-0">
                         <p className="truncate font-medium">{m.fullName}</p>
-                        <p className="truncate text-xs text-muted-foreground">{m.email}</p>
+                        <p className="text-muted-foreground truncate text-xs">{m.email}</p>
                       </div>
                     </div>
                   </div>
@@ -327,10 +341,13 @@ export default function TeamTab() {
                     <Badge variant="secondary" className={`text-[10px] ${ROLE_TONE[m.role] ?? ""}`}>
                       {m.role}
                     </Badge>
-                    <Badge variant="secondary" className={`text-[10px] ${STATUS_TONE[m.status] ?? ""}`}>
+                    <Badge
+                      variant="secondary"
+                      className={`text-[10px] ${STATUS_TONE[m.status] ?? ""}`}
+                    >
                       {m.status}
                     </Badge>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground text-xs">
                       Invited {formatDate(m.invitedAt)}
                     </span>
                   </div>
@@ -394,7 +411,7 @@ export default function TeamTab() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5 text-primary" />
+              <UserPlus className="text-primary h-5 w-5" />
               Invite team member
             </DialogTitle>
             <DialogDescription>
@@ -405,7 +422,7 @@ export default function TeamTab() {
             <div className="space-y-1.5">
               <Label htmlFor="inv-name">Full name</Label>
               <div className="relative">
-                <UserIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <UserIcon className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                 <Input
                   id="inv-name"
                   value={fullName}
@@ -418,7 +435,7 @@ export default function TeamTab() {
             <div className="space-y-1.5">
               <Label htmlFor="inv-email">Email</Label>
               <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                 <Input
                   id="inv-email"
                   type="email"
@@ -431,10 +448,7 @@ export default function TeamTab() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="inv-role">Role</Label>
-              <Select
-                value={role}
-                onValueChange={(v: typeof role) => setRole(v)}
-              >
+              <Select value={role} onValueChange={(v: typeof role) => setRole(v)}>
                 <SelectTrigger id="inv-role">
                   <SelectValue />
                 </SelectTrigger>
@@ -462,7 +476,7 @@ export default function TeamTab() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-start gap-2 rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground">
+            <div className="bg-muted/40 text-muted-foreground flex items-start gap-2 rounded-lg p-3 text-xs">
               <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <p>
                 New members start with <span className="font-medium">PENDING</span> status. Activate
@@ -475,7 +489,11 @@ export default function TeamTab() {
               Cancel
             </Button>
             <Button onClick={submitInvite} disabled={submitting} className="gap-1.5">
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4" />
+              )}
               Send invite
             </Button>
           </DialogFooter>
@@ -483,18 +501,16 @@ export default function TeamTab() {
       </Dialog>
 
       {/* Delete confirmation */}
-      <Dialog
-        open={!!confirmDelete}
-        onOpenChange={(o) => !busy && !o && setConfirmDelete(null)}
-      >
+      <Dialog open={!!confirmDelete} onOpenChange={(o) => !busy && !o && setConfirmDelete(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-600">
               <Trash2 className="h-5 w-5" /> Remove team member?
             </DialogTitle>
             <DialogDescription>
-              This permanently removes <span className="font-medium text-foreground">{confirmDelete?.fullName}</span> ({confirmDelete?.email})
-              from the team. They will lose access immediately.
+              This permanently removes{" "}
+              <span className="text-foreground font-medium">{confirmDelete?.fullName}</span> (
+              {confirmDelete?.email}) from the team. They will lose access immediately.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

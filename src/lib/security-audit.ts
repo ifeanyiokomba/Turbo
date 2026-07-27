@@ -53,10 +53,7 @@ async function checkPasswordHashing(): Promise<SecurityCheck> {
 }
 
 function checkSecrets(): SecurityCheck {
-  const secret =
-    process.env.JWT_SECRET ||
-    process.env.SESSION_SECRET ||
-    process.env.AUTH_SECRET;
+  const secret = process.env.JWT_SECRET || process.env.SESSION_SECRET || process.env.AUTH_SECRET;
   if (secret && secret.length >= 16) {
     return {
       check: "Session / JWT Secret",
@@ -68,8 +65,7 @@ function checkSecrets(): SecurityCheck {
     return {
       check: "Session / JWT Secret",
       status: "FAIL",
-      message:
-        "JWT_SECRET / SESSION_SECRET / AUTH_SECRET is missing or too short in production.",
+      message: "JWT_SECRET / SESSION_SECRET / AUTH_SECRET is missing or too short in production.",
     };
   }
   return {
@@ -213,8 +209,7 @@ function checkSentry(): SecurityCheck {
   return {
     check: "Sentry Error Reporting",
     status: "WARN",
-    message:
-      "Sentry DSN not set — errors will fall back to /api/error-report and console logging.",
+    message: "Sentry DSN not set — errors will fall back to /api/error-report and console logging.",
   };
 }
 

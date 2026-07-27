@@ -47,7 +47,11 @@ export function getSignatureSpec(provider: string): ProviderSignatureSpec {
 }
 
 /** Compute the HMAC hex digest for the given algorithm. */
-function computeHmac(algorithm: "hmac-sha512" | "hmac-sha256", payload: string, secret: string): string {
+function computeHmac(
+  algorithm: "hmac-sha512" | "hmac-sha256",
+  payload: string,
+  secret: string
+): string {
   const alg = algorithm === "hmac-sha512" ? "sha512" : "sha256";
   return createHmac(alg, secret).update(payload, "utf8").digest("hex");
 }
@@ -76,7 +80,7 @@ export function verifyProviderSignature(
   provider: string,
   rawBody: string,
   headers: Headers,
-  secret: string | null,
+  secret: string | null
 ): VerifyResult {
   const spec = getSignatureSpec(provider);
   const providerKey = provider.toLowerCase();
@@ -99,7 +103,11 @@ export function verifyProviderSignature(
     null;
 
   if (!provided) {
-    return { valid: false, scheme: `${providerKey}:${spec.algorithm}`, reason: "missing-signature" };
+    return {
+      valid: false,
+      scheme: `${providerKey}:${spec.algorithm}`,
+      reason: "missing-signature",
+    };
   }
 
   if (spec.algorithm === "plain-equal") {

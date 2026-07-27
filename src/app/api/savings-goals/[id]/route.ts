@@ -53,7 +53,9 @@ interface GoalDTO {
   updatedAt: string;
 }
 
-function computeAvgMonthly(contributions: Array<{ amountKobo: number; type: string; createdAt: Date }>): number {
+function computeAvgMonthly(
+  contributions: Array<{ amountKobo: number; type: string; createdAt: Date }>
+): number {
   const deposits = contributions.filter((c) => c.type === "DEPOSIT");
   if (deposits.length === 0) return 0;
   const total = deposits.reduce((s, c) => s + c.amountKobo, 0);
@@ -69,7 +71,7 @@ function estimateCompletion(
   currentKobo: number,
   targetKobo: number,
   avgMonthly: number,
-  targetDate: Date | null,
+  targetDate: Date | null
 ): string | null {
   if (currentKobo >= targetKobo) return null;
   if (avgMonthly > 0) {
@@ -82,28 +84,24 @@ function estimateCompletion(
   return targetDate ? targetDate.toISOString() : null;
 }
 
-function toDTO(
-  goal: {
-    id: string;
-    name: string;
-    targetKobo: number;
-    currentKobo: number;
-    targetDate: Date | null;
-    color: string;
-    icon: string;
-    status: string;
-    createdAt: Date;
-    updatedAt: Date;
-    contributions: Array<{ amountKobo: number; type: string; createdAt: Date }>;
-  },
-): GoalDTO {
+function toDTO(goal: {
+  id: string;
+  name: string;
+  targetKobo: number;
+  currentKobo: number;
+  targetDate: Date | null;
+  color: string;
+  icon: string;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  contributions: Array<{ amountKobo: number; type: string; createdAt: Date }>;
+}): GoalDTO {
   const progressPct =
-    goal.targetKobo > 0
-      ? Math.min(100, Math.round((goal.currentKobo / goal.targetKobo) * 100))
-      : 0;
+    goal.targetKobo > 0 ? Math.min(100, Math.round((goal.currentKobo / goal.targetKobo) * 100)) : 0;
   const avgMonthly = computeAvgMonthly(goal.contributions);
   const sorted = [...goal.contributions].sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+    (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
   );
   return {
     id: goal.id,
@@ -123,7 +121,7 @@ function toDTO(
       goal.currentKobo,
       goal.targetKobo,
       avgMonthly,
-      goal.targetDate,
+      goal.targetDate
     ),
     createdAt: goal.createdAt.toISOString(),
     updatedAt: goal.updatedAt.toISOString(),
@@ -143,10 +141,7 @@ async function loadOwnedGoal(id: string, userId: string) {
 /**
  * GET /api/savings-goals/[id]
  */
-export async function GET(
-  _req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser();
     const { id } = await params;
@@ -173,10 +168,7 @@ interface PatchBody {
  * Edit goal name / target / target date / color / icon.
  * If the new target is at or below the current balance, the goal is marked COMPLETED.
  */
-export async function PATCH(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser();
     const { id } = await params;
@@ -211,7 +203,7 @@ export async function PATCH(
         throw new ServiceError(
           "Target cannot be lower than current savings",
           400,
-          "TARGET_TOO_LOW",
+          "TARGET_TOO_LOW"
         );
       data.targetKobo = targetKobo;
       if (targetKobo <= existing.currentKobo) data.status = "COMPLETED";
@@ -229,15 +221,13 @@ export async function PATCH(
 
     if (body.color !== undefined) {
       const color = String(body.color);
-      if (!ALLOWED_COLORS.has(color))
-        throw new ServiceError("Invalid color", 400, "INVALID_COLOR");
+      if (!ALLOWED_COLORS.has(color)) throw new ServiceError("Invalid color", 400, "INVALID_COLOR");
       data.color = color;
     }
 
     if (body.icon !== undefined) {
       const icon = String(body.icon);
-      if (!ALLOWED_ICONS.has(icon))
-        throw new ServiceError("Invalid icon", 400, "INVALID_ICON");
+      if (!ALLOWED_ICONS.has(icon)) throw new ServiceError("Invalid icon", 400, "INVALID_ICON");
       data.icon = icon;
     }
 
@@ -275,10 +265,7 @@ export async function PATCH(
  * current amount and a withdrawal contribution is recorded. The goal is then marked
  * CANCELLED (not physically deleted) so the audit + contribution history is preserved.
  */
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await requireUser();
     const { id } = await params;
@@ -289,9 +276,7 @@ export async function DELETE(
       return json({ ok: true, cancelled: true, alreadyCancelled: true });
 
     const { creditWallet, LedgerError } = await import("@/lib/ledger");
-    const { RefType, TxType, TxDirection, TxStatus, TxState } = await import(
-      "@/lib/constants"
-    );
+    const { RefType, TxType, TxDirection, TxStatus, TxState } = await import("@/lib/constants");
     const { generateReference } = await import("@/lib/money");
 
     const wallet = await db.wallet.findUnique({ where: { userId: user.id } });

@@ -1,10 +1,14 @@
 import { db } from "@/lib/db";
-import { json, handleError, requireUser, ServiceError, audit, getClientIp, getUserAgent } from "@/lib/api";
 import {
-  TREASURY_ADDRESS,
-  getToken,
-  CELO_MAINNET_CHAIN_ID,
-} from "@/lib/minipay";
+  json,
+  handleError,
+  requireUser,
+  ServiceError,
+  audit,
+  getClientIp,
+  getUserAgent,
+} from "@/lib/api";
+import { TREASURY_ADDRESS, getToken, CELO_MAINNET_CHAIN_ID } from "@/lib/minipay";
 import { generateReference } from "@/lib/money";
 import { parseUnits } from "viem";
 
@@ -23,8 +27,7 @@ export async function POST(req: Request) {
       throw new ServiceError("Invalid amount", 400, "INVALID_AMOUNT");
 
     const token = getToken(tokenSymbol, chainId);
-    if (!token)
-      throw new ServiceError("Unsupported token: " + tokenSymbol, 400, "TOKEN_NOT_FOUND");
+    if (!token) throw new ServiceError("Unsupported token: " + tokenSymbol, 400, "TOKEN_NOT_FOUND");
 
     const amountWei = parseUnits(amountHuman, token.decimals).toString();
     const reference = generateReference("CELO");

@@ -6,21 +6,58 @@ import { ContractName } from "../result";
 import * as tp from "./turbopay.adapter";
 
 // Register the turbopay mock provider for ALL contracts (sandbox fallback)
-registry.register(ContractName.VIRTUAL_ACCOUNT, "turbopay", async () => tp.turbopayVirtualAccount, { priority: 10, sandbox: true });
-registry.register(ContractName.CARD_PAYMENT, "turbopay", async () => tp.turbopayCardPayment, { priority: 10, sandbox: true });
-registry.register(ContractName.BANK_TRANSFER, "turbopay", async () => tp.turbopayBankTransfer, { priority: 10, sandbox: true });
-registry.register(ContractName.BILL_PAYMENT, "turbopay", async () => tp.turbopayBillPayment, { priority: 10, sandbox: true });
-registry.register(ContractName.AIRTIME, "turbopay", async () => tp.turbopayAirtime, { priority: 10, sandbox: true });
-registry.register(ContractName.KYC, "turbopay", async () => tp.turbopayKyc, { priority: 10, sandbox: true });
-registry.register(ContractName.NOTIFICATION, "turbopay", async () => tp.turbopayNotification, { priority: 10, sandbox: true });
-registry.register(ContractName.INTERNATIONAL_TRANSFER, "turbopay", async () => tp.turbopayIntl, { priority: 10, sandbox: true });
-registry.register(ContractName.MOBILE_MONEY, "turbopay", async () => tp.turbopayMobileMoney, { priority: 10, sandbox: true });
-registry.register(ContractName.EXCHANGE_RATE, "turbopay", async () => tp.turbopayExchangeRate, { priority: 10, sandbox: true });
-registry.register(ContractName.VIRTUAL_CARD_ISSUER, "turbopay", async () => tp.turbopayCardIssuer, { priority: 10, sandbox: true });
+registry.register(ContractName.VIRTUAL_ACCOUNT, "turbopay", async () => tp.turbopayVirtualAccount, {
+  priority: 10,
+  sandbox: true,
+});
+registry.register(ContractName.CARD_PAYMENT, "turbopay", async () => tp.turbopayCardPayment, {
+  priority: 10,
+  sandbox: true,
+});
+registry.register(ContractName.BANK_TRANSFER, "turbopay", async () => tp.turbopayBankTransfer, {
+  priority: 10,
+  sandbox: true,
+});
+registry.register(ContractName.BILL_PAYMENT, "turbopay", async () => tp.turbopayBillPayment, {
+  priority: 10,
+  sandbox: true,
+});
+registry.register(ContractName.AIRTIME, "turbopay", async () => tp.turbopayAirtime, {
+  priority: 10,
+  sandbox: true,
+});
+registry.register(ContractName.KYC, "turbopay", async () => tp.turbopayKyc, {
+  priority: 10,
+  sandbox: true,
+});
+registry.register(ContractName.NOTIFICATION, "turbopay", async () => tp.turbopayNotification, {
+  priority: 10,
+  sandbox: true,
+});
+registry.register(ContractName.INTERNATIONAL_TRANSFER, "turbopay", async () => tp.turbopayIntl, {
+  priority: 10,
+  sandbox: true,
+});
+registry.register(ContractName.MOBILE_MONEY, "turbopay", async () => tp.turbopayMobileMoney, {
+  priority: 10,
+  sandbox: true,
+});
+registry.register(ContractName.EXCHANGE_RATE, "turbopay", async () => tp.turbopayExchangeRate, {
+  priority: 10,
+  sandbox: true,
+});
+registry.register(ContractName.VIRTUAL_CARD_ISSUER, "turbopay", async () => tp.turbopayCardIssuer, {
+  priority: 10,
+  sandbox: true,
+});
 
 // Dynamically register real provider adapters (lazy resolvers that import on first use)
 // Each real adapter is a separate file; registered here so the orchestrator can route to them.
-const REAL_PROVIDERS: { code: string; file: string; contracts: { name: ContractName; exportName: string }[] }[] = [
+const REAL_PROVIDERS: {
+  code: string;
+  file: string;
+  contracts: { name: ContractName; exportName: string }[];
+}[] = [
   {
     code: "paystack",
     file: "./paystack.adapter",
@@ -189,10 +226,15 @@ const REAL_PROVIDERS: { code: string; file: string; contracts: { name: ContractN
 // Register lazy resolvers — adapter module is imported on first resolve()
 for (const p of REAL_PROVIDERS) {
   for (const c of p.contracts) {
-    registry.register(c.name, p.code, async () => {
-      const mod = await import(p.file);
-      return mod[c.exportName];
-    }, { priority: 50 });
+    registry.register(
+      c.name,
+      p.code,
+      async () => {
+        const mod = await import(p.file);
+        return mod[c.exportName];
+      },
+      { priority: 50 }
+    );
   }
 }
 

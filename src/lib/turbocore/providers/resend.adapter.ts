@@ -64,7 +64,10 @@ const templateStore = new Map<string, StoredTemplate>();
 const TEMPLATE_SOFT_CAP = 100;
 
 function renderTemplate(html: string, data: Record<string, string>): string {
-  return html.replace(/\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g, (_, key: string) => data[key] ?? "");
+  return html.replace(
+    /\{\{\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*\}\}/g,
+    (_, key: string) => data[key] ?? ""
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -72,18 +75,67 @@ function renderTemplate(html: string, data: Record<string, string>): string {
 // ---------------------------------------------------------------------------
 
 export interface ResendNotificationExtensions {
-  sendBatch(req: { emails: Array<{ from?: string; to: string; subject: string; html: string; text?: string }> }): Promise<ProviderResult<{ ids: string[]; status: string }>>;
-  createDomain(req: { name: string; region?: string }): Promise<ProviderResult<{ id: string; name: string; status: string }>>;
-  listDomains(): Promise<ProviderResult<{ domains: Array<{ id: string; name: string; status: string; region?: string }> }>>;
-  getDomain(id: string): Promise<ProviderResult<{ id: string; name: string; status: string; region?: string; createdAt?: string }>>;
+  sendBatch(req: {
+    emails: Array<{ from?: string; to: string; subject: string; html: string; text?: string }>;
+  }): Promise<ProviderResult<{ ids: string[]; status: string }>>;
+  createDomain(req: {
+    name: string;
+    region?: string;
+  }): Promise<ProviderResult<{ id: string; name: string; status: string }>>;
+  listDomains(): Promise<
+    ProviderResult<{
+      domains: Array<{ id: string; name: string; status: string; region?: string }>;
+    }>
+  >;
+  getDomain(id: string): Promise<
+    ProviderResult<{
+      id: string;
+      name: string;
+      status: string;
+      region?: string;
+      createdAt?: string;
+    }>
+  >;
   verifyDomain(id: string): Promise<ProviderResult<{ id: string; status: string }>>;
-  createContact(req: { email: string; first_name?: string; last_name?: string; unsubscribed?: boolean }): Promise<ProviderResult<{ id: string; email: string; status: string }>>;
-  listContacts(): Promise<ProviderResult<{ contacts: Array<{ id: string; email: string; firstName?: string; lastName?: string; unsubscribed?: boolean }> }>>;
-  createWebhookEndpoint(req: { endpointUrl: string; events: string[] }): Promise<ProviderResult<{ id: string; endpointUrl: string; status: string }>>;
-  listWebhookEndpoints(): Promise<ProviderResult<{ webhooks: Array<{ id: string; endpointUrl: string; events: string[] }> }>>;
-  saveTemplate(req: { name: string; subject: string; html: string }): Promise<ProviderResult<{ templateId: string; status: string }>>;
-  listTemplates(): Promise<ProviderResult<{ templates: Array<{ id: string; name: string; subject: string; createdAt: string }> }>>;
-  sendTemplate(req: { to: string; templateId: string; data?: Record<string, string> }): Promise<ProviderResult<{ messageId: string; status: string }>>;
+  createContact(req: {
+    email: string;
+    first_name?: string;
+    last_name?: string;
+    unsubscribed?: boolean;
+  }): Promise<ProviderResult<{ id: string; email: string; status: string }>>;
+  listContacts(): Promise<
+    ProviderResult<{
+      contacts: Array<{
+        id: string;
+        email: string;
+        firstName?: string;
+        lastName?: string;
+        unsubscribed?: boolean;
+      }>;
+    }>
+  >;
+  createWebhookEndpoint(req: {
+    endpointUrl: string;
+    events: string[];
+  }): Promise<ProviderResult<{ id: string; endpointUrl: string; status: string }>>;
+  listWebhookEndpoints(): Promise<
+    ProviderResult<{ webhooks: Array<{ id: string; endpointUrl: string; events: string[] }> }>
+  >;
+  saveTemplate(req: {
+    name: string;
+    subject: string;
+    html: string;
+  }): Promise<ProviderResult<{ templateId: string; status: string }>>;
+  listTemplates(): Promise<
+    ProviderResult<{
+      templates: Array<{ id: string; name: string; subject: string; createdAt: string }>;
+    }>
+  >;
+  sendTemplate(req: {
+    to: string;
+    templateId: string;
+    data?: Record<string, string>;
+  }): Promise<ProviderResult<{ messageId: string; status: string }>>;
 }
 
 function authHeaders(apiKey: string): Record<string, string> {
@@ -107,7 +159,9 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
       return ok({ messageId: `resend-mock-${Date.now()}`, status: "sent" }, "mock", 30);
     }
     if (req.channel !== "EMAIL") {
-      return fail("NOT_SUPPORTED", `Resend only supports EMAIL (got ${req.channel})`, { providerCode: CODE });
+      return fail("NOT_SUPPORTED", `Resend only supports EMAIL (got ${req.channel})`, {
+        providerCode: CODE,
+      });
     }
     const apiKey = creds.secrets.apiKey;
     if (!apiKey) return fail("AUTH_FAILED", "Resend apiKey missing", { providerCode: CODE });
@@ -126,9 +180,9 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
             html: req.body,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string; message?: string });
+      const data = body as { id?: string; message?: string };
       const messageId = data.id ?? `resend-${Date.now()}`;
       return ok({ messageId, status: "sent" }, messageId, 0);
     } catch (e) {
@@ -151,14 +205,22 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
       const { body } = await http(
         `${BASE}/emails/${encodeURIComponent(messageId)}`,
         { method: "GET", headers: authHeaders(apiKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { status?: string; created_at?: string; sent_at?: string; delivered_at?: string });
+      const data = body as {
+        status?: string;
+        created_at?: string;
+        sent_at?: string;
+        delivered_at?: string;
+      };
       // Resend statuses: queued | sent | delivered | bounced | complained
       return ok(
-        { status: (data.status ?? "queued").toLowerCase(), deliveredAt: data.delivered_at ?? data.sent_at },
+        {
+          status: (data.status ?? "queued").toLowerCase(),
+          deliveredAt: data.delivered_at ?? data.sent_at,
+        },
         messageId,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Resend getDeliveryStatus failed";
@@ -176,7 +238,16 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ ids: req.emails.map(() => `resend-mock-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`), status: "sent" }, "mock", 80);
+      return ok(
+        {
+          ids: req.emails.map(
+            () => `resend-mock-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+          ),
+          status: "sent",
+        },
+        "mock",
+        80
+      );
     }
     const apiKey = creds.secrets.apiKey;
     if (!apiKey) return fail("AUTH_FAILED", "Resend apiKey missing", { providerCode: CODE });
@@ -185,7 +256,9 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
       return fail("INVALID_REQUEST", "sendBatch requires at least 1 email", { providerCode: CODE });
     }
     if (req.emails.length > 100) {
-      return fail("INVALID_REQUEST", "Resend batch supports up to 100 emails per call", { providerCode: CODE });
+      return fail("INVALID_REQUEST", "Resend batch supports up to 100 emails per call", {
+        providerCode: CODE,
+      });
     }
     try {
       const payload = req.emails.map((e) => ({
@@ -202,10 +275,10 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
           headers: authHeaders(apiKey),
           body: JSON.stringify(payload),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
       // Resend returns { data: [{ id: "..." }, ...] } for batches.
-      const data = (body as { data?: Array<{ id?: string }>; ids?: string[]; id?: string });
+      const data = body as { data?: Array<{ id?: string }>; ids?: string[]; id?: string };
       const ids: string[] = Array.isArray(data.data)
         ? data.data.map((d) => String(d.id ?? `resend-${Date.now()}`))
         : Array.isArray(data.ids)
@@ -230,7 +303,11 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ id: `re-dom-mock-${Date.now()}`, name: req.name, status: "not_started" }, "mock", 100);
+      return ok(
+        { id: `re-dom-mock-${Date.now()}`, name: req.name, status: "not_started" },
+        "mock",
+        100
+      );
     }
     const apiKey = creds.secrets.apiKey;
     if (!apiKey) return fail("AUTH_FAILED", "Resend apiKey missing", { providerCode: CODE });
@@ -242,10 +319,18 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
           headers: authHeaders(apiKey),
           body: JSON.stringify({ name: req.name, region: req.region ?? "us-east-1" }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string; name?: string; status?: string; region?: string });
-      return ok({ id: data.id ?? `re-dom-${Date.now()}`, name: data.name ?? req.name, status: data.status ?? "not_started" }, data.id ?? "mock", 0);
+      const data = body as { id?: string; name?: string; status?: string; region?: string };
+      return ok(
+        {
+          id: data.id ?? `re-dom-${Date.now()}`,
+          name: data.name ?? req.name,
+          status: data.status ?? "not_started",
+        },
+        data.id ?? "mock",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Resend createDomain failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -266,9 +351,11 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
       const { body } = await http(
         `${BASE}/domains`,
         { method: "GET", headers: authHeaders(apiKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: Array<{ id?: string; name?: string; status?: string; region?: string }> });
+      const data = body as {
+        data?: Array<{ id?: string; name?: string; status?: string; region?: string }>;
+      };
       const domains = (data.data ?? []).map((d) => ({
         id: String(d.id ?? ""),
         name: String(d.name ?? ""),
@@ -288,7 +375,17 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ id, name: "example.com", status: "verified", region: "us-east-1", createdAt: new Date().toISOString() }, "mock", 50);
+      return ok(
+        {
+          id,
+          name: "example.com",
+          status: "verified",
+          region: "us-east-1",
+          createdAt: new Date().toISOString(),
+        },
+        "mock",
+        50
+      );
     }
     const apiKey = creds.secrets.apiKey;
     if (!apiKey) return fail("AUTH_FAILED", "Resend apiKey missing", { providerCode: CODE });
@@ -296,9 +393,15 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
       const { body } = await http(
         `${BASE}/domains/${encodeURIComponent(id)}`,
         { method: "GET", headers: authHeaders(apiKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string; name?: string; status?: string; region?: string; created_at?: string });
+      const data = body as {
+        id?: string;
+        name?: string;
+        status?: string;
+        region?: string;
+        created_at?: string;
+      };
       return ok(
         {
           id: String(data.id ?? id),
@@ -308,7 +411,7 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
           createdAt: data.created_at,
         },
         id,
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Resend getDomain failed";
@@ -330,9 +433,9 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
       const { body } = await http(
         `${BASE}/domains/${encodeURIComponent(id)}/verify`,
         { method: "POST", headers: authHeaders(apiKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string; status?: string });
+      const data = body as { id?: string; status?: string };
       return ok({ id: String(data.id ?? id), status: String(data.status ?? "verified") }, id, 0);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Resend verifyDomain failed";
@@ -350,7 +453,11 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ id: `re-contact-mock-${Date.now()}`, email: req.email, status: "created" }, "mock", 80);
+      return ok(
+        { id: `re-contact-mock-${Date.now()}`, email: req.email, status: "created" },
+        "mock",
+        80
+      );
     }
     const apiKey = creds.secrets.apiKey;
     if (!apiKey) return fail("AUTH_FAILED", "Resend apiKey missing", { providerCode: CODE });
@@ -367,10 +474,14 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
             ...(typeof req.unsubscribed === "boolean" ? { unsubscribed: req.unsubscribed } : {}),
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string; object?: string });
-      return ok({ id: String(data.id ?? `re-contact-${Date.now()}`), email: req.email, status: "created" }, data.id ?? "mock", 0);
+      const data = body as { id?: string; object?: string };
+      return ok(
+        { id: String(data.id ?? `re-contact-${Date.now()}`), email: req.email, status: "created" },
+        data.id ?? "mock",
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Resend createContact failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -391,9 +502,17 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
       const { body } = await http(
         `${BASE}/contacts`,
         { method: "GET", headers: authHeaders(apiKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: Array<{ id?: string; email?: string; first_name?: string; last_name?: string; unsubscribed?: boolean }> });
+      const data = body as {
+        data?: Array<{
+          id?: string;
+          email?: string;
+          first_name?: string;
+          last_name?: string;
+          unsubscribed?: boolean;
+        }>;
+      };
       const contacts = (data.data ?? []).map((c) => ({
         id: String(c.id ?? ""),
         email: String(c.email ?? ""),
@@ -418,7 +537,11 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
     const creds = await loadCreds(CODE);
     if (!creds) {
       mockWarnOnce(CODE);
-      return ok({ id: `re-wh-mock-${Date.now()}`, endpointUrl: req.endpointUrl, status: "created" }, "mock", 80);
+      return ok(
+        { id: `re-wh-mock-${Date.now()}`, endpointUrl: req.endpointUrl, status: "created" },
+        "mock",
+        80
+      );
     }
     const apiKey = creds.secrets.apiKey;
     if (!apiKey) return fail("AUTH_FAILED", "Resend apiKey missing", { providerCode: CODE });
@@ -430,13 +553,17 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
           headers: authHeaders(apiKey),
           body: JSON.stringify({ endpoint_url: req.endpointUrl, events: req.events }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string; endpoint_url?: string; status?: string });
+      const data = body as { id?: string; endpoint_url?: string; status?: string };
       return ok(
-        { id: String(data.id ?? `re-wh-${Date.now()}`), endpointUrl: data.endpoint_url ?? req.endpointUrl, status: data.status ?? "created" },
+        {
+          id: String(data.id ?? `re-wh-${Date.now()}`),
+          endpointUrl: data.endpoint_url ?? req.endpointUrl,
+          status: data.status ?? "created",
+        },
         data.id ?? "mock",
-        0,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Resend createWebhookEndpoint failed";
@@ -458,9 +585,11 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
       const { body } = await http(
         `${BASE}/webhooks`,
         { method: "GET", headers: authHeaders(apiKey) },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { data?: Array<{ id?: string; endpoint_url?: string; events?: string[] }> });
+      const data = body as {
+        data?: Array<{ id?: string; endpoint_url?: string; events?: string[] }>;
+      };
       const webhooks = (data.data ?? []).map((w) => ({
         id: String(w.id ?? ""),
         endpointUrl: String(w.endpoint_url ?? ""),
@@ -536,7 +665,9 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
 
     const tpl = templateStore.get(req.templateId);
     if (!tpl) {
-      return fail("INVALID_REQUEST", `Template ${req.templateId} not found`, { providerCode: CODE });
+      return fail("INVALID_REQUEST", `Template ${req.templateId} not found`, {
+        providerCode: CODE,
+      });
     }
     const html = renderTemplate(tpl.html, req.data ?? {});
     const subject = renderTemplate(tpl.subject, req.data ?? {});
@@ -548,9 +679,9 @@ export const resendNotification: INotificationProvider & ResendNotificationExten
           headers: authHeaders(apiKey),
           body: JSON.stringify({ from, to: req.to, subject, html }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { id?: string });
+      const data = body as { id?: string };
       const messageId = data.id ?? `resend-tplsend-${Date.now()}`;
       return ok({ messageId, status: "sent" }, messageId, 0);
     } catch (e) {

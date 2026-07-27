@@ -80,7 +80,10 @@ function describePayload(type: string, payload: any): string {
   return JSON.stringify(payload).slice(0, 80);
 }
 
-function nextRunLabel(nextRunAt: string): { label: string; tone: "default" | "warning" | "danger" } {
+function nextRunLabel(nextRunAt: string): {
+  label: string;
+  tone: "default" | "warning" | "danger";
+} {
   const d = new Date(nextRunAt);
   const now = new Date();
   const diffMs = d.getTime() - now.getTime();
@@ -195,7 +198,7 @@ export default function ScheduledPaymentsView() {
 
   async function toggleStatus(item: ScheduledPayment) {
     const next = item.status === "ACTIVE" ? "PAUSED" : "ACTIVE";
-    setList((arr) => arr.map((x) => x.id === item.id ? { ...x, status: next } : x));
+    setList((arr) => arr.map((x) => (x.id === item.id ? { ...x, status: next } : x)));
     try {
       const res = await fetch(`/api/scheduled-payments/${item.id}`, {
         method: "PATCH",
@@ -205,7 +208,7 @@ export default function ScheduledPaymentsView() {
       if (!res.ok) throw new Error();
       toast.success(next === "ACTIVE" ? "Resumed" : "Paused");
     } catch {
-      setList((arr) => arr.map((x) => x.id === item.id ? { ...x, status: item.status } : x));
+      setList((arr) => arr.map((x) => (x.id === item.id ? { ...x, status: item.status } : x)));
       toast.error("Could not update");
     }
   }
@@ -224,7 +227,7 @@ export default function ScheduledPaymentsView() {
   }
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="Scheduled Payments"
         subtitle="Automate recurring transfers, bills and airtime top-ups."
@@ -247,7 +250,9 @@ export default function ScheduledPaymentsView() {
         </div>
         {loading ? (
           <div className="space-y-3">
-            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-xl" />
+            ))}
           </div>
         ) : list.length === 0 ? (
           <EmptyState
@@ -264,10 +269,14 @@ export default function ScheduledPaymentsView() {
           <div className="space-y-3">
             {list.map((item) => {
               let payload: any = {};
-              try { payload = JSON.parse(item.payloadJSON); } catch {}
+              try {
+                payload = JSON.parse(item.payloadJSON);
+              } catch {}
               const next = nextRunLabel(item.nextRunAt);
-              const typeLabel = SCHEDULE_TYPES.find((t) => t.code === item.type)?.label ?? item.type;
-              const freqLabel = FREQUENCIES.find((f) => f.code === item.frequency)?.label ?? item.frequency;
+              const typeLabel =
+                SCHEDULE_TYPES.find((t) => t.code === item.type)?.label ?? item.type;
+              const freqLabel =
+                FREQUENCIES.find((f) => f.code === item.frequency)?.label ?? item.frequency;
               return (
                 <div
                   key={item.id}
@@ -287,7 +296,7 @@ export default function ScheduledPaymentsView() {
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="text-sm font-semibold">{typeLabel}</p>
-                          <Badge variant="outline" className="text-[10px] gap-1">
+                          <Badge variant="outline" className="gap-1 text-[10px]">
                             <Repeat className="h-3 w-3" /> {freqLabel}
                           </Badge>
                           <Badge
@@ -301,10 +310,10 @@ export default function ScheduledPaymentsView() {
                             {item.status}
                           </Badge>
                         </div>
-                        <p className="mt-1 truncate text-xs text-muted-foreground">
+                        <p className="text-muted-foreground mt-1 truncate text-xs">
                           {describePayload(item.type, payload)}
                         </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-3 text-xs">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             <span
@@ -312,8 +321,8 @@ export default function ScheduledPaymentsView() {
                                 next.tone === "danger"
                                   ? "font-semibold text-red-600 dark:text-red-400"
                                   : next.tone === "warning"
-                                  ? "font-semibold text-amber-600 dark:text-amber-400"
-                                  : ""
+                                    ? "font-semibold text-amber-600 dark:text-amber-400"
+                                    : ""
                               }
                             >
                               {next.label}
@@ -324,7 +333,9 @@ export default function ScheduledPaymentsView() {
                           {item.failCount > 0 && (
                             <>
                               <span>·</span>
-                              <span className="text-red-600 dark:text-red-400">{item.failCount} failed</span>
+                              <span className="text-red-600 dark:text-red-400">
+                                {item.failCount} failed
+                              </span>
                             </>
                           )}
                           {item.lastRunAt && (
@@ -343,13 +354,17 @@ export default function ScheduledPaymentsView() {
                         className="gap-1.5"
                         onClick={() => toggleStatus(item)}
                       >
-                        {item.status === "ACTIVE" ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                        {item.status === "ACTIVE" ? (
+                          <Pause className="h-3.5 w-3.5" />
+                        ) : (
+                          <Play className="h-3.5 w-3.5" />
+                        )}
                         {item.status === "ACTIVE" ? "Pause" : "Resume"}
                       </Button>
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="gap-1.5 text-destructive hover:text-destructive"
+                        className="text-destructive hover:text-destructive gap-1.5"
                         onClick={() => deleteItem(item)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -382,7 +397,7 @@ export default function ScheduledPaymentsView() {
                 <SelectContent>
                   {SCHEDULE_TYPES.map((t) => (
                     <SelectItem key={t.code} value={t.code}>
-                      {t.label} · <span className="text-xs text-muted-foreground">{t.desc}</span>
+                      {t.label} · <span className="text-muted-foreground text-xs">{t.desc}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -427,13 +442,18 @@ export default function ScheduledPaymentsView() {
               <>
                 <div className="space-y-2">
                   <Label>Network</Label>
-                  <Select value={form.network} onValueChange={(v) => setForm((f) => ({ ...f, network: v }))}>
+                  <Select
+                    value={form.network}
+                    onValueChange={(v) => setForm((f) => ({ ...f, network: v }))}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {["MTN", "GLO", "AIRTEL", "NMOBILE"].map((n) => (
-                        <SelectItem key={n} value={n}>{n}</SelectItem>
+                        <SelectItem key={n} value={n}>
+                          {n}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -465,14 +485,17 @@ export default function ScheduledPaymentsView() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Frequency</Label>
-                <Select value={form.frequency} onValueChange={(v) => setForm((f) => ({ ...f, frequency: v }))}>
+                <Select
+                  value={form.frequency}
+                  onValueChange={(v) => setForm((f) => ({ ...f, frequency: v }))}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {FREQUENCIES.map((f) => (
                       <SelectItem key={f.code} value={f.code}>
-                        {f.label} · <span className="text-xs text-muted-foreground">{f.desc}</span>
+                        {f.label} · <span className="text-muted-foreground text-xs">{f.desc}</span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -490,9 +513,15 @@ export default function ScheduledPaymentsView() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={createSchedule} disabled={creating} className="gap-1.5">
-              {creating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Calendar className="h-4 w-4" />}
+              {creating ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Calendar className="h-4 w-4" />
+              )}
               Schedule
             </Button>
           </DialogFooter>

@@ -4,9 +4,18 @@
 
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { json, errorJson, handleError, requireUser, audit, getClientIp, getUserAgent } from "@/lib/api";
+import {
+  json,
+  errorJson,
+  handleError,
+  requireUser,
+  audit,
+  getClientIp,
+  getUserAgent,
+} from "@/lib/api";
 import { verifyRegistrationResponse } from "@/lib/passkey";
 import { consumeChallenge } from "@/lib/webauthn-challenge";
+import { logSecurityEvent } from "@/lib/security-log";
 
 export async function POST(req: NextRequest) {
   try {
@@ -58,6 +67,13 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       action: "PASSKEY_REGISTERED",
       category: "AUTH",
+      ip: getClientIp(req),
+      userAgent: getUserAgent(req),
+      metadata: { passkeyId: passkey.id, deviceName: passkey.deviceName ?? null },
+    });
+    await logSecurityEvent({
+      userId: user.id,
+      type: "PASSKEY_REGISTERED",
       ip: getClientIp(req),
       userAgent: getUserAgent(req),
       metadata: { passkeyId: passkey.id, deviceName: passkey.deviceName ?? null },

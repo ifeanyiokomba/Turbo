@@ -206,7 +206,7 @@ export default function InvestmentsView() {
   const activeHoldings = holdings.filter((h) => h.status === "ACTIVE");
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="Investments"
         subtitle="Diversify into T-bills, bonds and managed funds."
@@ -245,7 +245,11 @@ export default function InvestmentsView() {
               value={naira(data?.totalReturn ?? 0)}
               icon={ArrowDownLeft}
               tone={data && data.totalReturn >= 0 ? "success" : "danger"}
-              hint={data ? `${((data.totalReturn / Math.max(data.totalPrincipal, 1)) * 100).toFixed(1)}% overall` : ""}
+              hint={
+                data
+                  ? `${((data.totalReturn / Math.max(data.totalPrincipal, 1)) * 100).toFixed(1)}% overall`
+                  : ""
+              }
             />
           </>
         )}
@@ -255,7 +259,9 @@ export default function InvestmentsView() {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold">Investment products</h2>
-          <span className="text-xs text-muted-foreground">{data?.products.length ?? 0} available</span>
+          <span className="text-muted-foreground text-xs">
+            {data?.products.length ?? 0} available
+          </span>
         </div>
         {loading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -271,12 +277,12 @@ export default function InvestmentsView() {
                 <Card key={p.id} className="flex flex-col p-5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                      <div className="bg-primary/10 text-primary flex h-10 w-10 items-center justify-center rounded-xl">
                         <Building2 className="h-5 w-5" />
                       </div>
                       <div>
                         <p className="text-sm font-semibold">{p.name}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                           {TYPE_LABELS[p.type] ?? p.type} · {p.provider}
                         </p>
                       </div>
@@ -288,20 +294,20 @@ export default function InvestmentsView() {
                   </div>
 
                   <div className="mt-4 flex items-end gap-1">
-                    <span className="text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    <span className="text-2xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
                       {pct(p.expectedReturnBps)}
                     </span>
-                    <span className="pb-1 text-xs text-muted-foreground">expected return</span>
+                    <span className="text-muted-foreground pb-1 text-xs">expected return</span>
                   </div>
 
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-lg bg-muted/40 p-2">
+                    <div className="bg-muted/40 rounded-lg p-2">
                       <p className="text-muted-foreground">Min / Max</p>
                       <p className="font-semibold tabular-nums">
                         {naira(p.minAmountKobo)} / {naira(p.maxAmountKobo)}
                       </p>
                     </div>
-                    <div className="rounded-lg bg-muted/40 p-2">
+                    <div className="bg-muted/40 rounded-lg p-2">
                       <p className="text-muted-foreground">Duration</p>
                       <p className="font-semibold">{p.durationLabel}</p>
                     </div>
@@ -339,7 +345,7 @@ export default function InvestmentsView() {
       <div>
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold">My holdings</h2>
-          <span className="text-xs text-muted-foreground">{holdings.length} total</span>
+          <span className="text-muted-foreground text-xs">{holdings.length} total</span>
         </div>
         {loading ? (
           <div className="space-y-3">
@@ -360,23 +366,27 @@ export default function InvestmentsView() {
                   ((Date.now() - new Date(h.createdAt).getTime()) /
                     Math.max(
                       1,
-                      new Date(h.maturityAt).getTime() - new Date(h.createdAt).getTime(),
+                      new Date(h.maturityAt).getTime() - new Date(h.createdAt).getTime()
                     )) *
-                    100,
-                ),
+                    100
+                )
               );
               const gain = h.currentValueKobo - h.principalKobo;
               return (
                 <Card key={h.id} className="p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${risk.cls}`}>
+                      <div
+                        className={`flex h-11 w-11 items-center justify-center rounded-xl ${risk.cls}`}
+                      >
                         <TrendingUp className="h-5 w-5" />
                       </div>
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <p className="font-semibold">{h.productName}</p>
-                          <Badge variant="outline" className={risk.cls}>{h.riskLevel}</Badge>
+                          <Badge variant="outline" className={risk.cls}>
+                            {h.riskLevel}
+                          </Badge>
                           <Badge variant="outline" className="bg-muted">
                             {TYPE_LABELS[h.productType] ?? h.productType}
                           </Badge>
@@ -386,21 +396,22 @@ export default function InvestmentsView() {
                               isLiquidated
                                 ? "bg-red-500/10 text-red-600"
                                 : isMatured
-                                ? "bg-emerald-500/10 text-emerald-600"
-                                : "bg-amber-500/10 text-amber-600"
+                                  ? "bg-emerald-500/10 text-emerald-600"
+                                  : "bg-amber-500/10 text-amber-600"
                             }
                           >
                             {h.status}
                             {isMatured && !isLiquidated && " · Matured"}
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {pct(h.expectedReturnBps)} · {h.durationLabel} · {h.provider} · invested {timeAgo(h.createdAt)}
+                        <p className="text-muted-foreground text-xs">
+                          {pct(h.expectedReturnBps)} · {h.durationLabel} · {h.provider} · invested{" "}
+                          {timeAgo(h.createdAt)}
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-muted-foreground">Current value</p>
+                      <p className="text-muted-foreground text-xs">Current value</p>
                       <p className="text-xl font-bold tabular-nums">{naira(h.currentValueKobo)}</p>
                       <p
                         className={`text-[10px] tabular-nums ${
@@ -416,21 +427,23 @@ export default function InvestmentsView() {
                   </div>
 
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-3">
-                    <div className="rounded-lg bg-muted/40 p-2">
+                    <div className="bg-muted/40 rounded-lg p-2">
                       <p className="text-muted-foreground">Principal</p>
                       <p className="font-semibold tabular-nums">{naira(h.principalKobo)}</p>
                     </div>
-                    <div className="rounded-lg bg-muted/40 p-2">
+                    <div className="bg-muted/40 rounded-lg p-2">
                       <p className="text-muted-foreground">Maturity</p>
                       <p className="flex items-center gap-1 font-semibold">
                         <Calendar className="h-3 w-3" /> {formatDate(h.maturityAt)}
                       </p>
                     </div>
-                    <div className="col-span-2 rounded-lg bg-muted/40 p-2 sm:col-span-1">
+                    <div className="bg-muted/40 col-span-2 rounded-lg p-2 sm:col-span-1">
                       <p className="text-muted-foreground">Progress</p>
                       <div className="mt-1.5 flex items-center gap-2">
                         <Progress value={progressPct} className="h-1.5" />
-                        <span className="shrink-0 text-[10px] tabular-nums">{progressPct.toFixed(0)}%</span>
+                        <span className="shrink-0 text-[10px] tabular-nums">
+                          {progressPct.toFixed(0)}%
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -445,7 +458,7 @@ export default function InvestmentsView() {
                       >
                         <Banknote className="h-4 w-4" /> Liquidate
                       </Button>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         Early liquidation may forfeit accrued interest.
                       </p>
                     </div>
@@ -471,17 +484,18 @@ export default function InvestmentsView() {
           <DialogHeader>
             <DialogTitle>Invest in {investProduct?.name ?? ""}</DialogTitle>
             <DialogDescription>
-              {investProduct?.provider} · {investProduct?.durationLabel} · {pct(investProduct?.expectedReturnBps ?? 0)} expected return
+              {investProduct?.provider} · {investProduct?.durationLabel} ·{" "}
+              {pct(investProduct?.expectedReturnBps ?? 0)} expected return
             </DialogDescription>
           </DialogHeader>
           {investProduct && (
             <div className="space-y-3 py-1">
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-lg bg-muted/40 p-2">
+                <div className="bg-muted/40 rounded-lg p-2">
                   <p className="text-muted-foreground">Minimum</p>
                   <p className="font-semibold tabular-nums">{naira(investProduct.minAmountKobo)}</p>
                 </div>
-                <div className="rounded-lg bg-muted/40 p-2">
+                <div className="bg-muted/40 rounded-lg p-2">
                   <p className="text-muted-foreground">Maximum</p>
                   <p className="font-semibold tabular-nums">{naira(investProduct.maxAmountKobo)}</p>
                 </div>
@@ -506,7 +520,7 @@ export default function InvestmentsView() {
                       key={i}
                       type="button"
                       onClick={() => setAmountInput(String(amt / 100))}
-                      className="rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium hover:border-primary hover:bg-primary/5"
+                      className="border-border bg-background hover:border-primary hover:bg-primary/5 rounded-full border px-2.5 py-1 text-xs font-medium"
                     >
                       ₦{(amt / 100).toLocaleString()}
                     </button>
@@ -514,14 +528,14 @@ export default function InvestmentsView() {
                 </div>
               </div>
               {amountKobo > 0 && (
-                <div className="rounded-xl border bg-muted/40 p-3 text-sm">
+                <div className="bg-muted/40 rounded-xl border p-3 text-sm">
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Investing</span>
                     <span className="font-semibold tabular-nums">{naira(amountKobo)}</span>
                   </div>
                   <div className="mt-1 flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Est. return at maturity</span>
-                    <span className="font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
+                    <span className="font-medium text-emerald-600 tabular-nums dark:text-emerald-400">
                       +{naira(Math.round((amountKobo * investProduct.expectedReturnBps) / 10_000))}
                     </span>
                   </div>
@@ -533,14 +547,22 @@ export default function InvestmentsView() {
               )}
               <div className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
-                <span>Capital is at risk. Past performance is not indicative of future returns.</span>
+                <span>
+                  Capital is at risk. Past performance is not indicative of future returns.
+                </span>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setInvestProduct(null)} disabled={busy}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setInvestProduct(null)} disabled={busy}>
+              Cancel
+            </Button>
             <Button onClick={submitInvest} disabled={busy || amountKobo <= 0} className="gap-1.5">
-              {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {busy ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
               Invest {amountKobo > 0 ? naira(amountKobo) : ""}
             </Button>
           </DialogFooter>
@@ -548,12 +570,18 @@ export default function InvestmentsView() {
       </Dialog>
 
       {/* Liquidate confirm */}
-      <AlertDialog open={!!liquidateTarget} onOpenChange={(o) => !busy && !o && setLiquidateTarget(null)}>
+      <AlertDialog
+        open={!!liquidateTarget}
+        onOpenChange={(o) => !busy && !o && setLiquidateTarget(null)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Liquidate {liquidateTarget?.productName ?? ""}?</AlertDialogTitle>
-          <AlertDialogDescription>
-              The current value of <span className="font-semibold">{naira(liquidateTarget?.currentValueKobo ?? 0)}</span> will be credited to your wallet. This investment will be marked as <span className="font-semibold">LIQUIDATED</span> and cannot be reactivated.
+            <AlertDialogDescription>
+              The current value of{" "}
+              <span className="font-semibold">{naira(liquidateTarget?.currentValueKobo ?? 0)}</span>{" "}
+              will be credited to your wallet. This investment will be marked as{" "}
+              <span className="font-semibold">LIQUIDATED</span> and cannot be reactivated.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -563,7 +591,11 @@ export default function InvestmentsView() {
               disabled={busy}
               className="bg-amber-600 text-white hover:bg-amber-700"
             >
-              {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Banknote className="h-4 w-4" />}
+              {busy ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Banknote className="h-4 w-4" />
+              )}
               Liquidate now
             </AlertDialogAction>
           </AlertDialogFooter>

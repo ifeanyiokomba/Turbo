@@ -13,14 +13,7 @@ import {
 import { z } from "zod";
 
 // Categories tracked by SpendingBudget. TOTAL aggregates every debit.
-const BUDGET_CATEGORIES = new Set([
-  "TOTAL",
-  "TRANSFER",
-  "AIRTIME",
-  "DATA",
-  "BILL",
-  "CARD_FUND",
-]);
+const BUDGET_CATEGORIES = new Set(["TOTAL", "TRANSFER", "AIRTIME", "DATA", "BILL", "CARD_FUND"]);
 
 const categoryTypes: Record<string, string[]> = {
   TOTAL: [],
@@ -90,10 +83,7 @@ export async function GET() {
           ? totalSpent
           : types.reduce((sum, t) => sum + (spendByType[t] ?? 0), 0);
 
-      const pct =
-        b.monthlyLimitKobo > 0
-          ? Math.round((spent / b.monthlyLimitKobo) * 100)
-          : 0;
+      const pct = b.monthlyLimitKobo > 0 ? Math.round((spent / b.monthlyLimitKobo) * 100) : 0;
       const overThreshold = b.alertThreshold > 0 && pct >= b.alertThreshold;
       const overBudget = b.monthlyLimitKobo > 0 && spent > b.monthlyLimitKobo;
 
@@ -122,9 +112,7 @@ export async function GET() {
 }
 
 const createSchema = z.object({
-  category: z
-    .string()
-    .refine((c) => BUDGET_CATEGORIES.has(c), "Invalid budget category"),
+  category: z.string().refine((c) => BUDGET_CATEGORIES.has(c), "Invalid budget category"),
   monthlyLimitKobo: z
     .number()
     .int("monthlyLimitKobo must be an integer (kobo)")
@@ -152,7 +140,7 @@ export async function POST(req: NextRequest) {
       return errorJson(
         parsed.error.issues[0]?.message ?? "Invalid budget payload",
         400,
-        "VALIDATION",
+        "VALIDATION"
       );
     }
     const { category, monthlyLimitKobo, alertThreshold, enabled } = parsed.data;

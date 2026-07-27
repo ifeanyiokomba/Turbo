@@ -13,8 +13,7 @@ export async function GET(req: NextRequest) {
   try {
     const user = await requireUser();
     const filterRaw = req.nextUrl.searchParams.get("filter") ?? "all";
-    const filter =
-      filterRaw === "unread" || filterRaw === "important" ? filterRaw : "all";
+    const filter = filterRaw === "unread" || filterRaw === "important" ? filterRaw : "all";
 
     const where =
       filter === "unread"

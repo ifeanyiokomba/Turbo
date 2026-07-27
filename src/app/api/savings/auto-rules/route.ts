@@ -67,11 +67,7 @@ export async function POST(req: Request) {
     const frequency = String(body?.frequency ?? "DAILY").toUpperCase();
 
     if (!VALID_TYPES.has(type)) {
-      throw new ServiceError(
-        "Type must be ROUND_UP, PERCENTAGE, or FIXED",
-        400,
-        "INVALID_TYPE",
-      );
+      throw new ServiceError("Type must be ROUND_UP, PERCENTAGE, or FIXED", 400, "INVALID_TYPE");
     }
     if (!productId) {
       throw new ServiceError("Select a savings product", 400, "MISSING_PRODUCT");
@@ -83,28 +79,20 @@ export async function POST(req: Request) {
       throw new ServiceError(
         "Round-up unit must be ₦1 (100), ₦5 (500) or ₦10 (1000)",
         400,
-        "INVALID_ROUNDUP",
+        "INVALID_ROUNDUP"
       );
     }
     if (type === "PERCENTAGE" && (amountKobo < 1 || amountKobo > 50)) {
-      throw new ServiceError(
-        "Percentage must be between 1% and 50%",
-        400,
-        "INVALID_PERCENT",
-      );
+      throw new ServiceError("Percentage must be between 1% and 50%", 400, "INVALID_PERCENT");
     }
     if (type === "FIXED" && amountKobo < 1000) {
-      throw new ServiceError(
-        "Fixed amount must be at least ₦10",
-        400,
-        "INVALID_FIXED",
-      );
+      throw new ServiceError("Fixed amount must be at least ₦10", 400, "INVALID_FIXED");
     }
     if (!VALID_FREQUENCIES.has(frequency)) {
       throw new ServiceError(
         "Frequency must be DAILY, WEEKLY, or MONTHLY",
         400,
-        "INVALID_FREQUENCY",
+        "INVALID_FREQUENCY"
       );
     }
 
@@ -117,11 +105,7 @@ export async function POST(req: Request) {
     // Cap the number of rules per user (avoid abuse).
     const existingCount = await db.autoSaveRule.count({ where: { userId: user.id } });
     if (existingCount >= 20) {
-      throw new ServiceError(
-        "You can have at most 20 auto-save rules",
-        400,
-        "TOO_MANY_RULES",
-      );
+      throw new ServiceError("You can have at most 20 auto-save rules", 400, "TOO_MANY_RULES");
     }
 
     const rule = await db.autoSaveRule.create({
@@ -151,16 +135,19 @@ export async function POST(req: Request) {
       },
     });
 
-    return json({
-      id: rule.id,
-      type: rule.type,
-      amountKobo: rule.amountKobo,
-      productId: rule.productId,
-      enabled: rule.enabled,
-      totalSavedKobo: rule.totalSavedKobo,
-      lastRunAt: rule.lastRunAt?.toISOString() ?? null,
-      createdAt: rule.createdAt.toISOString(),
-    }, 201);
+    return json(
+      {
+        id: rule.id,
+        type: rule.type,
+        amountKobo: rule.amountKobo,
+        productId: rule.productId,
+        enabled: rule.enabled,
+        totalSavedKobo: rule.totalSavedKobo,
+        lastRunAt: rule.lastRunAt?.toISOString() ?? null,
+        createdAt: rule.createdAt.toISOString(),
+      },
+      201
+    );
   } catch (e) {
     return handleError(e);
   }

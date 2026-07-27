@@ -225,7 +225,7 @@ export default function MultiCurrencyView() {
         return;
       }
       toast.success(
-        `Converted ${formatMoney(json.amountMinor, json.from)} → ${formatMoney(json.creditMinor, json.to)}`,
+        `Converted ${formatMoney(json.amountMinor, json.from)} → ${formatMoney(json.creditMinor, json.to)}`
       );
       setConvertOpen(false);
       setQuote(null);
@@ -236,12 +236,11 @@ export default function MultiCurrencyView() {
     }
   }
 
-  const availableToOpen = data?.supportedCurrencies.filter(
-    (c) => !data.wallets.some((w) => w.currency === c.code),
-  ) ?? [];
+  const availableToOpen =
+    data?.supportedCurrencies.filter((c) => !data.wallets.some((w) => w.currency === c.code)) ?? [];
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="Multi-Currency Wallets"
         subtitle="Hold, send and convert between 9 currencies at live FX rates."
@@ -335,7 +334,7 @@ export default function MultiCurrencyView() {
                 {data?.wallets.map((w) => (
                   <div
                     key={w.id}
-                    className="tp-wallet-card relative overflow-hidden rounded-2xl p-4 text-white tp-sheen"
+                    className="tp-wallet-card tp-sheen relative overflow-hidden rounded-2xl p-4 text-white"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
@@ -352,9 +351,7 @@ export default function MultiCurrencyView() {
                     <p className="mt-4 text-xl font-bold tabular-nums">
                       {formatMoney(w.balanceMinor, w.currency)}
                     </p>
-                    <p className="mt-1 text-[11px] opacity-70">
-                      ≈ {naira(w.ngnEquivMinor)}
-                    </p>
+                    <p className="mt-1 text-[11px] opacity-70">≈ {naira(w.ngnEquivMinor)}</p>
                   </div>
                 ))}
               </div>
@@ -366,7 +363,7 @@ export default function MultiCurrencyView() {
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <p className="text-sm font-semibold">Live FX rates</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Refreshed every 5 minutes · sandbox rates
                 </p>
               </div>
@@ -382,12 +379,12 @@ export default function MultiCurrencyView() {
                 ))}
               </div>
             ) : (
-              <div className="max-h-96 overflow-y-auto scrollbar-thin">
+              <div className="scrollbar-thin max-h-96 overflow-y-auto">
                 <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-background text-left text-xs uppercase text-muted-foreground">
+                  <thead className="bg-background text-muted-foreground sticky top-0 text-left text-xs uppercase">
                     <tr>
-                      <th className="pb-2 pr-2 font-medium">Pair</th>
-                      <th className="pb-2 pr-2 text-right font-medium">Rate</th>
+                      <th className="pr-2 pb-2 font-medium">Pair</th>
+                      <th className="pr-2 pb-2 text-right font-medium">Rate</th>
                       <th className="pb-2 text-right font-medium">Source</th>
                     </tr>
                   </thead>
@@ -419,7 +416,7 @@ export default function MultiCurrencyView() {
         <div className="space-y-4">
           <Card className="p-5">
             <p className="text-sm font-semibold">Convert currencies</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="text-muted-foreground mt-1 text-xs">
               Move money between your wallets at live FX rates. A small spread applies.
             </p>
             <Button
@@ -439,7 +436,7 @@ export default function MultiCurrencyView() {
 
           <Card className="p-5">
             <p className="text-sm font-semibold">Why hold foreign currency?</p>
-            <ul className="mt-3 space-y-2 text-xs text-muted-foreground">
+            <ul className="text-muted-foreground mt-3 space-y-2 text-xs">
               <li className="flex gap-2">
                 <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
                 Hedge against FX volatility
@@ -486,7 +483,7 @@ export default function MultiCurrencyView() {
               </SelectContent>
             </Select>
             {availableToOpen.length === 0 && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 You already have wallets for all supported currencies.
               </p>
             )}
@@ -496,7 +493,11 @@ export default function MultiCurrencyView() {
               Cancel
             </Button>
             <Button onClick={openWallet} disabled={opening || !newCurrency} className="gap-1.5">
-              {opening ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {opening ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
               Open wallet
             </Button>
           </DialogFooter>
@@ -504,19 +505,29 @@ export default function MultiCurrencyView() {
       </Dialog>
 
       {/* Convert dialog */}
-      <Dialog open={convertOpen} onOpenChange={(o) => { setConvertOpen(o); if (!o) setQuote(null); }}>
+      <Dialog
+        open={convertOpen}
+        onOpenChange={(o) => {
+          setConvertOpen(o);
+          if (!o) setQuote(null);
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Convert currencies</DialogTitle>
-            <DialogDescription>
-              Move money between your wallets at the live rate.
-            </DialogDescription>
+            <DialogDescription>Move money between your wallets at the live rate.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>From</Label>
-                <Select value={fromCurrency} onValueChange={(v) => { setFromCurrency(v); setQuote(null); }}>
+                <Select
+                  value={fromCurrency}
+                  onValueChange={(v) => {
+                    setFromCurrency(v);
+                    setQuote(null);
+                  }}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="From" />
                   </SelectTrigger>
@@ -532,7 +543,13 @@ export default function MultiCurrencyView() {
               </div>
               <div className="space-y-2">
                 <Label>To</Label>
-                <Select value={toCurrency} onValueChange={(v) => { setToCurrency(v); setQuote(null); }}>
+                <Select
+                  value={toCurrency}
+                  onValueChange={(v) => {
+                    setToCurrency(v);
+                    setQuote(null);
+                  }}
+                >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="To" />
                   </SelectTrigger>
@@ -566,7 +583,11 @@ export default function MultiCurrencyView() {
               onClick={fetchQuote}
               disabled={quoting || !fromCurrency || !toCurrency || !amountInput}
             >
-              {quoting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
+              {quoting ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <TrendingUp className="h-4 w-4" />
+              )}
               Get quote
             </Button>
             {quote && (
@@ -574,7 +595,8 @@ export default function MultiCurrencyView() {
                 <div className="mb-2 flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Rate</span>
                   <span className="font-semibold tabular-nums">
-                    1 {quote.base} = {quote.rate.toLocaleString("en-NG", { maximumFractionDigits: 4 })} {quote.quote}
+                    1 {quote.base} ={" "}
+                    {quote.rate.toLocaleString("en-NG", { maximumFractionDigits: 4 })} {quote.quote}
                   </span>
                 </div>
                 <div className="mb-1 flex items-center justify-between text-xs">
@@ -591,7 +613,7 @@ export default function MultiCurrencyView() {
                 </div>
                 <div className="mt-2 flex items-center justify-between border-t pt-2 text-sm">
                   <span className="text-muted-foreground">They receive</span>
-                  <span className="flex items-center gap-1 font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                  <span className="flex items-center gap-1 font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
                     <ArrowRight className="h-3.5 w-3.5" />
                     {formatMoney(quote.totalCreditMinor, quote.quote)}
                   </span>
@@ -600,11 +622,21 @@ export default function MultiCurrencyView() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setConvertOpen(false); setQuote(null); }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConvertOpen(false);
+                setQuote(null);
+              }}
+            >
               Cancel
             </Button>
             <Button onClick={confirmConvert} disabled={!quote || converting} className="gap-1.5">
-              {converting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              {converting ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
               Confirm convert
             </Button>
           </DialogFooter>

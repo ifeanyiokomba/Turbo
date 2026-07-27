@@ -62,8 +62,8 @@
          * surfaces, not promoted to shared accent slots. */
         --accent: #ff385c;
         --accent-on: #ffffff;
-        --accent-hover: #e31c5f;       /* hand-picked, between Rausch and Deep Rausch */
-        --accent-active: #e00b41;      /* Deep Rausch — DESIGN.md §2 pressed-state value */
+        --accent-hover: #e31c5f; /* hand-picked, between Rausch and Deep Rausch */
+        --accent-active: #e00b41; /* Deep Rausch — DESIGN.md §2 pressed-state value */
 
         /* ─── Semantic ──────────────────────────────────────────────────
          * Error Red is explicit from DESIGN.md §2; success and warn are
@@ -71,9 +71,9 @@
          * that survive the white canvas without competing with Rausch.
          * Keep total semantic-color pixels well under five percent of
          * any page — the brand almost never renders status. */
-        --success: #008a05;            /* hand-picked warm green — available/in-stock */
-        --warn: #c47700;               /* burnt amber — never tailwind yellow */
-        --danger: #c13515;             /* DESIGN.md §2 Error Red */
+        --success: #008a05; /* hand-picked warm green — available/in-stock */
+        --warn: #c47700; /* burnt amber — never tailwind yellow */
+        --danger: #c13515; /* DESIGN.md §2 Error Red */
 
         /* ─── Typography — fonts ────────────────────────────────────────
          * Airbnb Cereal VF is the proprietary face that carries every
@@ -84,14 +84,12 @@
          * family itself, never from typeface mixing. Mono is a generic
          * stack for kbd, tabular metrics, and the rare code label. */
         --font-display:
-          "Airbnb Cereal VF", "Airbnb Cereal App", Circular,
-          -apple-system, system-ui, "Helvetica Neue", Roboto, sans-serif;
+          "Airbnb Cereal VF", "Airbnb Cereal App", Circular, -apple-system, system-ui,
+          "Helvetica Neue", Roboto, sans-serif;
         --font-body:
-          "Airbnb Cereal VF", "Airbnb Cereal App", Circular,
-          -apple-system, system-ui, "Helvetica Neue", Roboto, sans-serif;
-        --font-mono:
-          ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco,
-          Consolas, monospace;
+          "Airbnb Cereal VF", "Airbnb Cereal App", Circular, -apple-system, system-ui,
+          "Helvetica Neue", Roboto, sans-serif;
+        --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace;
 
         /* ─── Typography — type scale (px) ──────────────────────────────
          * Derived from DESIGN.md §3 Hierarchy table. The system clusters
@@ -100,14 +98,14 @@
          * sparingly for the Guest Favorite rating lockup (44–56px) and
          * the rare hero numeral. No 400-regular: Cereal's body weight
          * is 500, which any consuming component should set explicitly. */
-        --text-xs: 12px;               /* micro / footer disclaimer */
-        --text-sm: 14px;               /* button default, link, caption */
-        --text-base: 16px;             /* body medium, button large, subtitle bold */
-        --text-lg: 20px;               /* listing title */
-        --text-xl: 22px;               /* subsection heading */
-        --text-2xl: 28px;              /* section heading */
-        --text-3xl: 44px;              /* Guest Favorite rating, hero numeral */
-        --text-4xl: 56px;              /* display ceiling — Guest Favorite max */
+        --text-xs: 12px; /* micro / footer disclaimer */
+        --text-sm: 14px; /* button default, link, caption */
+        --text-base: 16px; /* body medium, button large, subtitle bold */
+        --text-lg: 20px; /* listing title */
+        --text-xl: 22px; /* subsection heading */
+        --text-2xl: 28px; /* section heading */
+        --text-3xl: 44px; /* Guest Favorite rating, hero numeral */
+        --text-4xl: 56px; /* display ceiling — Guest Favorite max */
 
         /* ─── Typography — leading & tracking ───────────────────────────
          * Tight for display (1.20 — chiseled headlines), generous for
@@ -117,7 +115,7 @@
          * their travel-magazine feel rather than a utility-app feel. */
         --leading-body: 1.43;
         --leading-tight: 1.2;
-        --tracking-display: -0.02em;   /* applied at sizes ≥20px only */
+        --tracking-display: -0.02em; /* applied at sizes ≥20px only */
 
         /* ─── Spacing — base scale ──────────────────────────────────────
          * 8px base unit per DESIGN.md §5. The brand uses fine-grained
@@ -168,8 +166,7 @@
         --elev-flat: none;
         --elev-ring: 0 0 0 1px var(--border);
         --elev-raised:
-          rgba(0, 0, 0, 0.02) 0 0 0 1px,
-          rgba(0, 0, 0, 0.04) 0 2px 6px 0,
+          rgba(0, 0, 0, 0.02) 0 0 0 1px, rgba(0, 0, 0, 0.04) 0 2px 6px 0,
           rgba(0, 0, 0, 0.1) 0 4px 8px 0;
 
         /* ─── Focus ring ────────────────────────────────────────────────
@@ -207,8 +204,16 @@
       }
 
       /* ─── Reset (minimal) ───────────────────────────────────────── */
-      *, *::before, *::after { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
       body {
         background: var(--bg);
         color: var(--fg);
@@ -233,12 +238,20 @@
         border-top: 1px solid var(--border);
       }
       @media (max-width: 1023px) {
-        .container { padding-inline: var(--container-gutter-tablet); }
-        section { padding-block: var(--section-y-tablet); }
+        .container {
+          padding-inline: var(--container-gutter-tablet);
+        }
+        section {
+          padding-block: var(--section-y-tablet);
+        }
       }
       @media (max-width: 639px) {
-        .container { padding-inline: var(--container-gutter-phone); }
-        section { padding-block: var(--section-y-phone); }
+        .container {
+          padding-inline: var(--container-gutter-phone);
+        }
+        section {
+          padding-block: var(--section-y-phone);
+        }
       }
 
       /* ─── Typography ─────────────────────────────────────────────
@@ -247,7 +260,9 @@
        * Body and caption sizes hold at zero tracking for
        * readability. Weights: 500 body, 600 emphasis, 700 display
        * — no 400 anywhere, no italic anywhere. */
-      h1, h2, h3 {
+      h1,
+      h2,
+      h3 {
         font-family: var(--font-display);
         line-height: var(--leading-tight);
         margin: 0;
@@ -272,16 +287,25 @@
            Overrides the shared 1.20 (--leading-tight) set on h1/h2/h3 above. */
         line-height: 1.25;
       }
-      p { margin: 0; }
+      p {
+        margin: 0;
+      }
 
       .lede {
         font-size: var(--text-base);
         line-height: var(--leading-body);
         color: var(--fg);
       }
-      .body-muted { color: var(--muted); }
-      .body-meta { color: var(--meta); font-size: var(--text-sm); }
-      .body-sm { font-size: var(--text-sm); }
+      .body-muted {
+        color: var(--muted);
+      }
+      .body-meta {
+        color: var(--meta);
+        font-size: var(--text-sm);
+      }
+      .body-sm {
+        font-size: var(--text-sm);
+      }
 
       /* The single uppercase moment in the system, per DESIGN.md §3
        * Principles ("No all-caps except at 8px"). We elevate this
@@ -297,10 +321,18 @@
         letter-spacing: 0.08em;
       }
 
-      .stack-2 > * + * { margin-block-start: var(--space-2); }
-      .stack-3 > * + * { margin-block-start: var(--space-3); }
-      .stack-4 > * + * { margin-block-start: var(--space-4); }
-      .stack-6 > * + * { margin-block-start: var(--space-6); }
+      .stack-2 > * + * {
+        margin-block-start: var(--space-2);
+      }
+      .stack-3 > * + * {
+        margin-block-start: var(--space-3);
+      }
+      .stack-4 > * + * {
+        margin-block-start: var(--space-4);
+      }
+      .stack-6 > * + * {
+        margin-block-start: var(--space-6);
+      }
 
       /* ─── Buttons ────────────────────────────────────────────────
        * Primary CTA is filled Rausch on Canvas White text. Active/
@@ -386,7 +418,9 @@
           box-shadow var(--motion-fast) var(--ease-standard);
       }
       .btn-icon:hover {
-        box-shadow: 0 0 0 4px var(--surface), var(--elev-ring);
+        box-shadow:
+          0 0 0 4px var(--surface),
+          var(--elev-ring);
       }
       .btn-icon:active {
         transform: scale(0.92);
@@ -395,7 +429,10 @@
         outline: none;
         box-shadow: var(--focus-ring);
       }
-      .btn-icon svg { width: 16px; height: 16px; }
+      .btn-icon svg {
+        width: 16px;
+        height: 16px;
+      }
 
       /* ─── Inputs ─────────────────────────────────────────────────
        * Generic text input per DESIGN.md §4 Text Input — 1px
@@ -434,13 +471,19 @@
         box-shadow: var(--focus-ring);
         color: var(--fg-2);
       }
-      .field input::placeholder { color: var(--muted); }
+      .field input::placeholder {
+        color: var(--muted);
+      }
       .field-help {
         font-size: var(--text-xs);
         color: var(--muted);
       }
-      .field-error .field-help { color: var(--danger); }
-      .field-error input { border-color: var(--danger); }
+      .field-error .field-help {
+        color: var(--danger);
+      }
+      .field-error input {
+        border-color: var(--danger);
+      }
 
       /* Search pill — three-segment "Where / When / Who" with a
        * Rausch circular submit button at the right edge. DESIGN.md
@@ -454,8 +497,7 @@
         border: 1px solid var(--border);
         border-radius: var(--radius-pill);
         background: var(--surface);
-        box-shadow:
-          rgba(0, 0, 0, 0.04) 0 2px 6px 0;
+        box-shadow: rgba(0, 0, 0, 0.04) 0 2px 6px 0;
         max-width: 100%;
       }
       .search-segment {
@@ -496,7 +538,9 @@
           background-color var(--motion-fast) var(--ease-standard),
           transform var(--motion-fast) var(--ease-standard);
       }
-      .search-submit:hover { background: var(--accent-hover); }
+      .search-submit:hover {
+        background: var(--accent-hover);
+      }
       .search-submit:active {
         background: var(--accent-active);
         transform: scale(0.92);
@@ -505,7 +549,10 @@
         outline: none;
         box-shadow: var(--focus-ring);
       }
-      .search-submit svg { width: 16px; height: 16px; }
+      .search-submit svg {
+        width: 16px;
+        height: 16px;
+      }
 
       /* ─── Cards ──────────────────────────────────────────────────
        * Two card shapes: the listing card (no border, no shadow,
@@ -533,13 +580,12 @@
         content: "";
         position: absolute;
         inset: 0;
-        background:
-          linear-gradient(
-            135deg,
-            var(--surface-warm) 0%,
-            var(--border) 60%,
-            var(--surface-warm) 100%
-          );
+        background: linear-gradient(
+          135deg,
+          var(--surface-warm) 0%,
+          var(--border) 60%,
+          var(--surface-warm) 100%
+        );
       }
       .listing-photo .btn-icon {
         position: absolute;
@@ -778,7 +824,9 @@
         color: var(--fg);
         flex-shrink: 0;
       }
-      .award-laurel.right { transform: scaleX(-1); }
+      .award-laurel.right {
+        transform: scaleX(-1);
+      }
       .award-label {
         font-family: var(--font-display);
         font-size: var(--text-xs);
@@ -866,7 +914,10 @@
         align-items: start;
       }
       @media (max-width: 1023px) {
-        .hero-grid { grid-template-columns: 1fr; gap: var(--space-8); }
+        .hero-grid {
+          grid-template-columns: 1fr;
+          gap: var(--space-8);
+        }
       }
       .hero-actions {
         display: flex;
@@ -882,10 +933,15 @@
         margin-block-start: var(--space-8);
       }
       @media (max-width: 1023px) {
-        .listings-grid { grid-template-columns: repeat(2, 1fr); }
+        .listings-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
       }
       @media (max-width: 639px) {
-        .listings-grid { grid-template-columns: 1fr; gap: var(--space-4); }
+        .listings-grid {
+          grid-template-columns: 1fr;
+          gap: var(--space-4);
+        }
       }
 
       .form-row {
@@ -895,7 +951,9 @@
         align-items: start;
       }
       @media (max-width: 1023px) {
-        .form-row { grid-template-columns: 1fr; }
+        .form-row {
+          grid-template-columns: 1fr;
+        }
       }
       .form {
         display: flex;
@@ -934,7 +992,11 @@
         color: var(--accent);
         letter-spacing: var(--tracking-display);
       }
-      .icon { width: 16px; height: 16px; flex-shrink: 0; }
+      .icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
     </style>
   </head>
   <body>
@@ -950,9 +1012,16 @@
         <div class="tabs" role="tablist">
           <button class="tab" role="tab" aria-selected="true">
             <span class="tab-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="1.5" stroke-linecap="round"
-                stroke-linejoin="round" width="24" height="24">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                width="24"
+                height="24"
+              >
                 <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" />
               </svg>
             </span>
@@ -960,9 +1029,16 @@
           </button>
           <button class="tab" role="tab" aria-selected="false">
             <span class="tab-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="1.5" stroke-linecap="round"
-                stroke-linejoin="round" width="24" height="24">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                width="24"
+                height="24"
+              >
                 <ellipse cx="12" cy="9" rx="6" ry="7" />
                 <path d="M9 16l-1 5 4-2 4 2-1-5" />
               </svg>
@@ -972,9 +1048,16 @@
           </button>
           <button class="tab" role="tab" aria-selected="false">
             <span class="tab-glyph" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="1.5" stroke-linecap="round"
-                stroke-linejoin="round" width="24" height="24">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                width="24"
+                height="24"
+              >
                 <path d="M6 16a6 6 0 1 1 12 0z" />
                 <path d="M12 6V3M5 18h14M11 19v2h2v-2" />
               </svg>
@@ -986,9 +1069,15 @@
         <div class="row-cluster">
           <button class="btn btn-secondary btn-sm" type="button">Become a host</button>
           <button class="btn-icon" type="button" aria-label="Menu">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-              stroke-width="1.75" stroke-linecap="round"
-              stroke-linejoin="round" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <path d="M4 7h16M4 12h16M4 17h16" />
             </svg>
           </button>
@@ -1005,15 +1094,12 @@
         <div class="hero-grid">
           <div class="stack-4">
             <p class="eyebrow">Reference fixture · airbnb</p>
-            <h1 style="max-width: 18ch">
-              Find a place where the photograph is the interface.
-            </h1>
+            <h1 style="max-width: 18ch">Find a place where the photograph is the interface.</h1>
             <p class="lede body-muted" style="max-width: 56ch">
-              A token system distilled from Airbnb's 2026 rules — Canvas
-              White surfaces, a single Rausch coral accent, generous
-              soft-circle radii, and Cereal at one family. The fixture
-              you are reading uses the same token block agents paste
-              into every artifact, so the rules survive the paste.
+              A token system distilled from Airbnb's 2026 rules — Canvas White surfaces, a single
+              Rausch coral accent, generous soft-circle radii, and Cereal at one family. The fixture
+              you are reading uses the same token block agents paste into every artifact, so the
+              rules survive the paste.
             </p>
 
             <div class="search-pill" role="search" aria-label="Find a stay">
@@ -1030,9 +1116,15 @@
                 <span class="search-segment-value">Add guests</span>
               </div>
               <button class="search-submit" type="submit" aria-label="Search">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
                   <circle cx="11" cy="11" r="7" />
                   <path d="M21 21l-4.3-4.3" />
                 </svg>
@@ -1119,13 +1211,10 @@
       <section data-od-id="listings">
         <div class="stack-3">
           <p class="eyebrow">What the fixture exercises</p>
-          <h2 style="max-width: 32ch">
-            Three listings, every token resolved through var(--*).
-          </h2>
+          <h2 style="max-width: 32ch">Three listings, every token resolved through var(--*).</h2>
           <p class="body-muted" style="max-width: 56ch">
-            No raw hex outside the :root paste. No second type family.
-            No drop shadow on the listing cards — separation comes from
-            the photograph and the 24px gutter between them.
+            No raw hex outside the :root paste. No second type family. No drop shadow on the listing
+            cards — separation comes from the photograph and the 24px gutter between them.
           </p>
         </div>
 
@@ -1134,9 +1223,15 @@
             <div class="listing-photo">
               <span class="listing-badge badge badge-soft">Guest favorite</span>
               <button class="btn-icon" type="button" aria-label="Save to wishlist">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="1.75" stroke-linecap="round"
-                  stroke-linejoin="round" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
                   <path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.7A4 4 0 0 1 19 11c0 5.5-7 10-7 10z" />
                 </svg>
               </button>
@@ -1153,16 +1248,16 @@
                     aria-hidden="true"
                     style="vertical-align: -1px; margin-right: 3px"
                   >
-                    <path d="M12 2l2.9 6.9 7.1.6-5.4 4.7 1.7 7L12 17l-6.3 4.2 1.7-7L2 9.5l7.1-.6z" />
+                    <path
+                      d="M12 2l2.9 6.9 7.1.6-5.4 4.7 1.7 7L12 17l-6.3 4.2 1.7-7L2 9.5l7.1-.6z"
+                    />
                   </svg>
                   4.97
                 </span>
               </div>
               <span class="listing-subtitle">Cottage rentals · 2 hours by train</span>
               <span class="listing-subtitle">Apr 12 – 17</span>
-              <span class="listing-price">
-                $182 <span class="per">/ night</span>
-              </span>
+              <span class="listing-price"> $182 <span class="per">/ night</span> </span>
             </div>
           </article>
 
@@ -1170,9 +1265,15 @@
             <div class="listing-photo">
               <span class="listing-badge badge badge-rausch">New</span>
               <button class="btn-icon" type="button" aria-label="Save to wishlist">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="1.75" stroke-linecap="round"
-                  stroke-linejoin="round" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
                   <path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.7A4 4 0 0 1 19 11c0 5.5-7 10-7 10z" />
                 </svg>
               </button>
@@ -1189,16 +1290,16 @@
                     aria-hidden="true"
                     style="vertical-align: -1px; margin-right: 3px"
                   >
-                    <path d="M12 2l2.9 6.9 7.1.6-5.4 4.7 1.7 7L12 17l-6.3 4.2 1.7-7L2 9.5l7.1-.6z" />
+                    <path
+                      d="M12 2l2.9 6.9 7.1.6-5.4 4.7 1.7 7L12 17l-6.3 4.2 1.7-7L2 9.5l7.1-.6z"
+                    />
                   </svg>
                   4.81
                 </span>
               </div>
               <span class="listing-subtitle">Loft apartments · Alfama</span>
               <span class="listing-subtitle">May 03 – 09</span>
-              <span class="listing-price">
-                $96 <span class="per">/ night</span>
-              </span>
+              <span class="listing-price"> $96 <span class="per">/ night</span> </span>
             </div>
           </article>
 
@@ -1206,9 +1307,15 @@
             <div class="listing-photo">
               <span class="listing-badge badge badge-soft">Experience</span>
               <button class="btn-icon" type="button" aria-label="Save to wishlist">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                  stroke-width="1.75" stroke-linecap="round"
-                  stroke-linejoin="round" aria-hidden="true">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.75"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
                   <path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.7A4 4 0 0 1 19 11c0 5.5-7 10-7 10z" />
                 </svg>
               </button>
@@ -1225,16 +1332,16 @@
                     aria-hidden="true"
                     style="vertical-align: -1px; margin-right: 3px"
                   >
-                    <path d="M12 2l2.9 6.9 7.1.6-5.4 4.7 1.7 7L12 17l-6.3 4.2 1.7-7L2 9.5l7.1-.6z" />
+                    <path
+                      d="M12 2l2.9 6.9 7.1.6-5.4 4.7 1.7 7L12 17l-6.3 4.2 1.7-7L2 9.5l7.1-.6z"
+                    />
                   </svg>
                   4.89
                 </span>
               </div>
               <span class="listing-subtitle">Small Group Yacht Tour</span>
               <span class="listing-subtitle">4 hours · Unlimited fruit</span>
-              <span class="listing-price">
-                $148 <span class="per">/ person</span>
-              </span>
+              <span class="listing-price"> $148 <span class="per">/ person</span> </span>
             </div>
           </article>
         </div>
@@ -1291,8 +1398,7 @@
           </div>
           <p class="award-label">Guest favorite</p>
           <p class="award-sub">
-            One of the most loved tokensets on Open Design, according
-            to agents who paste it.
+            One of the most loved tokensets on Open Design, according to agents who paste it.
           </p>
         </div>
       </section>
@@ -1308,24 +1414,20 @@
         <div class="form-row">
           <div class="stack-4">
             <p class="eyebrow">Form components</p>
-            <h2 style="max-width: 24ch">
-              Inputs inherit the same tokens.
-            </h2>
+            <h2 style="max-width: 24ch">Inputs inherit the same tokens.</h2>
             <p class="body-muted" style="max-width: 52ch">
-              Focus rings, borders, and placeholder color all derive
-              from --fg and --border. Submit reuses .btn-primary
-              unchanged. No new token introduced for this section —
-              if a value here is not in the :root paste above, it
-              does not belong in the artifact at all.
+              Focus rings, borders, and placeholder color all derive from --fg and --border. Submit
+              reuses .btn-primary unchanged. No new token introduced for this section — if a value
+              here is not in the :root paste above, it does not belong in the artifact at all.
             </p>
             <hr class="divider-soft" />
             <p class="body-meta">
-              Full reference at <a href="./tokens.css">tokens.css</a>
-              · brand at <a href="./DESIGN.md">DESIGN.md</a>.
+              Full reference at <a href="./tokens.css">tokens.css</a> · brand at
+              <a href="./DESIGN.md">DESIGN.md</a>.
             </p>
           </div>
 
-          <form class="form" onsubmit="event.preventDefault();">
+          <form class="form" onsubmit="event.preventDefault()">
             <div class="field">
               <label for="email">Travel notes email</label>
               <input
@@ -1335,9 +1437,7 @@
                 autocomplete="email"
                 required
               />
-              <p class="field-help">
-                We'll send a single dispatch a season — never more.
-              </p>
+              <p class="field-help">We'll send a single dispatch a season — never more.</p>
             </div>
 
             <div class="field">
@@ -1352,12 +1452,7 @@
 
             <div class="field field-error">
               <label for="dates">Dates</label>
-              <input
-                id="dates"
-                type="text"
-                placeholder="Add dates"
-                aria-invalid="true"
-              />
+              <input id="dates" type="text" placeholder="Add dates" aria-invalid="true" />
               <p class="field-help">Pick a check-in and check-out before you continue.</p>
             </div>
 

@@ -13,7 +13,15 @@ import { Permissions } from "@/lib/turbocore/rbac/permissions";
 
 export const dynamic = "force-dynamic";
 
-const SCOPES = new Set(["PROVIDERS", "FX", "FEES", "CAPABILITIES", "ROUTING", "FEATURE_FLAGS", "WEBHOOKS"]);
+const SCOPES = new Set([
+  "PROVIDERS",
+  "FX",
+  "FEES",
+  "CAPABILITIES",
+  "ROUTING",
+  "FEATURE_FLAGS",
+  "WEBHOOKS",
+]);
 
 async function captureSnapshot(scope: string): Promise<string> {
   switch (scope) {
@@ -22,7 +30,9 @@ async function captureSnapshot(scope: string): Promise<string> {
       return JSON.stringify(rows);
     }
     case "CAPABILITIES": {
-      const rows = await db.providerCapability.findMany({ orderBy: [{ contract: "asc" }, { providerCode: "asc" }] });
+      const rows = await db.providerCapability.findMany({
+        orderBy: [{ contract: "asc" }, { providerCode: "asc" }],
+      });
       return JSON.stringify(rows);
     }
     case "ROUTING": {
@@ -88,15 +98,15 @@ export async function POST(req: Request) {
     // creation on CONFIG_ROLLBACK here too for defense in depth).
     const user = await requirePermission(Permissions.CONFIG_ROLLBACK);
     const body = await req.json().catch(() => ({}));
-    const scope = String(body.scope ?? "").trim().toUpperCase();
+    const scope = String(body.scope ?? "")
+      .trim()
+      .toUpperCase();
     if (!SCOPES.has(scope)) {
       return json({ error: `scope must be one of ${Array.from(SCOPES).join(", ")}` }, 400);
     }
     const reason = typeof body.reason === "string" ? body.reason.slice(0, 500) : null;
     const snapshotJSON =
-      typeof body.snapshotJSON === "string"
-        ? body.snapshotJSON
-        : await captureSnapshot(scope);
+      typeof body.snapshotJSON === "string" ? body.snapshotJSON : await captureSnapshot(scope);
 
     const maxAgg = await db.configVersion.aggregate({
       where: { scope },

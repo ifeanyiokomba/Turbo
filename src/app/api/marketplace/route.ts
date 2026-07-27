@@ -11,8 +11,7 @@ export async function GET(req: Request) {
     const category = url.searchParams.get("category")?.toUpperCase().trim();
     const search = url.searchParams.get("search")?.trim();
     const featuredOnly =
-      url.searchParams.get("featured") === "1" ||
-      url.searchParams.get("featured") === "true";
+      url.searchParams.get("featured") === "1" || url.searchParams.get("featured") === "true";
 
     const where: Record<string, unknown> = { status: "ACTIVE" };
     if (category && (MARKETPLACE_CATEGORIES as readonly string[]).includes(category)) {

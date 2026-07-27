@@ -10,11 +10,6 @@ if (SENTRY_DSN && SENTRY_DSN.length > 0) {
     dsn: SENTRY_DSN,
     tracesSampleRate: 0.1,
     environment: process.env.NODE_ENV,
-    ignoreErrors: [
-      "UNAUTHENTICATED",
-      "ACCOUNT_INACTIVE",
-      "FORBIDDEN",
-      "ServiceError",
-    ],
+    ignoreErrors: ["UNAUTHENTICATED", "ACCOUNT_INACTIVE", "FORBIDDEN", "ServiceError"],
   });
 }

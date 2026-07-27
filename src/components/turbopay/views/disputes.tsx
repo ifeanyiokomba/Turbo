@@ -340,8 +340,8 @@ export default function DisputesView() {
           <DialogHeader>
             <DialogTitle>Raise a dispute</DialogTitle>
             <DialogDescription>
-              Tell us what went wrong. Include a transaction reference if the
-              issue is tied to a specific transaction.
+              Tell us what went wrong. Include a transaction reference if the issue is tied to a
+              specific transaction.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-1">
@@ -389,7 +389,7 @@ export default function DisputesView() {
             <div className="space-y-1.5">
               <Label htmlFor="d-tx">
                 Transaction reference{" "}
-                <span className="text-xs text-muted-foreground">(optional)</span>
+                <span className="text-muted-foreground text-xs">(optional)</span>
               </Label>
               <Input
                 id="d-tx"
@@ -409,17 +409,11 @@ export default function DisputesView() {
                 placeholder="Describe the issue in as much detail as you can. Include dates, amounts, and reference numbers if applicable."
                 maxLength={8000}
               />
-              <p className="text-right text-xs text-muted-foreground">
-                {description.length}/8000
-              </p>
+              <p className="text-muted-foreground text-right text-xs">{description.length}/8000</p>
             </div>
           </div>
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setCreateOpen(false)}
-              disabled={submitting}
-            >
+            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={submitting}>
               Cancel
             </Button>
             <Button onClick={submitCreate} disabled={submitting} className="gap-1.5">
@@ -431,11 +425,7 @@ export default function DisputesView() {
       </Dialog>
 
       {/* Detail dialog */}
-      <DisputeDetailDialog
-        id={detailId}
-        onClose={() => setDetailId(null)}
-        onChanged={load}
-      />
+      <DisputeDetailDialog id={detailId} onClose={() => setDetailId(null)} onChanged={load} />
     </div>
   );
 }
@@ -463,10 +453,8 @@ function StatTile({
   return (
     <Card className={`p-4 ${className ?? ""}`}>
       <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <div
-          className={`flex h-8 w-8 items-center justify-center rounded-lg ${toneClass}`}
-        >
+        <p className="text-muted-foreground text-xs">{label}</p>
+        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${toneClass}`}>
           {icon}
         </div>
       </div>
@@ -476,13 +464,7 @@ function StatTile({
 }
 
 // ---------- Dispute row ----------
-function DisputeRow({
-  d,
-  onOpen,
-}: {
-  d: DisputeListItem;
-  onOpen: () => void;
-}) {
+function DisputeRow({ d, onOpen }: { d: DisputeListItem; onOpen: () => void }) {
   return (
     <Card
       role="button"
@@ -494,7 +476,7 @@ function DisputeRow({
           onOpen();
         }
       }}
-      className="cursor-pointer p-4 transition-all hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:p-5"
+      className="focus-visible:ring-primary cursor-pointer p-4 transition-all hover:shadow-md focus:outline-none focus-visible:ring-2 sm:p-5"
     >
       <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
         <div className="min-w-0 flex-1">
@@ -520,17 +502,17 @@ function DisputeRow({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <div className="text-muted-foreground flex items-center gap-1 text-xs">
           <Clock className="h-3 w-3" />
           {timeAgo(d.updatedAt)}
           <ArrowUpRight className="h-3.5 w-3.5" />
         </div>
       </div>
       {d.lastMessage && (
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+        <div className="bg-muted/50 text-muted-foreground mt-3 flex items-center gap-2 rounded-lg px-3 py-2 text-xs">
           <MessageSquare className="h-3.5 w-3.5 shrink-0" />
           <p className="line-clamp-1 min-w-0 flex-1">
-            <span className="font-medium text-foreground">
+            <span className="text-foreground font-medium">
               {d.lastMessage.senderRole === "ADMIN" ? "Support" : "You"}:
             </span>{" "}
             {d.lastMessage.message}
@@ -626,7 +608,7 @@ function DisputeDetailDialog({
       <DialogContent className="max-h-[92vh] max-w-2xl gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b p-5">
           <DialogTitle className="flex items-center gap-2 pr-6">
-            <Scale className="h-4 w-4 text-primary" />
+            <Scale className="text-primary h-4 w-4" />
             <span className="truncate">{dispute?.subject ?? "Dispute"}</span>
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -638,16 +620,10 @@ function DisputeDetailDialog({
                 <Tag className="h-3 w-3" />
                 {CATEGORY_LABELS[dispute.category] ?? dispute.category}
               </Badge>
-              <Badge
-                variant="secondary"
-                className={PRIORITY_TONE[dispute.priority] ?? ""}
-              >
+              <Badge variant="secondary" className={PRIORITY_TONE[dispute.priority] ?? ""}>
                 {dispute.priority}
               </Badge>
-              <Badge
-                variant="secondary"
-                className={STATUS_TONE[dispute.status] ?? ""}
-              >
+              <Badge variant="secondary" className={STATUS_TONE[dispute.status] ?? ""}>
                 {prettyStatus(dispute.status)}
               </Badge>
               {dispute.assignedTo && (
@@ -667,44 +643,33 @@ function DisputeDetailDialog({
             <Skeleton className="h-32 rounded-xl" />
           </div>
         ) : !dispute ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">
-            Dispute not found.
-          </div>
+          <div className="text-muted-foreground p-8 text-center text-sm">Dispute not found.</div>
         ) : (
           <div className="flex max-h-[calc(92vh-9rem)] flex-col">
             {/* Description + timeline */}
             <div className="border-b p-5">
-              <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="text-muted-foreground mb-3 flex items-center gap-2 text-xs font-semibold tracking-wider uppercase">
                 <AlertTriangle className="h-3.5 w-3.5" /> Description
               </div>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                {dispute.description}
-              </p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{dispute.description}</p>
               {dispute.resolution && (
                 <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3 text-sm">
-                  <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                  <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold tracking-wider text-emerald-600 uppercase dark:text-emerald-400">
                     <CheckCircle2 className="h-3.5 w-3.5" /> Resolution
                   </p>
-                  <p className="whitespace-pre-wrap text-foreground">
-                    {dispute.resolution}
-                  </p>
+                  <p className="text-foreground whitespace-pre-wrap">{dispute.resolution}</p>
                 </div>
               )}
               <Timeline events={timelineEvents(dispute)} />
             </div>
 
             {/* Thread */}
-            <div
-              ref={threadRef}
-              className="flex-1 space-y-3 overflow-y-auto p-5 scrollbar-thin"
-            >
-              <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <div ref={threadRef} className="scrollbar-thin flex-1 space-y-3 overflow-y-auto p-5">
+              <div className="text-muted-foreground mb-1 flex items-center gap-2 text-xs font-semibold tracking-wider uppercase">
                 <MessageSquare className="h-3.5 w-3.5" /> Conversation
               </div>
               {dispute.messages.length === 0 && (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  No messages yet.
-                </p>
+                <p className="text-muted-foreground py-6 text-center text-sm">No messages yet.</p>
               )}
               {dispute.messages.map((m) => (
                 <MessageBubble key={m.id} m={m} />
@@ -712,9 +677,9 @@ function DisputeDetailDialog({
             </div>
 
             {/* Reply */}
-            <div className="border-t bg-muted/30 p-4">
+            <div className="bg-muted/30 border-t p-4">
               {closed ? (
-                <p className="text-center text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-center text-xs">
                   This dispute is closed. Open a new one if you need more help.
                 </p>
               ) : (
@@ -724,7 +689,7 @@ function DisputeDetailDialog({
                     onChange={(e) => setReply(e.target.value)}
                     placeholder="Type your reply…"
                     rows={2}
-                    className="min-h-[44px] resize-none bg-background"
+                    className="bg-background min-h-[44px] resize-none"
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                         e.preventDefault();
@@ -747,7 +712,7 @@ function DisputeDetailDialog({
                   </Button>
                 </div>
               )}
-              <p className="mt-1.5 text-right text-[10px] text-muted-foreground">
+              <p className="text-muted-foreground mt-1.5 text-right text-[10px]">
                 ⌘ + Enter to send
               </p>
             </div>
@@ -759,25 +724,21 @@ function DisputeDetailDialog({
 }
 
 // ---------- Timeline ----------
-function Timeline({
-  events,
-}: {
-  events: { label: string; at: string; tone: string }[];
-}) {
+function Timeline({ events }: { events: { label: string; at: string; tone: string }[] }) {
   if (events.length === 0) return null;
   return (
     <div className="mt-4 space-y-2.5">
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
         Timeline
       </p>
-      <ol className="relative space-y-3 border-l border-muted pl-4">
+      <ol className="border-muted relative space-y-3 border-l pl-4">
         {events.map((e, i) => (
           <li key={i} className="relative">
             <span
-              className={`absolute -left-[1.40rem] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-background ${e.tone}`}
+              className={`ring-background absolute top-1 -left-[1.40rem] h-2.5 w-2.5 rounded-full ring-4 ${e.tone}`}
             />
             <p className="text-sm">{e.label}</p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-muted-foreground text-[11px]">
               {formatDate(e.at, true)} · {timeAgo(e.at)}
             </p>
           </li>
@@ -794,13 +755,13 @@ function MessageBubble({ m }: { m: DisputeMessage }) {
   const isSystemNote =
     isAdmin &&
     /^(status changed|priority set|assigned to|assignment cleared|resolution note)/i.test(
-      m.message,
+      m.message
     );
 
   if (isSystemNote) {
     return (
       <div className="flex justify-center">
-        <span className="rounded-full bg-muted px-3 py-1 text-[11px] text-muted-foreground">
+        <span className="bg-muted text-muted-foreground rounded-full px-3 py-1 text-[11px]">
           {m.message} · {timeAgo(m.createdAt)}
         </span>
       </div>
@@ -812,11 +773,11 @@ function MessageBubble({ m }: { m: DisputeMessage }) {
       <div
         className={`max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm shadow-sm ${
           isAdmin
-            ? "rounded-bl-sm bg-card text-card-foreground ring-1 ring-border"
-            : "rounded-br-sm bg-primary text-primary-foreground"
+            ? "bg-card text-card-foreground ring-border rounded-bl-sm ring-1"
+            : "bg-primary text-primary-foreground rounded-br-sm"
         }`}
       >
-        <div className="mb-1 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider opacity-80">
+        <div className="mb-1 flex items-center gap-1.5 text-[10px] font-medium tracking-wider uppercase opacity-80">
           {isAdmin ? (
             <>
               <ShieldAlert className="h-3 w-3" /> Support
@@ -827,9 +788,7 @@ function MessageBubble({ m }: { m: DisputeMessage }) {
             </>
           )}
         </div>
-        <p className="whitespace-pre-wrap break-words leading-relaxed">
-          {m.message}
-        </p>
+        <p className="leading-relaxed break-words whitespace-pre-wrap">{m.message}</p>
         <p className={`mt-1 text-[10px] ${isAdmin ? "text-muted-foreground" : "opacity-70"}`}>
           {formatDate(m.createdAt, true)}
         </p>

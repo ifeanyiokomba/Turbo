@@ -9,6 +9,8 @@ import { json, errorJson, handleError, audit, getClientIp, getUserAgent } from "
 import { verifyAuthenticationResponse, parseTransports } from "@/lib/passkey";
 import { consumeChallenge } from "@/lib/webauthn-challenge";
 import { createSession } from "@/lib/session";
+import { trackDevice } from "@/lib/device";
+import { logSecurityEvent } from "@/lib/security-log";
 
 function publicUser(u: any) {
   return {
@@ -93,7 +95,17 @@ export async function POST(req: NextRequest) {
       data: { loginFailCount: 0, loginLockedUntil: null },
     });
 
-    await createSession({ userId: user.id, ip: getClientIp(req), userAgent: getUserAgent(req) });
+    // Track the device this passkey sign-in came from.
+    const device = await trackDevice(user.id, req);
+
+    await createSession({
+      userId: user.id,
+      ip: getClientIp(req),
+      userAgent: getUserAgent(req),
+      role: user.role,
+      kycTier: user.kycTier,
+      deviceId: device.id,
+    });
     await audit({
       userId: user.id,
       action: "PASSKEY_LOGIN",
@@ -101,6 +113,17 @@ export async function POST(req: NextRequest) {
       ip: getClientIp(req),
       userAgent: getUserAgent(req),
       metadata: { passkeyId: passkey.id, deviceName: passkey.deviceName ?? null },
+    });
+    await logSecurityEvent({
+      userId: user.id,
+      type: "PASSKEY_USED",
+      ip: getClientIp(req),
+      userAgent: getUserAgent(req),
+      metadata: {
+        passkeyId: passkey.id,
+        deviceName: passkey.deviceName ?? null,
+        deviceId: device.id,
+      },
     });
 
     return json({ user: publicUser(user) });

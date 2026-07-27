@@ -110,7 +110,7 @@ export default function BillsView() {
         ...c,
         billers: BILLERS[c.id] ?? [],
       })),
-    [],
+    []
   );
 
   const category = activeCategory ? categories.find((c) => c.id === activeCategory) : null;
@@ -123,7 +123,7 @@ export default function BillsView() {
       />
 
       {/* Balance bar */}
-      <Card className="tp-emerald-grad relative overflow-hidden p-5 text-white tp-sheen">
+      <Card className="tp-emerald-grad tp-sheen relative overflow-hidden p-5 text-white">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs opacity-80">Available balance</p>
@@ -155,7 +155,7 @@ export default function BillsView() {
               <button
                 key={c.id}
                 onClick={() => setActiveCategory(c.id)}
-                className="group flex flex-col items-start gap-3 rounded-2xl border border-border bg-card p-4 text-left transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm"
+                className="group border-border bg-card hover:border-primary/40 flex flex-col items-start gap-3 rounded-2xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-sm"
               >
                 <div
                   className="flex h-11 w-11 items-center justify-center rounded-xl"
@@ -165,11 +165,11 @@ export default function BillsView() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold">{c.name}</p>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
+                  <p className="text-muted-foreground mt-0.5 text-xs">
                     {c.billers.length} {c.billers.length === 1 ? "biller" : "billers"}
                   </p>
                 </div>
-                <ChevronRight className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                <ChevronRight className="text-muted-foreground ml-auto h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </button>
             );
           })}
@@ -225,13 +225,13 @@ function BillerList({
           </div>
           <div>
             <p className="text-sm font-semibold">{category.name}</p>
-            <p className="text-xs text-muted-foreground">{category.billers.length} billers</p>
+            <p className="text-muted-foreground text-xs">{category.billers.length} billers</p>
           </div>
         </div>
       </div>
 
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
         <Input
           placeholder={`Search ${category.name.toLowerCase()} billers…`}
           value={query}
@@ -241,7 +241,7 @@ function BillerList({
       </div>
 
       {filtered.length === 0 ? (
-        <Card className="p-8 text-center text-sm text-muted-foreground">
+        <Card className="text-muted-foreground p-8 text-center text-sm">
           No billers match “{query}”.
         </Card>
       ) : (
@@ -250,16 +250,16 @@ function BillerList({
             <button
               key={b.code}
               onClick={() => onPick(b)}
-              className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-left transition-all hover:border-primary/40 hover:bg-muted/40"
+              className="border-border bg-card hover:border-primary/40 hover:bg-muted/40 flex items-center gap-3 rounded-xl border p-3 text-left transition-all"
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <div className="bg-primary/10 text-primary flex h-10 w-10 items-center justify-center rounded-lg">
                 <Icon className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">{b.name}</p>
-                <p className="truncate text-xs text-muted-foreground">{b.refLabel}</p>
+                <p className="text-muted-foreground truncate text-xs">{b.refLabel}</p>
               </div>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <ChevronRight className="text-muted-foreground h-4 w-4" />
             </button>
           ))}
         </div>
@@ -378,15 +378,19 @@ function BillPaymentDialog({
         {biller && (
           <>
             {success ? (
-              <BillSuccessContent success={success} isElectricity={isElectricity} onClose={onClose} />
+              <BillSuccessContent
+                success={success}
+                isElectricity={isElectricity}
+                onClose={onClose}
+              />
             ) : (
               <>
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <div className="bg-primary/10 text-primary flex h-8 w-8 items-center justify-center rounded-lg">
                       {(() => {
                         const cat = BILL_CATEGORIES.find((c) => c.id === category);
-                        const Icon = cat ? ICONS[cat.icon] ?? Zap : Zap;
+                        const Icon = cat ? (ICONS[cat.icon] ?? Zap) : Zap;
                         return <Icon className="h-4 w-4" />;
                       })()}
                     </div>
@@ -439,7 +443,7 @@ function BillPaymentDialog({
                   <div className="space-y-2">
                     <Label htmlFor="bill-amount">Amount</Label>
                     <div className="relative">
-                      <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-muted-foreground">
+                      <span className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm font-semibold">
                         ₦
                       </span>
                       <Input
@@ -452,7 +456,7 @@ function BillPaymentDialog({
                       />
                     </div>
                     {isElectricity && (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-muted-foreground text-xs">
                         A 20-digit electricity token will be generated after payment.
                       </p>
                     )}
@@ -463,7 +467,11 @@ function BillPaymentDialog({
                   <Button variant="outline" onClick={onClose}>
                     Cancel
                   </Button>
-                  <Button onClick={handlePay} disabled={!validated || amountKobo < 1_000 || submitting} className="gap-1.5">
+                  <Button
+                    onClick={handlePay}
+                    disabled={!validated || amountKobo < 1_000 || submitting}
+                    className="gap-1.5"
+                  >
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                     Pay {amountKobo > 0 ? naira(amountKobo) : ""}
                   </Button>
@@ -510,7 +518,7 @@ function BillSuccessContent({
         </DialogDescription>
       </DialogHeader>
 
-      <p className="text-center text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+      <p className="text-center text-2xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
         {naira(success.amountKobo)}
       </p>
 
@@ -532,7 +540,7 @@ function BillSuccessContent({
         </div>
       )}
 
-      <div className="space-y-2 rounded-lg bg-muted/40 p-3 text-sm">
+      <div className="bg-muted/40 space-y-2 rounded-lg p-3 text-sm">
         <Row label="Reference" value={success.reference} mono />
         <Row label="New balance" value={naira(success.newBalance)} />
       </div>

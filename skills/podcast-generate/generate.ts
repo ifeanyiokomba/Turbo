@@ -10,11 +10,11 @@
  *   tsx generate.ts --input=material.md --out_dir=out --duration=5
  */
 
-import ZAI from 'z-ai-web-dev-sdk';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import os from 'os';
+import ZAI from "z-ai-web-dev-sdk";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import os from "os";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -23,7 +23,7 @@ const __dirname = path.dirname(__filename);
 // Types
 // -----------------------------
 interface GenConfig {
-  mode: 'dual' | 'single-male' | 'single-female';
+  mode: "dual" | "single-male" | "single-female";
   temperature: number;
   durationManual: number;
   charsPerMin: number;
@@ -41,7 +41,7 @@ interface GenConfig {
 
 interface Segment {
   idx: number;
-  speaker: 'host' | 'guest';
+  speaker: "host" | "guest";
   name: string;
   text: string;
 }
@@ -50,18 +50,18 @@ interface Segment {
 // Config
 // -----------------------------
 const DEFAULT_CONFIG: GenConfig = {
-  mode: 'dual',
+  mode: "dual",
   temperature: 0.9,
   durationManual: 0,
   charsPerMin: 240,
-  hostName: '小谱',
-  guestName: '锤锤',
-  audience: '白领小白',
-  tone: '轻松但有信息密度',
+  hostName: "小谱",
+  guestName: "锤锤",
+  audience: "白领小白",
+  tone: "轻松但有信息密度",
   maxAttempts: 3,
   timeoutSec: 300,
-  voiceHost: 'xiaochen',
-  voiceGuest: 'chuichui',
+  voiceHost: "xiaochen",
+  voiceGuest: "chuichui",
   speed: 1.0,
   pauseMs: 200,
 };
@@ -80,12 +80,12 @@ function parseArgs(): { [key: string]: any } {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg.startsWith('--')) {
+    if (arg.startsWith("--")) {
       const key = arg.slice(2);
-      if (key.includes('=')) {
-        const [k, v] = key.split('=');
+      if (key.includes("=")) {
+        const [k, v] = key.split("=");
         result[k] = v;
-      } else if (i + 1 < args.length && !args[i + 1].startsWith('--')) {
+      } else if (i + 1 < args.length && !args[i + 1].startsWith("--")) {
         result[key] = args[i + 1];
         i++;
       } else {
@@ -98,24 +98,32 @@ function parseArgs(): { [key: string]: any } {
 }
 
 function readText(filePath: string): string {
-  let content = fs.readFileSync(filePath, 'utf-8');
-  content = content.replace(/\r\n/g, '\n');
-  content = content.replace(/\n{3,}/g, '\n\n');
-  content = content.replace(/[ \t]{2,}/g, ' ');
-  content = content.replace(/-\n/g, '');
+  let content = fs.readFileSync(filePath, "utf-8");
+  content = content.replace(/\r\n/g, "\n");
+  content = content.replace(/\n{3,}/g, "\n\n");
+  content = content.replace(/[ \t]{2,}/g, " ");
+  content = content.replace(/-\n/g, "");
   return content.trim();
 }
 
 function countNonWsChars(text: string): number {
-  return text.replace(/\s+/g, '').length;
+  return text.replace(/\s+/g, "").length;
 }
 
-function chooseDurationMinutes(inputChars: number, low: number = DURATION_RANGE_LOW, high: number = DURATION_RANGE_HIGH): number {
+function chooseDurationMinutes(
+  inputChars: number,
+  low: number = DURATION_RANGE_LOW,
+  high: number = DURATION_RANGE_HIGH
+): number {
   const estimated = Math.max(low, Math.min(high, Math.floor(inputChars / 1000)));
   return estimated;
 }
 
-function charBudget(durationMin: number, charsPerMin: number, tolerance: number): [number, number, number] {
+function charBudget(
+  durationMin: number,
+  charsPerMin: number,
+  tolerance: number
+): [number, number, number] {
   const target = durationMin * charsPerMin;
   const low = Math.floor(target * (1 - tolerance));
   const high = Math.ceil(target * (1 + tolerance));
@@ -129,20 +137,19 @@ function buildPrompts(
   budgetTarget: number,
   budgetLow: number,
   budgetHigh: number,
-  attemptHint: string = ''
+  attemptHint: string = ""
 ): [string, string] {
   let system: string;
   let user: string;
 
-  if (cfg.mode === 'dual') {
-    system = (
+  if (cfg.mode === "dual") {
+    system =
       `你是一个播客脚本编剧，擅长把资料提炼成双人对谈播客。` +
       `角色固定为男主持「${cfg.hostName}」与女嘉宾「${cfg.guestName}」。` +
       `你写作口播化、信息密度适中、有呼吸感、节奏自然。` +
-      `你必须严格遵守输出格式与字数预算。`
-    );
+      `你必须严格遵守输出格式与字数预算。`;
 
-    const hintBlock = attemptHint ? `\n【上一次生成纠偏提示】\n${attemptHint}\n` : '';
+    const hintBlock = attemptHint ? `\n【上一次生成纠偏提示】\n${attemptHint}\n` : "";
 
     user = `请把下面【资料】改写为中文播客脚本，形式为双人对谈（男主持 ${cfg.hostName} + 女嘉宾 ${cfg.guestName}）。
 时长目标：${durationMin} 分钟。
@@ -179,17 +186,16 @@ ${hintBlock}
 ${material}
 `;
   } else {
-    const speakerName = cfg.mode === 'single-male' ? cfg.hostName : cfg.guestName;
-    const gender = cfg.mode === 'single-male' ? '男性' : '女性';
+    const speakerName = cfg.mode === "single-male" ? cfg.hostName : cfg.guestName;
+    const gender = cfg.mode === "single-male" ? "男性" : "女性";
 
-    system = (
+    system =
       `你是一个${gender}单人播客主播，名字叫「${speakerName}」。` +
       `你擅长把资料提炼成单人独白式播客，像讲课、读书分享、知识科普一样。` +
       `你写作口播化、信息密度适中、有呼吸感、节奏自然。` +
-      `你必须严格遵守输出格式与字数预算。`
-    );
+      `你必须严格遵守输出格式与字数预算。`;
 
-    const hintBlock = attemptHint ? `\n【上一次生成纠偏提示】\n${attemptHint}\n` : '';
+    const hintBlock = attemptHint ? `\n【上一次生成纠偏提示】\n${attemptHint}\n` : "";
 
     user = `请把下面【资料】改写为中文单人播客脚本，形式为独白式讲述（主播：${speakerName}）。
 时长目标：${durationMin} 分钟。
@@ -238,19 +244,19 @@ async function callZAI(
 
   const completion = await zai.chat.completions.create({
     messages: [
-      { role: 'assistant', content: systemPrompt },
-      { role: 'user', content: userPrompt },
+      { role: "assistant", content: systemPrompt },
+      { role: "user", content: userPrompt },
     ],
-    thinking: { type: 'disabled' },
+    thinking: { type: "disabled" },
   });
 
-  const content = completion.choices[0]?.message?.content || '';
+  const content = completion.choices[0]?.message?.content || "";
   return content;
 }
 
 function scriptToSegments(script: string, hostName: string, guestName: string): Segment[] {
   const segments: Segment[] = [];
-  const lines = script.split('\n');
+  const lines = script.split("\n");
 
   let current: Segment | null = null;
   let idx = 0;
@@ -266,7 +272,7 @@ function scriptToSegments(script: string, hostName: string, guestName: string): 
       idx++;
       current = {
         idx,
-        speaker: 'host',
+        speaker: "host",
         name: hostName,
         text: line.slice(hostPrefix.length).trim(),
       };
@@ -275,14 +281,14 @@ function scriptToSegments(script: string, hostName: string, guestName: string): 
       idx++;
       current = {
         idx,
-        speaker: 'guest',
+        speaker: "guest",
         name: guestName,
         text: line.slice(guestPrefix.length).trim(),
       };
       segments.push(current);
     } else {
       if (current) {
-        current.text = (current.text + ' ' + line).trim();
+        current.text = (current.text + " " + line).trim();
       }
     }
   }
@@ -298,25 +304,25 @@ function validateScript(
 ): [boolean, string[]] {
   const reasons: string[] = [];
 
-  if (cfg.mode === 'dual') {
+  if (cfg.mode === "dual") {
     const hostTag = `**${cfg.hostName}**：`;
     const guestTag = `**${cfg.guestName}**：`;
 
     if (!script.includes(hostTag)) reasons.push(`缺少主持人标识：${hostTag}`);
     if (!script.includes(guestTag)) reasons.push(`缺少嘉宾标识：${guestTag}`);
 
-    const turns = script.split('\n').filter(line =>
-      line.startsWith(hostTag) || line.startsWith(guestTag)
-    );
-    if (turns.length < 8) reasons.push('对谈轮次过少：建议至少 8 轮');
+    const turns = script
+      .split("\n")
+      .filter((line) => line.startsWith(hostTag) || line.startsWith(guestTag));
+    if (turns.length < 8) reasons.push("对谈轮次过少：建议至少 8 轮");
   } else {
-    const speakerName = cfg.mode === 'single-male' ? cfg.hostName : cfg.guestName;
+    const speakerName = cfg.mode === "single-male" ? cfg.hostName : cfg.guestName;
     const speakerTag = `**${speakerName}**：`;
 
     if (!script.includes(speakerTag)) reasons.push(`缺少主播标识：${speakerTag}`);
 
-    const turns = script.split('\n').filter(line => line.startsWith(speakerTag));
-    if (turns.length < 5) reasons.push('播客段数过少：建议至少 5 段');
+    const turns = script.split("\n").filter((line) => line.startsWith(speakerTag));
+    if (turns.length < 5) reasons.push("播客段数过少：建议至少 5 段");
   }
 
   const n = countNonWsChars(script);
@@ -325,7 +331,7 @@ function validateScript(
   }
 
   // 只检查开场和总结，不检查"核心点1/2/3"标签（因为不应该出现在对话中）
-  const mustHave = ['开场', '总结'];
+  const mustHave = ["开场", "总结"];
   for (const kw of mustHave) {
     if (!script.includes(kw)) {
       reasons.push(`缺少结构要素：${kw}（请在对话中自然引入）`);
@@ -333,41 +339,41 @@ function validateScript(
   }
 
   // 检查是否有足够的对话轮次（确保内容覆盖了多个主题）
-  const lineCount = script.split('\n').filter(l => l.trim()).length;
+  const lineCount = script.split("\n").filter((l) => l.trim()).length;
   if (lineCount < 10) {
-    reasons.push('对话轮次过少，建议至少10段对话');
+    reasons.push("对话轮次过少，建议至少10段对话");
   }
 
   return [reasons.length === 0, reasons];
 }
 
-function makeRetryHint(reasons: string[], cfg: GenConfig, budgetLow: number, budgetHigh: number): string {
-  const lines = ['请严格修复以下问题后重新生成：'];
+function makeRetryHint(
+  reasons: string[],
+  cfg: GenConfig,
+  budgetLow: number,
+  budgetHigh: number
+): string {
+  const lines = ["请严格修复以下问题后重新生成："];
   for (const r of reasons) lines.push(`- ${r}`);
   lines.push(`- 总字数必须在 ${budgetLow}-${budgetHigh} 之间。`);
 
-  if (cfg.mode === 'dual') {
+  if (cfg.mode === "dual") {
     lines.push(`- 每段必须以"**${cfg.hostName}**："或"**${cfg.guestName}**："开头。`);
   } else {
-    const speakerName = cfg.mode === 'single-male' ? cfg.hostName : cfg.guestName;
+    const speakerName = cfg.mode === "single-male" ? cfg.hostName : cfg.guestName;
     lines.push(`- 所有内容都由一人讲述，每段必须以"**${speakerName}**："开头。`);
   }
 
   lines.push('- 必须包含开场和总结，中间用自然过渡语连接不同主题，不要出现"核心点1/2/3"等标签。');
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
-async function ttsRequest(
-  zai: any,
-  text: string,
-  voice: string,
-  speed: number
-): Promise<Buffer> {
+async function ttsRequest(zai: any, text: string, voice: string, speed: number): Promise<Buffer> {
   const response = await zai.audio.tts.create({
     input: text,
     voice: voice,
     speed: speed,
-    response_format: 'wav',
+    response_format: "wav",
     stream: false,
   });
 
@@ -376,17 +382,21 @@ async function ttsRequest(
   return buffer;
 }
 
-function ensureSilenceWav(filePath: string, params: { nchannels: number; sampwidth: number; framerate: number }, ms: number): void {
+function ensureSilenceWav(
+  filePath: string,
+  params: { nchannels: number; sampwidth: number; framerate: number },
+  ms: number
+): void {
   const { nchannels, sampwidth, framerate } = params;
   const nframes = Math.floor((framerate * ms) / 1000);
   const silenceFrame = Buffer.alloc(sampwidth * nchannels, 0);
   const frames = Buffer.alloc(silenceFrame.length * nframes, 0);
 
   const header = Buffer.alloc(44);
-  header.write('RIFF', 0);
+  header.write("RIFF", 0);
   header.writeUInt32LE(36 + frames.length, 4);
-  header.write('WAVE', 8);
-  header.write('fmt ', 12);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
   header.writeUInt32LE(16, 16);
   header.writeUInt16LE(1, 20);
   header.writeUInt16LE(nchannels, 22);
@@ -394,7 +404,7 @@ function ensureSilenceWav(filePath: string, params: { nchannels: number; sampwid
   header.writeUInt32LE(framerate * nchannels * sampwidth, 28);
   header.writeUInt16LE(nchannels * sampwidth, 32);
   header.writeUInt16LE(sampwidth * 8, 34);
-  header.write('data', 36);
+  header.write("data", 36);
   header.writeUInt32LE(frames.length, 40);
 
   fs.writeFileSync(filePath, Buffer.concat([header, frames]));
@@ -409,7 +419,7 @@ function wavParams(filePath: string): { nchannels: number; sampwidth: number; fr
 }
 
 function joinWavsWave(outPath: string, wavPaths: string[], pauseMs: number): void {
-  if (wavPaths.length === 0) throw new Error('No wav files to join.');
+  if (wavPaths.length === 0) throw new Error("No wav files to join.");
 
   const ref = wavPaths[0];
   const refParams = wavParams(ref);
@@ -421,13 +431,15 @@ function joinWavsWave(outPath: string, wavPaths: string[], pauseMs: number): voi
   for (let i = 0; i < wavPaths.length; i++) {
     const wavPath = wavPaths[i];
     const buffer = fs.readFileSync(wavPath);
-    const dataStart = buffer.indexOf('data') + 8;
+    const dataStart = buffer.indexOf("data") + 8;
     const data = buffer.subarray(dataStart);
 
     const params = wavParams(wavPath);
-    if (params.nchannels !== refParams.nchannels ||
-        params.sampwidth !== refParams.sampwidth ||
-        params.framerate !== refParams.framerate) {
+    if (
+      params.nchannels !== refParams.nchannels ||
+      params.sampwidth !== refParams.sampwidth ||
+      params.framerate !== refParams.framerate
+    ) {
       throw new Error(`WAV params mismatch: ${wavPath}`);
     }
 
@@ -435,17 +447,17 @@ function joinWavsWave(outPath: string, wavPaths: string[], pauseMs: number): voi
 
     if (pauseMs > 0 && i < wavPaths.length - 1) {
       const silenceBuffer = fs.readFileSync(silencePath);
-      const silenceData = silenceBuffer.subarray(silenceBuffer.indexOf('data') + 8);
+      const silenceData = silenceBuffer.subarray(silenceBuffer.indexOf("data") + 8);
       chunks.push(silenceData);
     }
   }
 
   const totalDataSize = chunks.reduce((sum, buf) => sum + buf.length, 0);
   const header = Buffer.alloc(44);
-  header.write('RIFF', 0);
+  header.write("RIFF", 0);
   header.writeUInt32LE(36 + totalDataSize, 4);
-  header.write('WAVE', 8);
-  header.write('fmt ', 12);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
   header.writeUInt32LE(16, 16);
   header.writeUInt16LE(1, 20);
   header.writeUInt16LE(refParams.nchannels, 22);
@@ -453,7 +465,7 @@ function joinWavsWave(outPath: string, wavPaths: string[], pauseMs: number): voi
   header.writeUInt32LE(refParams.framerate * refParams.nchannels * refParams.sampwidth, 28);
   header.writeUInt16LE(refParams.nchannels * refParams.sampwidth, 32);
   header.writeUInt16LE(refParams.sampwidth * 8, 34);
-  header.write('data', 36);
+  header.write("data", 36);
   header.writeUInt32LE(totalDataSize, 40);
 
   const output = Buffer.concat([header, ...chunks]);
@@ -474,13 +486,13 @@ async function main() {
 
   // 检查参数：必须提供 input 或 topic 之一
   if ((!inputPath && !topic) || !outDir) {
-    console.error('Usage: tsx generate.ts --input=<file> --out_dir=<dir>');
-    console.error('   OR: tsx generate.ts --topic=<search-term> --out_dir=<dir>');
-    console.error('');
-    console.error('Examples:');
-    console.error('  # From file');
-    console.error('  npm run generate -- --input=article.txt --out_dir=out');
-    console.error('  # From web search');
+    console.error("Usage: tsx generate.ts --input=<file> --out_dir=<dir>");
+    console.error("   OR: tsx generate.ts --topic=<search-term> --out_dir=<dir>");
+    console.error("");
+    console.error("Examples:");
+    console.error("  # From file");
+    console.error("  npm run generate -- --input=article.txt --out_dir=out");
+    console.error("  # From web search");
     console.error('  npm run generate -- --topic="最新AI新闻" --out_dir=out');
     process.exit(1);
   }
@@ -488,8 +500,8 @@ async function main() {
   // Merge config
   const cfg: GenConfig = {
     ...DEFAULT_CONFIG,
-    mode: (args.mode || 'dual') as GenConfig['mode'],
-    durationManual: parseInt(args.duration || '0'),
+    mode: (args.mode || "dual") as GenConfig["mode"],
+    durationManual: parseInt(args.duration || "0"),
     hostName: args.host_name || DEFAULT_CONFIG.hostName,
     guestName: args.guest_name || DEFAULT_CONFIG.guestName,
     voiceHost: args.voice_host || DEFAULT_CONFIG.voiceHost,
@@ -517,9 +529,9 @@ async function main() {
     console.log(`[MODE] Searching web for topic: ${topic}`);
     const zai = await ZAI.create();
 
-    const searchResults = await zai.functions.invoke('web_search', {
+    const searchResults = await zai.functions.invoke("web_search", {
       query: topic,
-      num: 10
+      num: 10,
     });
 
     if (!Array.isArray(searchResults) || searchResults.length === 0) {
@@ -532,12 +544,12 @@ async function main() {
     // 将搜索结果转换为文本资料
     material = searchResults
       .map((r: any, i: number) => `【来源 ${i + 1}】${r.name}\n${r.snippet}\n链接：${r.url}`)
-      .join('\n\n');
+      .join("\n\n");
 
     inputSource = `web_search:${topic}`;
     console.log(`[SEARCH] Compiled material (${material.length} chars)`);
   } else {
-    console.error('[ERROR] Neither --input nor --topic provided');
+    console.error("[ERROR] Neither --input nor --topic provided");
     process.exit(1);
   }
 
@@ -555,7 +567,7 @@ async function main() {
 
   console.log(`[INFO] input_chars=${inputChars} duration=${durationMin}min budget=${low}-${high}`);
 
-  let attemptHint = '';
+  let attemptHint = "";
   let lastScript: string | null = null;
 
   // Initialize ZAI SDK (reuse for TTS)
@@ -585,7 +597,7 @@ async function main() {
       }
 
       attemptHint = makeRetryHint(reasons, cfg, low, high);
-      console.error(`[WARN] Validation failed:`, reasons.join(', '));
+      console.error(`[WARN] Validation failed:`, reasons.join(", "));
     } catch (error: any) {
       console.error(`[ERROR] LLM call failed: ${error.message}`);
       throw error;
@@ -593,13 +605,13 @@ async function main() {
   }
 
   if (!lastScript) {
-    console.error('[ERROR] 未生成任何脚本输出。');
+    console.error("[ERROR] 未生成任何脚本输出。");
     process.exit(1);
   }
 
   // Write script
-  const scriptPath = path.join(outDir, 'podcast_script.md');
-  fs.writeFileSync(scriptPath, lastScript, 'utf-8');
+  const scriptPath = path.join(outDir, "podcast_script.md");
+  fs.writeFileSync(scriptPath, lastScript, "utf-8");
   console.log(`[DONE] podcast_script.md -> ${scriptPath}`);
 
   // Parse segments
@@ -607,7 +619,7 @@ async function main() {
   console.log(`[INFO] Parsed ${segments.length} segments`);
 
   // Generate TTS using SDK
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'podcast_segments_'));
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "podcast_segments_"));
   const produced: string[] = [];
 
   try {
@@ -617,17 +629,19 @@ async function main() {
       if (!text) continue;
 
       let voice: string;
-      if (cfg.mode === 'dual') {
-        voice = seg.speaker === 'host' ? cfg.voiceHost : cfg.voiceGuest;
-      } else if (cfg.mode === 'single-male') {
+      if (cfg.mode === "dual") {
+        voice = seg.speaker === "host" ? cfg.voiceHost : cfg.voiceGuest;
+      } else if (cfg.mode === "single-male") {
         voice = cfg.voiceHost;
       } else {
         voice = cfg.voiceGuest;
       }
 
-      const wavPath = path.join(tmpDir, `seg_${seg.idx.toString().padStart(4, '0')}.wav`);
+      const wavPath = path.join(tmpDir, `seg_${seg.idx.toString().padStart(4, "0")}.wav`);
 
-      console.log(`[TTS] [${i + 1}/${segments.length}] idx=${seg.idx} speaker=${seg.speaker} voice=${voice}`);
+      console.log(
+        `[TTS] [${i + 1}/${segments.length}] idx=${seg.idx} speaker=${seg.speaker} voice=${voice}`
+      );
 
       const buffer = await ttsRequest(zai, text, voice, cfg.speed);
       fs.writeFileSync(wavPath, buffer);
@@ -635,12 +649,11 @@ async function main() {
     }
 
     // Join segments
-    const podcastPath = path.join(outDir, 'podcast.wav');
+    const podcastPath = path.join(outDir, "podcast.wav");
     console.log(`[JOIN] Joining ${produced.length} wav files -> ${podcastPath}`);
 
     joinWavsWave(podcastPath, produced, cfg.pauseMs);
     console.log(`[DONE] podcast.wav -> ${podcastPath}`);
-
   } finally {
     // Cleanup temp directory
     try {
@@ -650,12 +663,12 @@ async function main() {
     }
   }
 
-  console.log('\n[FINAL OUTPUT]');
+  console.log("\n[FINAL OUTPUT]");
   console.log(`  📄 podcast_script.md -> ${scriptPath}`);
-  console.log(`  🎙️  podcast.wav       -> ${path.join(outDir, 'podcast.wav')}`);
+  console.log(`  🎙️  podcast.wav       -> ${path.join(outDir, "podcast.wav")}`);
 }
 
-main().catch(error => {
-  console.error('[FATAL ERROR]', error);
+main().catch((error) => {
+  console.error("[FATAL ERROR]", error);
   process.exit(1);
 });

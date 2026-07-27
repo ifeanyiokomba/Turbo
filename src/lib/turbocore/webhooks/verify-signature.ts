@@ -35,11 +35,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
 export type WebhookAlgorithm =
-  | "hmac-sha512"
-  | "hmac-sha256"
-  | "hmac-sha512-base64"
-  | "plain-equal"
-  | "none";
+  "hmac-sha512" | "hmac-sha256" | "hmac-sha512-base64" | "plain-equal" | "none";
 
 export interface ProviderSignatureSpec {
   header: string;
@@ -72,11 +68,7 @@ export function getSignatureHeader(provider: string): string {
 }
 
 /** Compute the HMAC digest string for the given algorithm (hex or base64). */
-function computeExpected(
-  algorithm: WebhookAlgorithm,
-  payload: string,
-  secret: string,
-): string {
+function computeExpected(algorithm: WebhookAlgorithm, payload: string, secret: string): string {
   switch (algorithm) {
     case "hmac-sha512":
       return createHmac("sha512", secret).update(payload, "utf8").digest("hex");
@@ -132,7 +124,7 @@ export function verifyWebhookSignature(
   provider: string,
   payload: string,
   signature: string | null | undefined,
-  secret: string | null | undefined,
+  secret: string | null | undefined
 ): VerifyResult {
   const spec = getSignatureSpec(provider);
   const providerKey = provider.toLowerCase();
@@ -180,7 +172,7 @@ export function verifyWebhookHeaders(
   provider: string,
   payload: string,
   headers: Headers,
-  secret: string | null,
+  secret: string | null
 ): VerifyResult {
   const spec = getSignatureSpec(provider);
   if (spec.algorithm === "none") {

@@ -21,17 +21,8 @@ import { creditWallet, debitWallet, LedgerError } from "@/lib/ledger";
 import { RefType, TxDirection, TxState, TxStatus, TxType } from "@/lib/constants";
 import { generateReference } from "@/lib/money";
 import { getPublicClient, getServerWalletClient, hasTreasuryKey } from "@/lib/wagmi";
-import {
-  TREASURY_ADDRESS,
-  getToken,
-  CELO_MAINNET_CHAIN_ID,
-} from "@/lib/minipay";
-import {
-  erc20Abi,
-  parseUnits,
-  encodeFunctionData,
-  getAddress,
-} from "viem";
+import { TREASURY_ADDRESS, getToken, CELO_MAINNET_CHAIN_ID } from "@/lib/minipay";
+import { erc20Abi, parseUnits, encodeFunctionData, getAddress } from "viem";
 import type { Address, Hash } from "viem";
 
 export const runtime = "nodejs";
@@ -75,8 +66,7 @@ export async function POST(req: Request) {
     if (!pin) throw new ServiceError("PIN is required", 400, "PIN_REQUIRED");
 
     const token = getToken(tokenSymbol, chainId);
-    if (!token)
-      throw new ServiceError("Unsupported token: " + tokenSymbol, 400, "TOKEN_NOT_FOUND");
+    if (!token) throw new ServiceError("Unsupported token: " + tokenSymbol, 400, "TOKEN_NOT_FOUND");
 
     // Require linked CeloWallet — this is the recipient of the onchain transfer.
     const celoWallet = await db.celoWallet.findUnique({ where: { userId: user.id } });
@@ -390,7 +380,7 @@ export async function POST(req: Request) {
           transaction: onchain,
           reversed: true,
         },
-        502,
+        502
       );
     }
   } catch (e) {

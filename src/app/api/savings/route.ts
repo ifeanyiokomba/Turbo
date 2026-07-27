@@ -10,13 +10,7 @@ import {
   ServiceError,
 } from "@/lib/api";
 import { creditWallet, debitWallet, LedgerError } from "@/lib/ledger";
-import {
-  RefType,
-  TxDirection,
-  TxState,
-  TxStatus,
-  TxType,
-} from "@/lib/constants";
+import { RefType, TxDirection, TxState, TxStatus, TxType } from "@/lib/constants";
 import { generateReference, naira } from "@/lib/money";
 
 interface SavingsProductDTO {
@@ -101,7 +95,7 @@ export async function GET() {
     const totalSaved = mySavings.reduce((s, x) => s + x.balanceKobo, 0);
     const estInterest = mySavings.reduce(
       (s, x) => s + Math.round((x.balanceKobo * x.product.interestBps) / 10_000),
-      0,
+      0
     );
 
     return json({
@@ -159,7 +153,7 @@ export async function POST(req: Request) {
         throw new ServiceError(
           `Minimum deposit is ${naira(product.minAmountKobo)}`,
           400,
-          "MIN_AMOUNT",
+          "MIN_AMOUNT"
         );
 
       const reference = generateReference("SAV");
@@ -211,7 +205,13 @@ export async function POST(req: Request) {
         severity: "INFO",
         ip: getClientIp(req),
         userAgent: getUserAgent(req),
-        metadata: { productId, productName: product.name, amountKobo, reference, savingsBalance: newSavingsBalance },
+        metadata: {
+          productId,
+          productName: product.name,
+          amountKobo,
+          reference,
+          savingsBalance: newSavingsBalance,
+        },
       });
 
       return json({
@@ -234,13 +234,13 @@ export async function POST(req: Request) {
       });
       if (firstDeposit) {
         const unlockAt = new Date(
-          firstDeposit.createdAt.getTime() + product.lockDays * 24 * 60 * 60 * 1000,
+          firstDeposit.createdAt.getTime() + product.lockDays * 24 * 60 * 60 * 1000
         );
         if (unlockAt > new Date()) {
           throw new ServiceError(
             `Locked until ${unlockAt.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })}`,
             400,
-            "LOCKED",
+            "LOCKED"
           );
         }
       }
@@ -295,7 +295,13 @@ export async function POST(req: Request) {
       severity: "INFO",
       ip: getClientIp(req),
       userAgent: getUserAgent(req),
-      metadata: { productId, productName: product.name, amountKobo, reference, savingsBalance: newSavingsBalance },
+      metadata: {
+        productId,
+        productName: product.name,
+        amountKobo,
+        reference,
+        savingsBalance: newSavingsBalance,
+      },
     });
 
     return json({

@@ -12,12 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -441,7 +436,10 @@ export default function PaymentLinksView() {
   }
 
   const totals = React.useMemo(() => {
-    let views = 0, payments = 0, collected = 0, conversion = 0;
+    let views = 0,
+      payments = 0,
+      collected = 0,
+      conversion = 0;
     for (const l of links) {
       if (l.analytics) {
         views += l.analytics.views;
@@ -454,7 +452,7 @@ export default function PaymentLinksView() {
   }, [links]);
 
   return (
-    <div className="space-y-6 tp-fade-rise">
+    <div className="tp-fade-rise space-y-6">
       <PageHeader
         title="Payment Links"
         subtitle="Create shareable links to accept payments from anyone, anywhere."
@@ -463,7 +461,12 @@ export default function PaymentLinksView() {
             <Button variant="outline" size="sm" onClick={load} className="gap-1.5">
               <RefreshCw className="h-4 w-4" /> Refresh
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setBulkOpen(true)} className="gap-1.5">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setBulkOpen(true)}
+              className="gap-1.5"
+            >
               <Layers className="h-4 w-4" /> Bulk
             </Button>
             <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5">
@@ -475,10 +478,34 @@ export default function PaymentLinksView() {
 
       {links.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatTile label="Total views" value={String(totals.views)} hint="Across all links" icon={Eye} tone="emerald" />
-          <StatTile label="Successful payments" value={String(totals.payments)} hint="All links" icon={CheckCircle2} tone="emerald" />
-          <StatTile label="Conversion rate" value={`${totals.conversion}%`} hint="Payments / views" icon={TrendingUp} tone="amber" />
-          <StatTile label="Total collected" value={nairaCompact(totals.collected)} hint="All currencies converted" icon={DollarSign} tone="emerald" />
+          <StatTile
+            label="Total views"
+            value={String(totals.views)}
+            hint="Across all links"
+            icon={Eye}
+            tone="emerald"
+          />
+          <StatTile
+            label="Successful payments"
+            value={String(totals.payments)}
+            hint="All links"
+            icon={CheckCircle2}
+            tone="emerald"
+          />
+          <StatTile
+            label="Conversion rate"
+            value={`${totals.conversion}%`}
+            hint="Payments / views"
+            icon={TrendingUp}
+            tone="amber"
+          />
+          <StatTile
+            label="Total collected"
+            value={nairaCompact(totals.collected)}
+            hint="All currencies converted"
+            icon={DollarSign}
+            tone="emerald"
+          />
         </div>
       )}
 
@@ -489,7 +516,9 @@ export default function PaymentLinksView() {
         </div>
         {loading ? (
           <div className="space-y-3">
-            {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-32 w-full rounded-xl" />
+            ))}
           </div>
         ) : links.length === 0 ? (
           <EmptyState
@@ -534,12 +563,18 @@ export default function PaymentLinksView() {
                               : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
                           }`}
                         >
-                          {active ? "Active" : expired ? "Expired" : exhausted ? "Exhausted" : link.status}
+                          {active
+                            ? "Active"
+                            : expired
+                              ? "Expired"
+                              : exhausted
+                                ? "Exhausted"
+                                : link.status}
                         </Badge>
                       </div>
                       <button
                         onClick={() => copySlug(link)}
-                        className="mt-1 flex items-center gap-1.5 font-mono text-xs text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground mt-1 flex items-center gap-1.5 font-mono text-xs"
                       >
                         {link.slug}
                         {copiedSlug === link.slug ? (
@@ -548,31 +583,44 @@ export default function PaymentLinksView() {
                           <Copy className="h-3 w-3" />
                         )}
                       </button>
-                      <p className="mt-2 text-xs text-muted-foreground">
+                      <p className="text-muted-foreground mt-2 text-xs">
                         {link.amountMinor > 0
                           ? formatMoney(link.amountMinor, link.currency)
                           : "Any amount"}
                         {" · "}
-                        {link.usesCount}{link.maxUses > 0 ? `/${link.maxUses}` : ""} uses
+                        {link.usesCount}
+                        {link.maxUses > 0 ? `/${link.maxUses}` : ""} uses
                         {link.expiresAt && ` · expires ${timeAgo(link.expiresAt)}`}
                       </p>
 
                       {a && (
-                        <div className="mt-3 grid grid-cols-4 gap-1 rounded-xl border bg-muted/20 p-2 text-center">
+                        <div className="bg-muted/20 mt-3 grid grid-cols-4 gap-1 rounded-xl border p-2 text-center">
                           <div>
-                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Views</p>
+                            <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
+                              Views
+                            </p>
                             <p className="text-sm font-semibold tabular-nums">{a.views}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Pays</p>
-                            <p className="text-sm font-semibold tabular-nums">{a.successfulPayments}</p>
+                            <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
+                              Pays
+                            </p>
+                            <p className="text-sm font-semibold tabular-nums">
+                              {a.successfulPayments}
+                            </p>
                           </div>
                           <div>
-                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Conv.</p>
-                            <p className="text-sm font-semibold tabular-nums">{a.conversionRate}%</p>
+                            <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
+                              Conv.
+                            </p>
+                            <p className="text-sm font-semibold tabular-nums">
+                              {a.conversionRate}%
+                            </p>
                           </div>
                           <div>
-                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total</p>
+                            <p className="text-muted-foreground text-[10px] tracking-wide uppercase">
+                              Total
+                            </p>
                             <p className="text-sm font-semibold tabular-nums">
                               {nairaCompact(a.totalCollectedMinor)}
                             </p>
@@ -583,23 +631,57 @@ export default function PaymentLinksView() {
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <Button size="sm" variant="secondary" className="gap-1.5" onClick={() => openShare(link)}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="gap-1.5"
+                      onClick={() => openShare(link)}
+                    >
                       <QrCode className="h-3.5 w-3.5" /> Share
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openPreview(link)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5"
+                      onClick={() => openPreview(link)}
+                    >
                       <Eye className="h-3.5 w-3.5" /> Preview
                     </Button>
-                    <Button size="sm" variant="outline" className="gap-1.5" onClick={() => viewAnalytics(link)}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5"
+                      onClick={() => viewAnalytics(link)}
+                    >
                       <BarChart3 className="h-3.5 w-3.5" /> Analytics
                     </Button>
-                    <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => setEmbedFor(link)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="gap-1.5"
+                      onClick={() => setEmbedFor(link)}
+                    >
                       <Code2 className="h-3.5 w-3.5" /> Embed
                     </Button>
-                    <Button size="sm" variant="ghost" className="gap-1.5" onClick={() => toggleStatus(link)}>
-                      {link.status === "ACTIVE" ? <Ban className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="gap-1.5"
+                      onClick={() => toggleStatus(link)}
+                    >
+                      {link.status === "ACTIVE" ? (
+                        <Ban className="h-3.5 w-3.5" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      )}
                       {link.status === "ACTIVE" ? "Disable" : "Enable"}
                     </Button>
-                    <Button size="sm" variant="ghost" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => deleteLink(link)}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive gap-1.5"
+                      onClick={() => deleteLink(link)}
+                    >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -612,7 +694,7 @@ export default function PaymentLinksView() {
 
       {/* ============ Create dialog with customization ============ */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto max-w-lg">
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create payment link</DialogTitle>
             <DialogDescription>
@@ -663,14 +745,18 @@ export default function PaymentLinksView() {
                 </div>
                 <div className="space-y-2">
                   <Label>Currency</Label>
-                  <Select value={form.currency} onValueChange={(v) => setForm((f) => ({ ...f, currency: v }))}>
+                  <Select
+                    value={form.currency}
+                    onValueChange={(v) => setForm((f) => ({ ...f, currency: v }))}
+                  >
                     <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       {LINK_CURRENCIES.map((c) => (
                         <SelectItem key={c.code} value={c.code}>
-                          <span className="mr-2">{c.flag}</span>{c.code}
+                          <span className="mr-2">{c.flag}</span>
+                          {c.code}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -685,7 +771,9 @@ export default function PaymentLinksView() {
                     inputMode="numeric"
                     placeholder="0"
                     value={form.maxUses}
-                    onChange={(e) => setForm((f) => ({ ...f, maxUses: e.target.value.replace(/[^\d]/g, "") }))}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, maxUses: e.target.value.replace(/[^\d]/g, "") }))
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -703,11 +791,11 @@ export default function PaymentLinksView() {
                   type="checkbox"
                   checked={form.allowCustomAmount}
                   onChange={(e) => setForm((f) => ({ ...f, allowCustomAmount: e.target.checked }))}
-                  className="h-4 w-4 rounded border-input"
+                  className="border-input h-4 w-4 rounded"
                 />
                 <div>
                   <p className="font-medium">Allow customer to choose amount</p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-muted-foreground text-xs">
                     If checked, payers can override the amount.
                   </p>
                 </div>
@@ -724,7 +812,9 @@ export default function PaymentLinksView() {
                       type="button"
                       onClick={() => setForm((f) => ({ ...f, themeColor: c.value }))}
                       className={`flex h-8 w-8 items-center justify-center rounded-full border-2 transition-all ${
-                        form.themeColor === c.value ? "border-foreground scale-110" : "border-transparent"
+                        form.themeColor === c.value
+                          ? "border-foreground scale-110"
+                          : "border-transparent"
                       }`}
                       style={{ backgroundColor: c.value }}
                       aria-label={c.name}
@@ -753,7 +843,7 @@ export default function PaymentLinksView() {
                     <Upload className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Or we&apos;ll use the first 2 letters of your title as a logo.
                 </p>
               </div>
@@ -790,9 +880,15 @@ export default function PaymentLinksView() {
             </TabsContent>
           </Tabs>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleCreate} disabled={creating} className="gap-1.5">
-              {creating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {creating ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
               Create link
             </Button>
           </DialogFooter>
@@ -830,14 +926,14 @@ export default function PaymentLinksView() {
                   </div>
                 </div>
                 <p className="mt-3 text-sm font-semibold">{shareLink.title}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   {shareLink.amountMinor > 0
                     ? formatMoney(shareLink.amountMinor, shareLink.currency)
                     : "Any amount"}
                 </p>
               </div>
-              <div className="rounded-xl border bg-muted/30 p-3">
-                <p className="text-xs text-muted-foreground">Reference</p>
+              <div className="bg-muted/30 rounded-xl border p-3">
+                <p className="text-muted-foreground text-xs">Reference</p>
                 <button
                   onClick={() => copySlug(shareLink)}
                   className="mt-1 flex w-full items-center justify-between gap-2 font-mono text-sm font-semibold"
@@ -846,7 +942,7 @@ export default function PaymentLinksView() {
                   {copiedSlug === shareLink.slug ? (
                     <Check className="h-4 w-4 text-emerald-600" />
                   ) : (
-                    <Copy className="h-4 w-4 text-muted-foreground" />
+                    <Copy className="text-muted-foreground h-4 w-4" />
                   )}
                 </button>
               </div>
@@ -862,7 +958,7 @@ export default function PaymentLinksView() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-primary" /> Payment page preview
+              <Eye className="text-primary h-5 w-5" /> Payment page preview
             </DialogTitle>
             <DialogDescription>
               This is what your customers will see when they open the link.
@@ -883,14 +979,12 @@ export default function PaymentLinksView() {
       </Dialog>
 
       <Dialog open={!!analyticsFor} onOpenChange={(o) => !o && setAnalyticsFor(null)}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto max-w-lg">
+        <DialogContent className="max-h-[90vh] max-w-lg overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-primary" /> Analytics
+              <BarChart3 className="text-primary h-5 w-5" /> Analytics
             </DialogTitle>
-            <DialogDescription>
-              {analyticsFor?.title}
-            </DialogDescription>
+            <DialogDescription>{analyticsFor?.title}</DialogDescription>
           </DialogHeader>
           {analyticsLoading ? (
             <div className="space-y-3 py-2">
@@ -900,15 +994,33 @@ export default function PaymentLinksView() {
           ) : detailedAnalytics ? (
             <div className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <AnalyticsTile label="Views" value={String(detailedAnalytics.analytics.views)} icon={Eye} />
-                <AnalyticsTile label="Attempts" value={String(detailedAnalytics.analytics.paymentAttempts)} icon={Users} />
-                <AnalyticsTile label="Paid" value={String(detailedAnalytics.analytics.successfulPayments)} icon={CheckCircle2} />
-                <AnalyticsTile label="Failed" value={String(detailedAnalytics.analytics.failedPayments)} icon={AlertTriangle} />
+                <AnalyticsTile
+                  label="Views"
+                  value={String(detailedAnalytics.analytics.views)}
+                  icon={Eye}
+                />
+                <AnalyticsTile
+                  label="Attempts"
+                  value={String(detailedAnalytics.analytics.paymentAttempts)}
+                  icon={Users}
+                />
+                <AnalyticsTile
+                  label="Paid"
+                  value={String(detailedAnalytics.analytics.successfulPayments)}
+                  icon={CheckCircle2}
+                />
+                <AnalyticsTile
+                  label="Failed"
+                  value={String(detailedAnalytics.analytics.failedPayments)}
+                  icon={AlertTriangle}
+                />
               </div>
-              <div className="rounded-xl border bg-muted/30 p-4">
+              <div className="bg-muted/30 rounded-xl border p-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Conversion rate</span>
-                  <span className="font-semibold tabular-nums">{detailedAnalytics.analytics.conversionRate}%</span>
+                  <span className="font-semibold tabular-nums">
+                    {detailedAnalytics.analytics.conversionRate}%
+                  </span>
                 </div>
                 <Progress
                   className="mt-2 h-2"
@@ -916,39 +1028,45 @@ export default function PaymentLinksView() {
                 />
               </div>
               <div className="rounded-xl border bg-emerald-500/5 p-4">
-                <p className="text-xs text-muted-foreground">Total collected</p>
-                <p className="mt-1 text-2xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                <p className="text-muted-foreground text-xs">Total collected</p>
+                <p className="mt-1 text-2xl font-bold text-emerald-600 tabular-nums dark:text-emerald-400">
                   {formatMoney(
                     detailedAnalytics.analytics.totalCollectedMinor,
-                    detailedAnalytics.analytics.currency,
+                    detailedAnalytics.analytics.currency
                   )}
                 </p>
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <p className="text-muted-foreground mb-2 text-xs font-semibold tracking-wide uppercase">
                   Recent payments
                 </p>
                 {detailedAnalytics.recentPayments.length === 0 ? (
-                  <p className="rounded-xl border border-dashed p-4 text-center text-xs text-muted-foreground">
+                  <p className="text-muted-foreground rounded-xl border border-dashed p-4 text-center text-xs">
                     No payments yet.
                   </p>
                 ) : (
-                  <ul className="max-h-60 space-y-2 overflow-y-auto pr-1 scrollbar-thin">
+                  <ul className="scrollbar-thin max-h-60 space-y-2 overflow-y-auto pr-1">
                     {detailedAnalytics.recentPayments.map((p) => (
                       <li key={p.id} className="flex items-center gap-3 rounded-lg border p-2.5">
-                        <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                          p.status === "SUCCESS"
-                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                            : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-                        }`}>
-                          {p.status === "SUCCESS" ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                        <div
+                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                            p.status === "SUCCESS"
+                              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                              : "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                          }`}
+                        >
+                          {p.status === "SUCCESS" ? (
+                            <CheckCircle2 className="h-4 w-4" />
+                          ) : (
+                            <AlertTriangle className="h-4 w-4" />
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-xs font-medium">
                             {p.payerName ?? p.payerEmail ?? "Anonymous"}
                           </p>
-                          <p className="truncate text-[11px] text-muted-foreground">
+                          <p className="text-muted-foreground truncate text-[11px]">
                             {timeAgo(p.createdAt)}
                           </p>
                         </div>
@@ -971,7 +1089,7 @@ export default function PaymentLinksView() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Code2 className="h-5 w-5 text-primary" /> Embed code
+              <Code2 className="text-primary h-5 w-5" /> Embed code
             </DialogTitle>
             <DialogDescription>
               Copy this snippet and paste it into your website&apos;s HTML.
@@ -979,14 +1097,18 @@ export default function PaymentLinksView() {
           </DialogHeader>
           {embedFor && (
             <div className="space-y-3 py-2">
-              <pre className="max-h-64 overflow-auto rounded-xl border bg-muted/30 p-3 text-[11px] leading-relaxed scrollbar-thin">
+              <pre className="bg-muted/30 scrollbar-thin max-h-64 overflow-auto rounded-xl border p-3 text-[11px] leading-relaxed">
                 <code>{buildEmbedCode(embedFor)}</code>
               </pre>
               <Button className="w-full gap-1.5" onClick={() => copyEmbed(embedFor)}>
-                {copiedEmbed ? <Check className="h-4 w-4 text-emerald-600" /> : <Copy className="h-4 w-4" />}
+                {copiedEmbed ? (
+                  <Check className="h-4 w-4 text-emerald-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
                 Copy embed code
               </Button>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 The button opens the Turbopay payment page in a new tab.
               </p>
             </div>
@@ -1003,24 +1125,32 @@ export default function PaymentLinksView() {
           <div className="py-2">
             {paymentsLoading ? (
               <div className="space-y-2">
-                {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full rounded-md" />)}
+                {[0, 1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-14 w-full rounded-md" />
+                ))}
               </div>
             ) : payments.length === 0 ? (
-              <EmptyState icon={Tag} title="No payments yet" description="Share your link to start receiving payments." />
+              <EmptyState
+                icon={Tag}
+                title="No payments yet"
+                description="Share your link to start receiving payments."
+              />
             ) : (
-              <div className="max-h-96 space-y-2 overflow-y-auto scrollbar-thin">
+              <div className="scrollbar-thin max-h-96 space-y-2 overflow-y-auto">
                 {payments.map((p) => (
                   <div key={p.id} className="flex items-center gap-3 rounded-xl border p-3">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
                       <CheckCircle2 className="h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{p.payerName ?? p.payerEmail ?? "Anonymous payer"}</p>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="truncate text-sm font-medium">
+                        {p.payerName ?? p.payerEmail ?? "Anonymous payer"}
+                      </p>
+                      <p className="text-muted-foreground truncate text-xs">
                         {p.reference} · {timeAgo(p.createdAt)}
                       </p>
                     </div>
-                    <p className="text-sm font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                    <p className="text-sm font-semibold text-emerald-600 tabular-nums dark:text-emerald-400">
                       +{formatMoney(p.amountMinor, p.currency)}
                     </p>
                   </div>
@@ -1058,13 +1188,13 @@ function StatTile({
   return (
     <Card className="tp-card-hover p-5">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-medium text-muted-foreground">{label}</p>
+        <p className="text-muted-foreground text-xs font-medium">{label}</p>
         <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${bg}`}>
           <Icon className="h-4 w-4" />
         </div>
       </div>
       <p className="mt-2.5 text-2xl font-bold tabular-nums">{value}</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
+      <p className="text-muted-foreground mt-0.5 text-xs">{hint}</p>
     </Card>
   );
 }
@@ -1079,10 +1209,10 @@ function AnalyticsTile({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="rounded-xl border bg-muted/30 p-3 text-center">
-      <Icon className="mx-auto h-4 w-4 text-muted-foreground" />
+    <div className="bg-muted/30 rounded-xl border p-3 text-center">
+      <Icon className="text-muted-foreground mx-auto h-4 w-4" />
       <p className="mt-1.5 text-lg font-bold tabular-nums">{value}</p>
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="text-muted-foreground text-[10px] tracking-wide uppercase">{label}</p>
     </div>
   );
 }
@@ -1106,21 +1236,20 @@ function LinkPreviewCard({
 }) {
   return (
     <div className="overflow-hidden rounded-2xl border">
-      <div className="p-5 text-white" style={{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }}>
+      <div
+        className="p-5 text-white"
+        style={{ background: `linear-gradient(135deg, ${themeColor}, ${themeColor}dd)` }}
+      >
         <div className="flex items-center gap-3">
           {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt={title}
-              className="h-10 w-10 rounded-lg object-cover"
-            />
+            <img src={logoUrl} alt={title} className="h-10 w-10 rounded-lg object-cover" />
           ) : (
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20 text-sm font-bold">
               {title.slice(0, 2).toUpperCase()}
             </div>
           )}
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-white/80">
+            <p className="text-[10px] font-semibold tracking-widest text-white/80 uppercase">
               Pay {merchantName}
             </p>
             <p className="text-sm font-bold">{title}</p>
@@ -1128,11 +1257,9 @@ function LinkPreviewCard({
         </div>
       </div>
       <div className="space-y-3 p-5">
-        {description && (
-          <p className="text-sm text-muted-foreground">{description}</p>
-        )}
-        <div className="rounded-xl border bg-muted/30 p-3">
-          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Amount</p>
+        {description && <p className="text-muted-foreground text-sm">{description}</p>}
+        <div className="bg-muted/30 rounded-xl border p-3">
+          <p className="text-muted-foreground text-[10px] tracking-wide uppercase">Amount</p>
           <p className="mt-0.5 text-xl font-bold tabular-nums">
             {amountMinor > 0 ? formatMoney(amountMinor, currency) : "Customer chooses"}
           </p>
@@ -1141,9 +1268,10 @@ function LinkPreviewCard({
           className="w-full gap-1.5"
           style={{ backgroundColor: themeColor, borderColor: themeColor }}
         >
-          <Sparkles className="h-4 w-4" /> Pay {amountMinor > 0 ? formatMoney(amountMinor, currency) : "now"}
+          <Sparkles className="h-4 w-4" /> Pay{" "}
+          {amountMinor > 0 ? formatMoney(amountMinor, currency) : "now"}
         </Button>
-        <p className="text-center text-[11px] text-muted-foreground">
+        <p className="text-muted-foreground text-center text-[11px]">
           Secured by Turbopay · NDPR-aware
         </p>
       </div>
@@ -1164,14 +1292,14 @@ function BulkCreateDialog({
   defaultCurrency: string;
   defaultTheme: string;
 }) {
-  const [rows, setRows] = React.useState<Array<{
-    title: string;
-    amountInput: string;
-    currency: string;
-    themeColor: string;
-  }>>([
-    { title: "", amountInput: "", currency: defaultCurrency, themeColor: defaultTheme },
-  ]);
+  const [rows, setRows] = React.useState<
+    Array<{
+      title: string;
+      amountInput: string;
+      currency: string;
+      themeColor: string;
+    }>
+  >([{ title: "", amountInput: "", currency: defaultCurrency, themeColor: defaultTheme }]);
   const [csvOpen, setCsvOpen] = React.useState(false);
   const [csvText, setCsvText] = React.useState("");
   const [creating, setCreating] = React.useState(false);
@@ -1220,7 +1348,9 @@ function BulkCreateDialog({
         return;
       }
       onBulkCreate(valid);
-      setRows([{ title: "", amountInput: "", currency: defaultCurrency, themeColor: defaultTheme }]);
+      setRows([
+        { title: "", amountInput: "", currency: defaultCurrency, themeColor: defaultTheme },
+      ]);
     } finally {
       setCreating(false);
     }
@@ -1228,22 +1358,28 @@ function BulkCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Layers className="h-5 w-5 text-primary" /> Bulk create payment links
+            <Layers className="text-primary h-5 w-5" /> Bulk create payment links
           </DialogTitle>
           <DialogDescription>
-            Add multiple links at once. Fill the form, or paste CSV with format: title,amount,currency,themeColor
+            Add multiple links at once. Fill the form, or paste CSV with format:
+            title,amount,currency,themeColor
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-2">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
               {rows.length} row{rows.length === 1 ? "" : "s"}
             </p>
             <div className="flex gap-2">
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setCsvOpen(!csvOpen)}>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => setCsvOpen(!csvOpen)}
+              >
                 <Upload className="h-3.5 w-3.5" /> CSV
               </Button>
               <Button size="sm" variant="outline" className="gap-1.5" onClick={addRow}>
@@ -1253,7 +1389,7 @@ function BulkCreateDialog({
           </div>
 
           {csvOpen && (
-            <div className="space-y-2 rounded-xl border bg-muted/30 p-3">
+            <div className="bg-muted/30 space-y-2 rounded-xl border p-3">
               <Label htmlFor="csv-text">Paste CSV</Label>
               <Textarea
                 id="csv-text"
@@ -1263,38 +1399,59 @@ function BulkCreateDialog({
                 rows={4}
                 className="font-mono text-xs"
               />
-              <Button size="sm" onClick={parseCsv}>Parse CSV</Button>
+              <Button size="sm" onClick={parseCsv}>
+                Parse CSV
+              </Button>
             </div>
           )}
 
           <div className="space-y-2">
             {rows.map((row, i) => (
               <div key={i} className="flex items-center gap-2 rounded-xl border p-2">
-                <span className="w-6 text-center text-xs font-semibold text-muted-foreground">{i + 1}</span>
+                <span className="text-muted-foreground w-6 text-center text-xs font-semibold">
+                  {i + 1}
+                </span>
                 <Input
                   placeholder="Title"
                   value={row.title}
-                  onChange={(e) => setRows((r) => r.map((x, idx) => idx === i ? { ...x, title: e.target.value } : x))}
+                  onChange={(e) =>
+                    setRows((r) =>
+                      r.map((x, idx) => (idx === i ? { ...x, title: e.target.value } : x))
+                    )
+                  }
                   className="text-sm"
                 />
                 <Input
                   inputMode="decimal"
                   placeholder="Amount"
                   value={row.amountInput}
-                  onChange={(e) => setRows((r) => r.map((x, idx) => idx === i ? { ...x, amountInput: e.target.value } : x))}
+                  onChange={(e) =>
+                    setRows((r) =>
+                      r.map((x, idx) => (idx === i ? { ...x, amountInput: e.target.value } : x))
+                    )
+                  }
                   className="w-24 text-sm"
                 />
-                <Select value={row.currency} onValueChange={(v) => setRows((r) => r.map((x, idx) => idx === i ? { ...x, currency: v } : x))}>
-                  <SelectTrigger className="w-20 text-sm"><SelectValue /></SelectTrigger>
+                <Select
+                  value={row.currency}
+                  onValueChange={(v) =>
+                    setRows((r) => r.map((x, idx) => (idx === i ? { ...x, currency: v } : x)))
+                  }
+                >
+                  <SelectTrigger className="w-20 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
                   <SelectContent>
                     {LINK_CURRENCIES.map((c) => (
-                      <SelectItem key={c.code} value={c.code}>{c.code}</SelectItem>
+                      <SelectItem key={c.code} value={c.code}>
+                        {c.code}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <button
                   onClick={() => removeRow(i)}
-                  className="flex h-8 w-8 items-center justify-center rounded-md text-destructive hover:bg-destructive/10"
+                  className="text-destructive hover:bg-destructive/10 flex h-8 w-8 items-center justify-center rounded-md"
                   aria-label="Remove row"
                   disabled={rows.length === 1}
                 >
@@ -1305,9 +1462,15 @@ function BulkCreateDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
           <Button onClick={handleCreate} disabled={creating} className="gap-1.5">
-            {creating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Layers className="h-4 w-4" />}
+            {creating ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : (
+              <Layers className="h-4 w-4" />
+            )}
             Create {rows.filter((r) => r.title.trim().length >= 3).length} links
           </Button>
         </DialogFooter>

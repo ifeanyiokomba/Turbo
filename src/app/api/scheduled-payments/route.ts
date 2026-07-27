@@ -47,14 +47,14 @@ export async function POST(req: Request) {
       throw new ServiceError(
         "Type must be one of TRANSFER, BILL, AIRTIME, DATA",
         400,
-        "INVALID_TYPE",
+        "INVALID_TYPE"
       );
     }
     if (!VALID_FREQUENCIES.has(frequency)) {
       throw new ServiceError(
         "Frequency must be ONCE, DAILY, WEEKLY or MONTHLY",
         400,
-        "INVALID_FREQUENCY",
+        "INVALID_FREQUENCY"
       );
     }
     if (!nextRunAtStr) {

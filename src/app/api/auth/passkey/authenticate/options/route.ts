@@ -28,7 +28,10 @@ export async function POST(req: NextRequest) {
         (await db.user.findUnique({ where: { username } }));
       if (!user) {
         // Don't leak which usernames exist — return generic options
-        return json({ options: await generateAuthenticationOptions({}), challengeToken: saveChallenge({ challenge: "" }) });
+        return json({
+          options: await generateAuthenticationOptions({}),
+          challengeToken: saveChallenge({ challenge: "" }),
+        });
       }
       if (user.status !== "ACTIVE") {
         return errorJson("Account is " + user.status.toLowerCase(), 403);

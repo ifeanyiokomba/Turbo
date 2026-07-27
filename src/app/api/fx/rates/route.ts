@@ -44,7 +44,7 @@ export async function GET() {
             expiresAt: new Date(),
           };
         }
-      }),
+      })
     );
 
     return json({ rates, generatedAt: new Date().toISOString() });

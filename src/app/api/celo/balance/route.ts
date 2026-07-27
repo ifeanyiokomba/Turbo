@@ -1,10 +1,6 @@
 import { json, handleError, requireUser, ServiceError } from "@/lib/api";
 import { getPublicClient } from "@/lib/wagmi";
-import {
-  getToken,
-  isValidAddress,
-  CELO_MAINNET_CHAIN_ID,
-} from "@/lib/minipay";
+import { getToken, isValidAddress, CELO_MAINNET_CHAIN_ID } from "@/lib/minipay";
 import { erc20Abi, formatUnits, getAddress } from "viem";
 import type { Address } from "viem";
 
@@ -23,8 +19,7 @@ export async function GET(req: Request) {
       throw new ServiceError("Invalid address", 400, "INVALID_ADDRESS");
 
     const token = getToken(tokenSymbol, chainId);
-    if (!token)
-      throw new ServiceError("Unsupported token: " + tokenSymbol, 400, "TOKEN_NOT_FOUND");
+    if (!token) throw new ServiceError("Unsupported token: " + tokenSymbol, 400, "TOKEN_NOT_FOUND");
 
     const publicClient = getPublicClient(chainId);
     const owner = getAddress(address) as Address;

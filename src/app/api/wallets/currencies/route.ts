@@ -11,7 +11,15 @@ import {
 import { getRate } from "@/lib/turbocore/fx/convert";
 
 const SUPPORTED_CURRENCIES = new Set([
-  "NGN", "USD", "EUR", "GBP", "KES", "GHS", "ZAR", "CAD", "AUD",
+  "NGN",
+  "USD",
+  "EUR",
+  "GBP",
+  "KES",
+  "GHS",
+  "ZAR",
+  "CAD",
+  "AUD",
 ]);
 
 const CURRENCY_META: Record<string, { flag: string; name: string }> = {
@@ -59,7 +67,7 @@ export async function GET() {
           name: CURRENCY_META[w.currency]?.name ?? w.currency,
           ngnEquivMinor,
         };
-      }),
+      })
     );
 
     const totalNgnEquiv = withEquiv.reduce((sum, w) => sum + w.ngnEquivMinor, 0);
@@ -87,7 +95,7 @@ export async function POST(req: Request) {
       throw new ServiceError(
         "Unsupported currency. Pick from USD, EUR, GBP, KES, GHS, ZAR, CAD, AUD or NGN.",
         400,
-        "INVALID_CURRENCY",
+        "INVALID_CURRENCY"
       );
     }
 

@@ -26,9 +26,7 @@ export function setCachedStatement(entry: CachedStatement): void {
   cache.set(entry.statementId, entry);
   // Evict oldest entries when over the cap.
   if (cache.size > MAX_ENTRIES) {
-    const oldest = Array.from(cache.values()).sort(
-      (a, b) => a.createdAt - b.createdAt,
-    );
+    const oldest = Array.from(cache.values()).sort((a, b) => a.createdAt - b.createdAt);
     for (let i = 0; i < cache.size - MAX_ENTRIES; i++) {
       cache.delete(oldest[i].statementId);
     }

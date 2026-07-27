@@ -36,9 +36,15 @@ interface TokenCache {
   token: string;
   expiresAt: number;
 }
-const tokenCache: { sandbox: TokenCache | null; live: TokenCache | null } = { sandbox: null, live: null };
+const tokenCache: { sandbox: TokenCache | null; live: TokenCache | null } = {
+  sandbox: null,
+  live: null,
+};
 
-async function getAccessToken(creds: { secrets: Record<string, string>; sandbox: boolean }): Promise<string | null> {
+async function getAccessToken(creds: {
+  secrets: Record<string, string>;
+  sandbox: boolean;
+}): Promise<string | null> {
   const consumerKey = creds.secrets.consumerKey;
   const consumerSecret = creds.secrets.consumerSecret;
   if (!consumerKey || !consumerSecret) return null;
@@ -51,7 +57,7 @@ async function getAccessToken(creds: { secrets: Record<string, string>; sandbox:
     const { body } = await http(
       `${base}/oauth/v1/generate?grant_type=client_credentials`,
       { method: "GET", headers: { Authorization: `Basic ${basic}` } },
-      (s, b) => defaultHttpError(CODE, s, b),
+      (s, b) => defaultHttpError(CODE, s, b)
     );
     const data = body as { access_token?: string; expires_in?: string | number };
     if (!data?.access_token) return null;
@@ -110,7 +116,11 @@ export const mpesaProvider: IMobileMoneyProvider = {
     const initiator = creds.secrets.initiatorName;
     const securityCredential = creds.secrets.securityCredential;
     if (!shortCode || !initiator || !securityCredential) {
-      return fail("AUTH_FAILED", "M-Pesa balance requires shortCode + initiatorName + securityCredential", { providerCode: CODE });
+      return fail(
+        "AUTH_FAILED",
+        "M-Pesa balance requires shortCode + initiatorName + securityCredential",
+        { providerCode: CODE }
+      );
     }
     try {
       const { body } = await http(
@@ -129,9 +139,10 @@ export const mpesaProvider: IMobileMoneyProvider = {
             ResultURL: `${creds.secrets.callbackUrl ?? ""}/result`,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const conversationId = (body as { ConversationID?: string; ResponseCode?: string }).ConversationID ?? "mpesa-bal";
+      const conversationId =
+        (body as { ConversationID?: string; ResponseCode?: string }).ConversationID ?? "mpesa-bal";
       // Balance is delivered async via callback; surface 0 with the conversation
       // id so the caller can correlate.
       return ok({ balanceMinor: 0, currency: "KES" }, conversationId, 0);
@@ -155,11 +166,14 @@ export const mpesaProvider: IMobileMoneyProvider = {
     const shortCode = creds.secrets.shortCode;
     const passkey = creds.secrets.passkey;
     if (!shortCode || !passkey) {
-      return fail("AUTH_FAILED", "M-Pesa STK push requires shortCode + passkey", { providerCode: CODE });
+      return fail("AUTH_FAILED", "M-Pesa STK push requires shortCode + passkey", {
+        providerCode: CODE,
+      });
     }
     const timestamp = mpesaTimestamp();
     const password = mpesaPassword(shortCode, passkey, timestamp);
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
     try {
       const { body } = await http(
         `${base}/mpesa/stkpush/v1/processrequest`,
@@ -180,16 +194,25 @@ export const mpesaProvider: IMobileMoneyProvider = {
             TransactionDesc: req.narration ?? "Turbopay STK push",
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { CheckoutRequestID?: string; ResponseCode?: string; ResponseDescription?: string; CustomerMessage?: string });
+      const data = body as {
+        CheckoutRequestID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+        CustomerMessage?: string;
+      };
       if (!data.CheckoutRequestID) {
         return fail("UPSTREAM_ERROR", data.ResponseDescription ?? "M-Pesa STK push failed", {
           providerCode: CODE,
           raw: sanitize(body),
         });
       }
-      return ok({ providerRef: data.CheckoutRequestID, status: "PENDING" }, data.CheckoutRequestID, 0);
+      return ok(
+        { providerRef: data.CheckoutRequestID, status: "PENDING" },
+        data.CheckoutRequestID,
+        0
+      );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "M-Pesa STK push failed";
       return fail("UPSTREAM_ERROR", msg, { providerCode: CODE, raw: sanitize({ message: msg }) });
@@ -211,9 +234,14 @@ export const mpesaProvider: IMobileMoneyProvider = {
     const initiator = creds.secrets.initiatorName;
     const securityCredential = creds.secrets.securityCredential;
     if (!shortCode || !initiator || !securityCredential) {
-      return fail("AUTH_FAILED", "M-Pesa B2C requires shortCode + initiatorName + securityCredential", { providerCode: CODE });
+      return fail(
+        "AUTH_FAILED",
+        "M-Pesa B2C requires shortCode + initiatorName + securityCredential",
+        { providerCode: CODE }
+      );
     }
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
     try {
       const { body } = await http(
         `${base}/mpesa/b2c/v1/paymentrequest`,
@@ -233,9 +261,13 @@ export const mpesaProvider: IMobileMoneyProvider = {
             Occasion: req.reference.slice(0, 32),
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { ConversationID?: string; ResponseCode?: string; ResponseDescription?: string });
+      const data = body as {
+        ConversationID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+      };
       const providerRef = data.ConversationID ?? `mpesa-b2c-${req.reference}`;
       return ok({ providerRef, status: "PENDING" }, providerRef, 0);
     } catch (e) {
@@ -258,7 +290,9 @@ export const mpesaProvider: IMobileMoneyProvider = {
     const shortCode = creds.secrets.shortCode;
     const passkey = creds.secrets.passkey;
     if (!shortCode || !passkey) {
-      return fail("AUTH_FAILED", "M-Pesa STK query requires shortCode + passkey", { providerCode: CODE });
+      return fail("AUTH_FAILED", "M-Pesa STK query requires shortCode + passkey", {
+        providerCode: CODE,
+      });
     }
     const timestamp = mpesaTimestamp();
     const password = mpesaPassword(shortCode, passkey, timestamp);
@@ -275,9 +309,9 @@ export const mpesaProvider: IMobileMoneyProvider = {
             CheckoutRequestID: providerRef,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { ResultCode?: string | number; ResultDesc?: string });
+      const data = body as { ResultCode?: string | number; ResultDesc?: string };
       const resultCode = String(data.ResultCode ?? "");
       // 0 = success; 1032/1037 = cancelled/timeout; everything else = failed.
       let status = "PENDING";
@@ -306,7 +340,8 @@ export const mpesaProvider: IMobileMoneyProvider = {
       mockWarnOnce(CODE);
       return ok(
         { reversalRef: `mpesa-reversal-${req.transactionId}`, status: "PENDING" },
-        "mock", 200,
+        "mock",
+        200
       );
     }
     const token = await getAccessToken(creds);
@@ -316,17 +351,21 @@ export const mpesaProvider: IMobileMoneyProvider = {
     if (!initiator || !securityCredential) {
       // No SecurityCredential → in non-prod return mock, in prod fail AUTH.
       if (process.env.NODE_ENV === "production") {
-        return fail("AUTH_FAILED", "M-Pesa reversal requires initiatorName + securityCredential", { providerCode: CODE });
+        return fail("AUTH_FAILED", "M-Pesa reversal requires initiatorName + securityCredential", {
+          providerCode: CODE,
+        });
       }
       mockWarnOnce(CODE);
       return ok(
         { reversalRef: `mpesa-reversal-${req.transactionId}`, status: "PENDING" },
-        "mock-cred-missing", 0,
+        "mock-cred-missing",
+        0
       );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
     const shortCode = creds.secrets.shortCode ?? "";
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
     try {
       const { body } = await http(
         `${base}/mpesa/reversal/v1/request`,
@@ -347,10 +386,18 @@ export const mpesaProvider: IMobileMoneyProvider = {
             Occasion: req.transactionId.slice(0, 32),
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { ConversationID?: string; OriginatorConversationID?: string; ResponseCode?: string; ResponseDescription?: string });
-      const ref = data.ConversationID ?? data.OriginatorConversationID ?? `mpesa-reversal-${req.transactionId}`;
+      const data = body as {
+        ConversationID?: string;
+        OriginatorConversationID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+      };
+      const ref =
+        data.ConversationID ??
+        data.OriginatorConversationID ??
+        `mpesa-reversal-${req.transactionId}`;
       const responseCode = String(data.ResponseCode ?? "0");
       // ResponseCode "0" = accepted (pending callback); anything else = reject.
       const status = responseCode === "0" ? "PENDING" : "FAILED";
@@ -374,7 +421,8 @@ export const mpesaProvider: IMobileMoneyProvider = {
       mockWarnOnce(CODE);
       return ok(
         { status: "PENDING", conversationId: `mpesa-b2c-status-${req.transactionID}` },
-        "mock", 50,
+        "mock",
+        50
       );
     }
     const token = await getAccessToken(creds);
@@ -383,17 +431,23 @@ export const mpesaProvider: IMobileMoneyProvider = {
     const securityCredential = creds.secrets.securityCredential;
     if (!initiator || !securityCredential) {
       if (process.env.NODE_ENV === "production") {
-        return fail("AUTH_FAILED", "M-Pesa B2C status requires initiatorName + securityCredential", { providerCode: CODE });
+        return fail(
+          "AUTH_FAILED",
+          "M-Pesa B2C status requires initiatorName + securityCredential",
+          { providerCode: CODE }
+        );
       }
       mockWarnOnce(CODE);
       return ok(
         { status: "PENDING", conversationId: `mpesa-b2c-status-${req.transactionID}` },
-        "mock-cred-missing", 0,
+        "mock-cred-missing",
+        0
       );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
     const shortCode = creds.secrets.shortCode ?? "";
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
     try {
       const { body } = await http(
         `${base}/mpesa/transactionstatus/v1/query`,
@@ -413,9 +467,14 @@ export const mpesaProvider: IMobileMoneyProvider = {
             ResultURL: `${callbackUrl}/result`,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { ConversationID?: string; OriginatorConversationID?: string; ResponseCode?: string; ResponseDescription?: string });
+      const data = body as {
+        ConversationID?: string;
+        OriginatorConversationID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+      };
       const responseCode = String(data.ResponseCode ?? "0");
       const status = responseCode === "0" ? "PENDING" : "FAILED";
       return ok(
@@ -424,7 +483,8 @@ export const mpesaProvider: IMobileMoneyProvider = {
           conversationId: data.ConversationID,
           originatorConversationId: data.OriginatorConversationID,
         },
-        data.ConversationID ?? `mpesa-b2c-status-${req.transactionID}`, 0,
+        data.ConversationID ?? `mpesa-b2c-status-${req.transactionID}`,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "M-Pesa B2C status query failed";
@@ -444,7 +504,8 @@ export const mpesaProvider: IMobileMoneyProvider = {
       mockWarnOnce(CODE);
       return ok(
         { responseCode: "0", responseDescription: "Mock C2B registration accepted" },
-        "mock", 50,
+        "mock",
+        50
       );
     }
     const token = await getAccessToken(creds);
@@ -463,15 +524,16 @@ export const mpesaProvider: IMobileMoneyProvider = {
             ShortCode: req.shortCode,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { ResponseCode?: string; ResponseDescription?: string });
+      const data = body as { ResponseCode?: string; ResponseDescription?: string };
       return ok(
         {
           responseCode: String(data.ResponseCode ?? "0"),
           responseDescription: data.ResponseDescription ?? "C2B URLs registered",
         },
-        `mpesa-c2b-register-${req.shortCode}`, 0,
+        `mpesa-c2b-register-${req.shortCode}`,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "M-Pesa C2B registration failed";
@@ -490,12 +552,19 @@ export const mpesaProvider: IMobileMoneyProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       return ok(
-        { conversationId: `mpesa-c2b-sim-${req.shortCode}`, responseCode: "0", responseDescription: "Mock C2B simulate accepted" },
-        "mock", 50,
+        {
+          conversationId: `mpesa-c2b-sim-${req.shortCode}`,
+          responseCode: "0",
+          responseDescription: "Mock C2B simulate accepted",
+        },
+        "mock",
+        50
       );
     }
     if (!creds.sandbox) {
-      return fail("NOT_SUPPORTED", "M-Pesa C2B simulate is only available in sandbox", { providerCode: CODE });
+      return fail("NOT_SUPPORTED", "M-Pesa C2B simulate is only available in sandbox", {
+        providerCode: CODE,
+      });
     }
     const token = await getAccessToken(creds);
     if (!token) return fail("AUTH_FAILED", "M-Pesa token retrieval failed", { providerCode: CODE });
@@ -514,16 +583,21 @@ export const mpesaProvider: IMobileMoneyProvider = {
             ShortCode: req.shortCode,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { ConversationID?: string; ResponseCode?: string; ResponseDescription?: string });
+      const data = body as {
+        ConversationID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+      };
       return ok(
         {
           conversationId: data.ConversationID,
           responseCode: String(data.ResponseCode ?? "0"),
           responseDescription: data.ResponseDescription ?? "C2B simulate accepted",
         },
-        data.ConversationID ?? `mpesa-c2b-sim-${req.shortCode}`, 0,
+        data.ConversationID ?? `mpesa-c2b-sim-${req.shortCode}`,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "M-Pesa C2B simulate failed";
@@ -543,8 +617,15 @@ export const mpesaProvider: IMobileMoneyProvider = {
     if (!creds) {
       mockWarnOnce(CODE);
       return ok(
-        { conversationId: `mpesa-acct-bal-${req.partyA ?? "shortcode"}`, responseCode: "0", responseDescription: "Mock balance query accepted", balanceMinor: 0, currency: "KES" },
-        "mock", 50,
+        {
+          conversationId: `mpesa-acct-bal-${req.partyA ?? "shortcode"}`,
+          responseCode: "0",
+          responseDescription: "Mock balance query accepted",
+          balanceMinor: 0,
+          currency: "KES",
+        },
+        "mock",
+        50
       );
     }
     const token = await getAccessToken(creds);
@@ -553,19 +634,31 @@ export const mpesaProvider: IMobileMoneyProvider = {
     const securityCredential = creds.secrets.securityCredential;
     if (!initiator || !securityCredential) {
       if (process.env.NODE_ENV === "production") {
-        return fail("AUTH_FAILED", "M-Pesa account balance requires initiatorName + securityCredential", { providerCode: CODE });
+        return fail(
+          "AUTH_FAILED",
+          "M-Pesa account balance requires initiatorName + securityCredential",
+          { providerCode: CODE }
+        );
       }
       const shortCode = creds.secrets.shortCode ?? "";
       const partyA = req.partyA ?? shortCode;
       mockWarnOnce(CODE);
       return ok(
-        { conversationId: `mpesa-acct-bal-${partyA}`, responseCode: "0", responseDescription: "Mock balance query accepted (no SecurityCredential)", balanceMinor: 0, currency: "KES" },
-        "mock-cred-missing", 0,
+        {
+          conversationId: `mpesa-acct-bal-${partyA}`,
+          responseCode: "0",
+          responseDescription: "Mock balance query accepted (no SecurityCredential)",
+          balanceMinor: 0,
+          currency: "KES",
+        },
+        "mock-cred-missing",
+        0
       );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
     const shortCode = creds.secrets.shortCode ?? "";
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
     try {
       const { body } = await http(
         `${base}/mpesa/accountbalance/v1/query`,
@@ -583,9 +676,14 @@ export const mpesaProvider: IMobileMoneyProvider = {
             ResultURL: `${callbackUrl}/result`,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { ConversationID?: string; OriginatorConversationID?: string; ResponseCode?: string; ResponseDescription?: string });
+      const data = body as {
+        ConversationID?: string;
+        OriginatorConversationID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+      };
       const responseCode = String(data.ResponseCode ?? "0");
       return ok(
         {
@@ -596,7 +694,8 @@ export const mpesaProvider: IMobileMoneyProvider = {
           balanceMinor: 0,
           currency: "KES",
         },
-        data.ConversationID ?? `mpesa-acct-bal-${req.partyA ?? shortCode}`, 0,
+        data.ConversationID ?? `mpesa-acct-bal-${req.partyA ?? shortCode}`,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "M-Pesa account balance query failed";
@@ -618,7 +717,8 @@ export const mpesaProvider: IMobileMoneyProvider = {
       mockWarnOnce(CODE);
       return ok(
         { status: "PENDING", conversationId: `mpesa-tx-status-${req.transactionID}` },
-        "mock", 50,
+        "mock",
+        50
       );
     }
     const token = await getAccessToken(creds);
@@ -627,17 +727,23 @@ export const mpesaProvider: IMobileMoneyProvider = {
     const securityCredential = creds.secrets.securityCredential;
     if (!initiator || !securityCredential) {
       if (process.env.NODE_ENV === "production") {
-        return fail("AUTH_FAILED", "M-Pesa transaction status requires initiatorName + securityCredential", { providerCode: CODE });
+        return fail(
+          "AUTH_FAILED",
+          "M-Pesa transaction status requires initiatorName + securityCredential",
+          { providerCode: CODE }
+        );
       }
       mockWarnOnce(CODE);
       return ok(
         { status: "PENDING", conversationId: `mpesa-tx-status-${req.transactionID}` },
-        "mock-cred-missing", 0,
+        "mock-cred-missing",
+        0
       );
     }
     const base = creds.sandbox ? SANDBOX_BASE : LIVE_BASE;
     const shortCode = creds.secrets.shortCode ?? "";
-    const callbackUrl = creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
+    const callbackUrl =
+      creds.secrets.callbackUrl ?? `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/api/webhooks/mpesa`;
     try {
       const { body } = await http(
         `${base}/mpesa/transactionstatus/v1/query`,
@@ -657,9 +763,14 @@ export const mpesaProvider: IMobileMoneyProvider = {
             ResultURL: `${callbackUrl}/result`,
           }),
         },
-        (s, b) => defaultHttpError(CODE, s, b),
+        (s, b) => defaultHttpError(CODE, s, b)
       );
-      const data = (body as { ConversationID?: string; OriginatorConversationID?: string; ResponseCode?: string; ResponseDescription?: string });
+      const data = body as {
+        ConversationID?: string;
+        OriginatorConversationID?: string;
+        ResponseCode?: string;
+        ResponseDescription?: string;
+      };
       const responseCode = String(data.ResponseCode ?? "0");
       const status = responseCode === "0" ? "PENDING" : "FAILED";
       return ok(
@@ -668,7 +779,8 @@ export const mpesaProvider: IMobileMoneyProvider = {
           conversationId: data.ConversationID,
           originatorConversationId: data.OriginatorConversationID,
         },
-        data.ConversationID ?? `mpesa-tx-status-${req.transactionID}`, 0,
+        data.ConversationID ?? `mpesa-tx-status-${req.transactionID}`,
+        0
       );
     } catch (e) {
       const msg = e instanceof Error ? e.message : "M-Pesa transaction status query failed";
