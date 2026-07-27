@@ -1592,3 +1592,51 @@ Stage Summary:
 - Modified: 0 (no existing files touched)
 - Lint: 0 errors, 0 warnings (exit 0)
 - Commit: d35eac2 (20 files changed, 1555 insertions)
+
+---
+Task ID: SVC-SKELETON
+Agent: full-stack-developer (Service Skeleton)
+Task: 15 bounded TurboCore services
+
+Work Log:
+- Read worklog.md (skimmed 1594 lines of prior agent history) to align with naming conventions, file headers, and the existing TurboCore module layout.
+- Read the 11 required foundation files: provider-sdk.ts (IProviderPlugin surface), manifest-registry.ts (capability lookup helpers), models/index.ts (canonical entities + mappers), geo/country-registry.ts (manifest-enriched country config), plugin-loader.ts (capability → contract mapping), routing-engine.ts (RouteRequest + weighted scoring + circuit breaker), registry.ts (register/resolve + health EMA + breaker), orchestrator.ts (hold-confirm-reverse flow), result.ts (ContractName enum + ProviderResult shape), ledger.ts (creditWallet/debitWallet/transferBetweenWallets/reconcileWallet), api.ts (requireUser/audit/json/handleError), turbopay/pay.ts (TurboPay.pay() unified entry + providerCall dispatch).
+- Cross-referenced Prisma schema (Wallet, LedgerEntry, Transaction, WebhookEvent, Settlement, SettlementAccount, InAppNotification, Merchant, MerchantApiKey, PaymentLink, PaymentLinkPayment, AmlFlag, AuditLog, PaymentFlowLog, TransactionEvent, ProviderHealthCheck, FxRateSnapshot, CurrencyWallet, Device, OutboxEvent, KycVerification) to confirm field names + relation shapes.
+- Confirmed webhooks/verify-signature.ts (verifyWebhookHeaders + verifyWebhookSignature), webhooks/extract.ts (extractPayload), webhooks/credentials.ts (getProviderWebhookSecret), outbox/publisher.ts (publishPendingEvents), fx/convert.ts (getRate/getQuote/convertCurrency/creditCurrencyWallet/debitCurrencyWallet), compliance/screen.ts (screenEntity/runAmlRules/validateKycId), kyc-engine.ts (verifyIdentity/getUserKycStatus/listSupportedCountries), geo/country-config.ts (detectCountryFromHeaders/getCountryConfig), contracts.ts (INotificationProvider.send shape), and providers/index.ts (registry.register for NOTIFICATION contract — turbopay, termii, resend).
+- Created 15 service files under src/lib/turbocore/services/. Each is a plain singleton object (no class, no state) that delegates to existing TurboCore modules:
+  - identity-service.ts → kyc-engine.verifyIdentity/getUserKycStatus/listSupportedCountries + compliance/screen.screenEntity/runAmlRules
+  - wallet-service.ts → ledger.creditWallet/debitWallet/transferBetweenWallets + db.wallet + db.currencyWallet
+  - ledger-service.ts → ledger.creditWallet/debitWallet/reconcileWallet + db.ledgerEntry
+  - collection-service.ts → turbopay/pay.pay(direction=INBOUND) + db.transaction (direction=CREDIT)
+  - disbursement-service.ts → turbopay/pay.pay(direction=OUTBOUND) + db.transaction (direction=DEBIT)
+  - routing-service.ts → routing-engine.route + manifest-registry.getProvidersForCapability + registry.getHealth + db.paymentFlowLog (step=FAILOVER aggregate)
+  - webhook-service.ts → webhooks/verify-signature.verifyWebhookHeaders + webhooks/extract.extractPayload + webhooks/credentials.getProviderWebhookSecret + db.webhookEvent (idempotent on eventId) + outbox/publisher.publishPendingEvents
+  - settlement-service.ts → db.settlement + db.settlementAccount + db.transaction aggregate (expected vs settled reconciliation)
+  - notification-service.ts → registry.resolve(NOTIFICATION) for Termii/Resend + in-memory OTP store (sha256-hashed, 10-min TTL, 5-attempt lockout) + db.inAppNotification
+  - fx-service.ts → fx/convert.getRate/getQuote/convertCurrency + db.fxRateSnapshot
+  - country-service.ts → geo/country-registry.getCountryRegistry/getAllCountryRegistries + geo/country-config.detectCountryFromHeaders + manifest-registry.getProvidersForCountry
+  - merchant-service.ts → db.merchant (email lookup) + db.merchantApiKey (scrypt-hashed, prefix-masked) + db.paymentLink (slugified) + db.paymentLinkPayment (groupBy status + aggregate)
+  - risk-service.ts → compliance/screen.runAmlRules + screenEntity + db.amlFlag + db.device + db.transaction (failed count) — composite 0-100 risk score
+  - audit-service.ts → api.audit + db.auditLog (filtered list) + db.paymentFlowLog + db.transactionEvent (merged timeline) + CSV/JSON export
+  - analytics-service.ts → db.transaction aggregates (30-day dashboard, daily cashflow buckets, spending by category) + db.providerHealthCheck (provider performance) + db.transaction feeKobo sums (revenue)
+- Created index.ts barrel export with named singletons + re-exported input/result types for all 15 services.
+- Ran `bun run lint` — passed clean (0 errors). Ran `bun run typecheck` — 0 errors in any services/* file (the only typecheck errors in the repo are pre-existing issues in unmodified files like provider-sdk.ts bad import, ledger.ts Prisma transaction typing, etc.).
+- Committed as a7f7a10: "TurboCore service skeleton: 15 bounded services (Identity, Wallet, Ledger, Collection, Disbursement, Routing, Webhook, Settlement, Notification, FX, Country, Merchant, Risk, Audit, Analytics) (Task SVC-SKELETON)" — 17 files changed, 2021 insertions(+), 1 deletion(-).
+
+Stage Summary:
+- src/lib/turbocore/services/identity-service.ts (KYC + sanctions + AML delegation)
+- src/lib/turbocore/services/wallet-service.ts (balance/fund/withdraw/transfer/freeze/multi-currency)
+- src/lib/turbocore/services/ledger-service.ts (credit/debit/entries/reconcile)
+- src/lib/turbocore/services/collection-service.ts (pay INBOUND + verify + list)
+- src/lib/turbocore/services/disbursement-service.ts (pay OUTBOUND + verify + list)
+- src/lib/turbocore/services/routing-service.ts (route + providers + health + failover stats)
+- src/lib/turbocore/services/webhook-service.ts (receive + verifySignature + dispatch + listEvents)
+- src/lib/turbocore/services/settlement-service.ts (list settlements/accounts + reconcile)
+- src/lib/turbocore/services/notification-service.ts (send/sendOtp/verifyOtp/listNotifications/markRead)
+- src/lib/turbocore/services/fx-service.ts (getRate/getQuote/convert/getRates)
+- src/lib/turbocore/services/country-service.ts (getCountry/getAllCountries/detectCountry/getProviders)
+- src/lib/turbocore/services/merchant-service.ts (getDashboard/createApiKey/listApiKeys/revokeApiKey/createPaymentLink/getPaymentLinkAnalytics)
+- src/lib/turbocore/services/risk-service.ts (assessRisk/getRiskScore/flagUser/listFlags/screenTransaction)
+- src/lib/turbocore/services/audit-service.ts (log/list/getTimeline/export)
+- src/lib/turbocore/services/analytics-service.ts (getDashboardStats/getCashflow/getSpendingByCategory/getProviderPerformance/getRevenueStats)
+- src/lib/turbocore/services/index.ts (barrel export + type re-exports)
