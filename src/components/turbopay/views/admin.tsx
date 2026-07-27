@@ -172,6 +172,15 @@ const TcqafTab = dynamic(() => import("./admin/tcqaf-tab").then((m) => m.default
     </div>
   ),
 });
+// PRGLF Governance & Launch Framework (Chapter 15) — Volume I finale.
+const PrglfTab = dynamic(() => import("./admin/prglf-tab").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+    </div>
+  ),
+});
 // Security Center tab — lazy-loaded. Surfaces runtime security posture
 // (CSP, CSRF, XSS, headers, cookies, sanitizers). Kept lazy so the heavy
 // sanitizer live-tester + headers inspector only load when an admin clicks
@@ -701,6 +710,10 @@ export default function AdminView() {
           <TabsTrigger value="tcqaf" className="min-w-[110px] flex-1 gap-1">
             <Shield className="h-3.5 w-3.5" />
             QA & Cert
+          </TabsTrigger>
+          <TabsTrigger value="prglf" className="min-w-[110px] flex-1 gap-1">
+            <Rocket className="h-3.5 w-3.5" />
+            Governance
           </TabsTrigger>
           <TabsTrigger value="security" className="min-w-[100px] flex-1 gap-1">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -1615,6 +1628,11 @@ export default function AdminView() {
         {/* TCQAF Testing & Quality Assurance (Chapter 14) */}
         <TabsContent value="tcqaf" className="mt-5">
           <TcqafTab />
+        </TabsContent>
+
+        {/* PRGLF Governance & Launch (Chapter 15) — Volume I finale */}
+        <TabsContent value="prglf" className="mt-5">
+          <PrglfTab />
         </TabsContent>
 
         {/* Security Center — technical security posture (CSP/CSRF/XSS/headers) */}
