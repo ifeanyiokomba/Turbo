@@ -10,9 +10,9 @@
 // Adding a new provider = drop a manifest file + adapter file.
 // No code changes to TurboCore.
 
-import { getAllManifests, getManifest, type ProviderManifest } from "../manifest-registry";
-import { registry } from "../registry";
-import { ContractName } from "../result";
+import { getAllManifests, getManifest, type ProviderManifest } from "./manifest-registry";
+import { registry } from "./registry";
+import { ContractName } from "./result";
 
 // ===== Plugin Loading State =====
 
