@@ -11,6 +11,8 @@ import { route, persistDecision } from "./routing-engine";
 import type { RoutingDecision } from "./routing-engine";
 import { registry } from "./registry";
 import type { ContractName, ProviderResult } from "./result";
+import { publishPaymentEvent, EventTypes } from "./event-bus";
+import { storeExplanation, createRoutingExplanation } from "./routing-explainability";
 
 export interface OrchestrateRequest {
   userId: string;
@@ -128,6 +130,65 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
     },
   });
   await persistDecision(decision, requestId, tx.id);
+
+  // Store routing explanation for audit (explainable routing)
+  if (decision.scores.length > 0) {
+    const winner = decision.scores.find((s) => s.providerCode === decision.providerCode);
+    if (winner) {
+      storeExplanation(
+        createRoutingExplanation(
+          {
+            contract: req.contract,
+            country: req.country,
+            currency: req.currency,
+            amountMinor: req.amountMinor,
+            direction: req.direction,
+            service: req.service,
+            preferredProvider: req.preferredProvider,
+          },
+          decision.scores.map((s) => ({
+            provider: s.providerCode,
+            eligible: s.circuit !== "OPEN" && s.successRate >= 30,
+            scores: {
+              health: s.health,
+              cost: s.charge,
+              speed: s.speed,
+              capability: 100,
+              total: s.score,
+            },
+            circuitState: s.circuit,
+            preferred: s.preferred,
+          })),
+          decision.providerCode,
+          decision.reason,
+          decision.alternatives,
+          {
+            health: winner.health,
+            cost: winner.charge,
+            speed: winner.speed,
+            capability: 100,
+            total: winner.score,
+          },
+          {
+            amlPassed: true,
+            sanctionsPassed: true,
+            kycTierSufficient: true,
+            featureFlagEnabled: true,
+          },
+          0
+        )
+      );
+    }
+  }
+
+  // Publish PAYMENT.CREATED event
+  await publishPaymentEvent(EventTypes.PAYMENT_CREATED, tx.id, {
+    reference: tx.reference,
+    type: req.contract,
+    amount: req.amountMinor,
+    provider: decision.providerCode,
+  });
+
   await db.paymentFlowLog.create({
     data: {
       transactionId: tx.id,
@@ -228,6 +289,19 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       },
     });
 
+    // Publish PAYMENT.COMPLETED or PAYMENT.PENDING via event bus
+    await publishPaymentEvent(
+      result.data.status === "SUCCESS" ? EventTypes.PAYMENT_COMPLETED : EventTypes.PAYMENT_PENDING,
+      tx.id,
+      {
+        reference: tx.reference,
+        amount: req.amountMinor,
+        provider: actualProviderCode,
+        status: result.data.status,
+        failovers: failovers.length,
+      }
+    );
+
     if (req.onConfirm) {
       try {
         await req.onConfirm(tx);
@@ -298,6 +372,15 @@ export async function orchestratePayment(req: OrchestrateRequest): Promise<Orche
       }),
     },
   });
+
+  // Publish PAYMENT.REVERSED via event bus
+  await publishPaymentEvent(EventTypes.PAYMENT_REVERSED, tx.id, {
+    reference: tx.reference,
+    reason: result.ok ? result.data : result.error,
+    provider: actualProviderCode,
+    failovers: failovers.length,
+  });
+
   await audit({
     userId: req.userId,
     action: `${req.contract}_REVERSED`,

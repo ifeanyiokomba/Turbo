@@ -16,6 +16,7 @@ import { db } from "@/lib/db";
 import { creditWallet, debitWallet, transferBetweenWallets } from "@/lib/ledger";
 import { RefType } from "@/lib/constants";
 import { generateReference } from "@/lib/money";
+import { publishWalletEvent, EventTypes } from "../event-bus";
 
 type LedgerResult = Awaited<ReturnType<typeof creditWallet>>;
 
@@ -53,29 +54,45 @@ export const walletService = {
 
   /** Credit the wallet (funding, reversals, rewards). Writes a CREDIT ledger entry. */
   async fund(input: FundInput): Promise<LedgerResult> {
-    return creditWallet({
+    const result = await creditWallet({
       userId: input.userId,
       amountKobo: input.amountKobo,
       refType: RefType.FUNDING,
       refId: input.refId,
       description: input.description ?? `Funding via ${input.method}`,
     });
+    // Publish WALLET.FUNDED event
+    await publishWalletEvent(EventTypes.WALLET_FUNDED, result.wallet.id, {
+      userId: input.userId,
+      amount: input.amountKobo,
+      method: input.method,
+      balance: result.newBalance,
+    });
+    return result;
   },
 
   /** Debit the wallet (internal/platform debits — provider-bound payouts go through TurboPay.pay). */
   async withdraw(input: WithdrawInput): Promise<LedgerResult> {
-    return debitWallet({
+    const result = await debitWallet({
       userId: input.userId,
       amountKobo: input.amountKobo,
       refType: RefType.TRANSFER,
       refId: input.refId,
       description: input.description ?? `Withdrawal via ${input.method ?? "BANK_TRANSFER"}`,
     });
+    // Publish WALLET.DEBITED event
+    await publishWalletEvent(EventTypes.WALLET_DEBITED, result.wallet.id, {
+      userId: input.userId,
+      amount: input.amountKobo,
+      method: input.method,
+      balance: result.newBalance,
+    });
+    return result;
   },
 
   /** Atomic DEBIT + CREDIT pair between two Turbopay wallets. Optional fee debited from sender. */
   async transfer(input: TransferInput) {
-    return transferBetweenWallets({
+    const result = await transferBetweenWallets({
       fromUserId: input.fromUserId,
       toUserId: input.toUserId,
       amountKobo: input.amountKobo,
@@ -83,14 +100,32 @@ export const walletService = {
       description: input.description,
       refId: input.refId ?? generateReference("TRF"),
     });
+    // Publish WALLET.DEBITED + WALLET.FUNDED events
+    await publishWalletEvent(EventTypes.WALLET_DEBITED, input.fromUserId, {
+      userId: input.fromUserId,
+      amount: input.amountKobo,
+      type: "TRANSFER_OUT",
+    });
+    await publishWalletEvent(EventTypes.WALLET_FUNDED, input.toUserId, {
+      userId: input.toUserId,
+      amount: input.amountKobo,
+      type: "TRANSFER_IN",
+    });
+    return result;
   },
 
   /** Freeze a wallet — blocks all debits. Used by AML HIGH-severity flags + admin actions. */
   async freeze(userId: string) {
-    return db.wallet.update({
+    const result = await db.wallet.update({
       where: { userId },
       data: { status: "FROZEN" },
     });
+    // Publish WALLET.FROZEN event
+    await publishWalletEvent(EventTypes.WALLET_FROZEN, result.id, {
+      userId,
+      reason: "ADMIN_OR_AML",
+    });
+    return result;
   },
 
   /** Unfreeze a wallet — restores ACTIVE status. Admin/compliance action. */
