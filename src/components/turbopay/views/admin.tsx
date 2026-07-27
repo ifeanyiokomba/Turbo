@@ -54,6 +54,7 @@ import {
   Cpu,
   Building2,
   FileSpreadsheet,
+  Rocket,
 } from "lucide-react";
 import { naira, nairaCompact, formatDate, timeAgo } from "@/lib/money";
 import { toast } from "sonner";
@@ -146,6 +147,15 @@ const OmoTab = dynamic(() => import("./admin/omo-tab").then((m) => m.default), {
 });
 // Bulk Payments tab — process thousands of payments in batches.
 const BulkPaymentsTab = dynamic(() => import("./admin/bulk-payments-tab").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-20">
+      <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+    </div>
+  ),
+});
+// PIDA Production Infrastructure (Chapter 13) — deployment blueprint.
+const PidaTab = dynamic(() => import("./admin/pida-tab").then((m) => m.default), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center py-20">
@@ -674,6 +684,10 @@ export default function AdminView() {
           <TabsTrigger value="omo" className="min-w-[100px] flex-1 gap-1">
             <Activity className="h-3.5 w-3.5" />
             Observability
+          </TabsTrigger>
+          <TabsTrigger value="pida" className="min-w-[110px] flex-1 gap-1">
+            <Rocket className="h-3.5 w-3.5" />
+            Deployment
           </TabsTrigger>
           <TabsTrigger value="security" className="min-w-[100px] flex-1 gap-1">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -1578,6 +1592,11 @@ export default function AdminView() {
         {/* OMO Observability & Operations (Chapter 12) */}
         <TabsContent value="omo" className="mt-5">
           <OmoTab />
+        </TabsContent>
+
+        {/* PIDA Production Infrastructure (Chapter 13) */}
+        <TabsContent value="pida" className="mt-5">
+          <PidaTab />
         </TabsContent>
 
         {/* Security Center — technical security posture (CSP/CSRF/XSS/headers) */}
