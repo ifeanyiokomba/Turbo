@@ -1178,3 +1178,47 @@ model MfaSecret {
   createdAt     DateTime @default(now())
   @@index([userId])
 }
+
+// ===== Device tracking + OAuth social login =====
+
+model Device {
+  id            String   @id @default(cuid())
+  userId        String
+  fingerprint   String   // SHA-256 of UA + /24 subnet
+  deviceName    String?
+  deviceType    String   @default("unknown") // desktop | mobile | tablet
+  os            String?
+  browser       String?
+  ip            String?
+  trusted       Boolean  @default(false)
+  firstSeenAt   DateTime @default(now())
+  lastSeenAt    DateTime @default(now())
+  @@unique([userId, fingerprint])
+  @@index([userId])
+}
+
+model OAuthAccount {
+  id            String   @id @default(cuid())
+  userId        String
+  provider      String   @unique // google | apple | microsoft
+  providerAccountId String @unique
+  email         String?
+  name          String?
+  avatarUrl     String?
+  createdAt     DateTime @default(now())
+  @@index([userId])
+}
+
+model RefreshToken {
+  id            String   @id @default(cuid())
+  userId        String
+  tokenHash     String   @unique // SHA-256 of refresh token
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  userAgent     String?
+  ip            String?
+  deviceId      String?
+  createdAt     DateTime @default(now())
+  @@index([userId])
+  @@index([tokenHash])
+}
