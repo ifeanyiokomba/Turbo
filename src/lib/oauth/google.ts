@@ -19,6 +19,7 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { generateAccountNumber } from "@/lib/money";
 import { randomBytes } from "crypto";
+import { validateOutboundUrl } from "@/lib/security/ssrf";
 
 const GOOGLE_AUTH_BASE = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -105,7 +106,7 @@ export async function exchangeGoogleCode(code: string): Promise<GoogleUserInfo> 
     throw new Error("Google OAuth is not configured.");
   }
 
-  const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
+  const tokenRes = await fetch(validateOutboundUrl(GOOGLE_TOKEN_URL), {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -131,7 +132,7 @@ export async function exchangeGoogleCode(code: string): Promise<GoogleUserInfo> 
     throw new Error(`Google token error: ${tokenBody.error ?? "no access_token"}`);
   }
 
-  const userRes = await fetch(GOOGLE_USERINFO_URL, {
+  const userRes = await fetch(validateOutboundUrl(GOOGLE_USERINFO_URL), {
     headers: { Authorization: `Bearer ${tokenBody.access_token}` },
   });
   if (!userRes.ok) {

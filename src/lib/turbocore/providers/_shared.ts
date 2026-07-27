@@ -12,6 +12,7 @@
 import type { ProviderResult, ProviderErrorCode } from "../result";
 import { fail } from "../result";
 import { getCredentials, type ProviderCredentials } from "./credentials";
+import { validateOutboundUrl } from "@/lib/security/ssrf";
 
 const mockLogged = new Set<string>();
 
@@ -68,10 +69,14 @@ export async function http(
   onHttpError: (status: number, body: unknown) => ProviderResult<never>
 ): Promise<{ status: number; body: unknown }> {
   const { timeoutMs = 20_000, ...rest } = init;
+  // SSRF guard — block requests to private/internal IPs before fetching.
+  // Provider base URLs are allowlisted in manifest-registry, but the guard
+  // defends against any future misconfiguration or redirect attack.
+  const safeUrl = validateOutboundUrl(url);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { ...rest, signal: controller.signal });
+    const res = await fetch(safeUrl, { ...rest, signal: controller.signal });
     let body: unknown = null;
     const text = await res.text();
     if (text) {

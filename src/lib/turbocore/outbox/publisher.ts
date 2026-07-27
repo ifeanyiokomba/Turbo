@@ -12,6 +12,7 @@
 
 import { db } from "@/lib/db";
 import { signPayload, TURBOPAY_SIGNATURE_HEADER } from "../webhooks/sign";
+import { validateOutboundUrl } from "@/lib/security/ssrf";
 
 const BATCH_SIZE = 50;
 
@@ -131,10 +132,13 @@ async function publishOne(event: any, stats: PublishStats): Promise<void> {
   let allOk = true;
   for (const ep of endpoints) {
     try {
+      // SSRF guard — webhook URLs are merchant-controlled and the most
+      // critical SSRF vector. Block private IPs + cloud metadata endpoints.
+      const safeUrl = validateOutboundUrl(ep.url);
       const signature = signPayload(payloadStr, ep.secretHash);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10_000);
-      const res = await fetch(ep.url, {
+      const res = await fetch(safeUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
